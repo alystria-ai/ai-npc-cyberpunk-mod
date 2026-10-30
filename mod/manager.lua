@@ -1280,17 +1280,38 @@ function M.characterBonds()
     return settings.characterBonds == true
 end
 
--- Story packs (Settings > Companions, docs/RELATIONSHIPS_AND_QUESTS.md section 7): off by default. Read once per turn V sends, when a car or an item effect is decided, never per frame.
+-- Story packs are NOT part of release 0.4.0 (owner decision 31 Oct 2026, docs/STORY_PACKS_INACTIVE.md): they will return as real game quests in a later update.
+-- One switch for development turns them back on: an empty file runtime/story-packs-dev.flag in the mod folder (the bridge reads the same file, bridge/story-packs-gate.mjs).
+-- It is never shipped. Without it the Story packs and Characters text first settings have no row, a saved On is ignored, and nothing of the quest system is built, polled
+-- or loaded. The file is looked for once per session (one io.open at the first call, then a boolean), never per frame. M.refreshStoryPacksGate() looks again.
+local storyPacksDev = nil
+function M.refreshStoryPacksGate()
+    storyPacksDev = nil
+end
+function M.storyPacksAvailable()
+    if storyPacksDev == nil then
+        storyPacksDev = false
+        local ok, file = pcall(io.open, 'runtime/story-packs-dev.flag', 'rb')
+        if ok and file then
+            storyPacksDev = true
+            pcall(file.close, file)
+        end
+    end
+    return storyPacksDev
+end
+
+-- Story packs (Settings > Companions, docs/RELATIONSHIPS_AND_QUESTS.md section 7): off by default and, in a release build, always off (see above). Read once per turn V sends,
+-- when a car or an item effect is decided, never per frame.
 function M.storyPacks()
     loadSettings()
-    return settings.storyPacks == true
+    return settings.storyPacks == true and M.storyPacksAvailable()
 end
 
 -- Characters text first (Settings > Companions, docs/QUEST_PRIMITIVES.md section 10.7): OFF by default, a missing or non-boolean value is off. Read once per private turn V sends (the bonds
 -- block carries it as reach) and once a second by the reach timer while it runs (mod/quest-reach.lua), never per frame.
 function M.reachOuts()
     loadSettings()
-    return settings.reachOuts == true
+    return settings.reachOuts == true and M.storyPacksAvailable()
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -1783,6 +1804,7 @@ end
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
     invitableCache, sideCache = nil, nil
+    storyPacksDev = nil   -- the development switch is looked for again (docs/STORY_PACKS_INACTIVE.md)
     companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
@@ -2393,8 +2415,9 @@ function M.snapshot(player)
             revengeAmbushes = settings.revengeAmbushes == true,
             characterEddies = settings.characterEddies == true,
             characterBonds = settings.characterBonds == true,
-            storyPacks = settings.storyPacks == true,
-            reachOuts = settings.reachOuts == true,
+            storyPacks = M.storyPacks(),
+            storyPacksAvailable = M.storyPacksAvailable(),
+            reachOuts = M.reachOuts(),
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),

@@ -367,8 +367,6 @@ Everything lives under **Companion Manager > Settings**, a short list of pages: 
 | Companions change outfits | Companions | Off |
 | Eddies with characters | Companions | Off |
 | Character bonds | Companions | Off |
-| Story packs (needs Character bonds) | Companions | Off |
-| Characters text first (needs Story packs) | Companions | Off |
 | Companions react | Companions | On |
 | Street reputation | Night City | On |
 | NPCs react to threats and commands | Night City | On |

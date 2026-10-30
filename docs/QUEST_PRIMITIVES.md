@@ -1,5 +1,7 @@
 # Quest primitives: how a bond quest plays in the game
 
+> **Inactive in 0.4.0 (31 Oct 2026).** The story packs this document describes are not part of release 0.4.0. They have no setting row, the bridge ignores them and the game side builds none of it. They will come back as real game quests in a later update. See [STORY_PACKS_INACTIVE.md](STORY_PACKS_INACTIVE.md) for the switch that turns them on for development.
+
 Branch `feat/quest-primitives` (worktree `wt-questprim`), 2026-10-29. This is the build of the gameplay half of [BOND_QUESTS.md](BOND_QUESTS.md) (section 21
 lists the primitives, section 22 the build order, [BOND_QUEST_LINES.md](BOND_QUEST_LINES.md) holds the scripted lines). It sits on the pack runner of
 [RELATIONSHIPS_AND_QUESTS.md](RELATIONSHIPS_AND_QUESTS.md) (phase 2). How to turn a quest into pack data is [QUEST_PACK_RECIPE.md](QUEST_PACK_RECIPE.md).

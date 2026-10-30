@@ -3,6 +3,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+// Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): this test of them runs with the development switch on.
+import './story-packs-dev-on.mjs';
 import {parseBonds} from './bonds.mjs';
 import {parseInput} from './protocol.mjs';
 import {createQuestPoller} from './quest-poller.mjs';

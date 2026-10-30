@@ -786,6 +786,8 @@ test('V’s microphone voice is its own setting: a file without vVoiceMicOwn and
 
 test('Characters text first is off by default (30 Oct), and a player who turned it on keeps it across a restart', () => {
   const out = run(`${managerLua}
+    -- Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): this runs with the development switch on, bridge/story-packs-off.test.mjs has the release build.
+    files['runtime/story-packs-dev.flag'] = ''
     local fresh = newManager()
     report('freshOff', fresh.reachOuts()); report('freshSnapshot', fresh.snapshot(newPlayer()).settings.reachOuts)
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, reachOuts: true}))}

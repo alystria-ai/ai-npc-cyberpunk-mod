@@ -330,8 +330,8 @@ test('the wiring: three send sites attach (group rounds too, never a reaction or
   assert.match(manager, /if type\(settings\.characterBonds\) ~= 'boolean' then settings\.characterBonds, settingsNeedSave = false, true end/);
   assert.match(manager, /function M\.characterBonds\(\)\n\s*loadSettings\(\)\n\s*return settings\.characterBonds == true/);
   assert.match(manager, /if type\(settings\.storyPacks\) ~= 'boolean' then settings\.storyPacks, settingsNeedSave = false, true end/);
-  assert.match(manager, /function M\.storyPacks\(\)\n\s*loadSettings\(\)\n\s*return settings\.storyPacks == true/);
-  assert.match(manager, /storyPacks = settings\.storyPacks == true,/);
+  assert.match(manager, /function M\.storyPacks\(\)\n\s*loadSettings\(\)\n\s*return settings\.storyPacks == true and M\.storyPacksAvailable\(\)/);
+  assert.match(manager, /storyPacks = M\.storyPacks\(\),/);
   assert.match(manager, /elseif key == 'storyPacks' then\n\s*if type\(value\) ~= 'boolean' then return false, 'This setting must be on or off\.' end\n\s*nextSettings\.storyPacks = value/);
   const ui = read('../mod/manager-ui.lua');
   assert.match(ui, /setting\('characterBonds', 'Character bonds', 'bool', snapshot\.settings\.characterBonds == true, false,/);
@@ -442,8 +442,8 @@ test('the wiring of the Relationships page: Home entry right after the Model bro
 test('Characters text first: OFF by default in the settings file (30 Oct, reversing 29 Oct), read as off unless true, a row right after Story packs with its own default, set only by a boolean, in the bonds block', () => {
   const manager = read('../mod/manager.lua');
   assert.match(manager, /if type\(settings\.reachOuts\) ~= 'boolean' then settings\.reachOuts, settingsNeedSave = false, true end/);
-  assert.match(manager, /function M\.reachOuts\(\)\n\s*loadSettings\(\)\n\s*return settings\.reachOuts == true/);
-  assert.match(manager, /reachOuts = settings\.reachOuts == true,/);
+  assert.match(manager, /function M\.reachOuts\(\)\n\s*loadSettings\(\)\n\s*return settings\.reachOuts == true and M\.storyPacksAvailable\(\)/);
+  assert.match(manager, /reachOuts = M\.reachOuts\(\),/);
   assert.match(manager, /elseif key == 'reachOuts' then\n\s*if type\(value\) ~= 'boolean' then return false, 'This setting must be on or off\.' end\n\s*nextSettings\.reachOuts = value/);
   const ui = read('../mod/manager-ui.lua');
   assert.match(ui, /setting\('reachOuts', 'Characters text first', 'bool', snapshot\.settings\.reachOuts == true, false,/);

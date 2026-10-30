@@ -119,6 +119,7 @@ import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILE
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
 import {Bonds, BondStore} from './bonds.mjs';
 import {BondPacks} from './bond-pack-runner.mjs';
+import {configureStoryPacksGate, storyPacksAvailable} from './story-packs-gate.mjs';
 import {QuestLink} from './quest-link.mjs';
 import {createFactsReader} from './quest-facts.mjs';
 import {syncAllowlist} from './gift-tables.mjs';
@@ -1358,9 +1359,14 @@ const bondStore = new BondStore();
 await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
 const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
 romanceBond.bonds = bonds;
-// Story packs (Settings > Companions > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
+// Story packs (bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
 // (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
-const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
+// NOT part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): without the development switch (bridge/story-packs-gate.mjs) the runner is built empty and inert. It loads no pack, reads and
+// writes no state file (an existing bond-packs.json is left as it is), writes no effects, the quest link never writes a play file and no poll timer ever runs.
+configureStoryPacksGate({runtime});
+const storyPacksOn = storyPacksAvailable();
+const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)),
+  ...(storyPacksOn ? {path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json')} : {packs: [], reach: null, path: null, effectsPath: null}),
   bonds, log: line => console.error('[BondPacks] ' + line),
   // Developer mode: a pack that does not start says why (once per pack per game day).
   explain: () => replyCapture.enabled,
@@ -1368,7 +1374,7 @@ const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key))
   readFacts: createFactsReader({path: resolve(runtime, 'quest-facts.json')})});
 await bondPacks.load().catch(() => {});
 // The gift allowlist the game checks community gifts against (characters/gift-tables.json): written once at the service start, only when it is missing or changed.
-void syncAllowlist({path: resolve(runtime, 'quest-gift-allowlist.json')});
+if (storyPacksOn) void syncAllowlist({path: resolve(runtime, 'quest-gift-allowlist.json')});
 bonds.packSource = bondPacks.source();
 // Quest primitives (docs/QUEST_PRIMITIVES.md section 4): the quest the game is to execute goes to runtime/quest-play.json (written when the pack state changes), and what the game saw
 // comes back through runtime/quest-events.json. The events file is read every 500 ms only while a quest is active: the timer exists only then (bridge/quest-poller.mjs), so with no quest
@@ -1377,7 +1383,7 @@ const questLink = new QuestLink({packs: bondPacks, readEvents: () => readFile(re
   writePlay: text => atomic(resolve(runtime, 'quest-play.json'), text), now: Date.now, log: line => console.error('[QuestLink] ' + line)});
 const questPoller = createQuestPoller({link: questLink, stopped: () => stopped, onError: error => pollLog('[CyberpunkConvai] Quest link:', error)});
 // The pack state may have changed (a turn, a meeting): the play file follows it (a revision compare when nothing changed), and the poll runs while a quest is active.
-const questSync = () => { void questPoller.sync(); };
+const questSync = storyPacksOn ? () => { void questPoller.sync(); } : () => {};
 // The prepared audio decoder and the media link. Made here, after the quest poller they read and before the voice routing code: the code between is evaluated piece by piece by tests.
 const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
   onLog: message => console.error('[PreparedAudio] ' + message)});
