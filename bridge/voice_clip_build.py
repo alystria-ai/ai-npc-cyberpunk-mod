@@ -358,6 +358,25 @@ def find_vgmstream(explicit: str | None) -> Path:
     raise BuildError("vgmstream-cli.exe was not found")
 
 
+def peak_memory_mb() -> float | None:
+    """Peak working set of this process in MB (Windows), for the timing line."""
+    if os.name != "nt":
+        return None
+    class Counters(ctypes.Structure):
+        _fields_ = [("cb", ctypes.c_uint32), ("PageFaultCount", ctypes.c_uint32), ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t), ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t), ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+    counters = Counters()
+    counters.cb = ctypes.sizeof(Counters)
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = ctypes.c_void_p
+    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    psapi.GetProcessMemoryInfo.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
+    if not psapi.GetProcessMemoryInfo(kernel.GetCurrentProcess(), ctypes.byref(counters), counters.cb):
+        return None
+    return round(counters.PeakWorkingSetSize / 1048576, 1)
+
+
 def build(args: argparse.Namespace) -> int:
     started = time.time()
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -377,9 +396,10 @@ def build(args: argparse.Namespace) -> int:
         spec = voice[kind]
         spec = voice[spec["sameAs"]] if "sameAs" in spec else spec
         samples = build_clip(spec, archives, vgmstream, cache)
-        write_wav(Path(args.out) / kind / f"{args.key}.wav", samples)
-        built[kind] = {"samples": int(len(samples)), "seconds": round(len(samples) / RATE, 3)}
-    print(json.dumps({"key": args.key, "built": built, "ms": round((time.time() - started) * 1000)}))
+        target = Path(args.out) / kind / f"{args.key}.wav"
+        write_wav(target, samples)
+        built[kind] = {"samples": int(len(samples)), "seconds": round(len(samples) / RATE, 3), "sameAsShipped": hashlib.sha256(target.read_bytes()).hexdigest() == spec.get("sha256")}
+    print(json.dumps({"key": args.key, "built": built, "ms": round((time.time() - started) * 1000), "peakMb": peak_memory_mb()}))
     return 0
 
 

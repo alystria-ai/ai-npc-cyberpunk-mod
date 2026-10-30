@@ -255,6 +255,10 @@ def main() -> int:
             ids = entry["pick"]["clips"]
             gain = gain_of(entry)
             result = recover_one(sources, wem_paths, ids, gain, shipped)
+            if not result["ok"] and not gain:        # a gain the configuration does not name (a clip held by the true-peak ceiling): look for one
+                retry = recover_one(sources, wem_paths, ids, 0.001, shipped)
+                if retry["ok"]:
+                    result, gain = retry, retry["gainDb"]
             row = {"key": key, "kind": kind, "group": "archetypes" if "/archetypes/" in entry["reference"] else "picked", "gainDb": gain, "ids": ids}
             if result["ok"]:
                 clip = {"group": row["group"], "writer": result["writer"], "lines": [{k: v for k, v in line.items() if not k.startswith("_")} for line in result["lines"]], "gainDb": result["gainDb"],

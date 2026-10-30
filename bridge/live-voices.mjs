@@ -6,6 +6,8 @@
 // object) and, when one character's clip changes, edits that one key in each of them:
 //   a clip         the key's descriptor becomes {reference: runtime/player-voices/<key>.wav, sha256, transcript}, the player's clip as the index and the
 //                  file agree on it (PlayerVoices.extras checks the hash);
+//   a generated clip   (no clip of the player's) the clips built from the player's own game files (bridge/voice-clips.mjs), one per engine, replace the shipped ones;
+//                  the player's clip still beats them, and a character whose clips are not ready keeps the shipped descriptor;
 //   no clip        the key goes back to the descriptor the shipped configuration has (read from the original, unmerged file); when that has none, to the
 //                  descriptor the optional `fallback(key)` gives (V's voice keys: V is merged as an extra, so the shipped files do not have them, and the
 //                  bridge supplies the mod-built or shipped V reference); and when there is neither, the key leaves the table (a character the player
@@ -42,13 +44,16 @@ export class LiveVoices {
    *   allowed     key => boolean: a story character or a character the player still has; any other key has no clip
    *   folder      the player voice folder the clips are in (PlayerVoices.folder)
    *   apply       update => boolean: VoiceSelection.setVoices
+   *   generated   optional, sync: (key, shipped) => {pocket, short, long} | null. The descriptors of a character's clips built from the game files, given the shipped
+   *               descriptors of the same character ({pocket, short, long}, for the words). Used only when the player has no clip of their own for the key.
    *   fallback    optional, sync: key => {reference, sha256, transcript} | null. What a key speaks with when it has no clip and the shipped configuration has
    *               no descriptor for it (V's `v-male` / `v-female`: the mod-built or shipped V reference). Without it, or when it gives null or throws, such a
    *               key leaves the tables as before. It gets the same descriptor for every engine, so it is only for keys every engine can read.
    *   log         (message) => void: never given the words said in a clip
    */
-  constructor({voices = {}, shipped = async () => ({}), players, allowed = () => true, folder = null, apply, fallback = null, log = () => {}} = {}) {
-    Object.assign(this, {shipped, players, allowed, folder, apply, fallback: typeof fallback === 'function' ? fallback : null, log});
+  constructor({voices = {}, shipped = async () => ({}), players, allowed = () => true, folder = null, apply, fallback = null, generated = null, log = () => {}} = {}) {
+    Object.assign(this, {shipped, players, allowed, folder, apply, fallback: typeof fallback === 'function' ? fallback : null,
+      generated: typeof generated === 'function' ? generated : null, log});
     this.voices = Object.fromEntries(ENGINES.map(engine => [engine, plain(voices[engine]) ? {...voices[engine]} : null]));
     this.chain = Promise.resolve();
   }
@@ -67,10 +72,14 @@ export class LiveVoices {
       if (!descriptor) { try { shipped = await this.shipped() ?? {}; } catch { shipped = {}; } }
       let spare = null;
       if (!descriptor && this.fallback) { try { spare = this.fallback(key) ?? null; } catch { spare = null; } }
+      let built = null;
+      if (!descriptor && this.generated) {
+        try { built = this.generated(key, Object.fromEntries(ENGINES.map(engine => [engine, shipped[engine]?.[key] ?? null]))) ?? null; } catch { built = null; }
+      }
       const update = {changed: [key], playerVoiceDirectory: this.folder, omni: {}};
       for (const engine of ENGINES) {
         if (!this.voices[engine]) continue;
-        this.voices[engine] = withPlayerVoice(this.voices[engine], key, descriptor, shipped[engine], spare);
+        this.voices[engine] = withPlayerVoice(this.voices[engine], key, descriptor ?? (plain(built?.[engine]) ? built[engine] : null), shipped[engine], spare);
         if (engine === 'pocket') update.pocket = this.voices.pocket; else update.omni[engine] = this.voices[engine];
       }
       return this.apply(update);
