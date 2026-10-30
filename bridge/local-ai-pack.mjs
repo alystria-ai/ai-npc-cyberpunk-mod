@@ -28,6 +28,10 @@
 // only when CYBERPUNK_CONVAI_USVFS=1: realpathSync.native of the opened file), because llama-server reads real files. A server folder is
 // taken whole from one real place: the exe and the DLLs it loads must be neighbours there (chooseServer). Outside usvfs nothing is mapped.
 //
+// The embedding model of the memory search ships in the Runtime too (app/models/embed/, RUNTIME_EMBED_FOLDER; every text provider's memory uses it, with or without a pack), and the
+// Runtime's own engine runs it on the CPU (bridge/local-embed.mjs). The Runtime's copy is preferred, so a pack of 0.2.9 to 0.4.x that still carries the model (`embed` in its manifest) works
+// as before and a newer pack, which carries none, leaves `embed` to the Runtime. The developer layout keeps its own.
+//
 // The engine (llama-server, its DLLs and llama-fit-params) ships in the Runtime, in app/llama-cpp/ (docs/LOCAL_AI.md, "The engine is in the Runtime"), so an engine
 // fix reaches players through the Runtime update zip. It is looked for first: when it is complete (the server and the libraries it loads, ENGINE_FILES) every pack
 // uses it, whatever `server` its manifest names. A pack that ships its own copy (llama/ inside the pack, every pack up to 0.2.7) is the fall-back: an older Runtime
@@ -70,11 +74,23 @@ export function placeLabel(real, virtual) {
 export const LOCAL_AI_ENV = Object.freeze({
   root: 'CYBERPUNK_CONVAI_LOCAL_AI', dev: 'CYBERPUNK_CONVAI_LOCAL_AI_DEV', server: 'CYBERPUNK_CONVAI_LOCAL_SERVER', engine: 'CYBERPUNK_CONVAI_LOCAL_ENGINE',
   standard: 'CYBERPUNK_CONVAI_LOCAL_MODEL', lite: 'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', embed: 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL',
+  runtimeEmbed: 'CYBERPUNK_CONVAI_LOCAL_RUNTIME_EMBED',
 });
 
 /** The folder of the Runtime's engine under the app folder, and the files that must all be there for it to count (the `require` list of packaging/release.config.json, which a test keeps equal). */
 export const RUNTIME_ENGINE_FOLDER = 'llama-cpp';
 export const ENGINE_FILES = Object.freeze(['llama-server.exe', 'llama-server-impl.dll', 'llama.dll', 'ggml.dll', 'ggml-base.dll', 'ggml-vulkan.dll', 'ggml-cpu-x64.dll']);
+
+/** The folder (under the app folder) and file name of the embedding model the Runtime carries (a test keeps them equal to `localAi.embed` of packaging/release.config.json). */
+export const RUNTIME_EMBED_FOLDER = 'models/embed';
+export const EMBED_MODEL_FILE = 'granite-embedding-107m-multilingual-Q8_0.gguf';
+
+/** Where the Runtime's embedding model is, or null when neither CYBERPUNK_CONVAI_LOCAL_RUNTIME_EMBED nor a project folder says. */
+export function runtimeEmbedFile({project, environment = process.env} = {}) {
+  const named = environment?.[LOCAL_AI_ENV.runtimeEmbed];
+  if (typeof named === 'string' && named.trim()) return resolve(named);
+  return project ? resolve(project, RUNTIME_EMBED_FOLDER, EMBED_MODEL_FILE) : null;
+}
 
 /** Where the Runtime's engine folder is, or null when neither CYBERPUNK_CONVAI_LOCAL_ENGINE nor a project folder says. */
 export function runtimeEngineFolder({project, environment = process.env} = {}) {
@@ -139,8 +155,11 @@ export function detectLocalAiPack({project, environment = process.env, exists = 
   const present = (piece, tier) => { const file = tier && place(piece, tier.file); return file && exists(file) ? {file, name: tier.name, ...(tier.mmproj ? {mmproj: realPath(tier.mmproj)} : {})} : null; };
   const standard = present('standard', layout.standard);
   const lite = present('lite', layout.lite);
+  // The Runtime's embedding model first (never for a developer's folder); else the one a pack names (a pack of 0.2.9 to 0.4.x carries it).
+  const runtimeModel = layout.dev ? null : runtimeEmbedFile({project, environment});
+  const runtimeEmbed = runtimeModel && exists(realPath(runtimeModel)) ? {file: realPath(runtimeModel), dim: LOCAL_AI_EMBED_DIMENSION, id: modelId(runtimeModel)} : null;
   const embedFile = layout.embed && place('embed', layout.embed.file);
-  const embed = embedFile && exists(embedFile) ? {file: embedFile, dim: layout.embed.dim, id: layout.embed.id} : null;
+  const embed = runtimeEmbed ?? (embedFile && exists(embedFile) ? {file: embedFile, dim: layout.embed.dim, id: layout.embed.id} : null);
   const missing = [];
   if (!server) missing.push('server');
   if (!standard && !lite && !matureEngine) missing.push('model');

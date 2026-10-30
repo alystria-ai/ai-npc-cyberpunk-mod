@@ -254,10 +254,17 @@ async function localAiChecks({work, game, app}) {
   const root = join(app, 'local-ai');
   const spec = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8')).localAi;
   // The packs ship every model whole (no parts, nothing to join at the first start); everything must match its pin.
-  for (const [label, item] of [['standard chat model', spec.tiers.standard], ['lite chat model', spec.tiers.lite], ['embedding model', spec.embed]]) {
+  for (const [label, item] of [['standard chat model', spec.tiers.standard], ['lite chat model', spec.tiers.lite]]) {
     const path = join(root, 'models', item.file);
     const whole = existsSync(path) && (await stat(path)).size === item.size && await sha256File(path) === item.sha256;
     check(`Local AI ${label} is whole and matches its pinned hash`, whole, item.name);
+  }
+  // The embedding model is the Runtime's (app/<localAi.embed.runtimeFolder>/), not the packs': whole there, and in none of the packs unless embed.inPacks says so.
+  {
+    const path = join(app, spec.embed.runtimeFolder, spec.embed.file);
+    const whole = existsSync(path) && (await stat(path)).size === spec.embed.size && await sha256File(path) === spec.embed.sha256;
+    check('the embedding model is whole in the Runtime and matches its pinned hash', whole, spec.embed.name);
+    if (spec.embed.inPacks === false) check('no Local AI pack carries the embedding model', !existsSync(join(root, 'models', spec.embed.file)));
   }
   check('Local AI models are whole files, no parts', !(await readdir(join(root, 'models'))).some(name => /\.part\d+$/.test(name)));
   // The packaged bridge finds the pack from the environment the packaged service gives it, ignoring a developer's folder.

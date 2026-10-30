@@ -63,7 +63,7 @@ Text and voice are separate choices. Pick one text option (Convai, Google Gemini
 1. Install the mod from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436?tab=files) first, then close the game.
 2. Extract the pack zip **into your Cyberpunk 2077 folder** (the one with `bin`, `archive` and `r6`), allowing folders to merge. Every zip already starts with the right folders (`bin`, `r6`, `archive` or `red4ext`). Extract the mod before the OmniVoice pack.
    - Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to *name*" do that by default). If it happens anyway with an optional pack, the mod moves the pack files into place by itself at the next start.
-   - Vortex: For the Local AI and Mature packs Vortex shows "You Have Reached The Fallback Installer": choose "Yes, Install To Staging Anyway" and every file lands correctly. Two of them at once give "unresolved file conflicts" (they share identical licence and embedding model files): pick either one to load after the other, it makes no difference. The OmniVoice pack holds DLLs and Vortex can't install it: extract it by hand. The warning sign in the Version column and "external changes" at deploy are harmless.
+   - Vortex: For the Local AI and Mature packs Vortex shows "You Have Reached The Fallback Installer": choose "Yes, Install To Staging Anyway" and every file lands correctly. Two of them at once give "unresolved file conflicts" (they share identical licence files): pick either one to load after the other, it makes no difference. The OmniVoice pack holds DLLs and Vortex can't install it: extract it by hand. The warning sign in the Version column and "external changes" at deploy are harmless.
    - Mod Organizer 2: the multilingual packs and PocketTTS models go INTO the mod's folder.
 3. Start the game. Open the Companion Manager, then Settings > Conversation provider to pick Local AI and a model, or Settings > Voices to pick OmniVoice.
 
@@ -88,7 +88,7 @@ Every model file in the optional packs is the unmodified upstream file, pinned b
 | llama.cpp `llama-server` b11782 (Vulkan), in the Runtime | ggml-org/llama.cpp | MIT |
 | Gemma 4 E4B QAT q4_0 (Local AI standard) | google/gemma-4-E4B-it-qat-q4_0-gguf | Apache-2.0 |
 | Bonsai 2 4B Q2_0 (Local AI lite) | prism-ml/Ternary-Bonsai-2-4B-gguf (PrismML) | Apache-2.0 |
-| granite-embedding-107m-multilingual Q8_0 (memory) | lmstudio-community/granite-embedding-107m-multilingual-GGUF (IBM) | Apache-2.0 |
+| granite-embedding-107m-multilingual Q8_0 (memory, in the Runtime) | lmstudio-community/granite-embedding-107m-multilingual-GGUF (IBM) | Apache-2.0 |
 | Qwen3.5-4B Uncensored HauhauCS Aggressive (Mature lite) | HauhauCS/Qwen3.5-4B-Uncensored-HauhauCS-Aggressive | Apache-2.0 |
 | Gemma4-E4B-MiniFantasy-V1 (Mature standard) | Nubinu/Gemma4-E4B-MiniFantasy-V1-GGUF | Apache-2.0 |
 | OmniVoice model (language model rounded to float16) | k2-fsa/OmniVoice | code Apache-2.0; weights CC-BY-NC (non-commercial) |
