@@ -791,6 +791,10 @@
       "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
     },
     {
+      "source": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds",
+      "target": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds"
+    },
+    {
       "source": "mod/relationship-state.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/relationship-state.lua"
     },

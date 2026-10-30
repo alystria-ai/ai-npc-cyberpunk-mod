@@ -291,6 +291,10 @@ function M.action(controller, contact, presentation)
     -- Only when the game (redscript) put its own English label there: a pad has no favorite hint and its label is left alone.
     local favorite = favoriteLabel(controller)
     if favorite and favorite:GetText() == 'Favorite' then favorite:SetText(text('Favorite')) end
+    -- The search hint (the O key and a word, PhoneChatSearch.reds) is made by redscript with the English word.
+    local okRoot, root = pcall(function() return controller:GetRootWidget() end)
+    local search = okRoot and root and find(root, 'convaiSearchHintLabel', 8)
+    if search and search:GetText() == 'Search' then search:SetText(text('Search')) end
 end
 
 local function messagePath(controller)

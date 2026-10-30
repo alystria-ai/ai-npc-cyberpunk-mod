@@ -20,7 +20,7 @@ local language, generation, calls = 'fr', 1, {}
 local translations = {
   fr={['TALK TO {character}']='PARLER À {character}',
     ['Type your message to the character.']='Écrivez votre message au personnage.',
-    ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',
+    ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',['Search']='Rechercher',
     ['Press Enter to write  /  Esc to close']='Entrée : écrire / Échap : fermer',
     ['Write a message...  /  Enter to send  /  Esc to stop typing']='Écrire... / Entrée : envoyer / Échap : arrêter',
     ['Message sent. Waiting for reply.']='Message envoyé. En attente de réponse.',
@@ -408,6 +408,10 @@ local root=widget('Root');local hints=widget('inputHintsPanel');hints:Reparent(r
 local left=widget('leftInputHints');left:Reparent(hints);local accept=widget('inputAccept');accept:Reparent(left)
 local label=widget('text');label:Reparent(accept);label.text='Favorite';nested.root=root
 m.action(nested,{convaiChat=true},true);assert(label.text=='Favori')
+-- The search hint (the O key and a word, made by PhoneChatSearch.reds) is translated the same way, only while it holds the English word.
+local search=widget('convaiSearchHintLabel');search:Reparent(hints);search.text='Search'
+m.action(nested,{convaiChat=true},true);assert(search.text=='Rechercher',search.text)
+search.text='Anything else';m.action(nested,{convaiChat=true},true);assert(search.text=='Anything else')
 `));
 
 test('Chat action and breadcrumb translation are gated by native ownership and restore through the game', () => runLua(setup + `

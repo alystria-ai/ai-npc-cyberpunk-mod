@@ -46,6 +46,7 @@
       "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
       "r6/scripts/CyberpunkConvai/PhoneChat.reds",
       "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+      "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds",
       "r6/scripts/CyberpunkConvai/Manager.reds"
     ],
     "excludes": [
@@ -58,7 +59,7 @@
     ]
   },
   "counts": {
-    "strings": 1863,
+    "strings": 1864,
     "dynamicTemplates": 52,
     "contexts": 40
   },
@@ -1128,6 +1129,7 @@
     "Scripts {scripts} and Runtime {runtime}.": "Scripts {scripts} and Runtime {runtime}.",
     "Scripts {scripts} on Runtime base {runtime}.": "Scripts {scripts} on Runtime base {runtime}.",
     "Scroll lock": "Scroll lock",
+    "Search": "Search",
     "Search characters": "Search characters",
     "Search names, models or settings...": "Search names, models or settings...",
     "Section headings": "Section headings",
@@ -2779,6 +2781,7 @@
       "CHAT",
       "Chat",
       "Favorite",
+      "Search",
       "TALK TO {character}"
     ],
     "phone.native": [
@@ -2790,6 +2793,7 @@
       "Microphone connection timed out. Please try again.",
       "Microphone unavailable. Check your Windows input device.",
       "No speech was heard. Hold the talk key while you speak.",
+      "Search",
       "The microphone you chose in Settings is not connected, so the Windows default input is used.",
       "The microphone {name} sends no sound. Check your Windows input device.",
       "This contact has no companion mapping yet.",
@@ -5188,9 +5192,9 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:221",
-        "mod/phone-chat-style.lua:310",
+        "mod/phone-chat-style.lua:313",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:693",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:813"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:833"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -5199,7 +5203,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:107",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:379"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:381"
       ]
     },
     "COMPANION MANAGER": {
@@ -5216,7 +5220,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:108",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:379"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:381"
       ]
     },
     "Calls are not available during combat.": {
@@ -5460,7 +5464,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:290",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:716"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:734"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -6129,8 +6133,8 @@
         "phone.native"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:486",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:502"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:488",
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:504"
       ]
     },
     "Close this menu.": {
@@ -6652,7 +6656,7 @@
       "references": [
         "mod/phone-chat-style.lua:41",
         "mod/phone-chat.lua:358",
-        "mod/phone-chat.lua:557"
+        "mod/phone-chat.lua:559"
       ]
     },
     "Conversation is unavailable for this contact.": {
@@ -6661,7 +6665,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:51",
-        "mod/phone-chat.lua:947"
+        "mod/phone-chat.lua:1040"
       ]
     },
     "Conversation profile cleared.": {
@@ -6758,7 +6762,7 @@
       "references": [
         "mod/holocall.lua:780",
         "mod/phone-chat-style.lua:44",
-        "mod/phone-chat.lua:807"
+        "mod/phone-chat.lua:900"
       ]
     },
     "Conversations are disabled in Companion Manager.": {
@@ -6767,7 +6771,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:50",
-        "mod/phone-chat.lua:947"
+        "mod/phone-chat.lua:1040"
       ]
     },
     "Conversations with Convai API key chosen as the provider use this plan.": {
@@ -7192,7 +7196,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:106",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:378"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:380"
       ]
     },
     "Date night": {
@@ -7776,7 +7780,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:293",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:737"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:755"
       ]
     },
     "Favorites": {
@@ -8807,7 +8811,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:105",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:378"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:380"
       ]
     },
     "Idle moves": {
@@ -9878,8 +9882,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:40",
-        "mod/phone-chat.lua:803",
-        "mod/phone-chat.lua:948"
+        "mod/phone-chat.lua:1041",
+        "mod/phone-chat.lua:896"
       ]
     },
     "Memory in use": {
@@ -9944,7 +9948,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:48",
-        "mod/phone-chat.lua:945"
+        "mod/phone-chat.lua:1038"
       ]
     },
     "Microphone": {
@@ -10585,7 +10589,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:47",
-        "mod/phone-chat.lua:863"
+        "mod/phone-chat.lua:956"
       ]
     },
     "No settings were supplied.": {
@@ -11902,7 +11906,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:385"
+        "mod/phone-chat-style.lua:388"
       ]
     },
     "Press again": {
@@ -12853,8 +12857,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:39",
-        "mod/phone-chat.lua:797",
-        "mod/phone-chat.lua:949"
+        "mod/phone-chat.lua:1042",
+        "mod/phone-chat.lua:890"
       ]
     },
     "Saved as {name}. Press Spawn party under it to invite them again.": {
@@ -13026,6 +13030,16 @@
       "references": [
         "mod/key-bindings.lua:205",
         "mod/key-bindings.lua:69"
+      ]
+    },
+    "Search": {
+      "contexts": [
+        "phone.localized",
+        "phone.native"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:296",
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:498"
       ]
     },
     "Search characters": {
@@ -16268,7 +16282,7 @@
       "references": [
         "mod/holocall.lua:786",
         "mod/phone-chat-style.lua:52",
-        "mod/phone-chat.lua:484"
+        "mod/phone-chat.lua:486"
       ]
     },
     "This character speaks with a generic voice that fits the gender.": {
@@ -16320,7 +16334,7 @@
       ],
       "references": [
         "mod/init.lua:6141",
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:490"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:492"
       ]
     },
     "This copy can still follow you, but will not join conversations.": {
@@ -16743,7 +16757,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:43",
-        "mod/phone-chat.lua:805"
+        "mod/phone-chat.lua:898"
       ]
     },
     "Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.": {
@@ -16834,7 +16848,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:46",
-        "mod/phone-chat.lua:850"
+        "mod/phone-chat.lua:943"
       ]
     },
     "Unavailable": {
@@ -17459,7 +17473,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:45",
-        "mod/phone-chat.lua:811"
+        "mod/phone-chat.lua:904"
       ]
     },
     "Wait for your summoned car to arrive.": {
@@ -17632,7 +17646,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:49",
-        "mod/phone-chat.lua:945"
+        "mod/phone-chat.lua:1038"
       ]
     },
     "Walk": {
@@ -17969,7 +17983,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:384"
+        "mod/phone-chat-style.lua:387"
       ]
     },
     "YOUR PARTY": {
@@ -19503,7 +19517,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:499"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:501"
       ]
     },
     "{name}: invitation cancelled.": {
@@ -19520,7 +19534,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:499"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:501"
       ]
     },
     "{name}: preparation failed. Cancel and invite again.": {
@@ -20329,7 +20343,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:499"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:501"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -20353,7 +20367,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:499"
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:501"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -20384,6 +20398,7 @@
       "files": [
         "r6/scripts/CyberpunkConvai/PhoneChat.reds",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds",
         "mod/phone-chat-style.lua"
       ],
       "note": "Native creation sets CHAT/Chat and fallback Enter/Esc hints. Refresh existing widgets on locale change, and translate only mod-owned Chat widgets. The current ^ENTER status filter is English-specific. Native Messages/Contacts and game SMS stay game-localized."

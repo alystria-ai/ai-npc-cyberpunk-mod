@@ -852,6 +852,10 @@
         {
           "source": "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
           "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds",
+          "target": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds"
         }
       ],
       "plannedComponents": [
