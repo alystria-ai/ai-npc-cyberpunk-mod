@@ -20,6 +20,7 @@ This file states what each component's published licence says. It is not legal a
 | sherpa-onnx and sherpa-onnx-core (run the Moonshine model on the CPU) | 1.13.6 | Apache-2.0 | `*.dist-info` folders under `app/python/Lib/site-packages` |
 | Playwright, playwright-core | 1.58.2 | Apache-2.0 | `app/node_modules/<name>/LICENSE` |
 | Convai Web SDK (`@convai/web-sdk`), compiled into `app/assets/realtime-client.js` | 1.7.0 | Apache-2.0 | `app/licenses/client/` |
+| Lucide icons: the few icon shapes written out as inline SVG in the character editor page, `app/bridge/character-editor-page.mjs` | Lucide, as published in 2026 (the shapes are copied, nothing is fetched or installed) | ISC, with portions MIT (Feather, Copyright (c) Cole Bemis) | the licence text under "Lucide icons" below |
 | vgmstream `vgmstream-cli.exe`, the command line decoder of the vgmstream project, in `app/vgmstream/`. It decodes the Wwise voice-over of a player's V voice mod, one line at a time, only on the player's own PC; the process exits when V's voice reference is built | r2055 (build of Sep 28 2025), the unmodified official Windows release files | ISC, Copyright (c) 2008-2025 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm, Christopher Snowhill, NicknineTheEagle, bxaimc, Thealexbarney, CyberBotX, et al (and the portions named in the file) | `app/licenses/vgmstream/COPYING`; source: https://github.com/vgmstream/vgmstream/tree/r2055 |
 | FFmpeg libraries `avcodec-vgmstream-59.dll`, `avformat-vgmstream-59.dll`, `avutil-vgmstream-57.dll` and mpg123 `libmpg123-0.dll`, loaded by vgmstream-cli (in `app/vgmstream/`) | FFmpeg n5.1.2 as built by vgmstream; mpg123 as built by vgmstream | LGPL-2.1-or-later. These are the unmodified official vgmstream release DLLs, dynamically linked, so a compatible build can replace them; the FFmpeg build also links the Opus library (BSD-3-Clause) | `app/licenses/vgmstream/NOTICE-bundled-libraries.txt`; source and build scripts: https://github.com/vgmstream/vgmstream at the release tag r2055; FFmpeg: https://ffmpeg.org/, mpg123: https://www.mpg123.de/ |
 | `libvorbis.dll`, `libspeex-1.dll`, `libcelt-0061.dll`, `libcelt-0110.dll` and `libatrac9.dll`, loaded by vgmstream-cli (in `app/vgmstream/`) | libVorbis 1.3.7; Speex; CELT 0.6.1 and 0.11.0; LibAtrac9 (all as built by vgmstream) | BSD-3-Clause (libVorbis, Speex, CELT, Xiph.Org Foundation and others); MIT (LibAtrac9, Alex Barney) | `app/licenses/vgmstream/NOTICE-bundled-libraries.txt`; source: https://github.com/vgmstream/vgmstream at the release tag r2055 |
@@ -36,6 +37,39 @@ decodes belongs to the player's game and voice mod, not to this package. vgmstre
 separate DLLs, unmodified and dynamically linked, so a player can replace them with another build. Their licences and the source locations are in
 `app/licenses/vgmstream/` (`COPYING`, `NOTICE-bundled-libraries.txt`); the sources and build scripts of every library are in the vgmstream repository at the tag `r2055`.
 The G.719 library is the one component whose licence text the release does not give.
+
+### Lucide icons (character editor)
+
+The character editor page (`bridge/character-editor-page.mjs`, the web page Settings > Edit characters opens on the player's own PC) draws its icons from the Lucide icon set
+(https://lucide.dev). Only the shapes the page uses are copied into the page as inline SVG markup, so the page fetches nothing and needs no icon font, library or network.
+Lucide is ISC-licensed, and the parts of it that come from Feather are MIT-licensed. Both licence texts follow, as Lucide publishes them.
+
+```
+ISC License
+
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this
+permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+The MIT License (MIT) (for portions derived from Feather)
+
+Copyright (c) 2013-2022 Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
 
 ### Pocket voice model (Kyutai)
 

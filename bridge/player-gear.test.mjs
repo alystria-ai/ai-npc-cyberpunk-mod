@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {parseGear, gearContext, gearDiagnostic, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
+import {parseGear, gearContext, gearDiagnostic, asksAboutGear, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
 import {parseInput} from './protocol.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {turnKey} from './group-lookahead.mjs';
@@ -109,12 +109,20 @@ test('parseInput carries the gear, and a malformed snapshot keeps the message', 
   assert.equal(gearContext(broken), '');
 });
 
-test('the conversation context carries the line on a manual turn, last before the voice rules, and not on a reaction', () => {
-  const context = conversationContext(parseInput(JSON.stringify(turn({gear: gear()}))));
+test('the conversation context carries the line on a manual turn whose words are about V\'s gear, before the voice rules, and not on a reaction or small talk', () => {
+  const asking = {gear: gear(), text: 'what am I carrying?'};
+  const context = conversationContext(parseInput(JSON.stringify(turn(asking))));
   assert.match(context, /V's current gear/);
   assert.ok(context.indexOf('V\'s current gear') < context.indexOf('Speak only your own dialogue'));
-  assert.ok(!/V's current gear/.test(conversationContext(parseInput(JSON.stringify(turn())))));
-  assert.ok(!/V's current gear/.test(conversationContext({...parseInput(JSON.stringify(turn({gear: gear()}))), reaction: {kind: 'battle'}})));
+  assert.ok(!/V's current gear/.test(conversationContext(parseInput(JSON.stringify(turn({text: 'what am I carrying?'}))))));
+  assert.ok(!/V's current gear/.test(conversationContext({...parseInput(JSON.stringify(turn(asking))), reaction: {kind: 'battle'}})));
+  // 2026-10-30: told on every turn it was narrated ("you're wearing that suit like a second skin" to "I wouldn't mind coffee").
+  assert.ok(!/V's current gear/.test(conversationContext(parseInput(JSON.stringify(turn({gear: gear()}))))), 'small talk goes without it');
+});
+
+test('asksAboutGear: weapons, armour, cyberware and what V carries, in English and the menu languages; small talk is not', () => {
+  for (const text of ['what am I carrying?', 'nice gun huh', 'check my cyberware', 'like my new katana?', 'mi arma', 'meine Waffe', '私の武器']) assert.equal(asksAboutGear(text), true, text);
+  for (const text of ['hey', 'so hows life', 'i wouldnt mind coffee', '', undefined]) assert.equal(asksAboutGear(text), false, String(text));
 });
 
 test('the per-turn diagnostic says whether the gear line was in the context, or why not', () => {

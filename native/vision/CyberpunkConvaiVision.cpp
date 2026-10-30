@@ -14,8 +14,9 @@
  *
  * Protocol: one request per stdin line, one JSON reply per stdout line, in order.
  *   ready line, once: {"ready":true,"build":W,"wgc":bool,"borderless":bool}
- *   capture <maxWidth 64..2048> <quality 1..100> [wgc|dxgi|auto]     (default wgc; auto: borderless wgc, else dxgi, else wgc)
- *     -> {"ok":true,"width":W,"height":H,"sourceWidth":SW,"sourceHeight":SH,"bytes":N,"method":"wgc|dxgi","border":bool,
+ *   capture <maxWidth 64..2048> <quality 1..100> [wgc|dxgi|auto] [view]     (default wgc; auto: borderless wgc, else dxgi, else wgc;
+ *         view: only the middle of the frame, without the HUD around its edges, see viewOf)
+ *     -> {"ok":true,"width":W,"height":H,"sourceWidth":SW,"sourceHeight":SH,"bytes":N,"method":"wgc|dxgi","border":bool,"view":bool,
  *         "ms":{"find":..,"frame":..,"copy":..,"encode":..,"total":..,"cpu":..},"jpeg":"<base64>"}
  *     -> {"ok":false,"reason":"no-window|minimised|unsupported|no-frame|failed|covered|dxgi-unavailable","ms":{"total":..}}
  *   quit
@@ -172,8 +173,20 @@ struct Pixels {
     UINT rowPitch = 0, width = 0, height = 0;
 };
 
+// The "view" crop (the request's last word, 2026-10-30): the middle of the frame, where the world is, without the game's HUD around the edges (health and
+// level top left, the minimap, clock and quest tracker top right, phone and item notices on the right, weapon and ammo bottom right, subtitles and the mod's
+// text box at the bottom). A live test had a companion read the picture as V "staring at a screen" and nag about the quest notice it showed. The fractions
+// are of the game's client area: 15% to 78% across (the tracker's long lines reach left of the minimap), 12% to 80% down.
+static bool g_cropView = false;
+static Pixels viewOf(const Pixels &source) {
+    if (!g_cropView || source.width < 64 || source.height < 64) return source;
+    const UINT x0 = source.width * 15 / 100, x1 = source.width * 78 / 100, y0 = source.height * 12 / 100, y1 = source.height * 80 / 100;
+    return Pixels{source.data + (size_t)y0 * source.rowPitch + (size_t)x0 * 4, source.rowPitch, x1 - x0, y1 - y0};
+}
+
 // Scales to maxWidth with WIC Fant and encodes a JPEG in memory. False when any step fails.
-static bool encodeJpeg(Device &device, const Pixels &source, UINT maxWidth, UINT quality, std::vector<unsigned char> &jpeg, UINT &width, UINT &height) {
+static bool encodeJpeg(Device &device, const Pixels &whole, UINT maxWidth, UINT quality, std::vector<unsigned char> &jpeg, UINT &width, UINT &height) {
+    const Pixels source = viewOf(whole);
     width = std::min(maxWidth, source.width);
     height = std::max<UINT>(1, (UINT)((double)source.height * width / source.width + 0.5));
     com_ptr<IWICBitmap> bitmap;
@@ -221,7 +234,7 @@ static std::string success(const std::vector<unsigned char> &jpeg, UINT width, U
     return "{\"ok\":true,\"width\":" + std::to_string(width) + ",\"height\":" + std::to_string(height)
         + ",\"sourceWidth\":" + std::to_string(sourceWidth) + ",\"sourceHeight\":" + std::to_string(sourceHeight)
         + ",\"bytes\":" + std::to_string(jpeg.size())
-        + ",\"method\":\"" + method + "\",\"border\":" + (border ? "true" : "false")
+        + ",\"method\":\"" + method + "\",\"border\":" + (border ? "true" : "false") + ",\"view\":" + (g_cropView ? "true" : "false")
         + ",\"ms\":{\"find\":" + number(timing.find) + ",\"frame\":" + number(timing.frame - timing.find)
         + ",\"copy\":" + number(timing.copy - timing.frame) + ",\"encode\":" + number(encodeMs - timing.copy)
         + ",\"total\":" + number(encodeMs) + ",\"cpu\":" + number(cpuMs() - cpuStart) + "},\"jpeg\":\"" + base64(jpeg.data(), jpeg.size()) + "\"}";
@@ -502,11 +515,12 @@ int wmain(int argc, wchar_t **argv) {
     char line[256];
     while (fgets(line, sizeof(line), stdin)) {
         unsigned width = 0, quality = 0;
-        char method[16] = "wgc";
+        char method[16] = "wgc", crop[16] = "";
         if (strncmp(line, "quit", 4) == 0) break;
-        int parsed = sscanf_s(line, "capture %u %u %15s", &width, &quality, method, (unsigned)sizeof(method));
+        int parsed = sscanf_s(line, "capture %u %u %15s %15s", &width, &quality, method, (unsigned)sizeof(method), crop, (unsigned)sizeof(crop));
         if (parsed >= 2 && width >= 64 && width <= 2048 && quality >= 1 && quality <= 100
             && (strcmp(method, "wgc") == 0 || strcmp(method, "dxgi") == 0 || strcmp(method, "auto") == 0)) {
+            g_cropView = strcmp(crop, "view") == 0;
             std::string result;
             try { result = capture(device, cached, width, quality, method); }
             catch (...) { result = "{\"ok\":false,\"reason\":\"failed\"}"; }

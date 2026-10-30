@@ -9,9 +9,10 @@ It is the free cloud option: fast replies (about a second to the first words), l
 1. Make a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). A Google account is enough, no card. Keys start with `AQ.` (the newer ones, 53 characters) or `AIza`.
 2. Copy it, open **Settings > Conversation provider** and press **Add** on the **Google Gemini API key** row. The service reads the key from the clipboard, checks its shape and saves it. The button then reads **Remove**, which deletes the key.
 3. Choose **Google Gemini (free plan)** as the provider. The switch waits until no conversation is running, so a conversation never mixes two providers.
-4. Optional: press **Test connection** on the same page. It sends one tiny request and says OK or what Google answered, in plain words.
 
-With Google Gemini chosen but no key saved, conversations use Convai and one notice says so (`gemini-no-key`). Nothing is sent to Google until the provider is chosen or Test connection is pressed.
+**Add** also tries the key once, right away, with one tiny request in the background (the same request the Custom page's Test connection sends). The key row says the result in plain words, in the first line of its help: Google accepted the key, Google did not accept it (and to check it in Google AI Studio, then Remove it and Add the right one), the free allowance is used up for now, Gemini is not available in your region, or Google could not be reached to check it. There is no Test connection row on this page.
+
+With Google Gemini chosen but no key saved, conversations use Convai and one notice says so (`gemini-no-key`). Nothing is sent to Google until the provider is chosen or a key is added.
 
 ## Design
 
@@ -37,17 +38,23 @@ The same protocol as [CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md), on its own pair o
 
 | File | Writer | Content |
 |---|---|---|
-| `runtime/gemini-provider-command.json` | the game (`mod/custom-provider.lua`, the second instance, `kind = 'gemini'`) | one command with a session-scoped id: `preset-gemini` (Add: read the key from the clipboard, save the fixed endpoint, model and key), `clear-preset-gemini` (Remove: delete the key and both fixed fields), `test` |
-| `runtime/gemini-provider-state.json` | the bridge | whether the key is saved and its last four characters, whether the provider is ready, the answer to the latest command (only the answer to the latest command id is ever shown) |
+| `runtime/gemini-provider-command.json` | the game (`mod/custom-provider.lua`, the second instance, `kind = 'gemini'`) | one command with a session-scoped id: `preset-gemini` (Add: read the key from the clipboard, save the fixed endpoint, model and key, then check the key once), `clear-preset-gemini` (Remove: delete the key and both fixed fields). A `test` command is refused by both sides |
+| `runtime/gemini-provider-state.json` | the bridge | whether the key is saved and its last four characters, whether the provider is ready, the answer to the latest command (only the answer to the latest command id is ever shown), and `check`: `{id, state: 'checking' | 'ok' | 'failed', code?, status?}` for the key just added (a code and an HTTP status only, never Google's words or the key) |
 
-The page has two rows: the key (Add or Remove) and Test connection.
+The page has one row: the key (Add or Remove).
 
 ### Failures
 
 - A **400 with `API_KEY_INVALID`** ("API key not valid"), and "API key expired" or "Missing API key" on a 400, is read as **key not accepted** (`code: 'key'`). Google answers a wrong key with 400, not 401, so this is read in `bridge/mistral-client.mjs` and is not shown as a refused request.
-- A **429** names the quota ("limit: 15 ... Please retry in 21 s", measured with 30 parallel requests). The client waits it out or reports "Google Gemini: limit reached for now".
-- An unknown model is "Google Gemini: model unavailable".
-- Test connection with no key saved makes no request and says to paste the key first.
+- A **429** is Google's free allowance, never credit, whatever "You exceeded your current quota" suggests (the Custom provider reads that sentence from other servers as "out of credits", so Google's shape is read first). Its answer is a list of one object with `status: RESOURCE_EXHAUSTED`, a `QuotaFailure` detail whose `quotaId` names the quota and a `RetryInfo` detail with `retryDelay` ("21s"):
+  - a quota with `PerDay` in its id (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`) is the **daily allowance** (`daily`, not retried). Google resets it at midnight on the US Pacific clock (ai.google.dev/gemini-api/docs/rate-limits), so the notice says when, on this computer's clock (`errorResetTime`);
+  - any other quota (per minute, tokens per minute, or one that names none) is the **per-minute limit** (`limit`). The wait Google names is used as Retry-After when the response has no such header: up to 8 seconds is waited out once, a longer one ends the turn at once with the notice.
+- A **400 `FAILED_PRECONDITION`** that says the location is not supported ("User location is not supported for the API use", "free tier is not available in your country") is **region** (`region`, not retried).
+- A **5xx** (500 `INTERNAL`, 503 `UNAVAILABLE` overloaded, 504 `DEADLINE_EXCEEDED`), a stalled stream or an answer that cannot be read is **server** (busy or an error on Google's side). No connection at all (no network, DNS, TLS) is **unreachable**.
+- A 404 `NOT_FOUND` for the model is **model** (the fixed model was retired or renamed).
+- The Gemini route marks these errors in `customRoute` (`tagGemini`, `bridge/mistral-client.mjs`): the message gets a second marker `[gemini:<code>]`, and the game's notice code is `gemini-<code>`. The kind and the first marker are unchanged, so every other reader (the provider's limit, the phone log, the connection test) works as before. The Custom provider keeps its own wording for the same answers.
+- The settings page says the same in its note on the provider row, while Google Gemini answers: "rate limited for a minute", "free allowance used up for today", "key not accepted", "not available in your region", "model unavailable".
+- Each notice says the next step: check the key in Google AI Studio, wait a minute, or use Convai or Local AI. The texts and when each is shown are in [NOTIFICATIONS.md](NOTIFICATIONS.md) (`gemini-key`, `gemini-daily`, `gemini-limit`, `gemini-region`, `gemini-server`, `gemini-unreachable`, `gemini-model`). Convai is still not used as a fallback after a failed turn; it only answers when Google Gemini has no key.
 - The reply budget is small and the model ID does not look like a reasoning model, so no reasoning field is sent (Gemini refuses `reasoning_effort: "none"` for this model with a 400).
 
 ### Limits

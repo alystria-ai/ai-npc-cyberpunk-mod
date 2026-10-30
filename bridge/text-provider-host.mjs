@@ -9,7 +9,7 @@
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
-import {streamChat, MistralError, DEFAULT_MODELS, VISION_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
+import {streamChat, MistralError, DEFAULT_MODELS, VISION_MODELS, failureKind, failureDetail, newTrace, newAdaptation, tagGemini} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
@@ -27,6 +27,7 @@ import {worldRulesBlock} from './world-rules.mjs';
 import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs, BUDGET} from './prompt-budget.mjs';
 import {imageReserveTokens} from './local-vision.mjs';
+import {pictureForTurn} from './vision-message.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -93,7 +94,7 @@ export const HOLDING_LINES = Object.freeze([
 
 // The custom provider is an endpoint nobody here has measured: a cloud model may queue for several seconds (OpenRouter's free models), and a server
 // on the player's own computer may be loading its model on the first turn. So the waits are longer than Mistral's, and a slow answer is an error
-// the player is told about (custom-unreachable), never an in-character holding line that would hide a wrong address for ever.
+// the player is told about (custom-unreachable, or gemini-server and gemini-unreachable for Google Gemini), never an in-character holding line that would hide a wrong address for ever.
 export const CUSTOM_CLOUD_LIMITS = Object.freeze({firstByteMs: 20000, retryFirstByteMs: 25000, stallMs: 15000, totalMs: 70000, retries: 1, backoffMs: [300]});
 export const CUSTOM_SERVER_LIMITS = Object.freeze({firstByteMs: 90_000, retryFirstByteMs: 90_000, stallMs: 0, totalMs: 120_000, retries: 1, backoffMs: [400]});
 
@@ -187,13 +188,15 @@ export function customRoute({provider, custom, name = 'custom', chat = streamCha
     // The endpoint and model asked now: the prompt profile of a Custom endpoint is chosen by them (bridge/prompt-profiles.mjs customProfileId).
     describe: () => ({origin: custom.origin, model: custom.model}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
-    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits' || provider.limit.kind === 'daily')),
+    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits' || provider.limit.kind === 'daily' || provider.limit.kind === 'region')),
     fallsBack: () => false,
     success() { pausedUntil = 0; provider.noteSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
     failure(error) {
+      // Google Gemini's failures name their own notice (gemini-key, gemini-daily, ...) instead of the Custom provider's (bridge/mistral-client.mjs tagGemini).
+      if (name === 'gemini') tagGemini(error);
       const kind = failureKind(error);
       if (kind === 'limit' && error.retryAfterMs > 0) { const here = scope(); pausedUntil = Math.max(pausedScope === here ? pausedUntil : 0, now() + error.retryAfterMs); pausedScope = here; }
-      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'daily' ? 'daily' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
+      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'daily' ? 'daily' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : kind === 'region' ? 'region' : null);
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     label: name === 'gemini' ? 'Google Gemini' : 'The custom provider'};
@@ -1372,8 +1375,10 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   // "Companions can see" (bridge/companion-vision.mjs): the picture for this turn comes from the frames already in memory (the host's turnImages never waits and never throws), and goes
   // with the config as `visionImages`. Only the in-person host has a vision policy (the phone host has none), and only while the setting is on and the provider can see. Not a reaction.
+  // Only when V's words are about what is around them (bridge/vision-message.mjs pictureForTurn): a view sent with every turn became the topic of every reply.
   const withPictures = (config, send) => {
     if (!host.vision?.active || typeof host.turnImages !== 'function' || !config || config.reaction || config.phoneEvent) return send(config);
+    if (!pictureForTurn({text: config.text})) return send(config);
     return host.turnImages(config, 'reply').then(images => send(images ? {...config, visionImages: images} : config), () => send(config));
   };
   host.reply = function reply(config, options) {

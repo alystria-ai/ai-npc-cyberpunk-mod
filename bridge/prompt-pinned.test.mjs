@@ -17,23 +17,24 @@ test('the prompt Mistral and the local AI build is byte for byte what it was (ha
   // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
   // Re-taken on 2026-10-22 (response audit): rule 7 no longer asks for "a few words of attitude about the place or the hour" and says nothing of weather, time or place unless V asks; the copy of the
   // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
-  // Re-taken on 2026-10-30 (hashes that include the Natural speech block: it now says a sound must be earned; bridge/natural-speech.mjs).
   // Re-taken again on 2026-10-22 on the merge with feat/dynamic-info: the right-now block's own where-sentence (the place is a second sentence, never in the first) and its one
   // guidance sentence ("mention a place or the time only if it matters to what V says"; docs/DYNAMIC_INFO.md), on top of the response audit's changes above.
+  // Re-taken on 2026-10-30 (fix/natural-talk, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): the world heading says the facts are what she already knows, as background, and V's
+  // money band is told only when V's words are about money. Re-taken on the merge into main (2026-10-30) on top of the Natural speech re-take above.
   const expected = {
-    a: 'a5ded27888f73053173cdac97e5b779c924eec27c4b6dcb2e38598bfa6358476',
-    b: '7eb239af65e357d6982ea1cc54b75c8d9c79ffefb7448eec524bd6d285ed1bb0',
-    c: 'd4ac8d3bcbedcda2f5714c45db56b4ab85ee043aa1bced5695e528ee706e2a6a',
-    d: 'eb6564630d4d90ba5e7cb8e3b7ca01250aa476de8c0f1a1c919271f7f5d9f7ae',
-    e: 'e18fb9b4df354d87a8582cf15fcf8eba8b340ef42598a3c816c820006766afb2',
-    f: '55acb18f78b785a5fd1a51550581bf96e04932b12f61ec0e456ffdab71806c9e',
-    g: '536d11c443d797f5ab96df438742bab595071c1dcd94a07872f433f69790f8a5',
+    a: 'e7f631fd314860ed26210edf71bda8e2c5180ec695b59ebb0b92300a9497fd2e',
+    b: 'adfac732febe2746cf0a2463d2f0578308664c9d07fc479c5d3612e01d109425',
+    c: '51eabd30e30ee913c0bfd061cc768e6ab3a754704a63e6157a8a2f6a1710da67',
+    d: '125900a9b963a7bc439fadb5686db30b1dd0aa4398c101207758bcd6d5d3f50a',
+    e: '5217f1d89301a72b14b865b962a632024f7beb24ad228165abd486a7cd018afe',
+    f: '2c302ac5121216163649d52268d38046cb7175771f67a5a0123bd7f4906b22bf',
+    g: '201324ac78651be8aa9d9da5d15bbfcb315c7d5589cbd002365d8f57a54671f9',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'ca95a028a356817ee92628512116f37adf06ade3ea0f6aaf455d315fb2919d82');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'da97a53ed834c7460ce047ccd35b20deff739664192e7a6d7c37030cbbfe8360');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
     'b73c697299ad24497e5a7b9fa8d1a6d8287f13173efdcc9ff0bbf9a2e21c7d5f');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '677671877e1ff07e859b4c5d5c578a603b9e40450c6ec27c52e6ff6f948997d9');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '539b1340b00553033b4cce17f2e5d53439a778da8203672f49e12837b06562e3');
   assert.equal(sha(systemHead({persona: prompt.persona})), 'e280e404f9a7f4db6cf79db635db722f61f92b3189b561a30b75fe257938c856');
 });
 

@@ -98,8 +98,10 @@ export class VisionCapture {
         const timer = setTimeout(() => { resolveReply({ok: false, reason: 'timeout'}); if (this.child === child) { this.stop(); } }, timeoutMs);
         this.waiting.push({resolve: message => { clearTimeout(timer); resolveReply(message); }});
         // "auto": a borderless capture where the system allows one, else Desktop Duplication (no border), else the capture that shows the border. A helper from before
-        // the third word ignores it.
-        try { child.stdin.write(`capture ${width} ${level} auto\n`); }
+        // the third word ignores it. "view" (2026-10-30): only the middle of the frame, without the HUD around its edges (the minimap, the quest tracker, phone notices,
+        // subtitles and the mod's text box), which a model read as V "staring at a screen" and talked about (docs/NATURAL_TALK_RESEARCH_2026-10-30.md). A helper from before it
+        // ignores the word and sends the whole frame.
+        try { child.stdin.write(`capture ${width} ${level} auto view\n`); }
         catch { clearTimeout(timer); resolveReply({ok: false, reason: 'failed'}); }
       });
       const shot = normalise(reply);

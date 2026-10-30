@@ -288,7 +288,7 @@ test('the Alex turns of the live test: topless then nude, a stranger in between;
   assert.match(nude, /V is wearing nothing right now, and you can see it: this is the current truth and replaces anything said or described earlier in this talk about V's clothes \(a shirt, a jacket\)/);
   // Generation 11: nothing changed: not recited with the cue, but the standing line stays so an earlier "shirt" cannot come back.
   const next = block(alex(gearOf('nude'), 'so?'));
-  assert.match(next, /V is still wearing nothing: the current truth, whatever was said about V's clothes earlier\./);
+  assert.match(next, /V is still wearing nothing \(you have already seen it: leave it unless V brings it up\)\./, 'the fact without a cue, and leave to drop it (2026-10-30)');
   assert.doesNotMatch(next, /React the way you naturally would/);
   // Generation 13: "what am i wearing": the full note again, and the gear line answers it.
   const asked = alex(gearOf('nude'), 'what am i wearing');
@@ -302,7 +302,10 @@ test('through every provider path the right-now block carries it first and the g
   const input = {...nudeTurn('nude'), requestId: 'prov-1'};
   const context = conversationContext(input);
   assert.match(context, /^Right now \(from the game, this turn only\): .*V is wearing nothing right now/s);
-  assert.match(context, /V's current gear .* wearing: nothing at all[;.]/s);
-  const topless = {...nudeTurn('topless', [{slot: 'legs', name: 'Jeans'}]), requestId: 'prov-2'};
+  // The gear line itself comes on a turn whose words are about it (2026-10-30); the right-now note says the nudity on every turn.
+  assert.doesNotMatch(context, /V's current gear/);
+  const asking = {...nudeTurn('nude', undefined, {text: 'what am I wearing?'}), requestId: 'prov-3'};
+  assert.match(conversationContext(asking), /V's current gear .* wearing: nothing at all[;.]/s);
+  const topless = {...nudeTurn('topless', [{slot: 'legs', name: 'Jeans'}], {text: 'like my jeans?'}), requestId: 'prov-2'};
   assert.match(conversationContext(topless), /wearing: legs: Jeans, upper body: nothing on[;.]/);
 });
