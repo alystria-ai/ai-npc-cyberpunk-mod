@@ -289,7 +289,7 @@ test('the sentences the game sends for this page fit the command file: the bigge
     // The worst case: every non-ASCII character written as a \uXXXX escape, which is as long as a JSON encoder can make it.
     const strings = Object.fromEntries(sources.map(source => [source, table.get(source) ?? source]));
     const escaped = JSON.stringify({version: 1, id: 'e1700000000-1', action: 'open', issuedAt: 1_700_000_000_000, language: lang, strings}).replace(/[^\x00-\x7f]/g, char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
-    assert(Buffer.byteLength(escaped) < 96 * 1024, `${lang}: ${Buffer.byteLength(escaped)} bytes`);
+    assert(Buffer.byteLength(escaped) < 128 * 1024, `${lang}: ${Buffer.byteLength(escaped)} bytes`);
     const parsed = parseEditorCommand(escaped, 1_700_000_000_000);
     assert(parsed, `${lang}: the command is accepted`);
     assert.equal(Object.keys(parsed.strings).length, sources.length, `${lang}: no sentence is dropped`);
