@@ -27,7 +27,7 @@ export const COMPANION_KEYS = Object.freeze(['alex', 'alt-cunningham', 'claire-r
   'judy-alvarez', 'kerry-eurodyne', 'lizzy-wizzy', 'lucy-kushinada', 'mama-welles', 'meredith-stout', 'misty-olszewski',
   'mr-hands', 'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'rita-wheeler', 'river-ward',
   'rogue-amendiares', 'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
-const roleOfRow = row => row.kind !== 'named' ? 'side' : ROMANCE_KEYS.includes(row.key) ? 'romance' : COMPANION_KEYS.includes(row.key) ? 'companion' : 'story';
+const roleOfRow = row => row.kind !== 'named' ? 'side' : row.minor === true ? 'minor' : ROMANCE_KEYS.includes(row.key) ? 'romance' : COMPANION_KEYS.includes(row.key) ? 'companion' : 'story';
 // V's typed lines are spoken with these two voice keys (bridge/v-voice.mjs V_VOICE_KEYS, tested to match). The editor lists them as two voice-only
 // rows in the group 'v': no bio, style, rules or memories, no delete, no gender; just the clip, which every engine reads from the same key.
 export const V_EDITOR_KEYS = Object.freeze(['v-male', 'v-female']);

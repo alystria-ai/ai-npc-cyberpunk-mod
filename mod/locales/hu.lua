@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Románcok",
     ["Side character"] = "Mellékszereplő",
     ["Side characters"] = "Mellékszereplők",
+    ["Minor character"] = "Epizódszereplő",
+    ["Minor characters"] = "Epizódszereplők",
     ["Story"] = "Történet",
     ["Story character"] = "Történetbeli szereplő",
     ["Unsaved changes"] = "Nem mentett módosítások",

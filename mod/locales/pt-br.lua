@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Romances",
     ["Side character"] = "Personagem secundário",
     ["Side characters"] = "Personagens secundários",
+    ["Minor character"] = "Personagem menor",
+    ["Minor characters"] = "Personagens menores",
     ["Story"] = "História",
     ["Story character"] = "Personagem da história",
     ["Unsaved changes"] = "Alterações não salvas",

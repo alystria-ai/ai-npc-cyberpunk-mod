@@ -85,10 +85,10 @@ test('the catalogue lists story characters first, then everyday people, each by 
   assert.equal(bench.editor.catalog().filter(item => item.edited).length, 1);
 });
 
-test('every shipped row has the role the picker filters by: romance, companion, story or side, from the lists the rest of the mod already keeps', async t => {
+test('every shipped row has the role the picker filters by: romance, companion, story, side or minor, from the lists the rest of the mod already keeps', async t => {
   const bench = await workbench(); t.after(bench.done);
   const list = bench.editor.catalog();
-  assert(list.every(item => ['romance', 'companion', 'story', 'side'].includes(item.role)), 'a role on every row');
+  assert(list.every(item => ['romance', 'companion', 'story', 'side', 'minor'].includes(item.role)), 'a role on every row');
   // The two lists are the mod's own: the people the game lets V romance (bridge/relationship-routing.mjs), and the tier-1 characters (mod/auto-connect.lua, scripts/Create-MultilingualProfiles.mjs).
   const relationship = Object.entries(RELATIONSHIP_PROFILES).filter(([, row]) => row.kind === 'relationship').map(([key]) => key).sort();
   assert.deepEqual([...ROMANCE_KEYS].sort(), relationship);
@@ -102,7 +102,11 @@ test('every shipped row has the role the picker filters by: romance, companion, 
   const count = role => list.filter(item => item.role === role).length;
   assert.equal(count('romance'), 4);
   assert.equal(count('companion'), COMPANION_KEYS.length - 4);
-  assert.equal(count('story') + count('romance') + count('companion'), list.filter(item => item.group === 'story').length, 'every named character has one of the three');
+  assert.equal(count('story') + count('romance') + count('companion') + count('minor'), list.filter(item => item.group === 'story').length, 'every named character has one of the four');
+  // The cast sweep's minor profiles (docs/CAST_SWEEP.md) are named rows with their own role, so the picker can keep them under their own chip.
+  const roster = JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'));
+  assert.equal(count('minor'), roster.filter(row => row.minor === true).length);
+  assert(roster.filter(row => row.minor === true).every(row => byKey.get(row.key)?.role === 'minor'), 'a minor row is a minor character');
   assert.equal(count('side'), list.filter(item => item.group === 'everyday').length, 'everyday people are side characters');
   // The player's own rows and V's two rows carry no role: the page knows them by their group.
   const made = await workbench({custom: true, voices: true}); t.after(made.done);

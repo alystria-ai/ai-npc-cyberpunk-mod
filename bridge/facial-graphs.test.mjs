@@ -370,7 +370,7 @@ test('the spawn filter keeps named roster characters and Johnny vanilla, and let
   assert.deepEqual([...redscriptNamed].sort(), [...named].sort(), 'FaceFeature.reds carries the roster as generated');
   for (const record of ['Character.Silverhand', 'Character.Smasher', 'Character.Alt']) assert(named.has(record), record);
   const read = file => JSON.parse(readFileSync(new URL(`../characters/${file}`, import.meta.url), 'utf8').replace(/^﻿/, ''));
-  for (const row of read('roster.json')) for (const record of row.records || []) assert(named.has(record), `roster ${row.key} ${record}`);
+  for (const row of read('roster.json')) for (const record of row.records || []) assert.equal(named.has(record), row.minor !== true, `roster ${row.key} ${record}`);
   for (const row of read('manager-characters.json')) assert(named.has(row.record), row.key);
   for (const row of read('phone-contacts.json')) if (row.record) assert(named.has(row.record), row.contact);
   assert(named.size >= 75, `the roster has ${named.size} records`);

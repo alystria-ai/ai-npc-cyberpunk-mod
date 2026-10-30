@@ -1137,11 +1137,11 @@ export function editorClient() {
   };
 
   // ---- who is who: the role of a character (the server names it for the shipped ones), and the little badge that stands for them
-  const ROLES = ['own', 'romance', 'companion', 'story', 'side', 'v'];
-  const ROLE_ICONS = {own: 'userPlus', romance: 'heart', companion: 'users', story: 'book', side: 'user', v: 'mic'};
+  const ROLES = ['own', 'romance', 'companion', 'story', 'side', 'minor', 'v'];
+  const ROLE_ICONS = {own: 'userPlus', romance: 'heart', companion: 'users', story: 'book', side: 'user', minor: 'user', v: 'mic'};
   const roleOf = item => item.group === 'custom' ? 'own' : item.group === 'v' ? 'v' : ROLES.includes(item.role) ? item.role : item.group === 'story' ? 'story' : 'side';
-  const roleTitles = () => ({own: T('Your characters'), romance: T('Romances'), companion: T('Companions'), story: T('Story'), side: T('Side characters'), v: T('V’s voice')});
-  const roleNames = () => ({own: T('Your character'), romance: T('Romance'), companion: T('Companion'), story: T('Story character'), side: T('Side character'), v: T('V’s voice')});
+  const roleTitles = () => ({own: T('Your characters'), romance: T('Romances'), companion: T('Companions'), story: T('Story'), side: T('Side characters'), minor: T('Minor characters'), v: T('V’s voice')});
+  const roleNames = () => ({own: T('Your character'), romance: T('Romance'), companion: T('Companion'), story: T('Story character'), side: T('Side character'), minor: T('Minor character'), v: T('V’s voice')});
   const initialsOf = item => {
     if (item.group === 'v') return 'V';
     const words = String(item.name || item.key || '?').replace(/[()]/g, ' ').split(/[\s._-]+/).filter(Boolean);
@@ -1168,16 +1168,19 @@ export function editorClient() {
     const picker = $('picker');
     if (picker.hidden) return;
     const all = model.state.characters, query = norm(model.filter.trim());
-    const counts = {all: all.length, edited: all.filter(item => item.edited).length};
+    // The minor characters (the cast sweep's 575 ordinary people, docs/CAST_SWEEP.md) have their own chip. They stay out of All and of the other chips until the search
+    // box has text, so the list is not endless, and a search still finds them.
+    const isMinor = item => roleOf(item) === 'minor';
+    const counts = {all: all.filter(item => !isMinor(item)).length, edited: all.filter(item => item.edited).length};
     for (const item of all) counts[roleOf(item)] = (counts[roleOf(item)] || 0) + 1;
     const titles = roleTitles();
     const chips = [['all', T('All'), null], ['romance', titles.romance, 'heart'], ['companion', titles.companion, 'users'], ['story', titles.story, 'book'], ['side', titles.side, 'user'],
-      ['own', titles.own, 'userPlus'], ['edited', T('Edited'), 'pencil']].filter(([id]) => id === 'all' || counts[id]);
+      ['minor', titles.minor, 'user'], ['own', titles.own, 'userPlus'], ['edited', T('Edited'), 'pencil']].filter(([id]) => id === 'all' || counts[id]);
     if (!chips.some(([id]) => id === model.chip)) model.chip = 'all';
     $('chips').replaceChildren(...chips.map(([id, text, glyph]) => h('button', {type: 'button', class: 'fchip' + (model.chip === id ? ' on' : ''), 'aria-pressed': String(model.chip === id), 'data-chip': id,
       onclick: () => { model.chip = id; drawList(); $('chips').querySelector('[data-chip="' + id + '"]')?.focus(); }},
       glyph ? icon(glyph) : null, h('span', {}, text), h('span', {class: 'n'}, String(counts[id])))));
-    const shown = all.filter(item => (model.chip === 'all' || (model.chip === 'edited' ? item.edited : roleOf(item) === model.chip)) && (!query || norm(item.name).includes(query)));
+    const shown = all.filter(item => (model.chip === 'all' ? (query || !isMinor(item)) : model.chip === 'edited' ? item.edited : roleOf(item) === model.chip) && (!query || norm(item.name).includes(query)));
     const nodes = [];
     const section = (title, glyph, rows, extra) => nodes.push(h('section', {class: 'sect' + (extra ? ' ' + extra : '')}, h('h3', {class: 'group'}, glyph ? icon(glyph) : null, h('span', {}, title), h('span', {class: 'n'}, String(rows.length))),
       h('div', {class: 'grid'}, rows.map(pickItem))));
@@ -1193,7 +1196,7 @@ export function editorClient() {
       if (rows.length) section(titles[role], ROLE_ICONS[role], rows);
     }
     $('list').replaceChildren(...(shown.length ? nodes : [h('p', {class: 'empty'}, icon('search'), h('span', {}, T('No match.')))]));
-    $('resultcount').textContent = T('{count} of {max}', {count: shown.length, max: all.length});
+    $('resultcount').textContent = T('{count} of {max}', {count: shown.length, max: query || model.chip === 'minor' ? all.length : counts.all});
     $('clear').hidden = !model.filter;
   }
   function syncPicker() {

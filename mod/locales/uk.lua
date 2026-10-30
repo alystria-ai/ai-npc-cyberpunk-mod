@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Романтика",
     ["Side character"] = "Другорядний персонаж",
     ["Side characters"] = "Другорядні персонажі",
+    ["Minor character"] = "Епізодичний персонаж",
+    ["Minor characters"] = "Епізодичні персонажі",
     ["Story"] = "Сюжет",
     ["Story character"] = "Персонаж сюжету",
     ["Unsaved changes"] = "Незбережені зміни",

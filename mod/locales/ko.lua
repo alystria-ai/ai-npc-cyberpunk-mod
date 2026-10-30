@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "로맨스",
     ["Side character"] = "조연 캐릭터",
     ["Side characters"] = "조연 캐릭터",
+    ["Minor character"] = "단역 캐릭터",
+    ["Minor characters"] = "단역 캐릭터",
     ["Story"] = "스토리",
     ["Story character"] = "스토리 캐릭터",
     ["Unsaved changes"] = "저장되지 않은 변경 사항",

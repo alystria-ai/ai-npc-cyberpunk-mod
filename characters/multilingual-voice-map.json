@@ -1308,6 +1308,2881 @@
    "voice": "AZURE-MULTILINGUAL-3ea74315c9",
    "voiceName": "Christopher",
    "reason": "Calm, even, mid male voice for a polished, unhurried corporate stranger."
+  },
+  "aaron-mccarlson": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "adam-brocki": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "adam-finlay": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "adam-giles": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "agent-orange": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "agent-weiss": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "aiko-harada": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "airi-okawa": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "akane-ito": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "akari-yamakage": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "akira": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alamini-davis": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alan-crank": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alberto-ruiz": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alec-johnson": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alex-pushkin": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alexandre-batisma": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "alma-maria": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "alois-daquin": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "aluna": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "alva": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "amat-escalante": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "andrew-bolt": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "andrew-moore": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "andrew-newman": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "anel-duffault": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "angel": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "angie-pakeha-mielech": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "anna-hamill": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "anna-nox": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "annie-capolino": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "anthony-anderson": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "anthony-harris": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "anton-kolev": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "aoki-sonoda": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "arabelle-luvasha": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "archibald-crane": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "arden-bentzen": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "arif-iqbal": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "arif-koneczko": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "arlene-anwyl": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "arnold-haponik": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "asa-risu": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ash": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "asher-peterson": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "august": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "axel-mankievicz": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "ayden-daniels": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ayo-zarin": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "aziz-masee": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "barry-alken": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "barry-lewis": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bart": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bartolomeo-mordellini": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ben-azaria": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ben-debaillon": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "benedict-mcadams": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "benjamin-stone": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bickle": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "big-joe": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "big-pete": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bill-jablonsky": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "blake-croyle": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "booker-updike": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "boris-ribakov": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "brad-stacy": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bradley-burrows": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "brandon-frost": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "brandon-soto": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "brittany-hayes": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "bruce-ward": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "bruce-welby": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "buck-arnold": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "camilo-castilla": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "captain-joan-by-the-book-mcclane": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "captain-sherman": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "carlos-rubio": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "carter-smith": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "cassius-ryder": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "catherina-byrn": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "cedric-muller": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "cesar-diego-ruiz": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "charlene-fox": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "charles-bucks": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "charles-graham": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "charles-wilson": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "chase-coley": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "cheri-nowlin": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "chester-hamilton": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "chiyo-omoto": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "chris-dupont": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "christine-markov": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "chuck-dermond": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "chuck-segel": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "claudio-moreno": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "cody-crosby": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "corey-aldwyn": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "costin-lahovary": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "cross": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "crox-alvarado": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dallas-foster": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "damir-kovac": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dan-thoss": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "daniel-duarte": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "daniel-lark": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "danilo-ruiz": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dao-hyunh": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "darius-clarke": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "darius-dupont": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "darius-miles": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "darline-boucicault": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "darrell-zhou": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "davarius-washington": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "david-beemer": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "david-dover": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "david-walker": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dennis-chavez": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "denzel-cryer": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "deputy-mayor-weldon-holt": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "desi-abdi": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "det-harold-han": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "diana-floyd": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "diego-ramirez": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dietlinde": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "dirk-brooks": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "donnie-carter": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dorian": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "doris-soto": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "dorothy-allred": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "dotty": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "dr-ensai-yajima": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dr-kinuko-taniguchi": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "dr-yawen-packard": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "drausin": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "driss-scorpion-meriana": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dustbunny": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "dusty-lowe": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "earl-diaz": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "el-chamuco-endiablado": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "el-gallo": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "elektra-ovirova": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "elijah-olsen": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "elis-hauk": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "elizabeth-roider": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ellie": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ellis-carter": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "emilie-massenat": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "emily-scooter": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "emma-li": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "emmanuel-cadelus": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "emmerick-bronson": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "emon-fujikura": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "enrique-lozano": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "eric": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "ernesto-munoz": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ernie-hawkins": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "eron-acedo": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ertha-ojasma": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female older twin voice for a minor named character (cast sweep)."
+  },
+  "esquerdo-certo": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "euralio-alma": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "evan-mcray": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "eve-martinez": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "fae-nesheim": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "farah-bleus": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "faye-russo": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "faye-spiegel": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "fiona-vargas": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "flavio-dos-santos": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "forrest-lee": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "frank-osmani": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "freddie-burns": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "fredrik-persson": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "fujo": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "futoshi-yamada": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "garry-bates": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gaston-phillips": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gauge-harris": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gawker-hawk": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "george-cooke": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "george-prosky": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "georgina-zembinsky": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "gillean-jordan": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "gina-barnes": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "gloria-el-ahmar": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "gorira": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gottfrid-persson": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "grace": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "grant-gibson": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "greg-wilson": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gregory-schulz": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "griselda-martinez": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "gustaf-ekland": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "gustav-asensio": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "gustavo-orta": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hal-cantos": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hank-davis": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "harry-lyon": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "haruhiro-o-connell": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "haruyoshi-nishikata": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "helen-wandoo": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "henry-blake": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "henry-sanchez": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "henry-stints": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "herold-lowe": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hideo-nishio": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hideshi-hino": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hideyoshi-oshima": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hilary-mckenna": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "hiromi-sato": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hiroto-saiki": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "holden-mccoy": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hugo-selvig": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hutch-spindler": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "hwangbo-dong-gun": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ian-cimino": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ignacio-vega": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "ilsa-grabmen": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "imad-toma": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "imogen": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "irene-hermoso": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "iria-zeiram": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "isabella-fuscino": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female older twin voice for a minor named character (cast sweep)."
+  },
+  "isao-suzuki": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ivan-guerreiro": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jack-mausser": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jack-paul": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jackal": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jacob-bernard": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jacob-tomchak": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jacqueline-peele": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jae-hyun-lee": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jaime": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jake-scooter": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jakub-luigi-antonowicz": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "james-ito": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jan-woycicki": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "janet-brewer": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jared-cortes": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "jasmine-dixon": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jason-foreman": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jason-wildriver": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jasper-collins": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jax-forgrave": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jax-morgan": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jean-rochelin": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jeff": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jeremy-sutton": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jermaine-norton": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jerry-fawlter": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jesse-sabara": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jessica-yu": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jessie-turner": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jet-white": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jill-sanchez": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jim-smith": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jiro-oba": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "joanne-koch": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "joe-carrillo": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "joe-kaneshiro": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "john-crimi": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "john-king": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "john-lipczynsky": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "john-lucas": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "john-milard": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "john-quaid": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "johnnie-peterson": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jorge-ron": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jose-gonzalez": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jose-luis": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "joseph-j-odman": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "josh-floyd": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "josh-kavorkin": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jotaro-shobo": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "journey-ruiz": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "joyce-marchal": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "juan-esteban-abasto": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "juan-mendez": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "juan-peque": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "juanita-tseng": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "jude-night": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jules-carrel": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "julia-bonet": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "julia-young": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "julius-garrett": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jumbo-josh": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "jun-azegami": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "justin-anderson": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "justin-leduc": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kaiser-herzog": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kajetan-zilevski": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kamala-smith": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "kameal-hawk": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kaoru": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "karim-noel": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "karina-lee": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "karl-ginsky": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "karl-hopfen": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "karolina-vinthir": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "karubo-barei": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "katherine-mccannon": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "kathryn-o-brien": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "kean-broughton": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "keegan-kelly": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "keenan": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "keisuke-kagawa": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kelvin-strickland": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kenji-sakura": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kevin-flores": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kevin-king": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kikil-ivakin": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kimiko-sanchez": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "kirk-sawyer": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kovachek": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kuniko-aso": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "kunio-shiki": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "kyle-araujo": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lana-prince": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "lance-hardy": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "laura-may": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "lauren-costigan": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "leah-gladen": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "lely-hein": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lena-dominguez": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "lenny-nero": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "leon-watson": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "leslie-wawuda": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "leszek-pea": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lieutenant-mower": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lilayah": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "linda-spencer": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "logan-garcia": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "logan-scott": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lori": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "lt-carter-reynolds": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lt-crazy-henry-callahan": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lucas-fletcher": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lucas-palmer": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lucas-vasiley": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "luciano-duarte": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "lucius-thoran": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "luka-soto": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "luke-anderson": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "maggie-isley": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "marcelo-azevedo": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "marcus-barros": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "marcus-ichida": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "margaret-skoczynski": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "margot-wojciechowicz": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "maria-jimenez": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "marilyn": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "mark-muratovich": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "markus-ayers": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "marlon-fuscino": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "marta-liu": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "martha-devis": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "martha-young": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "martin-coleman": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "martin-tin": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "masao-adams": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mat-duda": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mateo-lorenzo": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "matilda-k-rose": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "matt-dupont": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "matt-liaw": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "maurice": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "maximum-mike": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mayor-lucius-rhyne": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "meghan-hattori": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "melissa-rory": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "melissa-wellingham": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "mia": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "micaela-ruiz": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "michael-maldonado": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "michael-marcinkowsky": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "michiko-arasaka": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "miguel-rodrigez": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mike-edwards": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mike-kowalsky": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mike-kruger": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mikey": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "mikhail-akulov": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "miles-toast": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "milko": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "milt-nauman": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "misha-orlova": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "mitzi-sparks": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "mokomichi-motorboy-yamada": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "monique-ashka": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "mr-kipper": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "myaku-janowski": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "myriam-glesile": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena Female Multilingual Voice",
+   "reason": "Default female older twin voice for a minor named character (cast sweep)."
+  },
+  "nachtigall": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "nadezhda-tiurina": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "nadia-petrova": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "nash": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "needles": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "neil-white": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "nell-rees": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "nigel-hamilton": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "nika-yankovich": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "nils-dahlberg": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "nina-kraviz": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "noah": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "noel-ducael": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "norio-akuhara": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "nova-maccaster": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "octavio-delgado": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "odell-blanco": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "officer-eric-wolfson": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "officer-vasquez": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ogawa": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ola-murasaki": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "old-elliot": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "oleg-darkevich": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "olga-cygan": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "olga-elisabeth-longmead": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "oliver-cooper": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "oliver-fernandez": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "olivier-o-brien": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "pablo-delgado": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "patrick-horman": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "patrick-sylap": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "paul-craven": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "paul-roberts": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "pedro-lopez": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "percival-wemys-madison": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "peter-horvath": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "peter-pj-sampson": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "peter-upmann": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "piggy": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "prof-sachiko-kusama": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "purple-force": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "qian-si-hu": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "quincy-rivers": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rafael-perez": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ralph-logan": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "randy-kutcher": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "razor-hughes": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rebeca-price": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "red-menace": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "reginald": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "reverend-colver": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rhino": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "richard-fresh": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rick-gobrat": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rick-martinez": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rick-the-cripple": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rick-waters": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rick-young": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "robert-rainwater": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rodrigo-martinez": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rogelio-cruz": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "roger-wang": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "roh-chi-won": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ronald-typhoon-malone": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rony-lafleur": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "rose-horrigan": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "rosi": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "rosie-harper": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ross-austin": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ross-ulmer": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "roxanne-colton": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "roxanne-sumner": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ruby": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "rufus-mcbride": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "russell-bora": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "russell-greene": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ruth-dzeng": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "ryan-baxter": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ryoko-kumi": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "saburo-arasaka": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "saki-seo": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sam-jacobs": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "samantha-samu": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sammy-taylor": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sandley-lebreton": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sandra-butler": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "santiago-molina": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sarah-balbo": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "sarah-remmeuer": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "satoshi-ueno": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "saulo-capon": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "scott-hammer": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "seamus-horgan": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "seamus-sawicki": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "seamus-smooth": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sean-diaz": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sean-mcmillan": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "shaitan": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sheila": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "shinobu-imai": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "simon": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "simone": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "siri": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "skye": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sofia-ramirez": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sofia-rossi": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sogo-watanabe": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "sophia-dupont": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "spector-cheng": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "spencer-harris": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "spencer-young": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "spike-valentine": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "stanislaus-zbyszko": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "stanley-carlson": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "stanley-judith": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "stefan": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "stella-ramos": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "sue-glover": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "susan-abernathy": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "susana-brito": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "susanna-mack": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "susanna-quinn": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "sweet-prince": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "taco": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "takeshi-kazou": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "taki-kenmochi": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tamara-cosby": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "tang-tai": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tasha-rodriquez": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "tatiana-gilligan": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "tatsuya-nyasha": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tatsuya-takei": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "taylor-gibbs": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ted-fox": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual Male American English Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "terry-hall": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "theo-price": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao Female Multilingual Voice",
+   "reason": "Default female young twin voice for a minor named character (cast sweep)."
+  },
+  "thiago-brichta": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "thomas-hays": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "ti-neptune": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tim-anderson": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tim-autry": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tim-robitel": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "timothee-lebeau": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "timothy-malek": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tom-ayer": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tom-caldera": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tomiko-sawaya": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "tommie-walker": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "toshiro": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "towfiq-iqbal": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tracy-phillips": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "trevor-brass": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male young twin voice for a minor named character (cast sweep)."
+  },
+  "tsutomu": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tucker-albach": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tyler-brown": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "tyler-zan": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "vance-noren": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "vic-vega": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "vicious-volaju": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "vortex": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2 Female American English Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "walt-alda": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "wayne-johnson": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "wayne-sludge": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "wesley-avedon": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "wesley-hunt": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "william-becker": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "william-correy": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "william-hare": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "willy-mccoy": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "wyatt-alken": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "xavi-velez": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "yasha-ivanov": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "yelena-sidorova": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "yishen-rhee": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "yoko-tsuru": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "yuri-shaku": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "yusaku-ogata": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "zane-jagger": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "zaria-hughes": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "zeke-daniels": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "zhan-qiu": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian Male Multilingual Voice",
+   "reason": "Default male adult twin voice for a minor named character (cast sweep)."
+  },
+  "zion-wylde": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin Male Multilingual Voice",
+   "reason": "Default male older twin voice for a minor named character (cast sweep)."
+  },
+  "zoe-alonzo": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
+  },
+  "zuleikha-el-ahmar": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen Female Multilingual Voice",
+   "reason": "Default female adult twin voice for a minor named character (cast sweep)."
   }
  }
 }
