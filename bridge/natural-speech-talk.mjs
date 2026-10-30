@@ -7,8 +7,8 @@
 // The four characters whose habits were written by hand (the "HOW X TALKS" paragraphs of characters/natural-speech/),
 // shortened. Johnny and Panam are lifted a little on purpose: Panam's laugh at stupidity and tired sigh, Johnny's dry scoff.
 const OWN = Object.freeze({
-  'judy-alvarez': 'soft sighs when something wears you down, a short, slightly nervous laugh when something '
-    + 'hits close or you are caught off guard, a displeased grunt at corporate talk, the odd "uh" when it turns personal; '
+  'judy-alvarez': 'soft sighs only when something really wears you down, a short, slightly nervous laugh only when something '
+    + 'hits close or you are caught off guard (a joke that is not funny gets a plain answer, never a polite laugh), a displeased grunt at corporate talk, the odd "uh" when it turns personal; '
     + 'around hardware you are quick and fluent.',
   'panam-palmer': 'a short laugh when someone says something stupid or a tease lands, an impatient sigh '
     + 'when you are tired or holding your temper, a surprised "oh" when someone shows an unexpected side, a "well..." before a '
@@ -24,8 +24,8 @@ const OWN = Object.freeze({
 // character ("you"), never "How Evelyn Parker talks:": a block that describes the speaker by name, in the third person, teaches
 // the model to narrate the character instead of speaking as one (docs/FIRST_PERSON_RULE.md).
 const BY_TRAIT = Object.freeze({
-  warm: 'quick to react and expressive: a warm, easy laugh, a soft sigh when something weighs on you, now and then a '
-    + 'hesitant "uh" or "well..." when you are unsure.',
+  warm: 'quick to react and expressive: a warm, easy laugh when something is truly funny, a soft sigh when something really weighs on you, now and then a '
+    + 'hesitant "uh" or "well..." when you are unsure; a joke that is not funny gets no laugh.',
   neutral: 'plain and steady: a short laugh when something is funny, a sigh when you are tired or fed up, a hesitation only '
     + 'when you are unsure.',
   dry: 'dry and sparing: a flat scoff or grunt rather than a laugh, a sigh only when something really gets through, '

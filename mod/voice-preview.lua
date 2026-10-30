@@ -12,7 +12,9 @@ local DEFAULT_SETTLE = 0
 -- the Mistral cloud voice (Voxtral, labelled recommended) follows it.
 -- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
 -- (Voxtral) needs a Mistral key; in the bridge it uses only Pocket's route and audio format and loads no local voice model
--- (a reply it cannot deliver is asked again once, then shown as written text).
+-- (a reply it cannot deliver is asked again once, then shown as written text). The Inworld cloud voice (docs/INWORLD.md) is the same kind of voice on an
+-- Inworld key; it is the last entry because the menu lists it only once that key is saved: without it the menu is the first seven entries, so an index means
+-- the same thing in both.
 M.CHOICES = {
     {provider = 'pocket'},
     {provider = 'voxtral'},
@@ -21,12 +23,13 @@ M.CHOICES = {
     {provider = 'omni', steps = 32, reference = 'short'},
     {provider = 'omni', steps = 32, reference = 'long'},
     {provider = 'convai'},
+    {provider = 'inworld'},
 }
 
 -- The select index of a saved choice ({voiceProvider, omniSteps, omniReference}).
 function M.indexOf(saved)
     saved = type(saved) == 'table' and saved or {}
-    if saved.voiceProvider == 'convai' or saved.voiceProvider == 'voxtral' then
+    if saved.voiceProvider == 'convai' or saved.voiceProvider == 'voxtral' or saved.voiceProvider == 'inworld' then
         for index, choice in ipairs(M.CHOICES) do
             if choice.provider == saved.voiceProvider then return index end
         end
@@ -133,7 +136,7 @@ function M.new(options)
         local choice = providerOk and not providerError and type(provider) == 'number' and M.CHOICES[provider - 1] or nil
         if not choice
             or not savedOk or type(saved) ~= 'table'
-            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral'
+            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral' and saved.voiceProvider ~= 'inworld'
                 and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
             staged = nil
             cancel(stamp)

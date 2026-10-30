@@ -921,15 +921,24 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on Settings any more') end
   -- The Google Gemini key and its connection test are rows of Settings (a second instance of the same module, on its own files). Add sends preset-gemini, a saved key shows its last four characters.
   assert(ns.find('Mistral API key') == nil and ns.find('Google Gemini (free)') == nil)
-  assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection').buttonText == 'Test')
+  assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection') == nil, 'Google Gemini has the key row only: no Test connection')
   press('Google Gemini API key'); assert(geminiCommand().action == 'preset-gemini', tostring(geminiCommand() and geminiCommand().action))
   assert(files['runtime/custom-provider-command.json'] == '', 'the Custom endpoint channel is not used')
+  -- The key just added is tried once by the service: the row says so while it runs, then what Google answered, on the key row itself.
+  local addId = geminiCommand().id
+  local savedState = {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'wxyz', preset = 'gemini'}
+  local function withCheck(check) local value = {}; for key, item in pairs(savedState) do value[key] = item end; value.check = check; return value end
+  geminiService('checking', withCheck({id = addId, state = 'checking'}))
+  assert(ns.find('Google Gemini API key (Checking…)'), shownOutline())
+  geminiService('accepted', withCheck({id = addId, state = 'ok'}))
+  assert(ns.find('Google Gemini API key (…wxyz)').desc:find('Google accepted the key.', 1, true), shownOutline())
+  geminiService('refused', withCheck({id = addId, state = 'failed', code = 'key', status = 400}))
+  assert(ns.find('Google Gemini API key (…wxyz)').desc:find('Google did not accept this key. Check it in Google AI Studio, then Remove it and Add the right one.', 1, true), shownOutline())
   geminiService('saved', {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'wxyz', preset = 'gemini'})
   assert(ns.find('Google Gemini API key (…wxyz)').buttonText == 'Remove', shownOutline())
   press('Google Gemini API key (…wxyz)'); assert(geminiCommand().action == 'clear-preset-gemini', tostring(geminiCommand() and geminiCommand().action))
   geminiService('removed', {version = 1, ready = false, keySaved = false})
   assert(ns.find('Google Gemini API key').buttonText == 'Add')
-  press('Test connection'); assert(geminiCommand().action == 'test', tostring(geminiCommand() and geminiCommand().action))
   press('Custom endpoint')
   assert(managerUi.inspect().view == 'custom-endpoint')
   local sections = ns.sections()

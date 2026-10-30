@@ -78,7 +78,9 @@ const BASE = {
     rules: 'OUTPUT RULES (they outrank everything above about format)',
     examples: 'EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)',
     formatNotes: 'FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)',
-    world: 'WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)',
+    // What she already knows, as background (2026-10-30, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): "facts and instructions" read as a list to work through, and small models
+    // brought the quest notice or V's clothes into replies about something else.
+    world: 'WORLD AND QUEST CONTEXT (what you already know, as background: bring something up only when it matters to what V says; never read it aloud)',
     remember: 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)',
     knowledge: 'WORLD KNOWLEDGE FOR THIS TURN (never to be read aloud)',
     rightNow: 'RIGHT NOW (from the game; background only, this changes as the talk goes on)',
@@ -154,6 +156,28 @@ const PLAIN_CLOSING = {text: 'Reply as {name}: answer what V just said, in one t
 const SLANG_RULE = {id: 'slang', text: 'Swearing and crude talk are fine in your own voice. Game slang ("choom", "gonk", "preem", "delta") is spice, not punctuation: at most one such word in a reply, and "choom" only if you are Jackie.'};
 const withSlangRule = rules => { const at = rules.findIndex(rule => rule.id === 'plain') + 1; return [...rules.slice(0, at), SLANG_RULE, ...rules.slice(at)]; };
 
+// Google Gemini (gemini-flash-lite-latest, the Gemini provider; 2026-10-30, docs/NATURAL_TALK_RESEARCH_2026-10-30.md and docs/NATURAL_TALK_SAMPLES_2026-10-30.md). With the generic base
+// (nine long rules, most of them "never ...") Flash-Lite talked like a narrator of the context: it remarked on V's clothes, the neon and the quest notice in answer to "so hows life" and
+// skipped what V asked. Fewer rules, said as what to do; the context framed as what she already knows, the way anyone knows where they are; the reaction to V's words first; three short
+// example exchanges of the rhythm (no world facts in them, so there is nothing to copy). The labels say the same thing once more where the facts are.
+const GEMINI_RULES = [
+  {id: 'voice', text: 'You are {name}, talking out loud with V, face to face. Say only your own spoken words, as yourself, in the first person.'},
+  {id: 'answer', text: 'React to what V just said before anything else: answer the question, return the greeting, take the compliment or the jab. When V asks about you, answer about you. A word or two from V ("thanks", "perhaps") gets a short, easy answer in kind.'},
+  {id: 'short', text: 'Talk like a real person in a real moment: one to three short spoken sentences in plain words, at most one question. Go longer only when V asks you to explain or tell a story.',
+    talk: 'Talk like a real person in a real moment: one or two short spoken sentences, at most {words} words, at most one question.'},
+  {id: 'now', text: 'Everything in the context (where you are, the time, what V wears or carries, the radio, V\'s jobs, your history together) is what you already know, the way anyone knows where they are. People do not narrate what both of them can see: bring a fact up only when V asks about it or it truly matters to what V said. The "Right now" part is where you really are and what you are doing.'},
+  {id: 'facts', text: 'Keep to what you know from this prompt and the talk so far. If you do not know something, say so in your own way.'},
+  {id: 'plain', text: 'Plain spoken text only: no actions in asterisks, notes in brackets, lists, emoji or dashes.'},
+  {id: 'identity', text: 'You are a real person. If V says you are an AI or a program, brush it off as yourself in one plain sentence and carry on.'},
+  {id: 'language', text: 'Answer in the language V writes in. Write curly braces or square brackets only when the context asks for a tag.'},
+];
+const GEMINI_PATCH = {rules: GEMINI_RULES,
+  examples: ['V: Hey. / You: Hey yourself. Took you long enough.', 'V: How have you been? / You: Busy, mostly. Can\'t complain.', 'V: Thanks. / You: Anytime.'],
+  closing: {text: 'Reply as {name}: react to what V just said, in a few natural spoken sentences. Use what you know only where it fits.',
+    talk: 'Reply as {name}: react to what V just said, in one or two natural spoken sentences, at most {words} words. Use what you know only where it fits.'},
+  labels: {rightNow: 'RIGHT NOW (where you are: true, background only)', thisTurn: 'THIS TURN: notes for you, not to be said'},
+  sampling: {temperature: 0.7}};
+
 const MISTRAL_PATCH = {sampling: {temperature: 0.5}, rules: withAnswerRule(BASE_RULES), examples: EXAMPLES, layout: {volatile: 'after'}};
 const STANDARD_PATCH = {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.5}, layout: {volatile: 'after'}};
 
@@ -177,6 +201,8 @@ const FAMILIES = [
   // Qwen on a Custom endpoint (measured on Qwen3.5-4B behind a local server): the short rules, a lower temperature, the notes after V's line. No repeat penalty: a cloud endpoint may refuse the field.
   {family: 'qwen', label: 'Qwen', match: /qwen|qwq/i, patch: {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.5}, layout: {volatile: 'after'}}},
   {family: 'gemma', label: 'Gemma', match: /gemma/i, patch: STANDARD_PATCH},
+  // Google Gemini: the Gemini provider's model (gemini-flash-lite-latest) and any Gemini model on a Custom endpoint.
+  {family: 'gemini', label: 'Gemini', match: /gemini/i, patch: GEMINI_PATCH},
   {family: 'llama', label: 'Llama', match: /llama/i, patch: {}},
   {family: 'mistral', label: 'Mistral', match: /mistral|ministral|mixtral|magistral|nemo/i, patch: MISTRAL_PATCH},
 ];

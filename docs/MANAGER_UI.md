@@ -128,7 +128,8 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
   OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
-  · Cloud voice**. Without the optional OmniVoice pack the
+  · Cloud voice**, then **Inworld · Cloud voice** as the last entry once an Inworld key is saved (docs/INWORLD.md: the key, its connection test
+  and a status line are the last section of Settings > Voices > Custom voices). Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
   The Voice status row was removed on 2026-10-20: the voice state shows through the fallback notices (when the chosen voice cannot run, one gameplay
   notice names the voice, e.g. "OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.") and the Help page.

@@ -121,7 +121,8 @@ test('the block is the very first thing in the conversation context, before the 
   assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person. You are somewhere in Kabuki, Watson; exactly where is not given. Also with V: Panam.'), text.slice(0, 160));
   assert.match(text, /\n\nBackground \(mention only if it matters or V asks\): It is late night, about 2 AM\.\n\n/);
   assert.ok(text.indexOf('Right now') < text.indexOf('journal'));
-  assert.ok(text.indexOf('Right now') < text.indexOf("V's current gear"));
+  const asked = conversationContext(parseInput(JSON.stringify(turn({turnContext: scene(), journal, gear, text: 'what am I wearing?'}))));
+  assert.ok(asked.indexOf('Right now') >= 0 && asked.indexOf('Right now') < asked.indexOf("V's current gear"), 'V asking about the gear gets it, after the block');
   assert.ok(!text.includes('Right now', 5), 'once');
   assert.ok(!conversationContext(parseInput(JSON.stringify(turn()))).includes('Right now'), 'older adapters send none');
 });
@@ -187,8 +188,11 @@ test('an ordinary NPC gets no journal, no jobs, no history and no gear list; onl
     assert.match(text, /V looks like a woman \(she\/her\)\./);
     assert.match(text, /You have never met V and do not know who V is/); assert.match(text, /Never call them V or by any name/);
     assert.doesNotMatch(text, /Street Kid|lifepath|Judy|Panam/, 'a stranger knows neither the lifepath nor the party');
-    // What a bystander can see of V: the clothing and the weapon in hand.
-    assert.match(text, /What you can see of V right now - wearing: outer torso: Samurai Jacket, legs: Cargo Pants; weapon in hand: Kyubi\./);
+    // What a bystander can see of V (the clothing and the weapon in hand), only when V's words are about it (2026-10-30).
+    assert.doesNotMatch(text, /What you can see of V/, `${profileKey}: not on small talk`);
+    sceneryMemory.clear();
+    const asked = conversationContext(parseInput(JSON.stringify(resident({profileKey, turnContext: scene(), text: 'like my jacket?'}))));
+    assert.match(asked, /What you can see of V right now - wearing: outer torso: Samurai Jacket, legs: Cargo Pants; weapon in hand: Kyubi\./);
     assert.match(text, /Speak only your own dialogue/, 'the spoken-output rule stays');
     assert.ok(text.length < 1800, `${text.length} characters`);
   }
@@ -201,13 +205,17 @@ test('an ordinary NPC is told where it is once: by its own district block, else 
   assert.match(bare, /You are somewhere in Kabuki, Watson; exactly where is not given\./);
 });
 
-test('named characters keep their journal, world facts and gear list', () => {
+test('named characters keep their journal and world facts, and get the gear list when V asks about it', () => {
   const text = conversationContext(parseInput(JSON.stringify(turn({turnContext: scene(), journal, gear}))));
   assert.match(text, /verified current-save journal is shared with you/);
   assert.match(text, /Reach the vault door/);
-  assert.match(text, /V's current gear/);
-  assert.match(text, /Thermal Mantis Blades/);
   assert.match(text, /lifepath Street Kid/);
+  assert.doesNotMatch(text, /V's current gear/, 'not on a turn that is not about it (2026-10-30)');
+  for (const words of ['what am I wearing?', 'nice blades, huh', 'check my cyberware', 'what gun do I have']) {
+    const asked = conversationContext(parseInput(JSON.stringify(turn({turnContext: scene(), journal, gear, text: words}))));
+    assert.match(asked, /V's current gear/, words);
+    assert.match(asked, /Thermal Mantis Blades/, words);
+  }
 });
 
 test('an ordinary NPC still gets scoped battle and loot reactions and the follow-up rules', () => {
@@ -700,13 +708,17 @@ test('Lua: the init wiring and the companions hook exist and read nothing from t
 
 // ---------------------------------------------------------------- weather, health, heat and money (2026-10-14)
 const hasSentence = (text, sentence) => text.includes(` ${sentence} `);
-const body = extra => turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}], ...extra})});
+const body = (extra, words) => turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}], ...extra}), ...(words ? {text: words} : {})});
 const full = {weather: 'rain', health: 'badly-hurt', heat: 4, money: 'broke'};
+// The money band is told only when V's words are about money (2026-10-30: "V is rich." every turn came back as "you big rich idiot").
+const MONEY_WORDS = 'can we afford it?';
 
-test('a companion in person is told the weather, V\'s condition, the police heat and a rough money band', () => {
+test('a companion in person is told the weather, V\'s condition, the police heat and, when V talks money, a rough money band', () => {
+  assert.ok(hasSentence(turnContext(body(full, MONEY_WORDS)), 'V is nearly broke.'));
+  assert.doesNotMatch(turnContext(body(full)), /broke/, 'not on a turn that is not about money');
   const text = turnContext(body(full));
   assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V. You are somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. '
-    + 'It is raining. V is badly hurt. V has a serious police chase on them. V is a woman (she/her), lifepath Street Kid. V is nearly broke. '
+    + 'It is raining. V is badly hurt. V has a serious police chase on them. V is a woman (she/her), lifepath Street Kid. '
     + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
     + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. ' + 'Do not recite it, and mention a place or the time only if it matters to what V says.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
@@ -723,8 +735,10 @@ test('every weather kind, health band, heat stage and money band has its own sho
   assert.ok(hasSentence(say({heat: 1}), 'The police are after V.') && hasSentence(say({heat: 2}), 'The police are after V.'));
   assert.ok(hasSentence(say({heat: 3}), 'V has a serious police chase on them.') && hasSentence(say({heat: 4}), 'V has a serious police chase on them.'));
   assert.ok(hasSentence(say({heat: 5}), 'V is wanted at the highest level; MaxTac is after V.'));
-  assert.ok(hasSentence(say({money: 'low'}), 'V is short on cash.') && hasSentence(say({money: 'comfortable'}), 'V has plenty of eddies.'));
-  assert.ok(say({money: 'rich'}).includes('V is rich. Treat this') && say({money: 'broke'}).includes('V is nearly broke. Treat this'));
+  const talk = extra => turnContext(body(extra, MONEY_WORDS));
+  assert.ok(hasSentence(talk({money: 'low'}), 'V is short on cash.') && hasSentence(talk({money: 'comfortable'}), 'V has plenty of eddies.'));
+  assert.ok(talk({money: 'rich'}).includes('V is rich. Treat this') && talk({money: 'broke'}).includes('V is nearly broke. Treat this'));
+  assert.doesNotMatch(say({money: 'rich'}), /rich/);
 });
 
 test('a stranger may know the weather and see an injury, never the heat or the money; a phone contact knows only the weather', () => {
@@ -1009,8 +1023,8 @@ test('the voice form of the context carries no journal, no gear and none of the 
   assert.doesNotMatch(text, /Samurai Jacket|Kyubi|The Heist|journal|V is looking at you|Reply only as yourself|Right now/);
   assert.match(voiceConversationBlocks(cabTurn({group: {id: 'g-1', index: 1, total: 2, audience: [CAB, 'judy-alvarez'], heard: []}}))[0].text, /Right now \(from the game/);
   assert.deepEqual(blocks.map(block => block.tier), ['now', 'world', 'volatile', 'volatile']);
-  // The ordinary form for the same input still has all of it.
-  assert.match(conversationContext(cabTurn()), /Samurai Jacket/);
+  // The ordinary form for the same input still has all of it (the gear when V's words are about it, 2026-10-30).
+  assert.match(conversationContext(cabTurn({text: 'what am I wearing?'})), /Samurai Jacket/);
 });
 
 // ---------------------------------------------------------------- where V is (2026-10-15)
@@ -1265,12 +1279,17 @@ test('the right-now block is the same whether or not the scenery is told, so the
   assert.ok(BACKGROUND_LEAD.length < 60);
 });
 
-test('who gets what is unchanged: a companion keeps health, heat and money in the block on every turn; a stranger never gets heat or money; a phone contact only the weather', () => {
+test('who gets what: a companion keeps health and heat in the block on every turn and hears the money band when V talks money; a stranger never gets heat or money; a phone contact only the weather', () => {
   sceneryMemory.clear();
   const snapshot = {vehicle: false, ...full};
   const companion = [conversationContext(nextTurn({}, snapshot)), conversationContext(nextTurn({}, snapshot)), conversationContext(nextTurn({}, snapshot))];
+  // The money band (2026-10-30): only on a turn about money, in the turn's Background line, so the block itself does not change.
+  const money = conversationContext(nextTurn({text: 'can we afford it?'}, snapshot));
+  assert.match(backgroundOf(money), /V is nearly broke\./);
+  assert.equal(money.split('\n\n')[0], companion[2].split('\n\n')[0], 'the block is the same text');
   for (const [index, text] of companion.entries()) {
-    assert.match(text, /V is badly hurt\. V has a serious police chase on them\. V is a woman \(she\/her\), lifepath Street Kid\. V is nearly broke\./, `turn ${index + 1}`);
+    assert.match(text, /V is badly hurt\. V has a serious police chase on them\. V is a woman \(she\/her\), lifepath Street Kid\./, `turn ${index + 1}`);
+    assert.doesNotMatch(text, /broke/, `no money band on small talk (${index + 1})`);
     assert.doesNotMatch(text, /raining/, `no weather on the first turn nor while it stays the same (${index + 1})`);
   }
   assert.doesNotMatch(companion[0].split('\n\n')[0], /raining|late night/, 'the block itself carries neither');

@@ -239,8 +239,8 @@ test('a staged choice prepares nothing until it has stayed unchanged, and rapid 
 test('the reference length is part of the choice: it is previewed, carried in the lease and matched against the saved one', () => {
   run(`
     local module = (function() ${source} end)()
-    assert(#module.CHOICES == 7 and module.CHOICES[1].provider == 'pocket' and module.CHOICES[2].provider == 'voxtral' and module.CHOICES[7].provider == 'convai')
-    assert(module.indexOf({voiceProvider = 'pocket'}) == 1 and module.indexOf({voiceProvider = 'voxtral'}) == 2 and module.indexOf({voiceProvider = 'convai'}) == 7)
+    assert(#module.CHOICES == 8 and module.CHOICES[1].provider == 'pocket' and module.CHOICES[2].provider == 'voxtral' and module.CHOICES[7].provider == 'convai' and module.CHOICES[8].provider == 'inworld')
+    assert(module.indexOf({voiceProvider = 'pocket'}) == 1 and module.indexOf({voiceProvider = 'voxtral'}) == 2 and module.indexOf({voiceProvider = 'convai'}) == 7 and module.indexOf({voiceProvider = 'inworld'}) == 8)
     assert(module.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 3)
     assert(module.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 4)
     assert(module.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 5)

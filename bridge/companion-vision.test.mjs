@@ -472,7 +472,7 @@ test('the helper client asks for one bounded picture and returns it', async () =
   assert.equal(result.ok, true);
   assert.equal(result.base64, QUEUED);
   assert.equal(capture.running, true);
-  assert.deepEqual(child.lines, ['capture 2048 88 auto\n'], 'width is clamped; quality falls back to the default (1024 px, quality 88 when nothing is asked)');
+  assert.deepEqual(child.lines, ['capture 2048 88 auto view\n'], 'width is clamped; quality falls back to the default (1024 px, quality 88 when nothing is asked); only the view, without the HUD');
   assert.equal(CAPTURE_DEFAULTS.maxWidth, 1024);
   capture.stop();
   assert.equal(child.lines.at(-1), 'quit\n');

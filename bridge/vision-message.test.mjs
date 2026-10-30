@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {TEXT_PICTURE, VISION_NOTE, isImageRefusal, usableImages, withImages} from './vision-message.mjs';
+import {TEXT_PICTURE, VISION_NOTE, isImageRefusal, pictureForTurn, usableImages, withImages} from './vision-message.mjs';
 import {LOCAL_VISION, imageReserveTokens, projectorNeedMiB} from './local-vision.mjs';
 import {streamChat, VISION_MODELS, DEFAULT_MODELS} from './mistral-client.mjs';
 
@@ -31,11 +31,21 @@ test('withImages: nothing to send, or nowhere to put it, returns the messages as
   assert.deepEqual(usableImages([PICTURE, PICTURE, PICTURE, PICTURE, PICTURE]).length, 4);
 });
 
-test('the note says what the picture is, tells the model not to describe the interface, and has no semicolon or dash', () => {
-  assert.match(VISION_NOTE, /what V can see/);
-  assert.match(VISION_NOTE, /Never describe the interface/);
+test('the note frames the picture as her own view, to use only when it matters, never as a screen, an image or an interface, and has no semicolon or dash', () => {
+  assert.match(VISION_NOTE, /What you see around you right now, with your own eyes/);
+  assert.match(VISION_NOTE, /only when V asks about it or it truly matters/);
+  assert.match(VISION_NOTE, /floating over the view are not part of the place/);
   assert.match(VISION_NOTE, /indoors or outdoors/);
+  assert.doesNotMatch(VISION_NOTE, /screen|image|picture|interface|game window|screenshot/i, 'no word that makes the view a thing V is looking at');
   assert.doesNotMatch(VISION_NOTE, /[;–—]|--/);
+});
+
+test('pictureForTurn: the view goes with a turn whose words are about the surroundings, and with no other', () => {
+  for (const text of ['what do you think of this place', 'what do you see around here', 'look at that car', 'check this out', 'where are we', 'is it raining',
+    "what's that over there", 'who is that guy', '¿qué ves aquí?', 'schau mal', 'ここはどこ']) assert.equal(pictureForTurn({text}), true, text);
+  for (const text of ['hey there', 'like what you see', 'so hows life', 'how is biz', 'see you later', 'hey river, long time no see', 'you look really good today',
+    'thanks', 'perhaps', 'i wouldnt mind coffe', 'how do i look', 'wakako sent me something, think i should take the job?', '', undefined]) assert.equal(pictureForTurn({text}), false, String(text));
+  assert.equal(pictureForTurn(), false);
 });
 
 test('a refusal is a 400, 404, 413, 415 or 422 whose words are about images, vision, multimodal input or a content that must be a string', () => {

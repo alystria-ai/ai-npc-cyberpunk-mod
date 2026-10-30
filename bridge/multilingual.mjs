@@ -246,7 +246,7 @@ function pocketSpeaks(local, language) {
 
 /** Why a voice that cannot speak `language` is kept out of the turn. */
 function unsupportedReason(local, language) {
-  if (local?.cloud === 'voxtral') return 'voice-language-unsupported';
+  if (local?.cloud === 'voxtral' || local?.cloud === 'inworld') return 'voice-language-unsupported';
   if (local?.uses === true && local.provider === 'pocket' && typeof local.pocket?.packMissing === 'function' && local.pocket.packMissing(language) === true) return 'pocket-language-pack-missing';
   return 'english-only-voice';
 }

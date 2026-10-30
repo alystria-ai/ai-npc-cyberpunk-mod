@@ -1096,7 +1096,7 @@ test('Mistral: a turn with a picture carries it in the LAST user message only, a
   assert.equal(last.content[0].type, 'image_url');
   assert.equal(last.content[0].image_url.url, `data:image/jpeg;base64,${PICTURE[0].base64}`);
   assert.equal(last.content.at(-1).type, 'text');
-  assert.match(last.content.at(-1).text, /^\[PICTURE: what V can see around V right now/);
+  assert.match(last.content.at(-1).text, /^\[What you see around you right now, with your own eyes/);
   assert.ok(last.content.at(-1).text.endsWith(without.at(-1).content), "V's words and the live context follow the note unchanged");
   // The cached prefix: every earlier message is the same string in both requests, and no earlier message holds a picture.
   assert.deepEqual(withPicture.slice(0, -1), without.slice(0, -1));
@@ -1195,16 +1195,19 @@ test('attachTextProvider: the picture of a turn comes from the vision policy, th
     return {host, seen};
   };
   const on = make({active: true, images: PICTURE});
-  await on.host.reply({visionTurn: 'turn-1', text: 'hi'});
+  await on.host.reply({visionTurn: 'turn-1', text: 'what do you see around here?'});
   assert.deepEqual(on.seen[0].visionImages, PICTURE);
   assert.deepEqual(calls, [['turn-1', 'reply']]);
-  await on.host.reply({visionTurn: 'turn-2', text: 'hi', reaction: {phase: 'battle'}});
+  await on.host.reply({visionTurn: 'turn-2', text: 'look at that', reaction: {phase: 'battle'}});
   assert.equal(on.seen[1].visionImages, undefined, 'a reaction is not asked for a picture');
+  // 2026-10-30: words that are not about the surroundings take no picture (bridge/vision-message.mjs pictureForTurn).
+  await on.host.reply({visionTurn: 'turn-4', text: 'so hows life'});
+  assert.equal(on.seen[2].visionImages, undefined, 'small talk goes without the view');
   const off = make({active: false, images: PICTURE});
-  await off.host.reply({visionTurn: 'turn-3', text: 'hi'});
+  await off.host.reply({visionTurn: 'turn-3', text: 'what do you see around here?'});
   assert.equal(off.seen[0].visionImages, undefined, 'the setting is off: no picture is asked for');
   const phone = make(undefined);
-  await phone.host.reply({text: 'hi'});
+  await phone.host.reply({text: 'what do you see around here?'});
   assert.equal(phone.seen[0].visionImages, undefined, 'the phone host has no vision policy');
   assert.equal(calls.length, 1, 'turnImages was asked once in all');
 });
