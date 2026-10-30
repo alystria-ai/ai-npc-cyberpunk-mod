@@ -26,6 +26,7 @@
 import {matureLayer, guardLayer, matureClosing, matureWorld} from './mature-content.mjs';
 
 import {applyOverride} from './character-overrides.mjs';
+import {trimSparing} from './player-text.mjs';
 import {BASE_PROFILE, renderRules, renderExamples, renderIntro, renderClosing, limitsWith} from './prompt-profiles.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {headLine, tailLine, staleTest, FRESH_MAX_CHARS} from './fresh-facts.mjs';
@@ -121,7 +122,11 @@ export class PersonaBook {
   #personaOf(profileKey, fallbackName) {
     if (!this.rows.has(profileKey)) { const own = this.custom?.persona(profileKey); if (own) return own; }
     const shipped = this.defaults(profileKey, fallbackName);
-    return shipped.known ? applyOverride(shipped, this.overrides?.get(profileKey) ?? null) : shipped;
+    if (!shipped.known) return shipped;
+    const own = this.overrides?.get(profileKey) ?? null, persona = applyOverride(shipped, own);
+    // When the player last changed the text (a reset counts): the exchanges from before are not shown to the model, see buildMessages.
+    const at = this.overrides?.editedAt?.(profileKey) ?? 0;
+    return at > 0 ? {...persona, editedAt: at} : persona;
   }
   /** The shipped profile alone (what "reset" goes back to): {name, backstory, style, samples} for a profile key; a generic person when the key is unknown. */
   defaults(profileKey, fallbackName) {
@@ -223,17 +228,24 @@ export function systemHead({persona, memory = '', limits = LIMITS, mature = null
     ...(persona.rules?.length ? ['', 'YOUR OWN RULES OF SPEECH (always follow these; they outrank the style above)', ...persona.rules.map(line => `- ${line}`)] : []),
     ...(samples.length ? ['', 'EXAMPLES OF YOUR VOICE (tone and rhythm only; they are not shared memories, and you never repeat them)',
       ...samples.map(line => `- ${line.replace(/\s*\n\s*/g, ' ')}`)] : []),
-    ...(persona.memories?.length ? ['', 'WHAT YOU KNOW AND REMEMBER (true; let it colour what you say when it fits, never recite it)', ...persona.memories.map(line => `- ${line}`)] : []),
+    ...(persona.memories?.length ? ['', 'WHAT YOU KNOW AND REMEMBER (true. If V asks about any of it, answer from it. Otherwise mention it only when it fits, and never list it)', ...persona.memories.map(line => `- ${line}`)] : []),
     ...(memory ? ['', profile.labels.remember, clip(memory, limits.summary)] : []),
     '', rulesOf(profile, name, persona.identityRule, persona.talkWords, Boolean(mature)),
     ...(profile.examples.length ? ['', renderExamples(profile)] : [])].join('\n');
   let backstory = persona.backstory, samples = persona.samples;
   let text = build(backstory, samples);
-  if (text.length > limits.persona + 2000) { samples = []; text = build(backstory, samples); }
-  if (text.length > limits.persona + 2000) {
-    const over = text.length - limits.persona - 2000;
-    backstory = backstory.slice(0, Math.max(500, backstory.length - over - 20)).trimEnd() + '…';
-    text = build(backstory, samples);
+  const cap = limits.persona + 2000;
+  // The shipped example lines go first. The player's own words are spared (bridge/player-text.mjs): an example line the player wrote is dropped only when cutting the shipped part of
+  // the bio does not make the room, and the bio loses its shipped paragraphs from the end before any paragraph the player wrote or changed.
+  const mine = new Set(persona.samplesMine ?? []);
+  if (text.length > cap) { samples = samples.filter(line => mine.has(line)); text = build(backstory, samples); }
+  if (text.length > cap) {
+    let cut = trimSparing(backstory, persona.bioEdits, text.length - cap + 20, {fallback: !samples.length});
+    if (cut.short > 0) {   // only with the player's example lines kept: the shipped paragraphs were not enough, so those lines go and the bio is cut again from the whole
+      samples = []; text = build(backstory, samples);
+      cut = text.length > cap ? trimSparing(backstory, persona.bioEdits, text.length - cap + 20) : {text: backstory};
+    }
+    backstory = cut.text; text = build(backstory, samples);
   }
   // The mature layer comes after the length caps: it is never counted against them and never cut.
   // `guard` without `mature`: an uncensored model answers (or an add-on speaker does) with the setting off, so only the adults-only line and the hard limits are added.
@@ -316,7 +328,10 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   // The earlier replies that say what is no longer true (V's clothes just changed) are not sent: a 4B model repeats its own last answer over any line above it (bridge/fresh-facts.mjs).
   const stale = v2 && !reaction ? staleTest(contextParts.freshDrop) : null;
   let droppedHistory = 0, droppedMemory = 0;
-  for (const turn of history.slice(-limitsWith(profile, limits).turns)) {
+  // The exchanges from before the player last changed this character's text (the editor) are not shown: a model repeats its own earlier answers over the profile above them, so an old
+  // "I have no pets" would outvote a new fact. They stay in the memory and still reach the summary once they roll out; the profile is what the next replies are built from.
+  const shown = Number(persona.editedAt) > 0 ? history.filter(turn => !(Number(turn?.at) < persona.editedAt)) : history;
+  for (const turn of shown.slice(-limitsWith(profile, limits).turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);
     if (!v || !r) continue;
     if (stale?.(r)) { droppedHistory++; continue; }

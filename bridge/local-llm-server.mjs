@@ -46,6 +46,7 @@ import {contextRefusal} from './mistral-client.mjs';
 import {FIT_LIMITS, describeFit, fitAgainst, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {RETURN_LIMITS, lookRefusal, returnAvailableMiB, returnBackoffMs, returnCandidate, returnVerdict} from './local-return.mjs';
+import {TUNING_VARIABLE, resolveLaunchTuning} from './local-launch-tuning.mjs';
 import {LOCAL_VISION, projectorNeedMiB} from './local-vision.mjs';
 import {defaultProjectorFinder, noProjector} from './local-projector.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, engineMissingForOwnModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies, usableModels} from './local-model-choice.mjs';
@@ -220,10 +221,11 @@ export function withoutKeyFile(args) {
 // `kvType` ('q8_0'): the KV cache type, only when the free-memory fit (bridge/local-vram-fit.mjs) needed the smaller cache to keep the whole model on the card.
 // `fitTargetMiB` / `threads` (an offloaded load only; nothing changes for a model that is wholly on the card): `-fitt`, the free memory the fit pass leaves on the card for the game
 // (llama-server's own default is 1,024), and `-t`, the CPU threads (about half the physical cores, so the game's CPU is not starved by the layers that run on it).
+// `extraArgs`: flags from bridge/local-launch-tuning.mjs (CYBERPUNK_CONVAI_LOCAL_TUNING), none unless the player or a measurement asked for them.
 // `mmproj` (the model's vision projector, bridge/local-projector.mjs) and `imageMaxTokens`: `--mmproj <file>` and, for a positive whole number, `--image-max-tokens <n>` (most tokens one picture may cost
 // a model with dynamic resolution). Only while Companions can see is on and the projector fits (LocalLlmServer #visionPlan). Nothing changes when `mmproj` is unset.
 export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false, kvType = null,
-    fitTargetMiB = null, threads = null, swaFull = false, mmproj = null, imageMaxTokens = null}) {
+    fitTargetMiB = null, threads = null, swaFull = false, mmproj = null, imageMaxTokens = null, extraArgs = []}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
   return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', ...(swaFull ? ['--swa-full'] : []), '-c', String(contextSize), ...(kvType ? ['-ctk', String(kvType), '-ctv', String(kvType)] : []), '-np', '1', '--reasoning', 'off',
     // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
@@ -232,6 +234,7 @@ export function buildServerArgs({model, port, keyFile, device, contextSize = LOC
     ...(offload && fitTargetMiB ? ['-fitt', String(Math.round(fitTargetMiB))] : []), ...(offload && threads ? ['-t', String(Math.round(threads))] : []), '--device', device, '--no-webui',
     ...(chatTemplate ? ['--chat-template', String(chatTemplate)] : []),
     ...(mmproj ? ['--mmproj', String(mmproj), ...(Number.isInteger(imageMaxTokens) && imageMaxTokens > 0 ? ['--image-max-tokens', String(imageMaxTokens)] : [])] : []),
+    ...extraArgs,
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
 
@@ -694,6 +697,7 @@ export class LocalLlmServer extends EventEmitter {
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB, findProjector, externalProbeMs, backgroundQuietMs, cpuCount, gameRoom});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
+    this.tuningEnvironment = environment;
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     // CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: the free system memory the supervisor sees (tests of a real bridge process: the check before a load with part on the CPU, LOW_RAM).
     const ramOverride = Number.parseInt(environment.CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB ?? '', 10);
@@ -1325,10 +1329,12 @@ export class LocalLlmServer extends EventEmitter {
   // The llama-server child for one load of `tier`: the arguments of buildServerArgs, the supervisor's process options (priority, registry, environment). Used by #startOnce and by the
   // server prepared beside the running one (#returnToCard).
   #makeProcess({tier, device, contextSize, cacheRamMiB, kvType = null, swaFull = false, offload = false, fitTargetMiB = null, threads = null, mmproj = null}) {
+    const tuning = resolveLaunchTuning({environment: this.tuningEnvironment, offload, taken: offload && threads ? ['-t'] : []});
+    if (tuning.text) this.log(`[local] launch tuning (${TUNING_VARIABLE}): ${tuning.text}`);
     return new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
       buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload, kvType, swaFull, fitTargetMiB, threads,
-        ...(mmproj ? {mmproj, imageMaxTokens: LOCAL_VISION.imageMaxTokens} : {})}),
+        extraArgs: tuning.args, ...(mmproj ? {mmproj, imageMaxTokens: LOCAL_VISION.imageMaxTokens} : {})}),
       ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
   }
 

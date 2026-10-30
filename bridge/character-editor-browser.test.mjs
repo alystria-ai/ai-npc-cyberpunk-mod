@@ -540,6 +540,30 @@ test('the new-character form works at phone width and in the light theme', {skip
   await e.shot('13-phone');
 });
 
+test('with Convai answering, a note beside the text fields says the edits do not apply, and it follows the provider when the player comes back to the page', {skip, timeout: 120000}, async t => {
+  const e = await open(t, {route: 'convai'});
+  const {page} = e;
+  await page.locator('#list button.pick').nth(2).click();
+  await page.waitForSelector('#f-bio');
+  const note = page.locator('.convai-note');
+  for (const tab of ['bio', 'style', 'rules', 'memories']) {
+    await page.locator('#tab-' + tab).click();
+    assert.equal(await note.isVisible(), true, `the ${tab} tab has the note while Convai answers`);
+    assert.match(await note.textContent(), /Google Gemini, Local AI and Custom\. They do not apply to Convai\./);
+  }
+  // The player switches the conversation provider in the game and comes back to the open page: the warnings follow without a reload.
+  e.state.route = 'local';
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(() => document.getElementById('banner').hidden);
+  assert.equal(await note.isVisible(), false, 'no note once a text provider answers');
+  await page.waitForTimeout(2100);
+  e.state.route = 'convai';
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(() => !document.getElementById('banner').hidden);
+  assert.equal(await note.isVisible(), true);
+  assert.deepEqual(e.problems, []);
+});
+
 test('World rules: a page of its own, saved, reverted and cleared, in force on the next turn, with the Convai note and no warning banner', {skip, timeout: 120000}, async t => {
   const e = await open(t, {route: 'convai'});
   const {page} = e;

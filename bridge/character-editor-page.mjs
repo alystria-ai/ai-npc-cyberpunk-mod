@@ -1184,7 +1184,14 @@ export function editorClient() {
 
   // ---- the page
   const TAB_ICONS = {bio: 'fileText', style: 'message', rules: 'listChecks', memories: 'bookmark', voice: 'mic', look: 'shirt'};
+  // Beside the text fields of the four text tabs, while Convai is the conversation provider: these edits are not used by it (the banner under the top bar says it too, and follows the provider).
+  const convaiNote = () => h('p', {class: 'convai-note', role: 'note', hidden: model.state.provider === 'convai' ? false : true},
+    icon('alert'), h('span', {}, T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.')));
   const panel = tab => {
+    const body = panelBody(tab);
+    return ['bio', 'style', 'rules', 'memories'].includes(tab) ? h('div', {}, convaiNote(), body) : body;
+  };
+  const panelBody = tab => {
     buttons = [];
     if (tab === 'bio') return h('div', {}, blockField('bio', T('Bio'), T('Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.'), 18), actions(['bio']));
     if (tab === 'style') return h('div', {}, blockField('style', T('Speaking style'), T('How they sound: pace, attitude, favourite habits of speech.'), 8),
@@ -1411,7 +1418,17 @@ export function editorClient() {
     // The Look and moves tab has its own sentence about Convai (most of its choices work with it), so the warning about the text edits is left out there.
     if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.replaceChildren(icon('alert'), document.createTextNode(T('Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.'))); }
     else banner.hidden = true;
+    for (const note of document.querySelectorAll('.convai-note')) note.hidden = model.state.provider !== 'convai';
   }
+  // The provider can change in the game while this page stays open: ask again when the player comes back to it, so the warning is true.
+  let providerAt = 0;
+  async function refreshProvider() {
+    if (!model.state || Date.now() - providerAt < 2000) return;
+    providerAt = Date.now();
+    try { const fresh = await api('GET', '/api/state'); if (fresh && typeof fresh.provider === 'string' && fresh.provider !== model.state.provider) { model.state.provider = fresh.provider; drawBanner(); } } catch { /* the warning keeps what it showed */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshProvider(); });
+  window.addEventListener('focus', refreshProvider);
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });
   // The unsaved-changes marks follow every key press, choice and click on the page (the handlers of the controls have already run when these are called).
   for (const type of ['input', 'change', 'click']) document.addEventListener(type, refreshFlags);
@@ -1522,6 +1539,8 @@ button:disabled{opacity:.42;cursor:not-allowed}
 #sub .icon{width:15px;height:15px;margin-top:2px;color:var(--text-3)}
 #banner{display:flex;gap:10px;align-items:center;margin:0;padding:10px 24px;background:var(--warn-bg);color:var(--warn-text);border-bottom:1px solid var(--warn-line);font-size:13.5px}
 #banner[hidden]{display:none}
+.convai-note{display:flex;gap:10px;align-items:center;margin:0 0 16px;padding:10px 14px;background:var(--warn-bg);color:var(--warn-text);border:1px solid var(--warn-line);border-radius:var(--r-md);font-size:13.5px}
+.convai-note[hidden]{display:none}
 main#main{outline:none}
 main#main[hidden]{display:none}
 footer{padding:14px 24px;color:var(--text-3);font-size:12.5px;border-top:1px solid var(--line);text-align:center}

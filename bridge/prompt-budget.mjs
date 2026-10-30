@@ -24,6 +24,7 @@
 import {buildMessages as defaultBuild, capContext, joinBlocks, PROMPT_SOURCE, systemHead} from './mistral-prompt.mjs';
 import {MistralError} from './mistral-client.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
+import {trimSparing} from './player-text.mjs';
 
 export const BUDGET = Object.freeze({
   charsPerToken: 3.6,    // before anything is learned, for a model nobody measured
@@ -416,7 +417,10 @@ export function leadingText(text, limit) {
 function compactPersona(args, level) {
   const persona = args?.persona;
   if (!persona) return null;
-  const backstory = leadingText(persona.backstory, level.backstory), style = leadingText(persona.style, level.style);
+  // A bio the player edited keeps the paragraphs the player wrote or changed: the shipped ones go from the end first (bridge/player-text.mjs).
+  const whole = String(persona.backstory ?? '');
+  const backstory = persona.bioEdits?.length && whole.length > level.backstory ? trimSparing(whole, persona.bioEdits, whole.length - level.backstory).text : leadingText(persona.backstory, level.backstory);
+  const style = leadingText(persona.style, level.style);
   if (backstory === String(persona.backstory ?? '') && style === String(persona.style ?? '')) return null;
   return {...args, persona: {...persona, backstory, style, samples: []}};
 }

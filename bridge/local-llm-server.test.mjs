@@ -2508,3 +2508,18 @@ test('Allow Local AI to use RAM: a chosen model that does not fit is kept with p
   await fits.server.ensure();
   assert.ok(fits.calls[0].args.includes('-ngl') && argValue(fits.calls[0], '-fit') === 'off');
 });
+
+test('launch tuning from the environment reaches the llama-server command line and the log, and is absent without it', async t => {
+  const plain = harness(t, {environment: {}});
+  await plain.server.ensure();
+  assert.ok(!plain.calls[0].args.includes('-cms') && !plain.calls[0].args.includes('--poll'));
+  assert.ok(!plain.logs.some(line => line.includes('launch tuning')));
+  const tuned = harness(t, {environment: {CYBERPUNK_CONVAI_LOCAL_TUNING: 'checkpoint-step=256,poll=0,bogus=9'}});
+  await tuned.server.ensure();
+  const args = tuned.calls[0].args;
+  assert.equal(args[args.indexOf('-cms') + 1], '256');
+  assert.equal(args[args.indexOf('--poll') + 1], '0');
+  assert.ok(!args.includes('bogus=9'));
+  assert.ok(args.indexOf('-cms') < args.indexOf('--host'));
+  assert.ok(tuned.logs.some(line => line.includes('launch tuning') && line.includes('checkpoint-step=256, poll=0')), tuned.logs.join('\n'));
+});
