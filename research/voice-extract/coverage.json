@@ -1,0 +1,43 @@
+{
+ "summary": {
+  "voices": 341,
+  "clips": 1026,
+  "exact": 1017,
+  "withinOneStep": 4,
+  "largerDifference": 0,
+  "notReproducible": 5
+ },
+ "notReproducible": [
+  {
+   "key": "lucy-kushinada",
+   "kind": "omni-short",
+   "reason": "no game file for lucy-kushinada/lucy-3-seventy-thirty"
+  },
+  {
+   "key": "lucy-kushinada",
+   "kind": "omni-long",
+   "reason": "no game file for lucy-kushinada/lucy-2-trainee"
+  },
+  {
+   "key": "lucy-kushinada",
+   "kind": "pocket",
+   "reason": "no game file for lucy-kushinada/lucy-2-trainee"
+  },
+  {
+   "key": "spider-murphy",
+   "kind": "omni-long",
+   "reason": "line 2 of 4 (spider-murphy/1786609673804345344) best match differs by 17492 steps in 48209 samples"
+  },
+  {
+   "key": "npc-kang-tao-male",
+   "kind": "omni-short",
+   "reason": "line 1 of 2 (sec_mid_m_01_enus_30/1958947896299659268) best match differs by 3313 steps in 32038 samples"
+  }
+ ],
+ "notExact": [
+  "jesse/pocket",
+  "santiago/omni-long",
+  "steven-santos/omni-long",
+  "yorinobu-arasaka/pocket"
+ ]
+}

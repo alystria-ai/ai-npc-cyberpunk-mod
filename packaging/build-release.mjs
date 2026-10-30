@@ -583,8 +583,10 @@ async function runtimePackage(source, config, models, auth) {
   if (auth) addPackagedAuth(pkg, app, auth);
 
   // Pocket reference clips: only those the live configuration uses, each checked against its hash.
+  // (voiceClips.fromGame in release.config.json: the clips are checked against their hashes as ever but not packed, because the player's PC builds them from the game's own
+  // voice files, bridge/voice-clips.mjs and docs/VOICE_EXTRACTION.md. Off until the clips are on Hugging Face for players without the English voice files.)
   const pocketRefs = await referencesOf(pocketConfig, models);
-  for (const [rel, path] of pocketRefs) pkg.file(`${plugin}/voices/${rel}`, path);
+  if (!config.voiceClips?.fromGame) for (const [rel, path] of pocketRefs) pkg.file(`${plugin}/voices/${rel}`, path);
   // V's voice for typed lines (docs/V_VOICE.md): the two clips cut from the game's own V lines, beside the other voice references. They
   // are kept out of git (assets/v-voice/*.wav), so they are packed from the local copy, like an add-on's voice clips. A build without
   // them still works: the setting then has no voice to use and says so in the log.
@@ -813,6 +815,7 @@ async function omniPackage(source, config, models) {
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
       seen.add(rel);
+      if (config.voiceClips?.fromGame) continue;          // built on the player's PC (voiceClips.fromGame): neither the pack nor the Runtime carries it
       const held = runtimeClips.get(`${plugin}/voices/${rel}`.toLowerCase());
       if (held) {
         if ((await stat(path)).size !== held.size || await crcOfFile(path) !== held.crc) throw Error(`The Runtime carries voices/${rel} with other bytes than this build's clip.`);
@@ -821,7 +824,7 @@ async function omniPackage(source, config, models) {
       pkg.file(`${plugin}/voices/${rel}`, path);
     }
   }
-  if (leftToRuntime !== runtimeClips.size) throw Error(`The Runtime clip listing names ${runtimeClips.size} clips but the lists use ${leftToRuntime} of them.`);
+  if (!config.voiceClips?.fromGame && leftToRuntime !== runtimeClips.size) throw Error(`The Runtime clip listing names ${runtimeClips.size} clips but the lists use ${leftToRuntime} of them.`);
   log(`OmniVoice reference clips: ${leftToRuntime} left to the Runtime package (they are in it already).`);
   // The Mistral voice clones from the OmniVoice clips (long first, then short, then Pocket's) when this pack is installed, and its
   // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips in its own folder
