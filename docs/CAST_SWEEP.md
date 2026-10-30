@@ -9,7 +9,7 @@ clip that is not phone audio. This page is the recipe and the decisions. The num
 ## What a "minor" profile is
 
 A normal roster row is a story character: protected from the other systems, prepared for the story face, invitable, with a Convai
-character and twin. A sweep row (`"minor": true`, `"invite": false`) names an ordinary person, so it changes as little as possible:
+character and twin. A sweep row (`"minor": true`) names an ordinary person, so it changes as little as possible (since 30 Oct 2026 most are invitable, see `docs/SIDE_CHARACTERS.md`):
 
 | Question | Answer |
 |---|---|
@@ -17,9 +17,9 @@ character and twin. A sweep row (`"minor": true`, `"invite": false`) names an or
 | The game's own copy of that person | Only while Talk to story characters is on. With it off the person keeps the archetype conversation they had before (`profile.minor`), so the setting takes talk away from nobody. |
 | Protected from other systems | No. `protectedReason` skips a minor profile, so recruiting and the other systems behave as before. |
 | Story face preparation | No. The record is left out of `FaceFeature.reds` `NamedRecords` (`scripts/Build-FacialGraphs.mjs`), so the crowd preparation keeps serving it. |
-| Invite | `invite: false`: listed as "Profile only", no companion definition. Flip the flag per row if a character should be invitable. |
+| Invite | `invite: true` for 557 of the 575 (record in both game versions, not a child), listed under Side characters to invite (`docs/SIDE_CHARACTERS.md`). The other 18 stay `invite: false`: listed as "Profile only", no companion definition. |
 | Voice | Own clip where the person has voice files of their own, else the fallback archetype voice (`characters/cast-sweep-voices.json`). |
-| Convai character and twin | None yet (owner step). Every provider other than Convai uses the profile text as it is. |
+| Convai character and twin | One each for the invitable rows (`scripts/cast-sweep/provision-batches.mjs`, `docs/SIDE_CHARACTERS.md`). Every provider other than Convai uses the profile text as it is. |
 
 ## Pipeline (all scripts in `scripts/cast-sweep/`)
 
@@ -74,7 +74,7 @@ add the three config rows (the recipe in `docs/CAST_EXPANSION_RECIPE.md` step 3 
   | game roster (703 rows, lean) | 1,430,797 | 18 ms | 23.7 MB | 1,173 KB |
 
   Re-run it after any change to the roster. The decode runs once at start and again on a CET reload.
-* The Companion Manager's Characters to invite list does not carry minor profiles (`mod/manager.lua` `invitableProfiles`, and the older Characters tab).
+* The Companion Manager's Main characters to invite list does not carry minor profiles (`mod/manager.lua` `invitableProfiles`); the invitable ones are on the Side characters to invite page.
   The memory page and the profile assignment list still list every profile, and the search finds them.
 * The character editor picker has a "Minor characters" chip (role `minor`, `bridge/character-editor.mjs` `roleOfRow`). The minor characters are
   not in All or the other chips until the search box has text, so the default list stays short.
