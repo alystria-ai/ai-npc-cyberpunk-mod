@@ -5192,7 +5192,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:221",
-        "mod/phone-chat-style.lua:313",
+        "mod/phone-chat-style.lua:314",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:693",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:833"
       ]
@@ -5697,8 +5697,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1498",
-        "mod/companions.lua:1504"
+        "mod/companions.lua:1505",
+        "mod/companions.lua:1511"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -6254,7 +6254,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/companions.lua:464",
+        "mod/companions.lua:471",
         "mod/manager-party.lua:410"
       ]
     },
@@ -10580,7 +10580,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:8282"
+        "mod/init.lua:8293"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -11906,7 +11906,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:388"
+        "mod/phone-chat-style.lua:389"
       ]
     },
     "Press again": {
@@ -13038,7 +13038,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:296",
+        "mod/phone-chat-style.lua:297",
         "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:498"
       ]
     },
@@ -13746,8 +13746,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1493",
-        "mod/companions.lua:1503"
+        "mod/companions.lua:1500",
+        "mod/companions.lua:1510"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -14239,7 +14239,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1506"
+        "mod/companions.lua:1513"
       ]
     },
     "That companion is not available.": {
@@ -17983,7 +17983,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:387"
+        "mod/phone-chat-style.lua:388"
       ]
     },
     "YOUR PARTY": {
