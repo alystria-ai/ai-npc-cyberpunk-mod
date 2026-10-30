@@ -190,9 +190,11 @@ test('redscript: the search is the first row of the Chat list, plain widgets at 
   assert.match(open, /if !this\.ConvaiSearchBoxMake\(\) \{ return; \};/);
   // The list moves down by the row's height while the row shows, and comes back with it.
   const shift = body(search, 'private final func ConvaiSearchShift(on: Bool) -> Void');
-  assert.match(shift, /margin\.top \+ 100\.0/);
-  assert.match(shift, /size\.Y - 100\.0/);
-  assert.match(shift, /this\.m_convaiSearchArea\.SetMargin\(this\.m_convaiSearchAreaMargin\);\s*this\.m_convaiSearchArea\.SetSize\(this\.m_convaiSearchAreaSize\);/, 'put back exactly');
+  assert.match(shift, /margin\.top \+ 112\.0/, 'the row\'s 100 and a gap of 12 below it');
+  assert.match(shift, /this\.m_convaiSearchArea\.SetMargin\(this\.m_convaiSearchAreaMargin\);/, 'put back exactly');
+  // The size of the scroll area is never read or set: on a list just spawned it is not laid out and a size taken then left no room for any row (31 Oct, reopening the phone).
+  assert.doesNotMatch(shift.replace(/\/\/.*$/gm, ''), /GetSize|SetSize/);
+  assert.doesNotMatch(search, /m_convaiSearchAreaSize/);
   // The tab strip is not touched any more.
   assert.doesNotMatch(search, /ConvaiSearchStrip|m_menuSelectorCtrl|SetVisible\(!visible\)/);
   // The row is built before the rows are, on a keyboard, and only with the text input; it goes with the Chat list.
@@ -270,6 +272,31 @@ test('redscript: the box is taken away when the search ends (its tick stops), ne
   assert.match(end, /this\.ConvaiShowChatContacts\(selectId\);/, 'the whole list is back around the selected contact');
 });
 
+test('redscript: closing and reopening the phone starts from the full list, with no search state left (empty text, text, and after a chat)', () => {
+  // Every opening of the phone spawns a new list, and the game sets the screen type for it (SetScreenType, wrapped to close the search): closing the search forgets all of its state.
+  assert.match(tabs, /public func SetScreenType\(type: PhoneScreenType\) -> Void \{\s*this\.m_convaiChatState = ConvaiPhoneChatState\.Off;\s*this\.ConvaiSearchClose\(false\);/);
+  assert.match(body(search, 'public final func ConvaiSearchClose(rebuild: Bool) -> Void'), /this\.m_contactListLogicController\.ConvaiSearchRowShow\(false\);\s*\};\s*this\.ConvaiSearchReset\(\);/);
+  assert.doesNotMatch(search, /wrapMethod\(NewHudPhoneGameController\)\nprotected cb func OnContactListSpawned/, 'no new wrapped method (docs/MOD_COMPATIBILITY.md lists them)');
+  const reset = body(search, 'public final func ConvaiSearchReset() -> Void');
+  // Every field of a search is put back, whatever it held: nothing is left that could filter the next list or ask for a box that is gone.
+  for (const field of ['m_convaiSearchOpen = false', 'm_convaiSearchFilter = false', 'm_convaiSearchOpenOnAnswer = false', 'm_convaiSearchSeq = -1', 'm_convaiSearchIdle = 0',
+    'm_convaiSearchDrop = false', 'm_convaiSearchMuted = false', 'm_convaiSearchEsc = false', 'm_convaiSearchEscTicks = 0', 'm_convaiSearchEscFrames = 0', 'm_convaiSearchJournal = ""'])
+    assert.ok(reset.includes('this.' + field + ';'), field);
+  assert.match(reset, /ArrayClear\(this\.m_convaiSearchIds\);\s*ArrayClear\(this\.m_convaiSearchRows\);/);
+  assert.match(reset, /this\.ConvaiSearchBoxForget\(\);/);
+  const forget = body(search, 'private final func ConvaiSearchBoxForget() -> Void');
+  assert.match(forget, /this\.m_convaiSearchBox\.Stop\(\);\s*\};\s*this\.m_convaiSearchBox = null;/, 'the box of a gone list stops its tick and is forgotten');
+  // Closing the phone with a search going (no text, text, a chat open) lets go of it before the list is removed: the same call as a tab change.
+  assert.match(tabs, /protected cb func OnContactListClosed\(\) -> Bool \{\s*this\.m_convaiChatState = ConvaiPhoneChatState\.Off;\s*this\.ConvaiSearchClose\(false\);/);
+  // A filter is applied to a list only while its box exists: a stale filter cannot empty a list built after the box is gone.
+  assert.match(search, /if this\.m_convaiSearchOpen && this\.m_convaiSearchFilter && IsDefined\(this\.m_convaiSearchBox\) \{ return this\.ConvaiSearchFilterRows\(\); \};\s*return rows;/);
+  // A new list gets its own row (the fields of the old list's row live in the old list), moved by margin only, and the first build shows the whole list.
+  const make = body(search, 'private final func ConvaiSearchRowMake() -> Bool');
+  assert.match(make, /if IsDefined\(this\.m_convaiSearchRow\) \{ return true; \};/);
+  assert.match(tabs, /let shown = this\.ConvaiSearchRowsBuilt\(contacts\);/);
+  assert.match(search, /private final func ConvaiSearchRowsBuilt\(rows: array<ref<IScriptable>>\) -> array<ref<IScriptable>> \{\s*this\.m_convaiSearchRows = rows;/);
+});
+
 test('redscript: Enter opens the selected match, Esc and Back end the search first, a second Esc is the game\'s', () => {
   assert.match(search, /Equals\(evt\.GetKey\(\), EInputKey\.IK_Enter\) \{\s*if Equals\(evt\.GetAction\(\), EInputAction\.IACT_Press\) \{ this\.m_owner\.ConvaiSearchEnter\(\); \};\s*return;/);
   assert.match(search, /Equals\(evt\.GetKey\(\), EInputKey\.IK_Escape\) \{\s*if Equals\(evt\.GetAction\(\), EInputAction\.IACT_Press\) \{ this\.m_owner\.ConvaiSearchEscape\(\); \};\s*return;/);
@@ -292,7 +319,6 @@ test('redscript: the list is filtered from the rows it already has, only when th
   assert.match(search, /if !this\.m_convaiSearchOpen \|\| seq != this\.m_convaiSearchSeq/, 'an answer for older text is dropped');
   // The build keeps every row and shows only the matches while a search is in force (a favorite turned on rebuilds the list).
   assert.match(tabs, /let shown = this\.ConvaiSearchRowsBuilt\(contacts\);[^]*?this\.m_contactListLogicController\.PopulateListData\(shown\);/);
-  assert.match(search, /if this\.m_convaiSearchOpen && this\.m_convaiSearchFilter \{ return this\.ConvaiSearchFilterRows\(\); \};\s*return rows;/);
   // Nothing is polled or scheduled by the search: no frame hook, no delay, only Lua's 10 Hz tick and the key callbacks.
   assert.doesNotMatch(search, /DelayCallback|DelaySystem|OnUpdate|OnTick|Schedule|OnAnimation|PlayAnimation/);
   // Lua's questions: the player owns the counter, so a new list never repeats a number Lua has answered.

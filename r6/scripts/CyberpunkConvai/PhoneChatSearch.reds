@@ -293,6 +293,19 @@ private final func ConvaiSearchBoxDrop() -> Void {
     this.m_convaiSearchDrop = false;
 }
 
+// The box belongs to a list that is gone: its tick stops and it is forgotten (nothing to remove, the list took it along).
+@if(ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchBoxForget() -> Void {
+    if IsDefined(this.m_convaiSearchBox) { this.m_convaiSearchBox.Stop(); };
+    this.m_convaiSearchBox = null;
+}
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchBoxForget() -> Void {
+    this.m_convaiSearchBox = null;
+}
+
 // Focus in the box now (the player types at once), or off it while it waits to be taken away.
 @if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(NewHudPhoneGameController)
@@ -442,7 +455,7 @@ private final func ConvaiSearchRowsBuilt(rows: array<ref<IScriptable>>) -> array
         if IsDefined(contact) && contact.hash != 0 && StrLen(contact.convaiPlainName) > 0 { names += contact.id + "\t" + contact.convaiPlainName + "\n"; };
     };
     this.m_convaiSearchJournal = names;
-    if this.m_convaiSearchOpen && this.m_convaiSearchFilter { return this.ConvaiSearchFilterRows(); };
+    if this.m_convaiSearchOpen && this.m_convaiSearchFilter && IsDefined(this.m_convaiSearchBox) { return this.ConvaiSearchFilterRows(); };
     return rows;
 }
 
@@ -511,6 +524,7 @@ public final func ConvaiSearchClose(rebuild: Bool) -> Void {
     this.m_convaiSearchEscFrames = 0;
     this.ConvaiSearchEnd(rebuild, false);
     if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiSearchRowShow(false); };
+    this.ConvaiSearchReset();
 }
 
 // The phone's controller is being taken down (a load, leaving the game): the search lets go of everything and the player forgets the list.
@@ -518,6 +532,27 @@ public final func ConvaiSearchClose(rebuild: Bool) -> Void {
 public final func ConvaiSearchUninitialize() -> Void {
     this.ConvaiSearchClose(false);
     if IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatSearchView(null); };
+}
+
+// Nothing of an earlier search survives: every field of the phone's controller that a search uses is put back. Closing the search for good (ConvaiSearchClose) does it,
+// and the game sets the screen type (SetScreenType, wrapped in PhoneChatTabs.reds) when it spawns the list of a newly opened phone, which closes it too, so a new list
+// never meets the state of an old one. The full list is then built from the journal as on a first opening.
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiSearchReset() -> Void {
+    this.m_convaiSearchOpen = false;
+    this.m_convaiSearchFilter = false;
+    this.m_convaiSearchOpenOnAnswer = false;
+    this.m_convaiSearchSeq = -1;
+    this.m_convaiSearchIdle = 0;
+    this.m_convaiSearchDrop = false;
+    this.m_convaiSearchMuted = false;
+    this.m_convaiSearchEsc = false;
+    this.m_convaiSearchEscTicks = 0;
+    this.m_convaiSearchEscFrames = 0;
+    ArrayClear(this.m_convaiSearchIds);
+    ArrayClear(this.m_convaiSearchRows);
+    this.m_convaiSearchJournal = "";
+    this.ConvaiSearchBoxForget();
 }
 
 // Lua's 10 Hz tick. The failsafes live here: the Esc flag ends by itself, a box left from its own callback is taken away, a search nobody uses ends, and
@@ -608,8 +643,6 @@ private let m_convaiSearchArea: wref<inkWidget>;
 private let m_convaiSearchShifted: Bool;
 @addField(PhoneDialerLogicController)
 private let m_convaiSearchAreaMargin: inkMargin;
-@addField(PhoneDialerLogicController)
-private let m_convaiSearchAreaSize: Vector2;
 @addField(PhoneDialerLogicController)
 private let m_convaiSearchBarMargin: inkMargin;
 
@@ -703,24 +736,24 @@ public final func ConvaiSearchRowShow(visible: Bool) -> Void {
 private final func ConvaiSearchShift(on: Bool) -> Void {
     if Equals(on, this.m_convaiSearchShifted) || !IsDefined(this.m_convaiSearchArea) { return; };
     let bar = inkWidgetRef.Get(this.m_scrollBarWidget);
+    // Only the margin moves (the row's 100 and a gap of 12 below it). The size of the scroll area is never read or set: on a list that has just been spawned it
+    // is not laid out yet, and a size taken then left the list with no room for any row (31 Oct live test, the Chat tab after reopening the phone).
     if on {
         let margin = this.m_convaiSearchArea.GetMargin();
-        let size = this.m_convaiSearchArea.GetSize();
         this.m_convaiSearchAreaMargin = margin;
-        this.m_convaiSearchAreaSize = size;
-        this.m_convaiSearchArea.SetMargin(new inkMargin(margin.left, margin.top + 100.0, margin.right, margin.bottom));
-        this.m_convaiSearchArea.SetSize(new Vector2(size.X, MaxF(200.0, size.Y - 100.0)));
+        this.m_convaiSearchArea.SetMargin(new inkMargin(margin.left, margin.top + 112.0, margin.right, margin.bottom));
         if IsDefined(bar) {
             let barMargin = bar.GetMargin();
             this.m_convaiSearchBarMargin = barMargin;
-            bar.SetMargin(new inkMargin(barMargin.left, barMargin.top + 100.0, barMargin.right, barMargin.bottom));
+            bar.SetMargin(new inkMargin(barMargin.left, barMargin.top + 112.0, barMargin.right, barMargin.bottom));
         };
     } else {
         this.m_convaiSearchArea.SetMargin(this.m_convaiSearchAreaMargin);
-        this.m_convaiSearchArea.SetSize(this.m_convaiSearchAreaSize);
         if IsDefined(bar) { bar.SetMargin(this.m_convaiSearchBarMargin); };
     };
     this.m_convaiSearchShifted = on;
+    let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
+    if on && IsDefined(player) { player.ConvaiPhoneChatTrace("search row: list moved down, scroll area margin top " + FloatToString(this.m_convaiSearchAreaMargin.top) + " + 112"); };
 }
 
 // The row at rest or in use: the word shows while there is no text (dim while the box has the keyboard), the O key while the row rests.
