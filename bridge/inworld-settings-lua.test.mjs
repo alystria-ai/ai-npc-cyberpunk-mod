@@ -6,7 +6,7 @@ import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {nsuiHarness} from './manager-fixture.mjs';
 
 // The game side of the Inworld cloud voice (docs/INWORLD.md), inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI: the Inworld
-// section at the BOTTOM of Settings > Voice and microphone > Custom voices (the API key row, the connection test, one line saying whether the voice can be chosen), its
+// section at the BOTTOM of Settings > Voice AI and microphone > Custom voices (the API key row, the connection test, one line saying whether the voice can be chosen), its
 // command file, the texts it shows and the rules they keep. The conversation service is played by the test: it writes the status file the bridge would.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const remoteSource = readFileSync(new URL('../mod/remote-omni.lua', import.meta.url), 'utf8');
@@ -127,7 +127,7 @@ test('the page is built from the saved settings and the status file alone: a key
 `));
 
 test('turning Mature content on from the Settings page moves an Inworld voice to Pocket and records the way back, and turning it off puts it back while the key is saved', () => run(`${fixture}
-  assert(invoke('custom-voices:back').ok and managerUi.inspect().view == 'settings-voice', 'Back returns to Voice and microphone')
+  assert(invoke('custom-voices:back').ok and managerUi.inspect().view == 'settings-voice', 'Back returns to Voice AI and microphone')
   local function withKey(tag, keySaved)
     jsonFixtures['mistral-' .. tag] = {provider = 'convai', effective = 'convai', saved = false, localAi = 'ready', inworld = {saved = keySaved, tail = keySaved and 'wxyz' or nil}}
     files['runtime/mistral-state.json'] = 'mistral-' .. tag

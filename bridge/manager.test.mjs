@@ -1351,7 +1351,7 @@ test('a PC the bridge knows has no NVIDIA card gets a note on the OmniVoice entr
     assert(manager.omniPack().amdRoute == true)
     assert(row('voiceProvider').label == 'Companion voices (OmniVoice on AMD: set up first)', row('voiceProvider').label)
     description = row('voiceProvider').description
-    assert(description:find('^Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.'), description)
+    assert(description:find('^Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.'), description)
     assert(not description:find('OMNIVOICE_AMD', 1, true) and description:find('Pocket: the lightest', 1, true))
     show('amd-route-integrated', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniAmdRoute = false, gpuVendors = {'intel'}})
     assert(manager.omniPack().amdRoute == false and row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)')
@@ -3388,7 +3388,7 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
   `);
 });
 
-test("Companion voice volume and V's voice volume are two Voice and microphone sliders (50 to 300, steps of 5, 150 by default) saved for the bridge", () => {
+test("Companion voice volume and V's voice volume are two Voice AI and microphone sliders (50 to 300, steps of 5, 150 by default) saved for the bridge", () => {
   run(`${nsuiFixture}
     assert(manager.snapshot(player).settings.voiceVolume == 150 and manager.snapshot(player).settings.vVoiceVolume == 150)
     assert(invoke('tab:settings').ok)
@@ -3403,7 +3403,7 @@ test("Companion voice volume and V's voice volume are two Voice and microphone s
     assert(row('voiceVolume').label == 'Companion voice volume (%)', row('voiceVolume').label)
     assert(row('voiceVolume').description:find('companions', 1, true) and not row('voiceVolume').description:find('typed lines', 1, true), 'the Voice volume text names the companions, not V')
     assert(row('vVoiceVolume').description:find('V’s own voice', 1, true))
-    -- Both sit on the Voice and microphone page: V's voice volume follows the two rows of V's voice (its mode and its engine) that follow the companions' volume.
+    -- Both sit on the Voice AI and microphone page: V's voice volume follows the two rows of V's voice (its mode and its engine) that follow the companions' volume.
     assert(managerUi.inspect().view == 'settings-voice')
     local category, at, vAt, modeAt, engineAt
     for _, c in ipairs(registered.loadMod('manager').categories or {}) do
@@ -4137,7 +4137,7 @@ test('Natural speech and the cloud voice: choosing the cloud voice keeps it and 
   `);
 });
 
-test('Natural speech sits on the Voice and microphone page and applies on its own', () => {
+test('Natural speech sits on the Voice AI and microphone page and applies on its own', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     assert(row('naturalSpeech') and managerUi.inspect().view == 'settings-voice')
@@ -4233,7 +4233,7 @@ test('V’s voice is a list of three (Off, Typed lines, Typed and spoken lines) 
     assert(row('vVoice'))
     loaded = registered.loadMod('manager')
     assert(managerUi.inspect().view == 'settings-voice')
-    -- V's voice (what is spoken) and V's voice engine are two rows in a row on the Voice and microphone page, and there is no row of its own for the microphone lines.
+    -- V's voice (what is spoken) and V's voice engine are two rows in a row on the Voice AI and microphone page, and there is no row of its own for the microphone lines.
     local order = {}
     for _, category in ipairs(loaded.categories) do
       if category.id == 'voices' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
@@ -4425,7 +4425,7 @@ test('V’s voice engine with Mature content in a saved file: Voxtral is Pocket 
   `);
 });
 
-test('V’s voice sits on the Voice and microphone page after the voice choice, is Typed lines by default, applies on its own, and the old Convai-voice note is gone', () => {
+test('V’s voice sits on the Voice AI and microphone page after the voice choice, is Typed lines by default, applies on its own, and the old Convai-voice note is gone', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     assert(row('vVoice') and managerUi.inspect().view == 'settings-voice')
@@ -4707,7 +4707,7 @@ test('the Convai and Google Gemini key rows are always listed, whichever provide
   `);
 });
 
-test('Settings pages: the list holds only the Open rows, Relationships is a button on Conversations, AI provider has the provider rows, Privacy and help keeps Developer mode, and the Voice and microphone page has no Voice status row', () => {
+test('Settings pages: the list holds only the Open rows, Relationships is a button on Conversations, AI provider has the provider rows, Privacy and help keeps Developer mode, and the Voice AI and microphone page has no Voice status row', () => {
   run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}
     assert(invoke('tab:settings').ok)
     local order = {}

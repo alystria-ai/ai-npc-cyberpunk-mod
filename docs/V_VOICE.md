@@ -1,6 +1,6 @@
 # V's voice for typed lines
 
-October 14, 2026. A setting that makes a typed line sound like V said it. With **Companion Manager > Settings > Voice and microphone > V's voice**
+October 14, 2026. A setting that makes a typed line sound like V said it. With **Companion Manager > Settings > Voice AI and microphone > V's voice**
 set to Typed lines or Typed and spoken lines (the name and place of the setting since 2026-10-30, see the next section), whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
 lines in the game. Then the companion answers.
 
@@ -13,7 +13,7 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
 
 ## Settings row since 2026-10-30
 
-The two rows "V's voice for typed lines" and "V's voice for microphone lines" are retired. Settings now has two rows on **Voice and microphone**, side by side:
+The two rows "V's voice for typed lines" and "V's voice for microphone lines" are retired. Settings now has two rows on **Voice AI and microphone**, side by side:
 
 - **V's voice** (row id `vVoice`) is one list: **Off**, **Typed lines** (the default), **Typed and spoken lines**. It writes the same two stored keys as before, `vVoice` (typed lines) and `vVoiceMic` (lines you say by microphone, hold to talk or Voice activation), so the bridge did not change. Typed lines is `vVoice` on and `vVoiceMic` off, Typed and spoken lines is both on, Off is both off. There is no entry for spoken lines without typed lines.
 - **V's voice engine** (row id `vVoiceEngine`, stored `vVoiceEngine`) is a row of its own right under it: **Pocket**, **Voxtral**, **OmniVoice**, with the same greying and refusal rules as before. It is one engine for typed and spoken lines, it counts only while V's voice is not Off, and choosing an engine no longer turns V's voice on or off. It had to become its own row because the old rows carried the engine in their lists and the engine must stay choosable. V's voice volume (%) follows it.
@@ -37,7 +37,7 @@ never touches the conversation.
 
 ## Microphone lines (2026-10-24, setting `vVoiceMic`, off by default; reworked the same day to behave like a typed line)
 
-A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voice and microphone > V's voice**, Typed and spoken lines (this was the row "V's voice for microphone lines" until 2026-10-30, right under
+A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voice AI and microphone > V's voice**, Typed and spoken lines (this was the row "V's voice for microphone lines" until 2026-10-30, right under
 V's voice for typed lines), off by default. Since 0.3.4 it is a row of its own, the same list as the typed one (Off, Pocket, Voxtral, OmniVoice), and independent of it: typed on and microphone off, the reverse, both or neither all work. Both rows use one engine (`vVoiceEngine`): choosing an engine on one moves the other when it is on. Before 0.3.4 a microphone line was repeated only beside typed lines, so a settings file without `vVoiceMicOwn` that has microphone lines on and typed lines off is turned to microphone Off once (what the player heard stays the same). The bridge applies the same rule to a file the mod has not rewritten yet (`bridge/v-voice.mjs` `update`).
 
 **Why push-to-talk never replayed V (found 2026-10-24).** The first version of the feature (29234fb4, 2026-10-14) wrote it into the setting's description and the docs
@@ -199,7 +199,7 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 
 ## V's voice engine (2026-10-17, branch `v-voice-engine`, not merged)
 
-V's line no longer follows the companions' voice. **Settings > Voice and microphone > V's voice engine** (until 2026-10-30 the row "V's voice for typed lines" in Voices, one list since 2026-10-20: Off, Pocket · On your PC, Voxtral · Mistral cloud, and since 2026-10-21 OmniVoice · short wait; it writes both stored keys, `vVoice` and `vVoiceEngine`, and Off keeps the saved engine) picks the engine for V alone, and
+V's line no longer follows the companions' voice. **Settings > Voice AI and microphone > V's voice engine** (until 2026-10-30 the row "V's voice for typed lines" in Voices, one list since 2026-10-20: Off, Pocket · On your PC, Voxtral · Mistral cloud, and since 2026-10-21 OmniVoice · short wait; it writes both stored keys, `vVoice` and `vVoiceEngine`, and Off keeps the saved engine) picks the engine for V alone, and
 the sections below that still describe "the voice you already chose" are history: this section is current.
 
 | Engine | How V's line is made | Loads locally |

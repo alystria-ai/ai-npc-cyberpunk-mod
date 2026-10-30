@@ -2085,7 +2085,7 @@ end
 -- OmniVoice for AMD, Convai paid tier, Custom endpoint and Help open from a row of a category page and go back to it (BACK in schema).
 settingsPages.list = {
     {view = 'settings-provider', id = 'provider', name = 'AI provider', description = 'Who writes the replies.'},
-    {view = 'settings-voice', id = 'voice', name = 'Voice and microphone', description = 'How everyone sounds, and how you talk.'},
+    {view = 'settings-voice', id = 'voice', name = 'Voice AI and microphone', description = 'How everyone sounds, and how you talk.'},
     {view = 'settings-conversations', id = 'conversations', name = 'Conversations', description = 'Who you can talk to and what they know.'},
     {view = 'settings-companions', id = 'companions', name = 'Companions', description = 'Life with your party.'},
     {view = 'settings-night-city', id = 'night-city', name = 'Night City', description = 'How the world reacts to V.'},
@@ -2124,7 +2124,7 @@ settingsPages['settings-provider'] = function(snapshot)
     return {category('conversation-provider', 'AI provider', ownKeyRows(snapshot))}
 end
 
--- Voice and microphone. The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral), OmniVoice Balanced / Quality (16 steps, short / long reference),
+-- Voice AI and microphone. The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral), OmniVoice Balanced / Quality (16 steps, short / long reference),
 -- High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
 settingsPages['settings-voice'] = function(snapshot)
     local voiceIndex = savedVoiceIndex(snapshot.settings)
@@ -2238,7 +2238,7 @@ settingsPages['settings-voice'] = function(snapshot)
         end
         -- First paragraph, so a long description that is cut keeps it.
         if voiceRow.id == 'voiceProvider' and pack.amdRoute then
-            voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
+            voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
                 .. '\n\n' .. voiceRow.description
         elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
             voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
@@ -2263,7 +2263,7 @@ settingsPages['settings-voice'] = function(snapshot)
             if next(greyed) then voiceRow.disabledElements, voiceRow.disabledReason = greyed, reason end
         end
     end
-    return {category('voices', 'Voice and microphone', rows)}
+    return {category('voices', 'Voice AI and microphone', rows)}
 end
 
 -- Conversations: who can be talked to and what they know.

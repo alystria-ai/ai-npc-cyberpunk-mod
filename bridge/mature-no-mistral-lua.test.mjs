@@ -141,8 +141,8 @@ test('the live-test settings (Mistral, a key, the Local AI pack, Voxtral voices)
     return choices and choices.states
   end
   frames(4)
-  -- The voice rows are on the Voice and microphone page: MCM only knows the page on screen.
-  press('Back to settings'); press('Voice and microphone'); frames(4)
+  -- The voice rows are on the Voice AI and microphone page: MCM only knows the page on screen.
+  press('Back to settings'); press('Voice AI and microphone'); frames(4)
   local companions = states('voiceProvider')
   assert(companions, 'MCM was given choice states for the companion voices')
   local greyed = {}
@@ -156,7 +156,7 @@ test('the live-test settings (Mistral, a key, the Local AI pack, Voxtral voices)
   assert(drafted == false and tostring(refusal):find('Mature', 1, true), tostring(refusal))
   press('Back to settings'); press('AI provider'); frames(4)
   mcm.set('Mature content', false); assert(mcm.apply()); frames(8)
-  press('Back to settings'); press('Voice and microphone'); frames(4)
+  press('Back to settings'); press('Voice AI and microphone'); frames(4)
   assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.voiceProvider == 'voxtral')
   companions = states('voiceProvider')
   for index, state in pairs(companions) do assert(state.enabled ~= false, 'entry ' .. index .. ' is enabled again') end

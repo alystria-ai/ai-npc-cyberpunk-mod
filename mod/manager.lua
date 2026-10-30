@@ -1083,7 +1083,7 @@ local function loadSettings()
         if settings.vVoice ~= true then settings.vVoiceMic = false end
         settings.vVoiceMicOwn, settingsNeedSave = true, true
     end
-    -- V's voice (Settings > Voice and microphone, 2026-10-30): one list, Off, Typed lines, Typed and spoken lines, replaced the two rows. The stored keys stay what the
+    -- V's voice (Settings > Voice AI and microphone, 2026-10-30): one list, Off, Typed lines, Typed and spoken lines, replaced the two rows. The stored keys stay what the
     -- bridge reads (vVoice typed lines, vVoiceMic spoken lines). Microphone lines on means Typed and spoken lines, so a file that has not been through this
     -- (vVoiceMergedGiven) with vVoiceMic on and vVoice off turns typed lines on once. Afterwards the marker is set and the list writes both keys together.
     if settings.vVoiceMergedGiven ~= true then

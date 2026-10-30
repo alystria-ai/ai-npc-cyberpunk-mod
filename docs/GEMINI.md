@@ -30,7 +30,7 @@ It is the Custom provider's client on a second endpoint, not a new client.
 | Prompt | the generic profile a Custom endpoint gets, chosen from the endpoint and the model ID (`bridge/prompt-profiles.mjs`). The character editor's Prompting tab works with it, as with Custom |
 | Vision | with Companion vision on, vision goes along with the turn as an `image_url` part |
 | Characters | it writes for the characters players make and for add-on speakers, like the Custom provider (`ADDON_ROUTES` in `bridge/addons.mjs` lists `gemini`) |
-| Voice and microphone | the same rules as the Custom provider: a cloud voice loads no local model, the Convai cloud voice is replaced by a local voice with one notice (`gemini-voice`), and the microphone is recognised on this computer (English, other languages with a Microphone pack). The Voxtral voice needs a Mistral key (the Mistral preset on the Custom page), never the Gemini key |
+| Voice AI and microphone | the same rules as the Custom provider: a cloud voice loads no local model, the Convai cloud voice is replaced by a local voice with one notice (`gemini-voice`), and the microphone is recognised on this computer (English, other languages with a Microphone pack). The Voxtral voice needs a Mistral key (the Mistral preset on the Custom page), never the Gemini key |
 
 ### Status files
 

@@ -212,7 +212,7 @@ test('every kind of row is one MCM can take: switches, selects, sliders, buttons
   press('Settings')
   check()
   assert(kinds.action and not kinds.bool and not kinds.select and not kinds.int and not kinds.string, 'the list is buttons')
-  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+  for _, name in ipairs({'AI provider', 'Voice AI and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
     press(name)
     check()
     press('Back to settings')
@@ -224,7 +224,7 @@ test('every kind of row is one MCM can take: switches, selects, sliders, buttons
 `));
 
 test('a change is a draft that MCM keeps until Apply; Apply is one validated, saved transaction, and the page loads again', () => withScreen(`
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   local before = manager.snapshot(player).settings
   assert(before.subtitles == true and before.voiceVolume == 150 and before.vVoiceVolume == 150)
   local loads = mcm.loads
@@ -260,7 +260,7 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
 
 test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
   ${footer}
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   mcm.set('Companion voice volume (%)', 120)
   mcm.set('V’s voice volume (%)', 80)
   mcm.revert()
@@ -284,7 +284,7 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   assert(mcm.status():find('Confirm', 1, true), mcm.status())
   assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 80)
   -- Another button drops the first press (a page button; the Settings list has no status button).
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
@@ -417,7 +417,7 @@ test('both hosts read and write the same saved settings: a change made on the Na
   ns.openScreen(TAB)
   frames(6)
   ns.interact.press(assert(ns.find('Settings'))); frames(6)
-  ns.interact.press(assert(ns.find('Voice and microphone'))); frames(6)
+  ns.interact.press(assert(ns.find('Voice AI and microphone'))); frames(6)
   ns.interact.slide(ns.find('Companion voice volume (%)'), 170); frames(12)
   assert(manager.snapshot(player).settings.voiceVolume == 170)
   ns.closeScreen(); frames(3)
@@ -426,7 +426,7 @@ test('both hosts read and write the same saved settings: a change made on the Na
   frames(60)
   assert(mcmHost.ready(), 'MCM was found')
   assert(ns.data[TAB] == nil, 'no Native Settings UI tab beside MCM')
-  mcm.openScreen(); settingsPage('Voice and microphone')
+  mcm.openScreen(); settingsPage('Voice AI and microphone')
   assert(mcm.row('Companion voice volume (%)').value == 170, 'MCM shows ' .. tostring(mcm.row('Companion voice volume (%)').value))
   assert(mcm.set('Companion voice volume (%)', 135) and mcm.apply())
   assert(manager.snapshot(player).settings.voiceVolume == 135)
@@ -543,7 +543,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Settings'); check('settings')
   go('AI provider'); check('settings-provider')
   go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to settings')
-  go('Voice and microphone'); check('settings-voice'); go('Back to settings')
+  go('Voice AI and microphone'); check('settings-voice'); go('Back to settings')
   go('Conversations'); check('settings-conversations')
   go('Romantic relationships'); check('relationships'); go('Back to settings')
   go('Dynamic info'); check('dynamic-info'); go('Back to settings')
@@ -606,7 +606,7 @@ test('no row is ever drawn as changed (purple): MCM needs a default for that mar
     assert(seen > 0, when .. ': the page has settings')
   end
   press('Settings')
-  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+  for _, name in ipairs({'AI provider', 'Voice AI and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
     press(name); nothingPurple('fresh install, ' .. name); press('Back to settings')
   end
   -- A saved change, a draft and a value away from the manager's default stay red as well.
@@ -614,7 +614,7 @@ test('no row is ever drawn as changed (purple): MCM needs a default for that mar
   assert(mcm.set('Subtitles', 1) and mcm.apply())
   frames(4)
   nothingPurple('after Apply')
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(mcm.set('Companion voice volume (%)', 170))
   nothingPurple('with a draft')
   mcm.revert()
@@ -646,7 +646,7 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
     end
   end
   drawn('settings')
-  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+  for _, name in ipairs({'AI provider', 'Voice AI and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
     press(name); drawn(name); press('Back to settings')
   end
   assert(rows > 20)
@@ -729,7 +729,7 @@ test('the Settings page has no Multilingual conversations row (the setting was r
   assert(mcm.row('Johnny in your head') ~= nil and mcm.row('Talk to story characters') ~= nil, 'the Conversations rows are on the page')
   assert(mcm.row('Talk to ordinary NPCs') == nil, 'Talk to ordinary NPCs has no row: it is always on')
   assert(mcm.row('Multilingual conversations') == nil, 'the row is gone')
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(mcm.row('Multilingual conversations') == nil, 'the row is gone from the voice page too')
   assert(manager.snapshot(player).settings.multilingualConversations == nil)
   for key in pairs(mcm.drafts()) do assert(not tostring(key):find('multilingual', 1, true), key) end
@@ -810,7 +810,7 @@ test('the OmniVoice entries are disabled choices while its pack is missing: MCM 
   files['runtime/local-voice-state.json'] = 'voice-runtime'
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   frames(6)
   local states = mcm.config().choices and mcm.config().choices.voiceProvider
   assert(states, 'choice states for the voice select')
@@ -1633,7 +1633,7 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up norm
 `));
 
 test('V’s voice is one list over typed and spoken lines (Off, Typed lines, Typed and spoken lines) and its engine is its own list: Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   assert(mcm.row('V’s voice for typed lines') == nil and mcm.row('V’s voice for spoken lines') == nil and mcm.row('V’s voice microphone') == nil, 'the old rows are gone')
   local mode = mcm.row('V’s voice')
   assert(mode.type == 'select' and mode.default == nil and mode.value == 2, 'Typed lines by default')
@@ -1666,7 +1666,7 @@ test('V’s voice is one list over typed and spoken lines (Off, Typed lines, Typ
 `));
 
 test('once the Mistral key is saved the Voxtral entry of V’s voice engine is a normal choice again (the disabled state set without a key is lifted), and choosing the engine never turns V on or off', () => withScreen(`
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   local name = 'V’s voice engine'
   jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
   files['runtime/mistral-state.json'] = 'mistral-key'
@@ -1682,7 +1682,7 @@ test('once the Mistral key is saved the Voxtral entry of V’s voice engine is a
 `));
 
 test('the Voxtral entry of V’s voice engine says what it needs: the Mistral key (and not the OmniVoice pack)', () => withScreen(`
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   local states = mcm.config().choices.vVoiceEngine.states
   assert(states[2].enabled == false and states[2].reason:find('Mistral', 1, true) and not states[2].reason:find('OmniVoice', 1, true), tostring(states[2].reason))
 `));
@@ -1692,7 +1692,7 @@ test('the OmniVoice entry of V’s voice engine is greyed out with the pack reas
   files['runtime/local-voice-state.json'] = 'voice-runtime'
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   frames(6)
   local name = 'V’s voice engine'
   assert(mcm.row(name).elements[3] == 'OmniVoice · needs Omni pack', mcm.row(name).elements[3])
@@ -1708,7 +1708,7 @@ test('the OmniVoice entry of V’s voice engine is a normal choice with the pack
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
   assert(manager.applySettings(player, {voiceProvider = 'omni'}))
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   frames(6)
   local name = 'V’s voice engine'
   assert(mcm.row(name).elements[3] == 'OmniVoice', mcm.row(name).elements[3])
@@ -1734,7 +1734,7 @@ test('Companions react is on by default, and Restore defaults puts Johnny to Off
   assert(mcm.set('Johnny in your head', 5) and mcm.set('Companions speak up', 4))
   assert(mcm.apply())
   assert(saved.companionSpeakUp == 'normal')
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(mcm.set('V’s voice', 1))
   assert(mcm.apply())
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)

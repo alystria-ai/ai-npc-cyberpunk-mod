@@ -86,7 +86,7 @@ test('the setting is off by default and only an explicit true turns it on; it is
   assert.equal(bare.micWanted, false, 'no clips: nothing to say');
 });
 
-test('Settings > Voice and microphone carries the setting inside V\'s voice, a three-choice list (Off, Typed lines, Typed and spoken lines) with no row of its own for microphone lines, and the reason push-to-talk never replayed V', () => {
+test('Settings > Voice AI and microphone carries the setting inside V\'s voice, a three-choice list (Off, Typed lines, Typed and spoken lines) with no row of its own for microphone lines, and the reason push-to-talk never replayed V', () => {
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
   const row = /setting\('vVoice', 'V’s voice', 'select', vModeIndex, 2,\s*\r?\n\s*'([^\r\n]*)',\s*\r?\n\s*\{'Off', 'Typed lines', 'Typed and spoken lines'\}\)/.exec(ui);
   assert(row, 'the row exists, a select over Off, Typed lines and Typed and spoken lines, default 2 (Typed lines)');

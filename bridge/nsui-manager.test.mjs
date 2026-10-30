@@ -66,7 +66,7 @@ test('every page builds on the tab and the tab always starts with the way back, 
   -- Settings is a list of category pages, each with its Back to settings at the top, and no row of any category sits on the list itself.
   press('Settings')
   assert(not ns.find('Memory') and not ns.find('Subtitles') and not ns.find('Conversation provider'), 'the list holds the Open rows only')
-  for _, page in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+  for _, page in ipairs({'AI provider', 'Voice AI and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
     press(page)
     check(page, 'Back to settings')
     assert(ns.sections()[2].label == page, page .. ': ' .. ns.sections()[2].label)
@@ -192,7 +192,7 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   press('Back to settings'); press('Interface')
   ns.interact.select(ns.find('Subtitles'), 1); frames(8)
   assert(saved.subtitles == false and saved.subtitleStyle == 'dialogue' and ns.find('Subtitles').selectedElementIndex == 1, 'Off, the chosen display is kept')
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
   ns.interact.select(ns.find('V’s voice'), 1); ns.interact.select(ns.find('Companion voices'), 1)
@@ -229,7 +229,7 @@ test('a change is applied for real after a moment, as one transaction; rows the 
 `));
 
 test('a slider is applied once, after it stops moving, and the page is not drawn again while it is held', () => run(`${harness()}
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   local volume = ns.find('Companion voice volume (%)')
   assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 300 and volume.step == 5)
   local vVolume = ns.find('V’s voice volume (%)')
@@ -344,12 +344,12 @@ test('Mature content beside Google Gemini or a saved legacy Mistral: turning it 
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(saved.voiceProvider))
   assert(managerUi.inspect().shown == 'Also changed: Pocket · Performance, V’s voice engine.', tostring(managerUi.inspect().shown))
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice engine').selectedElementIndex == 1)
   press('Back to settings'); press('AI provider')
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   assert(ns.find('Companion voices').selectedElementIndex == 3 and ns.find('V’s voice engine').selectedElementIndex == 2)
 `));
 
@@ -358,7 +358,7 @@ test('with Mature content on the Voxtral entries say so in their labels and a cl
   bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = true,
     localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   frames(20)
   assert(manager.applySettings(player, {conversationProvider = 'local', matureContent = true}))
   frames(8)
@@ -382,7 +382,7 @@ test('Restore defaults goes through the same validated path, on Settings and eve
   assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 200, vVoiceVolume = 80, voiceProvider = 'convai',
     naturalSpeech = false, reputation = false}))
   frames(20)
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   assert(ns.find('Companion voice volume (%)').currentValue == 200 and ns.find('V’s voice volume (%)').currentValue == 80)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
@@ -892,9 +892,9 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   ${mirror}
   assert(ns.currentTab == '', 'the tab is not on screen')
   go('Settings')
-  go('Voice and microphone')
+  go('Voice AI and microphone')
   local held = handles()
-  assert(#held > 10, 'the Voice and microphone page is mirrored: ' .. #held)
+  assert(#held > 10, 'the Voice AI and microphone page is mirrored: ' .. #held)
   -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
   local choices = ns.find('Speak dialogue choices', TAB)
   ns.setOption(choices, not choices.state); frames(8)
@@ -1078,7 +1078,7 @@ test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally
 `));
 
 test('V’s voice is one list over typed and spoken lines and its engine is its own list: choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   local name = 'V’s voice engine'
   assert(ns.find('V’s voice for typed lines') == nil and ns.find('V’s voice for microphone lines') == nil, 'the old rows are gone')
   local mode = ns.find('V’s voice')
@@ -1124,7 +1124,7 @@ test('Companions react is on by default, and Restore defaults puts Johnny to Off
   ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('Companions speak up'), 4)
   frames(10); ns.verify()
   assert(saved.companionSpeakUp == 'normal')
-  press('Back to settings'); press('Voice and microphone')
+  press('Back to settings'); press('Voice AI and microphone')
   ns.interact.select(ns.find('V’s voice'), 1)
   frames(10); ns.verify()
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
@@ -1242,7 +1242,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
 `));
 
 test('V’s voice has no row of its own for microphone lines any more: one list over typed and spoken lines, with the engine shared', () => run(`${harness()}
-  settingsPage('Voice and microphone'); frames(8)
+  settingsPage('Voice AI and microphone'); frames(8)
   assert(ns.find('V’s voice for microphone lines') == nil and ns.find('V’s voice for typed lines') == nil, 'the two old rows are gone')
   local mode, engine = ns.find('V’s voice'), ns.find('V’s voice engine')
   assert(mode.type == 'selectorString' and engine.type == 'selectorString' and #mode.elements == 3 and #engine.elements == 3)
@@ -1260,6 +1260,6 @@ test('V’s voice has no row of its own for microphone lines any more: one list 
   assert(manager.applySettings(player, {vVoice = false, vVoiceMic = true}))
   frames(20)
   press('Back to settings'); press('Back to Companion Manager')
-  settingsPage('Voice and microphone')
+  settingsPage('Voice AI and microphone')
   assert(ns.find('V’s voice').selectedElementIndex == 3 and ns.find('V’s voice engine').selectedElementIndex == 1)
 `));

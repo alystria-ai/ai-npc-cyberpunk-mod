@@ -1627,9 +1627,9 @@
     "Vest and rucksack": "Vest and rucksack",
     "View": "View",
     "Voice": "Voice",
+    "Voice AI and microphone": "Voice AI and microphone",
     "Voice activation": "Voice activation",
     "Voice activation could not open the microphone. Check your Windows input device.": "Voice activation could not open the microphone. Check your Windows input device.",
-    "Voice and microphone": "Voice and microphone",
     "Voice conversation failed. Check your microphone and try again.": "Voice conversation failed. Check your microphone and try again.",
     "Voice files": "Voice files",
     "Voice input could not reach Convai. Hold the voice key again, or type.": "Voice input could not reach Convai. Hold the voice key again, or type.",
@@ -1736,7 +1736,7 @@
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
     "You: {text}": "You: {text}",
     "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.": "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
-    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
+    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.": "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
     "Your Convai plan": "Your Convai plan",
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
@@ -2310,7 +2310,7 @@
       "Side characters to invite",
       "The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.",
       "The characters you have talked to and how close each one is to you. The most recent come first.",
-      "Voice and microphone",
+      "Voice AI and microphone",
       "What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Google Gemini, Local AI and Custom).",
       "Where the logs are",
       "Whose memories",
@@ -3899,7 +3899,7 @@
       "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).",
       "You: {text}",
       "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
-      "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
+      "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
       "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
       "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
       "Your Convai plan has no room for conversation memory, so companions will not remember past talks.",
@@ -17236,6 +17236,14 @@
         "mod/character-editor.lua:108"
       ]
     },
+    "Voice AI and microphone": {
+      "contexts": [
+        "page.category"
+      ],
+      "references": [
+        "mod/manager-ui.lua:2266"
+      ]
+    },
     "Voice activation": {
       "contexts": [
         "page.setting"
@@ -17251,14 +17259,6 @@
       ],
       "references": [
         "mod/init.lua:6682"
-      ]
-    },
-    "Voice and microphone": {
-      "contexts": [
-        "page.category"
-      ],
-      "references": [
-        "mod/manager-ui.lua:2266"
       ]
     },
     "Voice conversation failed. Check your microphone and try again.": {
@@ -18136,7 +18136,7 @@
         "mod/setup-check.lua:779"
       ]
     },
-    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": {
+    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": {
       "contexts": [
         "ui.localized"
       ],
