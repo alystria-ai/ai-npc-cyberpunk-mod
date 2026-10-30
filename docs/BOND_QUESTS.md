@@ -33,7 +33,7 @@ everything unique, go very deep in designing these relationship quests."
 * **Quest gameplay uses the mod's own copies only** (a party copy, an invited visitor, a housemate, and new tagged spawns such as squads, extras and
   captives). A game-placed character still only talks, with face and audio.
 * **Added on the owner's word the same day**: scripted lines, scripted holocalls and talk gaps for every quest (text only, pre-rendered voice,
-  engine chosen later: OmniVoice Ultra or Ming), characters who reach out first, 50 free-time hangouts, gifts both ways, animation, music and
+  engine: OmniVoice Ultra), characters who reach out first, 50 free-time hangouts, gifts both ways, animation, music and
   sound fields, and an open pack format for community quests. A trailer is not part of this.
 * **Decided by the owner on 29 Oct 2026** (section 26 lists each decision): scripted lines always play as the prepared audio, whatever live voice the player uses, and are English only for now. Quests place map pins at their meeting points (`pin`). Jackie's gates are lowered. Songbird has nothing on the Reed branch. Kerry's Guinevere gift is allowed and changes the save. Reach-outs are on by default with Story packs, with a setting to turn them off. The scripted lines moved to their own file, [BOND_QUEST_LINES.md](BOND_QUEST_LINES.md).
 
@@ -3996,7 +3996,7 @@ What Songbird gives V, left somewhere or sent:
 The owner's ask (29 Oct): quests must feel like real quests. Custom dialogue written ahead for the beats that need it, rendered ahead in each
 character's cloned voice and shipped with the pack, scripted holocalls ("Panam calls: they took the car"), and in every scripted part the
 player can still talk and ask anything through the mod's free LLM talk, with explicit gaps where the script waits and the character asks V
-something back. The voice engine is not decided: everything here is **pre-rendered voice (engine chosen later: OmniVoice Ultra or Ming)**, and the
+something back. The voice engine is OmniVoice Ultra: everything here is **pre-rendered voice (engine: OmniVoice Ultra)**, and the
 lines in this document are text only, ready for that render. No audio is planned or generated now. The lines themselves are in [BOND_QUEST_LINES.md](BOND_QUEST_LINES.md), this section is the system they run on.
 
 ### 14.1 Which quests are scripted, and how much
@@ -4740,9 +4740,8 @@ Counted from this document: 1,189 scripted quest lines (about 11,100 words), plu
 |---|---|
 | Speech at about 2.6 words a second, plus 0.3 s of padding a line | about 5,860 s, **1.6 hours** of audio |
 | Raw PCM, 16-bit mono, OmniVoice (24 kHz, 48 KB a second) | about **280 MB** |
-| Raw PCM, 16-bit mono, Ming (44.1 kHz, 88.2 KB a second) | about **520 MB** |
-| FLAC (about 55 % of PCM) | about 155 MB (OmniVoice), 285 MB (Ming) |
-| Ogg Opus mono at 48 kbps, either engine (Opus resamples to 48 kHz) | about **35 MB** |
+| FLAC (about 55 % of PCM) | about 155 MB |
+| Ogg Opus mono at 48 kbps (Opus resamples to 48 kHz) | about **35 MB** |
 | Face rows (precomputed, compressed) | about 10 to 20 MB |
 
 Recommended shipping form: Ogg Opus at 48 kbps (the renderer is a browser page and decodes Opus natively), one file per line, so a line can be

@@ -32,7 +32,7 @@ Counts in this file (table rows with a line id, talk gaps with an id, scripted h
 
 ## Panam Palmer
 
-Pre-rendered voice (engine chosen later: OmniVoice Ultra or Ming), text only here. The speaker is Panam unless a row says otherwise. Emotion is
+Pre-rendered voice (engine: OmniVoice Ultra), text only here. The speaker is Panam unless a row says otherwise. Emotion is
 one of the mod's categories, animation a gesture category, an idle workspot key of `assets/gestures/gestures.json` or a seat kind (section 19).
 V never has a scripted line: V talks freely, and the gaps are where. Full scripting: P4, P5, P6. Light: P1, P2, P3.
 
