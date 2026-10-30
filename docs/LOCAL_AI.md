@@ -423,9 +423,9 @@ without a pack. Nothing was added for it: no second engine folder, no new notice
 - **Every combination.** (1) New Runtime and new pack: the Runtime's model, the Runtime's engine, nothing missing. (2) New Runtime and old pack: the Runtime's model is used, the pack's copy is dead weight. (3) Older Runtime and
   new pack: no model anywhere, so `embed` is missing and memory behaves like the old last-8-plus-summary memory (the Scripts' `runtimeBase.required` should be raised in the release that ships this, so the setup check names a
   Runtime that is too old). (4) Older Runtime and old pack: unchanged. (5) New Runtime, no pack, any provider: memory search works. (6) The Runtime's model removed by an antivirus tool: the pack's copy, else the old memory.
-- **Updates.** A Runtime update zip adds the model and the licence text (about 106 MiB zipped), removes nothing. Extracting the new packs over old ones leaves the old model file in `app/local-ai/models/` unused, and a player
+- **Updates.** A Runtime update zip adds the model and the licence text (121 MB), removes nothing. Extracting the new packs over old ones leaves the old model file in `app/local-ai/models/` unused, and a player
   may delete it (115 MiB). Nothing deletes it for them: `app/local-ai/` is protected from the removal list.
-- **Sizes** (deflate level 6, measured on the pinned file and on dry-run builds): Runtime +115.4 MiB on disk and about +106.7 MiB zipped. Each Local AI and Mature pack is about 112 MB smaller to download and 115.4 MiB smaller on disk.
+- **Sizes.** The model is a GGUF the zip writer cannot shrink, so it costs its full size in a zip: the Runtime grows by 115.4 MiB (121 MB) on disk and in the zip, and each Local AI and Mature pack is 121 MB smaller to download and 115.4 MiB smaller on disk. Measured by a dry-run build of the lite pack: 1,333.1 MB (0.2.9 figure) to 1,212.1 MB.
 - **Tests:** `packaging/embed-in-runtime.test.mjs`.
 
 ### The engine is in the Runtime (2026-10-21)
