@@ -10,6 +10,7 @@
 // sample lines to repeat. See docs/ROMANCE_DYNAMIC_CONTEXT.md for how the wording was measured against the old profiles.
 import {RELATIONSHIP_PROFILES, groupAdmitted} from './relationship-routing.mjs';
 
+
 // How each character's affection sounds. One short paragraph each; the model works the rest out from the profile it already has.
 export const ROMANCE_CUES = Object.freeze({
   'judy-alvarez': 'Judy\'s affection comes out sideways and quietly. Her guarded wit softens instead of vanishing: a dry tease, a practical '
@@ -80,9 +81,14 @@ export const ROMANCE_REMINDER = Object.freeze({
 });
 /** 'partner', 'casual' or '' for a turn's relationship selection: only where the affectionate delivery is on (style romantic) for a character with a rule. */
 export function romanceKind(selection) {
-  if (selection?.status !== 'ready' || selection.style !== 'romantic' || !Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
+  if (selection?.status !== 'ready' || selection.style !== 'romantic') return '';
+  // A romance V started through the bond system (bridge/romance-bond.mjs) is a partnership for any character, a casual encounter included.
+  if (bondTogether(selection)) return 'partner';
+  if (!Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
   return RELATIONSHIP_PROFILES[selection.profileKey].kind === 'casual-intimacy' ? 'casual' : 'partner';
 }
+/** True for a romance V started through the bond system that the save holds now. */
+const bondTogether = selection => selection?.bondRomance?.state === 'together' && selection.style === 'romantic';
 /** The closing note of a private or phone turn (right after V's words), or '' (group turns and ordinary delivery have none). */
 export const romanceReminder = (selection, channel = 'private') => channel === 'group' ? '' : ROMANCE_REMINDER[romanceKind(selection)] ?? '';
 
@@ -97,6 +103,10 @@ const ORDINARY_CONFIRMED = 'The current save does confirm your own {kind} with V
   + 'usual, everyday manner: no extra tenderness, flirting or pet names, and never mention that your manner was chosen or '
   + 'changed. If V asks about it, acknowledge it plainly and honestly in your usual voice ({answer}); never play it down or act '
   + 'as if it did not happen.';
+
+// A romance that V ended (the save holds it as ended): the ordinary manner, and the history.
+const ENDED = 'You and V were together once and it ended. Keep your usual manner: no pet names, no tenderness, no flirting, and never act as if it is still on. '
+  + 'If V asks about it or brings it up, answer honestly in your own way, with whatever you still feel. Only V can start it again, and only if you want it too.';
 
 const kindText = rule => rule.kind === 'casual-intimacy' ? 'casual intimate encounter' : 'relationship';
 const answerText = rule => rule.kind === 'casual-intimacy'
@@ -135,17 +145,25 @@ function groupRelationshipContext(selection, options) {
  * `channel` is 'private', 'phone' or 'group'; `options` carries the admitted group, audience and world binding for a group turn.
  */
 export function relationshipContext(selection, channel = 'private', options) {
-  if (selection?.status !== 'ready' || !Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
-  const rule = RELATIONSHIP_PROFILES[selection.profileKey], casual = rule.kind === 'casual-intimacy';
+  if (selection?.status !== 'ready') return '';
+  const native = Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey);
+  const bond = selection.bondRomance?.state;
+  if (!native && !bond) return '';
+  const rule = native ? RELATIONSHIP_PROFILES[selection.profileKey] : {kind: 'relationship'}, together = bondTogether(selection);
+  const casual = rule.kind === 'casual-intimacy' && !together;
   const confirmed = selection.saveRelationship?.status === 'confirmed';
-  const group = channel === 'group' ? groupRelationshipContext(selection, options) : '';
+  const group = channel === 'group' && native ? groupRelationshipContext(selection, options) : '';
   if (selection.style !== 'romantic') {
-    return [ORDINARY, confirmed ? ORDINARY_CONFIRMED.replace('{kind}', kindText(rule)).replace('{answer}', answerText(rule)) : '', group].filter(Boolean).join(' ');
+    // Ended by V (the bond romance, in the save): the native receipt no longer describes how the two stand, so its "you are together" line is left out.
+    const confirmedNote = bond === 'ended' ? ENDED : confirmed ? ORDINARY_CONFIRMED.replace('{kind}', kindText(rule)).replace('{answer}', answerText(rule)) : '';
+    return [ORDINARY, confirmedNote, group].filter(Boolean).join(' ');
   }
   const why = confirmed ? (casual ? WHY_CASUAL : WHY_CONFIRMED) : WHY_ON;
   const privacy = channel === 'group'
     ? group
       ? 'Keep private intimate details and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.'
       : 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
-  return [why, ROMANCE_CUES[selection.profileKey], casual ? USE_CASUAL : ROMANCE_USE, ROMANCE_TONE[romanceKind(selection)] ?? '', casual ? CASUAL_LIMIT : '', ROMANCE_LIMITS, privacy, group].filter(Boolean).join(' ');
+  // How the affection sounds: the five native characters' measured cues; for any other character (and for a casual encounter that became a romance) the style line written for them.
+  const cue = native && !(together && rule.kind === 'casual-intimacy') ? ROMANCE_CUES[selection.profileKey] : selection.bondRomance?.style ?? '';
+  return [why, cue, casual ? USE_CASUAL : ROMANCE_USE, ROMANCE_TONE[romanceKind(selection)] ?? '', casual ? CASUAL_LIMIT : '', ROMANCE_LIMITS, privacy, group].filter(Boolean).join(' ');
 }

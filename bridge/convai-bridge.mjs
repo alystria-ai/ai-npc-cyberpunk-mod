@@ -122,6 +122,7 @@ import {createFactsReader} from './quest-facts.mjs';
 import {syncAllowlist} from './gift-tables.mjs';
 import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext, romanceReminder} from './romance-context.mjs';
+import {RomanceBond} from './romance-bond.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
@@ -894,6 +895,8 @@ const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'ven
 // setting is off by default). The game's deeds come in runtime/reputation-events.json and inline; the standing is kept beside vendor memory.
 const reputation = new ReputationStore({path: resolve(stateDirectory, 'reputation.json'), eventsPath: resolve(runtime, 'reputation-events.json'),
   log: line => console.error(line)});
+// Romance with any character, started and ended by V's words (bridge/romance-bond.mjs, docs/SIDE_ROMANCE.md); the game keeps the state in the save. Its Bonds object is set once that exists.
+const romanceBond = new RomanceBond({log: line => console.error('[Romance] ' + line)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key: key ?? undefined, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   credential: () => keys.credential(),
@@ -909,7 +912,11 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
   // Which Convai character answers is decided per turn: the multilingual twin for a message that is clearly not English, the ordinary
   // character otherwise (bridge/multilingual.mjs wantsTwin). A warm connection has no message and stays on the ordinary character: a language
   // change must not re-warm every nearby character on its twin; the first turn on a twin opens its session, the later ones reuse it.
-  selectProfile: (profile, boundary, turn) => relationshipRoutes.select(profile, boundary, {multilingual: twinForTurn(turn)}),
+  // A romance V started through the bond system (bridge/romance-bond.mjs) shapes the delivery of any character: the turn's bond block carries the save's state, a reaction or a warm-up uses the last one seen.
+  selectProfile: (profile, boundary, turn) => {
+    if (turn?.bonds) romanceBond.noteBlock(profile, turn.bonds.romance, boundary);
+    return relationshipRoutes.select(profile, boundary, {multilingual: twinForTurn(turn), romance: romanceBond.stateFor(profile, boundary)});
+  },
   // On by default, the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
   decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync}),
   // On by default, the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
@@ -1282,6 +1289,7 @@ await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFo
 const bondStore = new BondStore();
 await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
 const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
+romanceBond.bonds = bonds;
 // Story packs (Settings > Gameplay > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
 // (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
 const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
@@ -1760,6 +1768,13 @@ const bondFacts = (input, prepared, admitted) => {
   // The tone of a romance is the relationship text's job (bridge/romance-context.mjs), once, for every kind of turn: the bond only counts the romance as story points.
   return {romance, near: besideV(input)};
 };
+// The note of a turn where V asks for a romance or ends one (the character's own trait and the bond level decide, the model only voices it); '' for every other turn.
+const romanceNote = (input, prepared, admitted) => {
+  if (!input.bonds) return '';
+  const selection = admitted ? prepared?.relationship : null, view = bonds.viewFor(input, bondFacts(input, prepared, admitted));
+  return romanceBond.noteFor(input, {together: romanceOf(selection, RELATIONSHIP_PROFILES) === 'partner', ended: selection?.bondRomance?.state === 'ended',
+    level: view?.level ?? 1, hurt: view?.hurt ?? 0});
+};
 // A reaction (the game sends no bond block with it) repeats the line of the character's last talk with V, so the system message of the prompt reads the same on both and a model that
 // continues only from a saved checkpoint reuses it; a talk with the setting off forgets the character's line.
 const bondNote = (input, prepared, admitted) => {
@@ -1780,6 +1795,8 @@ function publishBonds(input, result, proposal = null) {
   if (!input?.bonds) return;
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   bonds.recordTurn(input, result?.userText, bondFacts(input, prepared, admitted));
+  // V asked for a romance or ended one: carried out now that the reply is out (the game writes it into the save).
+  if (prepared?.worldToken) romanceBond.afterTurn(input, result?.userText, {worldToken: prepared.worldToken, generation: prepared.generation});
   // The pack the turn started, or V's words read against the stage (after the reply is out; no model is asked).
   if (input.bonds.packs) bondPacks.afterTurn(input, result?.userText, proposal);
   questSync();   // the pack state may have changed: the play file follows it
@@ -1815,6 +1832,7 @@ const conversationBlocks = input => {
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
+    block('volatile', romanceNote(input, prepared, admitted)),
     block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
     // The cast member of an armed pay stage is told what is asked and the least it takes (bridge/quest-pay.mjs); '' for every other turn.
     block('volatile', input.quest ? bondPacks.payNote(input) : ''),
