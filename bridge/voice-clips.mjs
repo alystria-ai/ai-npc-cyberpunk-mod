@@ -121,6 +121,8 @@ export class GameVoiceClips {
     this.failed = new Map();              // key -> reason (this session: a character that could not be built is not tried again at every line)
     this.running = new Map();             // key -> promise
     this.queue = Promise.resolve();       // one build at a time
+    this.checked = new Set();             // keys `wanted()` has looked at this session
+    this.asking = new Map();              // key -> promise of a `wanted()` that is still looking
     this.fingerprint = null;
   }
 
@@ -194,6 +196,26 @@ export class GameVoiceClips {
   }
 
   /**
+   * A character is wanted (an invitation, the first talk, a composer opened on it): once per session and key, ask whether its clips need to be made (`needs`, with the shipped
+   * tables `shipped()` gives: {pocket, short, long}) and make them in the background if so. Resolves to what ensure() resolves to, or 'not needed'. Never throws.
+   */
+  wanted(key, {shipped = async () => ({}), reason = 'wanted'} = {}) {
+    if (!this.has(key)) return Promise.resolve('unknown');
+    if (this.asking.has(key)) return this.asking.get(key);
+    if (this.checked.has(key)) return this.running.get(key) ?? Promise.resolve(this.ready(key) ? 'ready' : 'not needed');
+    this.checked.add(key);
+    const asked = (async () => {
+      try {
+        const tables = await shipped() ?? {};
+        const table = Object.fromEntries(Object.keys(ENGINE_KINDS).map(engine => [engine, tables[engine]?.[key] ?? null]));
+        return (await this.needs(key, table)) ? await this.ensure(key, {reason}) : 'not needed';
+      } catch { return 'not needed'; }
+    })();
+    this.asking.set(key, asked);
+    return asked.finally(() => this.asking.delete(key));
+  }
+
+  /**
    * Builds (or downloads) one character's clips unless they are ready. One build at a time, in the order asked, never in front of anything: the caller does not wait
    * unless it wants to. Resolves to 'ready', 'unavailable' (it could not be made: the character keeps what it had) or 'unknown' (not in the manifest).
    */
@@ -218,7 +240,7 @@ export class GameVoiceClips {
     } catch (error) { result = `stopped: ${String(error?.message ?? error).slice(0, 120)}`; }
     if (result === 'ready') {
       this.log(`Voice clips of ${key} ready (${reason}, ${this.now() - started} ms)`);
-      try { this.onBuilt(key); } catch { /* the tables follow at the next start */ }
+      try { await this.onBuilt(key); } catch { /* the tables follow at the next start */ }
       return 'ready';
     }
     this.failed.set(key, result);
@@ -288,6 +310,23 @@ export class GameVoiceClips {
     for (const row of Object.values(this.index)) sources[row.pocket?.source === 'download' ? 'download' : 'build']++;
     return {characters: Object.keys(this.manifest).length, ready: this.readyKeys().length, built: sources.build, downloaded: sources.download, failed: this.failed.size, running: this.running.size};
   }
+}
+
+/**
+ * At start: the voice tables (parsed configurations, {pocket, short, long}: each the `voices` object) get the descriptors of every character whose clips are ready, unless the table
+ * names the player's own clip for that key. The tables are edited in place. Returns the keys that were changed.
+ */
+export function applyReadyClips(clips, tables) {
+  const changed = [];
+  for (const key of clips.readyKeys()) {
+    const current = Object.fromEntries(Object.keys(ENGINE_KINDS).map(engine => [engine, tables[engine]?.[key] ?? null]));
+    if (Object.values(current).some(entry => typeof entry?.reference === 'string' && entry.reference.startsWith('runtime/player-voices/'))) continue;
+    const named = clips.descriptors(key, current);
+    if (!named) continue;
+    for (const engine of Object.keys(ENGINE_KINDS)) if (tables[engine]) tables[engine][key] = {...current[engine], ...named[engine]};
+    changed.push(key);
+  }
+  return changed;
 }
 
 /** The files of the builder in a Runtime (or a source checkout): {python, script, vgmstream}; a part that is not there is null. */

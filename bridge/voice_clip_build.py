@@ -230,7 +230,10 @@ def resample_torch_numpy(signal: np.ndarray, source_rate: int, target_rate: int 
 
 def resample_poly_style(signal: np.ndarray, source_rate: int, target_rate: int = RATE, wide: bool = False) -> np.ndarray:
     """scipy.signal.resample_poly to float32.  `wide` computes in float64 first (what scipy before 1.16 did with a float32 signal)."""
-    from scipy.signal import resample_poly
+    try:
+        from scipy.signal import resample_poly
+    except ImportError as error:
+        raise BuildError("scipy is not installed") from error
     divisor = math.gcd(source_rate, target_rate)
     return resample_poly(signal.astype(np.float64) if wide else signal, target_rate // divisor, source_rate // divisor).astype(np.float32)
 

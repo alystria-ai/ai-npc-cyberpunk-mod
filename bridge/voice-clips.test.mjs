@@ -5,7 +5,7 @@ import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {GameVoiceClips, builderFiles, downloadUrl, gameFingerprint, generatedReference, readManifest, EXIT_NO_ENGLISH_VOICE} from './voice-clips.mjs';
+import {GameVoiceClips, applyReadyClips, builderFiles, downloadUrl, gameFingerprint, generatedReference, readManifest, EXIT_NO_ENGLISH_VOICE} from './voice-clips.mjs';
 import {LiveVoices} from './live-voices.mjs';
 
 // Voice clips built on the player's PC from the game's own voice files: the manifest reader, the on-demand queue, the download fall back and the voice tables.
@@ -185,4 +185,46 @@ test('gameFingerprint is a stat per archive and says none for a missing one; bui
   assert.equal(files.python, 'R/python.exe');
   assert.match(files.script.replace(/\\/g, '/'), /\/P\/bridge\/voice_clip_build\.py$/);
   assert.equal(files.vgmstream, null);
+});
+
+test('wanted() looks at a character once per session, builds only what is missing, and never throws', async () => {
+  const missing = await rig({shippedPresent: async () => false});
+  try {
+    const tables = {pocket: {'judy-alvarez': shippedTable('judy-alvarez').pocket}, short: {'judy-alvarez': shippedTable('judy-alvarez').short}, long: {'judy-alvarez': shippedTable('judy-alvarez').long}};
+    let reads = 0;
+    const shipped = async () => { reads++; return tables; };
+    assert.equal(await missing.clips.wanted('nobody', {shipped}), 'unknown');
+    assert.equal(reads, 0, 'a character the manifest does not know costs no read');
+    const both = await Promise.all([missing.clips.wanted('judy-alvarez', {shipped, reason: 'talk'}), missing.clips.wanted('judy-alvarez', {shipped, reason: 'invitation'})]);
+    assert.deepEqual(both, ['ready', 'ready']);
+    assert.equal(missing.runs.length, 1);
+    assert.equal(await missing.clips.wanted('judy-alvarez', {shipped}), 'ready');
+    assert.equal(reads, 1);
+    const broken = await rig({shippedPresent: async () => false});
+    try { assert.equal(await broken.clips.wanted('judy-alvarez', {shipped: async () => { throw Error('unreadable'); }}), 'not needed'); } finally { await broken.cleanup(); }
+  } finally { await missing.cleanup(); }
+  const shippedHere = await rig({shippedPresent: async () => true});
+  try {
+    assert.equal(await shippedHere.clips.wanted('judy-alvarez', {shipped: async () => ({pocket: {'judy-alvarez': shippedTable('judy-alvarez').pocket}, short: {'judy-alvarez': shippedTable('judy-alvarez').short}, long: {'judy-alvarez': shippedTable('judy-alvarez').long}})}), 'not needed');
+    assert.equal(shippedHere.runs.length, 0, 'the shipped clips are there: no process is started');
+  } finally { await shippedHere.cleanup(); }
+});
+
+test('applyReadyClips names the built clips in the start-up tables and leaves the own clip of the player alone', async () => {
+  const r = await rig({shippedPresent: async () => false});
+  try {
+    await r.clips.ensure('judy-alvarez');
+    const mk = () => ({pocket: {'judy-alvarez': shippedTable('judy-alvarez').pocket, other: shippedTable('other').pocket}, short: {'judy-alvarez': shippedTable('judy-alvarez').short}, long: {'judy-alvarez': shippedTable('judy-alvarez').long}});
+    const tables = mk();
+    assert.deepEqual(applyReadyClips(r.clips, tables), ['judy-alvarez']);
+    assert.equal(tables.pocket['judy-alvarez'].reference, generatedReference('pocket', 'judy-alvarez'));
+    assert.equal(tables.pocket['judy-alvarez'].transcript, 'Pocket words.');
+    assert.equal(tables.short['judy-alvarez'].sha256, sha(wav(1)));
+    assert.equal(tables.pocket.other.reference, shippedTable('other').pocket.reference, 'another key is not touched');
+    const own = mk();
+    own.pocket['judy-alvarez'] = {reference: 'runtime/player-voices/judy-alvarez.wav', sha256: 'e'.repeat(64), transcript: 'Mine.'};
+    assert.deepEqual(applyReadyClips(r.clips, own), []);
+    assert.match(own.pocket['judy-alvarez'].reference, /^runtime\/player-voices\//);
+    assert.deepEqual(applyReadyClips(r.clips, {pocket: null, short: null, long: null}), [], 'engines that are not set up are left out');
+  } finally { await r.cleanup(); }
 });

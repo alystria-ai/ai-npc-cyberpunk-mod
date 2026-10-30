@@ -1,7 +1,7 @@
 // First, so a full disk or a closed output can never end this process through a log line (bridge/safe-streams.mjs, error report 1cbe337a5144ebbd).
 import './safe-streams-install.mjs';
 import {readFile, stat, mkdir} from 'node:fs/promises';
-import {readFileSync, statSync} from 'node:fs';
+import {existsSync, readFileSync, statSync} from 'node:fs';
 import {decisionLedgerReader} from './game-dialogue.mjs';
 import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
@@ -98,6 +98,7 @@ import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
+import {GameVoiceClips, applyReadyClips, builderFiles, readManifest as readVoiceClipManifest} from './voice-clips.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -358,9 +359,34 @@ try {
 // found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
 const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});
 await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] scan failed:', error?.message ?? error));
+// Voice clips built on this PC from the player's own game files (docs/VOICE_EXTRACTION.md, bridge/voice-clips.mjs). Only a character whose shipped clip is missing (or with
+// CYBERPUNK_CONVAI_GAME_CLIPS=1) is ever built, once, when it is first invited or talked to; the clips are kept in <references>/generated and the tables name them like any
+// reference. A game with no English voice files downloads them from Hugging Face instead (CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD=0 turns that off). Nothing here runs per frame
+// and nothing is started at start: the builder is a process of its own, below normal priority, that exits when the character's clips are written.
+const shippedVoiceTables = shippedVoicesReader(originalVoiceConfigPaths);
+let gameVoiceClips = null;
+try {
+  const manifestPath = resolve(project, 'characters/voice-clips-manifest.json');
+  const manifest = existsSync(manifestPath) ? readVoiceClipManifest(await readFile(manifestPath, 'utf8')) : {};
+  gameVoiceClips = await GameVoiceClips.open({manifest, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory,
+    mirrorRoots: [...referenceRoots.slice(1), voiceConfig.runtime?.referenceDirectory],
+    ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
+    prefer: process.env.CYBERPUNK_CONVAI_GAME_CLIPS === '1', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},
+    onBuilt: key => liveVoices?.refresh(key), log: message => console.error('[VoiceClips] ' + message)});
+  const named = applyReadyClips(gameVoiceClips, {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)});
+  if (named.length) console.error(`[VoiceClips] ${named.length} character(s) speak with clips built from the game's files`);
+} catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
+// A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
+const wantVoiceClips = (profile, reason) => {
+  if (!gameVoiceClips) return Promise.resolve('off');
+  let key = profile;
+  try { key = localVoice.voiceKeyFor(profile, profile) || profile; } catch { /* the voice selection is not up yet */ }
+  return gameVoiceClips.wanted(key, {shipped: shippedVoiceTables, reason});
+};
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
   voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
-  shipped: shippedVoicesReader(originalVoiceConfigPaths), log: message => console.error('[PlayerVoices] ' + message),
+  shipped: shippedVoiceTables, log: message => console.error('[PlayerVoices] ' + message),
+  generated: (key, shipped) => gameVoiceClips?.descriptors(key, shipped) ?? null,
   // V is not in the shipped configurations (its voices are merged in as extras, from the mod-built or shipped clip copied to voice-references/addons):
   // with the player's clip gone V goes back to that reference, with no restart.
   fallback: key => {
@@ -1870,6 +1896,7 @@ function warmTalkTargets(profileKeys, {persona = true} = {}) {
   if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
+    void wantVoiceClips(key, 'talk');
     if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) {
       // A fixed reply language with a voice pack: the pack's clip of this character is what speaks, so that is what is prepared (the English reference only
       // when the pack has no clip of this character).
@@ -1994,6 +2021,8 @@ function invitedVoiceCurrent(profile, receipt) {
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
 async function prepareInvitedVoice(profile, {signal} = {}) {
+  // The invited character's clips are made first when it has none (a minute at the most; the invitation already waits for its voice, and a failure leaves the voice it had).
+  await abortable(Promise.race([wantVoiceClips(profile, 'invitation'), new Promise(done => setTimeout(done, 60_000).unref())]), signal).catch(error => { if (signal?.aborted) throw error; });
   for (;;) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
