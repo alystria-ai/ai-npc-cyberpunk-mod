@@ -6,7 +6,7 @@ The page text is kept short: each fact is said once, in the section where a play
 
 ```text
 [size=4][b]One download: the main file, AI Companions using Large Language Models, holds everything. Extract it into your Cyberpunk 2077 folder and you are done.[/b][/size]
-The main file is for game [b]2.5[/b]. Still on [b]2.31[/b]? Take the optional file [b]AI Companions using Large Language Models - for game 2.31 (older game version)[/b] instead, same mod and version. To play 2.31 on Steam: right-click the game, Properties, Game Versions & Betas, 2_31_old.
+The main file is for game [b]2.5[/b]. Still on [b]2.31[/b]? Take the optional file [b]AI Companions using Large Language Models (for game 2.31, older game version)[/b] instead, same mod and version. To play 2.31 on Steam: right-click the game, Properties, Game Versions & Betas, 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -182,13 +182,13 @@ Update <from> to <version> (an update file, game 2.5, zip AI-Companions-LLM-Upda
 Update for game 2.5, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2, they use the main file. Needs the Runtime <from> or newer. New: bonds and romance, side characters, Chat search.
 ```
 
-AI Companions using Large Language Models - for game 2.31 (older game version) (optional file, zip AI-Companions-LLM-<version>-for-2.31.zip):
+AI Companions using Large Language Models (for game 2.31, older game version) (optional file, zip AI-Companions-LLM-<version>-for-2.31.zip):
 
 ```text
 Full install for older game 2.31, all in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: bonds and romance, 557 side characters to invite, Chat search, settings in pages.
 ```
 
-Update <from> to <version> - for game 2.31 (older game version) (optional file, zip AI-Companions-LLM-Update-<from>-to-<version>-for-2.31.zip):
+Update <from> to <version> (for game 2.31, older game version) (optional file, zip AI-Companions-LLM-Update-<from>-to-<version>-for-2.31.zip):
 
 ```text
 Update for older game 2.31, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2. Needs the Runtime <from> or newer. New: bonds and romance, side characters, Chat search, settings pages.

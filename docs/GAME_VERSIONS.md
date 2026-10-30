@@ -79,7 +79,7 @@ local-ai/  mature/  mic/  voice/  multilingual/                                 
 ```
 Nexus Mods (one page, titled "AI NPC LLM Companions" from 0.3.4 to 0.3.5 and "AI Companions using Large Language Models" from 0.4.0, owner decision 2026-10-31: the zips and the texts in the mod use the new name, the page itself is retitled by the owner on the Nexus site): the Main file is the 2.5 full install, `AI Companions using Large Language Models` (`AI-Companions-LLM-<v>.zip`), and its update is an Update file, `Update <from> to <v>`
 (`AI-Companions-LLM-Update-<from>-to-<v>.zip`; `<from>` is `any` when it covers several releases, docs/PACKAGING.md, "The Full install package"). The 2.31 build is two Optional files,
-`AI Companions using Large Language Models - for game 2.31 (older game version)` (`AI-Companions-LLM-<v>-for-2.31.zip`) and `Update <from> to <v> - for game 2.31 (older game version)` (`...-for-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
+`AI Companions using Large Language Models (for game 2.31, older game version)` (`AI-Companions-LLM-<v>-for-2.31.zip`) and `Update <from> to <v> (for game 2.31, older game version)` (`...-for-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
 Before 0.3.4 the two files were `Scripts` (`Scripts.zip`) and `Scripts - for game 2.31` (`Scripts-for-game-2.31.zip`), with the Runtime on Hugging Face.
 
 A player who moves from 2.31 to 2.5 extracts the 2.5 full install over the old one (from 0.3.4 there is no switch zip to apply: the full install replaces the Runtime in one step). The switch zip of 0.3.1 stays in `updates/` for those who still use it.
