@@ -378,7 +378,7 @@ try {
 } catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
 // A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
 const wantVoiceClips = (profile, reason) => {
-  if (!gameVoiceClips) return Promise.resolve('off');
+  if (!gameVoiceClips) return null;
   let key = profile;
   try { key = localVoice.voiceKeyFor(profile, profile) || profile; } catch { /* the voice selection is not up yet */ }
   return gameVoiceClips.wanted(key, {shipped: shippedVoiceTables, reason});
@@ -2020,9 +2020,16 @@ function invitedVoiceCurrent(profile, receipt) {
   return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
+// The invited character's clips are made first when it has none (a minute at the most: the invitation already waits for its voice, and a failure leaves the voice it had).
+async function waitForVoiceClips(wanting, signal) {
+  let timer;
+  try { await abortable(Promise.race([wanting, new Promise(done => { timer = setTimeout(done, 60_000); })]), signal); }
+  catch (error) { if (signal?.aborted) throw error; }
+  finally { clearTimeout(timer); }
+}
 async function prepareInvitedVoice(profile, {signal} = {}) {
-  // The invited character's clips are made first when it has none (a minute at the most; the invitation already waits for its voice, and a failure leaves the voice it had).
-  await abortable(Promise.race([wantVoiceClips(profile, 'invitation'), new Promise(done => setTimeout(done, 60_000).unref())]), signal).catch(error => { if (signal?.aborted) throw error; });
+  const wanting = wantVoiceClips(profile, 'invitation');
+  if (wanting) await waitForVoiceClips(wanting, signal);
   for (;;) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
