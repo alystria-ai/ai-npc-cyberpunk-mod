@@ -135,17 +135,17 @@ test('Native Settings UI: Add to favorites moves her to the Favorites block at t
   press('Person 05', 'Add to favorites')
   assert(outline():find('is now a favorite', 1, true), outline())
   local sections = ns.sections()
-  assert(sections[1].options[1].label == 'Back to Companion Manager' and sections[2].label == 'Favorites', 'the block is the first after Back: ' .. outline())
-  assert(section(sections[2].id) == 'Person 05 = Add copy (1) | Remove Person 05 from favorites = Remove', section(sections[2].id))
-  local list = section(sections[3].id)
+  assert(sections[1].options[1].label == 'Back to Companion Manager' and sections[3].label == 'Favorites', 'the block is the first after Back and the Search section: ' .. outline())
+  assert(section(sections[3].id) == 'Person 05 = Add copy (1) | Remove Person 05 from favorites = Remove', section(sections[3].id))
+  local list = section(sections[4].id)
   assert(list:find('Person 04 = Invite | Person 05 = Add copy (1) | Person 06 = Invite', 1, true) and not list:find('Add to favorites', 1, true), list)
   assert(saved() and saved().characters['person-5'] == true and saved().version == 1, 'saved for the next session')
   -- Her Add copy row in the block works like the one in the list.
   press('Person 05', 'Add copy')
-  assert(section(ns.sections()[3].id):find('Person 05 = Add copy (2)', 1, true), outline())
+  assert(section(ns.sections()[4].id):find('Person 05 = Add copy (2)', 1, true), outline())
   press('Remove Person 05 from favorites')
-  assert(not ns.find('Favorites') and #ns.sections() == 2, 'the block is gone with its last favorite: ' .. outline())
-  assert(section(ns.sections()[2].id):find('Person 05 = Add to favorites | Person 05 = Add copy (2)', 1, true), 'back to the two rows: ' .. outline())
+  assert(not ns.find('Favorites') and #ns.sections() == 3, 'the block is gone with its last favorite: ' .. outline())
+  assert(section(ns.sections()[3].id):find('Person 05 = Add to favorites | Person 05 = Add copy (2)', 1, true), 'back to the two rows: ' .. outline())
   assert(outline():find('is no longer a favorite', 1, true) and next(saved().characters) == nil)
 `));
 
@@ -154,14 +154,14 @@ test('Native Settings UI: a favorite that is not invited has Invite in the block
   jsonFixtures['seed'] = {version = 1, characters = {['person-20'] = true, ['person-3'] = true}, models = {}}
   convaiFavorites.reset(); core.refresh(); frames(6)
   press('Main characters to invite')
-  local block = section(ns.sections()[2].id)
-  assert(ns.sections()[2].label == 'Favorites' and block:find('Remove Person 03 from favorites = Remove', 1, true), outline())
+  local block = section(ns.sections()[3].id)
+  assert(ns.sections()[3].label == 'Favorites' and block:find('Remove Person 03 from favorites = Remove', 1, true), outline())
   assert(block:find('Person 03 = Invite | Remove Person 03 from favorites = Remove | Person 20 = Invite | Remove Person 20 from favorites = Remove', 1, true), block)
   -- The slider's description says where the player is, and the second page has no Favorites block.
   local function rangeHelp() return ns.find('Page 1 / 2') and ns.find('Page 1 / 2').desc or ns.find('Page 2 / 2').desc end
   assert(rangeHelp():find('Page 1 of 2: characters 1 to 12.', 1, true), rangeHelp())
   ns.interact.slide(ns.find('Page'), 2); frames(6); ns.verify()
-  assert(not ns.find('Favorites') and #ns.sections() == 2, outline())
+  assert(not ns.find('Favorites') and #ns.sections() == 3, outline())
   assert(rangeHelp():find('Page 2 of 2: characters 13 to', 1, true), rangeHelp())
 `));
 
@@ -171,10 +171,10 @@ test('Native Settings UI: favorites come back in a new session, and a favorite t
   assert(saved().characters['person-9'] == true)
   -- The session ends; the file is all that is left.
   convaiFavorites.reset(); core.refresh(); frames(6)
-  assert(ns.sections()[2].label == 'Favorites' and section(ns.sections()[2].id):find('Person 09 = Add copy (1)', 1, true), 'read back from the file: ' .. outline())
+  assert(ns.sections()[3].label == 'Favorites' and section(ns.sections()[3].id):find('Person 09 = Add copy (1)', 1, true), 'read back from the file: ' .. outline())
   failSave = true
   press('Person 07', 'Invite'); press('Person 07', 'Add to favorites')
-  assert(section(ns.sections()[2].id):find('Person 07 = Add copy (1) | Remove Person 07 from favorites = Remove | Person 09', 1, true), 'in the order of the list: ' .. outline())
+  assert(section(ns.sections()[3].id):find('Person 07 = Add copy (1) | Remove Person 07 from favorites = Remove | Person 09', 1, true), 'in the order of the list: ' .. outline())
   assert(core.feedback():find('could not be saved', 1, true), core.feedback())
 `));
 

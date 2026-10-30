@@ -2468,29 +2468,86 @@ settingsPages['settings-privacy'] = function(snapshot)
 end
 
 -- ---- Search on the two character lists (docs/SIDE_CHARACTERS.md "Search") --------------------------------------------------------
--- The only text box a settings screen gives the manager is the Search box of Mod Configuration Menu (api.ui has no text row), drawn dim until it is
--- clicked, so the lists carry a section of their own above everything else: a heading, and one button row that says where to type (How to search)
--- or, once a search is on, what it found and how to empty it (Clear search). Native Settings UI has no text box (offerSearch is never called there):
--- the section is not drawn and the lists keep Starts with and the page slider. Page build only, never per frame.
+-- Neither settings screen gives the manager a text row (Mod Configuration Menu's only text input is its Search box, drawn dim until it is clicked,
+-- and Native Settings UI has none), so the lists carry a section of their own above everything else: a heading and a button row, Search by name,
+-- that opens the mod's own native text box (the talk box's kind, titled Search characters, Composer.reds ConvaiOpenSearchBox) and applies what is
+-- confirmed. With MCM (offerSearch) a second row says where its own Search box is, which keeps working; once a search is on that row reads what the
+-- search found with Clear search. Page build only, never per frame.
 -- The title of a list while a search is on: "search: pan · 2 found" (the query is the words typed, cut when long).
 function M.searchLabel(count)
     local query = modelFind.text
     if optionUnits(query) > 18 then query = cutToUnits(query, 18) end
     return ui.t('search: {query} · {count} found', {query = query, count = count})
 end
--- The section for a list of `count` matches; nil where the host has no text box.
+-- The section for a list of `count` matches.
 function M.searchCategory(count)
-    if not modelFind.offered then return nil end
-    local row
+    local rows = {action('search:box', 'Search by name', 'Search',
+        'Opens a text box over the game. Type part of a name and press Enter: the list shows every match on every page and letter. Esc leaves the list as it is, and Enter on an empty box shows the whole list again. Case and accents do not matter, and every word you type has to match the start of a word in the name.',
+        function() return M.openSearchBox() end)}
     if #modelFind.words > 0 then
-        row = action('search:clear', M.searchLabel(count), 'Clear search',
+        rows[#rows + 1] = action('search:clear', M.searchLabel(count), 'Clear search',
             'Empties the Search box and shows the whole list again.', function() return M.clearSearch() end, nil, {label = true})
-    else
-        row = action('search:help', 'Use the Search box, top right', 'How to search',
+    elseif modelFind.offered then
+        rows[#rows + 1] = action('search:help', 'Use the Search box, top right', 'How to search',
             'Click the Search box at the top right of this panel (it is dim until you click it) and type a name. The list shows every match on every page and letter. Case and accents do not matter, and every word you type has to match the start of a word in the name.',
             function() return true, ui.t('Click the Search box at the top right of this panel and type a name.') end)
     end
-    return category('character-search', 'Search characters', {row})
+    return category('character-search', 'Search characters', rows)
+end
+
+-- Search by name: asks the scripts to open the native box. The answer is read from the slow tick (M.pollSearchBox) while one is open. Where the box
+-- cannot open the player is told so, and with MCM pointed at its own Search box.
+function M.searchBoxRefusal()
+    local text = ui.t('The search box could not open.')
+    if modelFind.offered then text = text .. ' ' .. ui.t('Click the Search box at the top right of this panel and type a name.') end
+    return text
+end
+function M.openSearchBox()
+    if modelFind.box then return true end
+    local current = player()
+    if not current then return false, ui.t('Load a save first') end
+    local called, opened = pcall(function() return current:ConvaiOpenSearchBox() end)
+    if not called or opened ~= true then return false, M.searchBoxRefusal() end
+    -- The module that dresses the box says when one really came up (composer-input.lua apply): until it does, the box is not believed.
+    if convaiComposerInput then convaiComposerInput.searchShownAt = nil end
+    modelFind.box = {at = os.clock()}
+    return true
+end
+-- The text of a confirmed box is the search: the words as typed, an empty box shows the whole list. MCM's own box is given the same text, so
+-- the two ways agree and its box does not bring an older text back.
+function M.applySearchText(text)
+    text = tostring(text or ''):sub(1, 100)
+    if modelFind.setBox then pcall(modelFind.setBox, text) end
+    local clean, words = searchWords(text)
+    if clean ~= modelFind.text then
+        modelFind.text, modelFind.words = clean, words
+        listPage = 1
+    end
+    refreshQueued = true
+end
+-- Runs on the slow tick only while a box was opened by the button (modelFind.box is nil otherwise): a confirmed box applies its text, a cancelled one
+-- leaves the list as it was, and a box that never came up on screen within three seconds is forgotten, with the reason on the status line.
+function M.pollSearchBox()
+    local box = modelFind.box
+    local current = player()
+    if not current then modelFind.box = nil; return end
+    local ok, state = pcall(function() return current:ConvaiSearchBoxState() end)
+    if not ok then modelFind.box = nil; return end
+    if state == 'confirm' or state == 'cancel' then
+        local taken, text = pcall(function() return current:ConvaiTakeSearchText() end)
+        modelFind.box = nil
+        if state == 'confirm' and taken and (view == 'characters' or view == 'side') then M.applySearchText(text) end
+    elseif state == 'open' then
+        local shown = convaiComposerInput == nil or convaiComposerInput.searchShownAt ~= nil
+        if not shown and os.clock() - box.at > 3 then
+            pcall(function() current:ConvaiForgetSearchBox() end)
+            modelFind.box = nil
+            actionFeedback = M.searchBoxRefusal()
+            refreshQueued = true
+        end
+    else
+        modelFind.box = nil
+    end
 end
 
 -- ---- Side characters to invite (docs/SIDE_CHARACTERS.md) ---------------------------------------------------------------------------
@@ -3025,9 +3082,9 @@ end
 -- The Model browser's search. A host that has a search box hands over its text here (a change is drawn on the next page build, never per
 -- keystroke) and says it has one with offerSearch, which only adds the hint to the page. The text is the words of what was typed, so it is
 -- also the page's identity (M.pageId). Returns whether the search changed.
-function M.offerSearch(offered, clearBox)
+function M.offerSearch(offered, setBox)
     modelFind.offered = offered == true
-    modelFind.clearBox = offered == true and type(clearBox) == 'function' and clearBox or nil
+    modelFind.setBox = offered == true and type(setBox) == 'function' and setBox or nil
 end
 function M.setSearch(text)
     -- Parties does not search: the box holds the name the Rename button takes (case kept), and nothing is drawn again for it.
@@ -3045,7 +3102,7 @@ end
 function M.search() return modelFind.text end
 -- Clear search: the search is emptied here and, through the host's own function, in the host's box (offerSearch). Returns true.
 function M.clearSearch()
-    if modelFind.clearBox then pcall(modelFind.clearBox) end
+    if modelFind.setBox then pcall(modelFind.setBox, '') end
     if modelFind.text ~= '' then
         modelFind.text, modelFind.words = '', {}
         listPage = 1
@@ -3592,6 +3649,8 @@ function M.update(currentPlayer, worldReady)
     if flushDue or clock >= slowAt or slowAt - clock > SLOW_PERIOD * 2 then
         flushDue, slowAt = false, clock + SLOW_PERIOD
         M.slowUpdate(currentPlayer, worldReady)
+        -- A Search by name box is open: its answer is read here (a nil check while none is).
+        if modelFind.box then M.pollSearchBox() end
         -- Street reputation was just turned on in the menu: its hooks register here, in the game's update (one nil check otherwise).
         if convaiReputationPending and worldReady and type(convaiReputationWanted) == 'function' then
             convaiReputationPending = nil

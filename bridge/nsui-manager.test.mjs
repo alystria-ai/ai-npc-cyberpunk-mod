@@ -59,7 +59,9 @@ test('every page builds on the tab and the tab always starts with the way back, 
       {'Key bindings', 'Talk by voice'}, {'Settings', 'Settings'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
-    assert(ns.sections()[2].label == page[2], page[1] .. ': ' .. ns.sections()[2].label)
+    -- The two character lists have the Search characters section between Back and the list.
+    local at = (page[1] == 'Main characters to invite' or page[1] == 'Side characters to invite') and 3 or 2
+    assert(ns.sections()[at].label == page[2], page[1] .. ': ' .. ns.sections()[at].label)
     press('Back to Companion Manager')
     assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite', 'back on Home')
   end
@@ -103,7 +105,7 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   press('Main characters to invite')
   local slider = assert(ns.find('Page'), 'a list of 22 characters has a page slider')
   assert(slider.type == 'rangeInt' and slider.min == 1 and slider.max == 2 and slider.currentValue == 1)
-  local list = ns.sections()[2]
+  local list = ns.sections()[3]
   local function invites() local count = 0; for _, option in ipairs(list.options) do if option.buttonText == 'Invite' then count = count + 1 end end; return count end
   assert(invites() == 12, 'twelve rows on a page')
   local back = ns.sections()[1].options[1]
@@ -113,7 +115,7 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   frames(1)
   assert(ns.callCount('removeOption') == 0 and ns.callCount('addSubcategory') == 0, 'the list is not rebuilt under the drag')
   frames(5); ns.verify()
-  list = ns.sections()[2]
+  list = ns.sections()[3]
   assert(ns.find('Page') == slider, 'the slider is the same widget: the player is still holding it')
   assert(ns.sections()[1].options[1] == back, 'the way back is untouched')
   assert(ns.callCount('removeSubcategory') == 0, 'a page of a list does not touch the sections')
@@ -132,12 +134,18 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   assert(ns.find('Page').currentValue == 1)
 `));
 
-test('Native Settings UI has no text box, so the character lists draw no Search section and keep the page slider and the Starts with letters', () => run(`${harness()}
+test('Native Settings UI has no text box of its own: the character lists draw the Search section with the Search by name button only (no pointer to MCM box), and keep the page slider and the Starts with letters', () => run(`${harness()}
   press('Main characters to invite')
-  assert(not ns.find('Search characters') and not ns.find('Use the Search box, top right') and not ns.find('How to search'), shownOutline())
-  assert(ns.find('Page') and #ns.sections() == 2, shownOutline())
+  assert(ns.sections()[2].label == 'Search characters' and #ns.sections()[2].options == 1, shownOutline())
+  local row = ns.sections()[2].options[1]
+  assert(row.label == 'Search by name' and row.buttonText == 'Search', row.label)
+  assert(not ns.find('Use the Search box, top right') and not ns.find('How to search'), shownOutline())
+  assert(ns.find('Page') and #ns.sections() == 3, shownOutline())
   press('Back to Companion Manager'); press('Side characters to invite')
-  assert(not ns.find('Search characters') and not ns.find('Use the Search box, top right'), shownOutline())
+  assert(ns.sections()[2].label == 'Search characters', shownOutline())
+  -- Without a text box on screen the button says so instead of doing nothing (the fake player has no search box).
+  press('Search by name')
+  assert(core.feedback():find('The search box could not open.', 1, true) and not core.feedback():find('Click the Search box', 1, true), tostring(core.feedback()))
 `));
 
 test('the model browser reads the scan first, then a letter group and a page of rows; a row of a larger list is replaced alone when its state changes', () => run(`${harness()}

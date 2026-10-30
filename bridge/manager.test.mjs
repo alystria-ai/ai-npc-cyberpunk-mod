@@ -3110,9 +3110,10 @@ test('the character lists search by word starts, ignoring case and accents, acro
       for _, category in ipairs(loaded.categories) do ids[#ids + 1] = category.id end
       return table.concat(ids, ',')
     end
-    -- A host without a text box (Native Settings UI): no Search section, the lists are as they were.
+    -- A host without a text box of its own (Native Settings UI): the Search section has the Search by name button only.
     assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
-    assert(categoryIds() == 'navigation,characters', categoryIds())
+    assert(categoryIds() == 'navigation,character-search,characters', categoryIds())
+    assert(row('search:box') and row('search:help') == nil, 'no pointer to a host box that is not there')
     -- The matcher: word starts only, case and accents folded, every word must match, the key counts too.
     assert(core.setSearch('RITA')); loaded = registered.loadMod('manager')
     assert(invites() == 'rita-wheeler', invites())
@@ -3131,10 +3132,11 @@ test('the character lists search by word starts, ignoring case and accents, acro
     assert(core.setSearch('hanako-ara')); loaded = registered.loadMod('manager')
     assert(invites() == 'hanako-arasaka', 'punctuation only separates words: ' .. invites())
     assert(core.setSearch('')); loaded = registered.loadMod('manager')
-    -- A host with a text box: the section is the first after Back, on every page, with the row that says where to type.
+    -- A host with a text box: the section is the first after Back, on every page, with the Search by name button and the row that says where the host's box is.
     core.offerSearch(true, function() cleared = cleared + 1 end)
     loaded = registered.loadMod('manager')
     assert(categoryIds() == 'navigation,character-search,characters', categoryIds())
+    assert(row('search:box').value == 'Search' and row('search:box').label == 'Search by name')
     local help = row('search:help')
     assert(help and help.type == 'action' and help.value == 'How to search' and help.label == 'Use the Search box, top right', 'the row says where to type')
     assert(help.description:find('Search box at the top right', 1, true))
@@ -3143,7 +3145,7 @@ test('the character lists search by word starts, ignoring case and accents, acro
     assert(row('character-status') == nil, 'no status line without a search')
     -- A search: the section reads the query and the count, the title of the list says the same, Clear search empties the host box and the search.
     assert(core.setSearch('Pana 1')); loaded = registered.loadMod('manager')
-    assert(row('search:help') == nil)
+    assert(row('search:help') == nil and row('search:box'), 'the button stays so the search can be changed')
     local clear = row('search:clear')
     assert(clear and clear.value == 'Clear search' and clear.label == 'search: pana 1 · 0 found', clear and clear.label)
     assert(core.setSearch('rita')); loaded = registered.loadMod('manager')
@@ -3167,6 +3169,98 @@ test('the character lists search by word starts, ignoring case and accents, acro
     assert(invoke('side:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
     assert(row('search:help') and core.search() == '')
   `);
+});
+
+// 2026-10-31 (coordinator): the Search by name button opens the mod's own native text box (Composer.reds ConvaiOpenSearchBox), in both hosts.
+test('Search by name opens the native text box: Confirm applies the words (and gives the host box the same text), Cancel leaves the list, an empty Confirm clears, a box that never shows is forgotten', () => {
+  run(`${nsuiFixture}
+    manager.configure(api, {{key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}},
+      {key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.judy'}}, {key = 'river-ward', name = 'River Ward', records = {'Character.river'}}})
+    local clock = 1000
+    os.clock = function() return clock end
+    local function tick(seconds) clock = clock + (seconds or 0.3); managerUi.update(player, true); loaded = registered.loadMod('manager') end
+    local box = {state = '', text = '', opens = 0, forgotten = 0, refuse = false}
+    function player:ConvaiOpenSearchBox() box.opens = box.opens + 1; if box.refuse then return false end; box.state = 'open'; return true end
+    function player:ConvaiSearchBoxState() return box.state end
+    function player:ConvaiTakeSearchText() local text = box.text; box.text = ''; if box.state ~= 'open' then box.state = '' end; return text end
+    function player:ConvaiForgetSearchBox() box.forgotten = box.forgotten + 1; box.state = '' end
+    convaiComposerInput = {}
+    local hostBox = {}
+    core.offerSearch(true, function(text) hostBox[#hostBox + 1] = text end)
+    local function invites()
+      local found = {}
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then found[#found + 1] = item.id:sub(8) end end
+      end
+      return table.concat(found, ',')
+    end
+    assert(invoke('tab:characters').ok)
+    tick()
+    local all = invites()
+    -- Press: the box is asked for once (a second press while it is open asks for nothing), and nothing changes until it is confirmed.
+    assert(invoke('search:box').ok and box.opens == 1 and invoke('search:box').ok and box.opens == 1)
+    convaiComposerInput.searchShownAt = clock
+    tick(1); tick(1); tick(1)
+    assert(box.forgotten == 0 and core.search() == '' and invites() == all, 'a box that is on screen waits for the player')
+    -- Confirm: the words are the search, the host's box gets the same text, and the list is the matches.
+    box.state, box.text = 'confirm', 'RIVER w'
+    tick()
+    assert(core.search() == 'river w' and invites() == 'river-ward', invites())
+    assert(hostBox[#hostBox] == 'RIVER w', 'the host box is given the typed text: ' .. tostring(hostBox[#hostBox]))
+    assert(row('search:clear').label == 'search: river w · 1 found', row('search:clear').label)
+    tick(); tick()
+    assert(box.state == '' and core.search() == 'river w', 'a taken answer is not applied twice')
+    -- Cancel: the list stays as it was.
+    box.opens = 0
+    assert(invoke('search:box').ok and box.opens == 1); convaiComposerInput.searchShownAt = clock
+    box.state = 'cancel'
+    tick()
+    assert(core.search() == 'river w' and invites() == 'river-ward' and box.state == '', 'cancel leaves the search')
+    -- Enter on an empty box shows the whole list again, and empties the host box.
+    assert(invoke('search:box').ok); convaiComposerInput.searchShownAt = clock
+    box.state, box.text = 'confirm', ''
+    tick()
+    assert(core.search() == '' and invites() == all and hostBox[#hostBox] == '', 'empty confirm clears: ' .. invites())
+    -- A box that never came up (the notification layer did not draw it) is forgotten after three seconds, and the status line says so.
+    box.opens, box.forgotten = 0, 0
+    assert(invoke('search:box').ok and box.opens == 1)
+    tick(1); tick(1)
+    assert(box.forgotten == 0)
+    tick(1.5)
+    assert(box.forgotten == 1 and core.feedback():find('The search box could not open.', 1, true), tostring(core.feedback()))
+    assert(core.feedback():find('Click the Search box at the top right', 1, true), 'with a host box, it is pointed at')
+    -- The scripts refuse (a box is already open, or the layer is missing): said at once, nothing waits.
+    box.refuse = true
+    local refused = invoke('search:box')
+    assert(not refused.ok and refused.error:find('The search box could not open.', 1, true), tostring(refused.error))
+    box.refuse = false
+    -- The words of a box that closed after the player left the list are not applied to another page.
+    assert(invoke('search:box').ok); convaiComposerInput.searchShownAt = clock
+    assert(invoke('characters:back').ok)
+    box.state, box.text = 'confirm', 'judy'
+    tick()
+    assert(core.search() == '', 'not applied on Home')
+    -- Side list: the same button and the same rule.
+    assert(invoke('tab:side').ok)
+    assert(invoke('search:box').ok); convaiComposerInput.searchShownAt = clock
+    box.state, box.text = 'confirm', 'zzz'
+    tick()
+    assert(core.search() == 'zzz' and row('search:clear').label == 'search: zzz · 0 found')
+  `);
+});
+
+// The search box shares the talk box's token (so every "a box is open" check holds for it), but its words have fields of their own: nothing a search
+// box holds can reach the talk fields, so it can never be sent as a turn.
+test('Composer.reds: the search box keeps its words in its own fields and never sets the talk submission', () => {
+  const source = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Composer.reds', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const closed = source.slice(source.indexOf('protected cb func OnConvaiComposerClosed'));
+  const branch = closed.slice(closed.indexOf('if Equals(this.m_convaiComposerMode, "search")'), closed.indexOf('return true;'));
+  assert.ok(branch.includes('m_convaiSearchText') && branch.includes('m_convaiSearchState'), 'the branch writes the search fields');
+  assert.ok(!branch.includes('m_convaiSubmittedText') && !branch.includes('m_convaiSubmissionReady') && !branch.includes('m_convaiCloseInfo'), 'and no talk field');
+  const open = source.slice(source.indexOf('public final func ConvaiOpenSearchBox() -> Bool {\n    if IsDefined'));
+  const body = open.slice(0, open.indexOf('\n}\n'));
+  assert.ok(body.includes('this.m_convaiComposerMode = "search"') && !body.includes('m_convaiSubmissionReady') && !body.includes('m_convaiSubmittedText'), 'opening one starts no talk');
+  assert.ok(source.includes('this.m_convaiComposerMode = "talk";'), 'a talk box says it is one');
 });
 
 // 2026-10-25 (owner): our own Rita Wheeler is invitable like anyone else, even with Night City Allies installed. Lucy stays talk only.

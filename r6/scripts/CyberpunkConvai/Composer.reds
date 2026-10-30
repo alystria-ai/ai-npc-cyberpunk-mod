@@ -98,6 +98,19 @@ private let m_convaiSubmissionReady: Bool;
 @addField(PlayerPuppet)
 private let m_convaiCloseInfo: String;
 
+// Which kind of box the token belongs to: "talk" (a message to a character, the default) or "search" (the Companion Manager's Search
+// characters box). A search box shares the token, so every "a box is open" check holds for it too (the talk key does not open a second
+// one), but its words go to m_convaiSearchText and never to m_convaiSubmittedText: nothing here can turn a search into a talk turn.
+// The state is "" (nothing), "open", "confirm" (the words are in m_convaiSearchText) or "cancel"; mod/manager-ui.lua reads it while it waits.
+@addField(PlayerPuppet)
+private let m_convaiComposerMode: String;
+
+@addField(PlayerPuppet)
+private let m_convaiSearchState: String;
+
+@addField(PlayerPuppet)
+private let m_convaiSearchText: String;
+
 @if(ModuleExists("Codeware.UI"))
 @addMethod(PlayerPuppet)
 public final func ConvaiOpenComposer(characterName: String) -> Bool {
@@ -114,6 +127,7 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
         return false;
     };
 
+    this.m_convaiComposerMode = "talk";
     this.m_convaiSubmissionReady = false;
     this.m_convaiSubmittedText = "";
     this.m_convaiCloseInfo = "";
@@ -130,11 +144,56 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
     return true;
 }
 
+// The Companion Manager's Search characters box: the same native box, titled and marked as a search (mod/composer-input.lua shows it
+// as "Search characters"). It takes no character and starts no conversation. Returns false when a box is already open or cannot open.
+@if(ModuleExists("Codeware.UI"))
+@addMethod(PlayerPuppet)
+public final func ConvaiOpenSearchBox() -> Bool {
+    if IsDefined(this.m_convaiComposerToken) {
+        return false;
+    };
+
+    let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
+    if !IsDefined(layer) {
+        return false;
+    };
+    let controller = layer.GetGameController() as worlduiIGameController;
+    if !IsDefined(controller) {
+        return false;
+    };
+
+    this.m_convaiComposerMode = "search";
+    this.m_convaiSearchState = "open";
+    this.m_convaiSearchText = "";
+    this.m_convaiComposerToken = GenericMessageNotification.ShowInput(
+        controller,
+        "Search characters",
+        "Type part of a name.",
+        GenericMessageNotificationType.ConfirmCancel
+    );
+    if !IsDefined(this.m_convaiComposerToken) {
+        this.m_convaiSearchState = "";
+        return false;
+    };
+    this.m_convaiComposerToken.RegisterListener(this, n"OnConvaiComposerClosed");
+    return true;
+}
+
 @if(ModuleExists("Codeware.UI"))
 @addMethod(PlayerPuppet)
 protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> Bool {
     let result = data as GenericMessageNotificationCloseData;
     this.m_convaiComposerToken = null;
+    if Equals(this.m_convaiComposerMode, "search") {
+        // A search box never touches the talk fields: Confirm keeps the words (an empty box clears the search), anything else is a cancel.
+        if IsDefined(result) && Equals(result.result, GenericMessageNotificationResult.Confirm) {
+            this.m_convaiSearchText = result.input;
+            this.m_convaiSearchState = "confirm";
+        } else {
+            this.m_convaiSearchState = "cancel";
+        };
+        return true;
+    };
     if !IsDefined(result) {
         this.m_convaiCloseInfo = "nodata";
         return true;
@@ -159,6 +218,39 @@ protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> 
 @addMethod(PlayerPuppet)
 public final func ConvaiOpenComposer(characterName: String) -> Bool {
     return false;
+}
+
+@if(!ModuleExists("Codeware.UI"))
+@addMethod(PlayerPuppet)
+public final func ConvaiOpenSearchBox() -> Bool {
+    return false;
+}
+
+// "" (no search box), "open", "confirm" or "cancel". A search box that was confirmed or cancelled keeps its state until it is taken.
+@addMethod(PlayerPuppet)
+public final func ConvaiSearchBoxState() -> String {
+    return this.m_convaiSearchState;
+}
+
+// The words of a confirmed search box, once; the state goes back to "". A "cancel" is cleared the same way.
+@addMethod(PlayerPuppet)
+public final func ConvaiTakeSearchText() -> String {
+    let text = this.m_convaiSearchText;
+    this.m_convaiSearchText = "";
+    if !Equals(this.m_convaiSearchState, "open") {
+        this.m_convaiSearchState = "";
+    };
+    return text;
+}
+
+// A search box that never showed (the notification layer did not draw it) is forgotten, so the talk key and the manager are not blocked by it.
+@addMethod(PlayerPuppet)
+public final func ConvaiForgetSearchBox() -> Void {
+    if Equals(this.m_convaiComposerMode, "search") {
+        this.m_convaiComposerToken = null;
+        this.m_convaiSearchState = "";
+        this.m_convaiSearchText = "";
+    };
 }
 
 @addMethod(PlayerPuppet)

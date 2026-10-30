@@ -33,10 +33,16 @@ local function find(root, name, depth, budget)
     end
 end
 
+-- Which of the mod's two boxes a notification is: 'talk' (Composer.reds ConvaiOpenComposer) or 'search' (ConvaiOpenSearchBox, the Companion
+-- Manager's Search characters box), by the English title and message the scripts gave it; nil for any other notification.
+local function boxKind(data)
+    if not data or type(data.title) ~= 'string' then return nil end
+    if data.title:sub(1, 8) == 'TALK TO ' and data.message == 'Type your message to the character.' then return 'talk' end
+    if data.title == 'Search characters' and data.message == 'Type part of a name.' then return 'search' end
+end
 local function ownedData(controller)
     local data = controller:GetRootWidget():GetUserData('GenericMessageNotificationData')
-    if data and type(data.title) == 'string' and data.title:sub(1, 8) == 'TALK TO '
-        and data.message == 'Type your message to the character.' then return data end
+    if boxKind(data) then return data end
 end
 
 -- Shared by the owned phone composer. Called only from a top-level scan after
@@ -139,7 +145,9 @@ local function localizePresentation(controller, data)
     -- marker on later callbacks and is never written back from a translation.
     if controller.GetChildWidgetByPath then
         local title = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/title'))
-        if title then title:SetText(text('TALK TO {character}', {character = data.title:sub(9)})) end
+        if title then
+            title:SetText(boxKind(data) == 'search' and text('Search characters') or text('TALK TO {character}', {character = data.title:sub(9)}))
+        end
     end
     -- The dialog's message line ("Type your message to the character.") is not shown: it is emptied and hidden, and
     -- stops taking room in the dialog's vertical layout. The English notification data keeps the sentence as the
@@ -216,8 +224,10 @@ function M.apply(controller)
     M.seen = (M.seen or 0) + 1
     local data = controller:GetRootWidget():GetUserData('GenericMessageNotificationData')
     M.lastTitle = data and data.title or 'no data'
-    if not data or type(data.title) ~= 'string' or data.title:sub(1, 8) ~= 'TALK TO '
-        or data.message ~= 'Type your message to the character.' then return end
+    local kind = boxKind(data)
+    if not kind then return end
+    -- A Search characters box that really came up: mod/manager-ui.lua asks (M.searchShownAt) before it believes the box is on screen.
+    if kind == 'search' then M.searchShownAt = os.clock() end
     local backdropOk, backdropErr = pcall(M.clearBackdrop, controller)
     if not backdropOk then M.lastBackdropError = tostring(backdropErr) end
     local placeOk, placeErr = pcall(M.placeDialog, controller)
@@ -246,7 +256,7 @@ function M.apply(controller)
         input:SetLetterCase(textLetterCase.OriginalCase)
         -- F6/F8 are immediately ready for typing. The box has no placeholder text and the dialog's message line above
         -- it is hidden (localizePresentation). SetDefaultText changes only the hint, never an existing typed draft.
-        input:SetDefaultText('')
+        input:SetDefaultText(kind == 'search' and text('Type part of a name') or '')
         pcall(M.padInputText, input)
         M.patched = M.patched + 1
         M.lastCase = tostring(input:GetLetterCase())
