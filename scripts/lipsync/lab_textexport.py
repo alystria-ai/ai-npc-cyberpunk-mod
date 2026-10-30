@@ -3,14 +3,13 @@
   python lab_textexport.py <stage1-head.pt> <stream-stage2.pt> <phrase-stage2.pt> <face-model-dir> <out-dir> [--threshold X]
 
 Writes <out-dir>/face-text.json + face-text.bin (phone head, phone prior, both stage-2 nets with their quantile maps,
-alignment settings, the SHA-256 of the face-model.bin it was trained on) and face-lexicon.txt.gz (CMUdict from
+alignment settings, the SHA-256 of the face-model.bin it was trained on) and face-lexicon.txt, plain text (CMUdict from
 Rhubarb's PocketSphinx resources, BSD-2-Clause, plus game-vocabulary pronunciations). Copies face-model.* as well so
 the folder is self-contained. Weights are game-derived: keep <out-dir> under runtime/ (ignored).
 """
 from __future__ import annotations
 
 import argparse
-import gzip
 import hashlib
 import json
 import shutil
@@ -57,7 +56,7 @@ def main():
         raw = np.ascontiguousarray(value, '<f4').tobytes()
         table.append(dict(name=name, offset=offset, shape=list(value.shape))); blob.append(raw); offset += len(raw)
     stage1 = hashlib.sha256((args.out / 'face-model.bin').read_bytes()).hexdigest()
-    meta = dict(format='cp77-jali-text-v1', version=1, stage1Sha256=stage1, phones=tp.PHONES, lexicon='face-lexicon.txt.gz',
+    meta = dict(format='cp77-jali-text-v1', version=1, stage1Sha256=stage1, phones=tp.PHONES, lexicon='face-lexicon.txt',
                 lookahead=head['lookahead'], nets=nets, tensors=table, **{**DEFAULTS, 'confidenceThreshold': args.threshold})
     (args.out / 'face-text.bin').write_bytes(b''.join(blob))
     (args.out / 'face-text.json').write_text(json.dumps(meta, indent=1), encoding='utf8')
@@ -73,9 +72,9 @@ def main():
             if len(parts) > 1 and parts[0] not in lex and all(x in tp.PHONES for x in parts[1:]):
                 lex[parts[0]] = parts[1:]; extra += 1
     text = ''.join(f"{w} {' '.join(ph)}\n" for w, ph in sorted(lex.items()))
-    with gzip.open(args.out / 'face-lexicon.txt.gz', 'wt', encoding='utf8', compresslevel=9) as f:
-        f.write(text)
-    notice = ('face-lexicon.txt.gz: CMU Pronouncing Dictionary as distributed with CMU Sphinx / Rhubarb Lip Sync '
+    # Plain text: the main file holds no archive (packaging/lib/package-guards.mjs). The release build also takes a gzip from the model bucket and unpacks it.
+    (args.out / 'face-lexicon.txt').write_text(text, encoding='utf8', newline='\n')
+    notice = ('face-lexicon.txt: CMU Pronouncing Dictionary as distributed with CMU Sphinx / Rhubarb Lip Sync '
               '(Copyright (c) 1993-2015 Carnegie Mellon University, BSD-2-Clause; see vendor/rhubarb-1.14.0 LICENSE.md), '
               f'plus {extra} game-vocabulary pronunciations generated with espeak-ng.\n')
     (args.out / 'face-lexicon-NOTICE.txt').write_text(notice, encoding='utf8')

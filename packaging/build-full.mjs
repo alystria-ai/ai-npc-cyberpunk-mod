@@ -29,7 +29,8 @@ import {open} from 'node:fs/promises';
 import {basename, dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
-import {entryChunks, readEntry} from './lib/zip-entry.mjs';
+import {entryChunks, entryHead, readEntry} from './lib/zip-entry.mjs';
+import {ARCHIVE_HEAD_BYTES, archiveEntry} from './lib/package-guards.mjs';
 import {sha256File} from './lib/files.mjs';
 import {isReleaseVersion} from './lib/version.mjs';
 import {CODE_FOLDER, CODE_MANIFEST} from './lib/code-payload.mjs';
@@ -73,6 +74,15 @@ export async function buildFull({updatePath, runtimePath, outDir, version, game,
   };
   const plan = planFull({...part, config, game, version});
   if (plan.problems.length) throw Error(`The Full install zip cannot be made from ${label(updatePath)} and ${label(runtimePath)}:\n  - ${plan.problems.join('\n  - ')}`);
+
+  // The first bytes of every file too (planFull has the names): a renamed archive is refused here, before the zip is written.
+  const archives = [];
+  for (const item of plan.entries) {
+    if (!item.entry) continue;
+    const why = archiveEntry(item.entry.name, await entryHead(item.from === 'update' ? updatePath : runtimePath, item.entry, ARCHIVE_HEAD_BYTES));
+    if (why) archives.push(`${item.entry.name} ${why}`);
+  }
+  if (archives.length) throw Error(`The Full install zip would hold an archive, which the main file must not: ${archives.slice(0, 6).join(', ')}`);
 
   const base = fullBaseName(version, game);
   await mkdir(outDir, {recursive: true});

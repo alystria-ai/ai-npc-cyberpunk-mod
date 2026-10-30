@@ -678,6 +678,23 @@ The OmniPack is not changed by this: its Python (3.11, CUDA torch) is built by t
 
 How it reaches a player who has the files: the update zip's removal list holds every path the old Runtime had and the new one has not (about 2,400 paths for this change), the start step deletes them one by one under the folders a Runtime installs into (`app/python/`, `app/pocket-tts/` and `app/node_modules/` are all under `app/`) and removes the folders it empties. A list this long is applied within one start (the budget is eight seconds and the rest waits for the next start; `packaging/runtime-prune.test.mjs` runs the chain on fixture zips, and `packaging/test-release-install.mjs --update-from` runs it on the real ones). A player on an older Runtime who extracts the full Runtime keeps the old files (extracting adds, never deletes) and they are harmless. What is not removed from an existing install: the Lua files the Scripts zip no longer carries (`devOnlyLua`, below), because the start step only deletes under the Runtime's folders.
 
+### No archive inside the main file (owner rule 2026-10-31)
+
+The Nexus main file (the Full zip) and the packages it is made of (the Scripts, which is also the Update zip, the Runtime base and the Runtime update zip) hold no archive: no zip, gzip, 7z, RAR, xz, bzip2, tar, cab or msi, and no wheel or jar. Antivirus scanners open an archive inside a download and flag what they cannot read, and Nexus Mods has quarantined a Full zip once already. The optional packs on Hugging Face are separate files and are not covered.
+
+The guard is in `packaging/lib/package-guards.mjs` (`archiveEntry`, tests in `packaging/no-archives.test.mjs`). An entry is refused by its name (an archive extension) and by its first bytes (a renamed archive, and a numpy `.npz` is a zip, so it is caught here). It runs in four places. `build-release.mjs` checks the Scripts and Runtime entries before any zip is written, and again on the finished zips as the last check of the build. `build-full.mjs` checks both input zips before the Full zip is written (`planFull` sees the names, the build reads the first bytes). `build-runtime-update.mjs` checks the files it copies.
+
+What 0.3.5 carried, and what became of each:
+
+| Was | Now |
+|---|---|
+| `app/models/lipsync/face-lexicon.txt.gz` (our lip-sync pronunciation table, 860 KB) | Shipped as plain text, `face-lexicon.txt` (3.3 MB). The model bucket keeps its gzip: `models.groups[].unpack` in `release.config.json` makes the build unpack it into the Runtime. The bridge (`bridge/jali-face.mjs`) loads the .txt and still reads an older .gz when that is all a folder has (`parseLexicon` tells a gzip by its first bytes). The start step (`prepare-state.mjs`) drops the old `data/lipsync-model/face-lexicon.txt.gz` once the .txt is there. |
+| `python/Lib/site-packages/networkx/generators/atlas.dat.gz` | Pruned (`networkx-atlas` in `runtime-prune.mjs`). Only `graph_atlas()` and `graph_atlas_g()` open it, when called. Nothing of ours, torch or sympy calls them. |
+| `python/Lib/site-packages/scipy/stats/_sobol_direction_numbers.npz` (a numpy zip) | Pruned (`scipy-sobol-numbers`). Only `scipy.stats.qmc.Sobol` opens it, when a generator is made. Nothing of ours uses scipy.stats (the phone worker and the clip builder use scipy.signal). |
+| `python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl` (zero bytes) | Pruned (`stray-wheel`). |
+
+All four paths are also in `packaging/runtime-removals.json`, so an install that has them loses them at its next start.
+
 ### The Python standard library (0.3.4, and the check for it)
 
 The Runtime's Python is the embeddable package with its standard library unzipped into `app/python/Lib/` as sourceless `.pyc` and a `python312._pth` that lists `Lib`, `.`, `Lib\site-packages`, `..\bridge` and `import site` (`installPython` with `unzipStdlib` in `packaging/build-release.mjs`; Nexus Mods quarantines an upload that carries a zip inside the zip, so the package's own `python312.zip` is not shipped). A player who had an earlier 0.3.4 Full zip keeps an unused `python312.zip`; both layouts work, and a Runtime older than the unzip keeps the standard library in the zip.

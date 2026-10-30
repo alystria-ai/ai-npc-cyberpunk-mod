@@ -68,9 +68,12 @@ export function normalizeText(text, {complete = true} = {}) {
   return out.filter((tok, i) => !(tok === GARBAGE && out[i - 1] === GARBAGE));
 }
 
-export function parseLexicon(gz) {
+// The table is plain text (face-lexicon.txt): a nested archive in the main file trips antivirus scans on the mod page. A gzip
+// (face-lexicon.txt.gz, what older installs still hold and what the model bucket keeps) is told by its first bytes and read as before.
+export const isGzip = bytes => bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b && bytes[2] === 0x08;
+export function parseLexicon(bytes) {
   const lexicon = new Map();
-  for (const line of gunzipSync(gz).toString('utf8').split('\n')) {
+  for (const line of (isGzip(bytes) ? gunzipSync(bytes) : Buffer.from(bytes)).toString('utf8').split('\n')) {
     const parts = line.trim().split(/\s+/);
     if (parts.length < 2 || lexicon.has(parts[0])) continue;
     const ids = parts.slice(1).map(p => PHONES.indexOf(p));
@@ -261,11 +264,11 @@ class Stage2Net {
   }
 }
 
-export function parseFaceText(meta, buffer, lexiconGz, model) {
+export function parseFaceText(meta, buffer, lexiconBytes, model) {
   if (!meta || meta.format !== FACE_TEXT_FORMAT || meta.version !== 1 || !Array.isArray(meta.tensors)
       || String(meta.phones) !== String(PHONES) || !meta.nets?.stream || !meta.nets?.phrase || meta.lookahead !== model.lookahead)
     throw Error('Unsupported facial text model');
-  return new FaceText(meta, tensorsOf(meta, buffer), parseLexicon(lexiconGz), model);
+  return new FaceText(meta, tensorsOf(meta, buffer), parseLexicon(lexiconBytes), model);
 }
 
 export class FaceText {

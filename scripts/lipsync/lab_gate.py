@@ -1,7 +1,7 @@
 """No-degradation gate for lip-sync candidates: every existing metric, shape variety, and the frozen downstream path.
 
 A "stack" is a folder holding face-model.{json,bin} (audio model, stage 1) and optionally face-text.{json,bin} plus
-face-lexicon.txt.gz (text stage 2), i.e. exactly the files the bridge loads. Each stack is run in the runtime's own
+face-lexicon.txt (text stage 2, or the older face-lexicon.txt.gz), i.e. exactly the files the bridge loads. Each stack is run in the runtime's own
 modes through lab_textpipe.TextPipeline (the line-by-line mirror of bridge/jali-face-text.mjs):
 
   audio   - no text: what every route plays when the text path is off, unknown or lost (Candidate A behaviour);

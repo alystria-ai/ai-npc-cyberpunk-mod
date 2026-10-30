@@ -187,8 +187,14 @@ export async function prepareState(layout, {log = () => {}} = {}) {
   // The bridge loads the lip-sync model from <data>/lipsync-model (bridge/convai-bridge.mjs).
   const faceTarget = resolve(layout.state, 'lipsync-model');
   await mkdir(faceTarget, {recursive: true});
-  for (const name of (await readdir(layout.faceModel).catch(() => [])).sort()) {
+  const faceFiles = (await readdir(layout.faceModel).catch(() => [])).sort();
+  for (const name of faceFiles) {
     if (await writeIfChanged(resolve(faceTarget, name), await readFile(resolve(layout.faceModel, name)))) log(`Installed lipsync-model/${name}.`);
+  }
+  // The pronunciation table ships as plain text (face-lexicon.txt, the main file holds no archive). The gzip an older Runtime left here is the same table: removed once the plain one is in place.
+  if (faceFiles.includes('face-lexicon.txt') && await stat(resolve(faceTarget, 'face-lexicon.txt.gz')).then(() => true, () => false)) {
+    await rm(resolve(faceTarget, 'face-lexicon.txt.gz'), {force: true}).catch(() => {});
+    log('Removed the older lipsync-model/face-lexicon.txt.gz.');
   }
 
   const pocket = JSON.parse(await readFile(resolve(layout.defaults, POCKET_CONFIG), 'utf8'));

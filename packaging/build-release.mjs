@@ -60,6 +60,7 @@
 //   --python EXE       host CPython used to run pip (default: python)
 //   --out DIR, --cache DIR   output and download-cache folders (default dist/release, dist/release-cache)
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
 import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile, copyFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
@@ -84,7 +85,7 @@ import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
 import {clipsLeftOut as voiceClipsLeftOut} from './lib/voice-clips-left-out.mjs';
-import {BASE_MARKER, forbiddenEntry} from './lib/package-guards.mjs';
+import {ARCHIVE_GUARDED_PACKAGES, BASE_MARKER, archivesInZip, assertNoArchives, forbiddenEntry} from './lib/package-guards.mjs';
 import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_APP, CODE_FOLDER, CODE_MANIFEST, INSTALLER, RUNTIME_APP, isCodePath, isCodeGamePath, manifestOf} from './lib/code-payload.mjs';
 
@@ -569,7 +570,14 @@ async function runtimePackage(source, config, models, auth) {
   const group = prefix => config.models.groups.find(item => item.target === prefix);
   for (const target of ['app/models/pocket/', 'app/models/lipsync/', 'app/models/stt/moonshine-tiny-en-int8/']) {
     const item = group(target);
-    for (const name of item.files) pkg.file(`${plugin}/${target}${name}`, models.files.get(item.bucket + name));
+    for (const name of item.files) {
+      const path = models.files.get(item.bucket + name), as = item.unpack?.[name];
+      if (!as) { pkg.file(`${plugin}/${target}${name}`, path); continue; }
+      // A file the model bucket keeps as a gzip (the lip-sync table) ships unpacked: the main file holds no archive (packaging/lib/package-guards.mjs).
+      const bytes = gunzipSync(await readFile(path));
+      if (!bytes.length || bytes[0] === 0x1f) throw Error(`${name} did not unpack to plain text`);
+      pkg.add(`${plugin}/${target}${as}`, {buffer: bytes});
+    }
   }
   const configs = group('voice-configs/');
   const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
@@ -629,7 +637,7 @@ async function runtimePackage(source, config, models, auth) {
 
   notices.push('The mod\'s own code (app/bridge, app/launcher, app/assets and the character data) is copied into this app/ folder from the Scripts'
     + ` (${CODE_FOLDER}), whose THIRD-PARTY-NOTICES.txt lists what is compiled into it (the Convai Web SDK, Apache-2.0) and the native plugin's licences.`);
-  notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt.gz): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
+  notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
     + ' plus 6553 game-vocabulary pronunciations generated with espeak-ng (espeak-ng is not shipped); see app/models/lipsync/face-lexicon-NOTICE.txt');
   notices.push('Pocket voice model (app/models/pocket/): adapted from Kyutai Pocket TTS (kyutai/pocket-tts), weights CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), code MIT.'
     + ' Changes: the flow language-model tensors are weights trained for this mod and the Mimi decoder tensors are retrained. Kyutai prohibits voice impersonation or cloning without explicit and lawful consent.');
@@ -1245,6 +1253,8 @@ async function main() {
     log(`Staging the ${titles[id]} package.`);
     const pkg = await builders[id]();
     pkg.text(INSTALL_NOTE_NAME, INSTALL_NOTE);
+    // The main file (Scripts = the Update zip, and the Runtime base) holds no archive: refused before anything is written, and again on the finished zips below.
+    if (ARCHIVE_GUARDED_PACKAGES.includes(id)) await assertNoArchives(id, pkg.entries);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
     // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> being the oldest
@@ -1262,6 +1272,14 @@ async function main() {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
       const why = forbiddenEntry(entry.name, config.layout);
       if (why) throw Error(`${item.file} ${why}: ${entry.name}`);
+    }
+  }
+  // The packages the main file is made of: no entry is an archive, by its name or by its first bytes, read back from the finished zips.
+  for (const [id, entry] of Object.entries(report.packages)) {
+    if (!ARCHIVE_GUARDED_PACKAGES.includes(id)) continue;
+    for (const item of entry.archives) {
+      const found = await archivesInZip(resolve(out, 'packages', item.file));
+      if (found.length) throw Error(`${item.file} holds an archive, which the main file must not: ${found.slice(0, 6).join(', ')}`);
     }
   }
   if (!useWorktree) await rm(source.root, {recursive: true, force: true});

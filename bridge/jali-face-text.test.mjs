@@ -36,10 +36,10 @@ function syntheticText(model, {seed = 3, threshold = 99, sha = ''} = {}) {
     add(prefix + 'qmap_in', [O, 2], i => i % 2 ? 10 : 0); add(prefix + 'qmap_out', [O, 2], i => i % 2 ? 10 : 0);
     nets[mode] = {prefix, channels: C, dilations: dil, shift, lag: Math.max(0, shift), decide: shift > 0 ? 'lag' : 'full'};
   }
-  const meta = {format: FACE_TEXT_FORMAT, version: 1, stage1Sha256: sha, phones: PHONES, lexicon: 'face-lexicon.txt.gz',
+  const meta = {format: FACE_TEXT_FORMAT, version: 1, stage1Sha256: sha, phones: PHONES, lexicon: 'face-lexicon.txt',
     lookahead: model.lookahead, nets, tensors, stay: .8, priorWeight: .5, garbagePenalty: 2, tailPenalty: 4, confidenceWindow: 100,
     confidenceMinRows: 20, confidenceThreshold: threshold, blendRows: 6, mouthOutputs: 15, maxStates: 4000};
-  return {meta, buffer: Buffer.concat(parts), lexicon: gzipSync(LEXICON)};
+  return {meta, buffer: Buffer.concat(parts), lexicon: Buffer.from(LEXICON)};
 }
 function setup(options = {}) {
   const {meta, buffer} = syntheticModel(), model = parseFaceModel(meta, buffer);
@@ -66,8 +66,14 @@ test('reply text is normalized like the Python reference: tags, emotions, number
   assert.deepEqual(normalizeText(''), []);
 });
 
+test('the lexicon reads plain text and a gzip of the same text alike', () => {
+  const plain = parseLexicon(Buffer.from(LEXICON)), packed = parseLexicon(gzipSync(LEXICON));
+  assert(plain.size > 10);
+  assert.deepEqual([...packed], [...plain]);
+});
+
 test('states put optional silence between words and garbage for tags and unknown words', () => {
-  const lexicon = parseLexicon(gzipSync(LEXICON)), ph = name => PHONES.indexOf(name);
+  const lexicon = parseLexicon(Buffer.from(LEXICON)), ph = name => PHONES.indexOf(name);
   const {phones, kinds} = buildStates(['hello', GARBAGE, 'zzyzx', 'no'], lexicon);
   assert.deepEqual(kinds, [1, 0, 0, 0, 0, 2, 0, 0, 1]);
   assert.deepEqual(phones, [0, ph('HH'), ph('AH'), ph('L'), ph('OW'), 0, ph('N'), ph('OW'), 0]);
@@ -76,7 +82,7 @@ test('states put optional silence between words and garbage for tags and unknown
 });
 
 test('Viterbi follows the phones the scores favour; fixed-lag decisions equal the final path on clear input', () => {
-  const lexicon = parseLexicon(gzipSync(LEXICON)), states = buildStates(['no', 'way'], lexicon);
+  const lexicon = parseLexicon(Buffer.from(LEXICON)), states = buildStates(['no', 'way'], lexicon);
   const plan = [0, 0, 'N', 'N', 'N', 'OW', 'OW', 'OW', 'OW', 0, 0, 'W', 'W', 'EY', 'EY', 'EY', 0, 0, 0];
   const rows = plan.map(p => Float32Array.from(PHONES, (_, i) => i === (p === 0 ? 0 : PHONES.indexOf(p)) ? -0.1 : -6));
   const config = {stay: .8, garbagePenalty: 2, tailPenalty: 4, confidenceWindow: 100, confidenceMinRows: 5, confidenceThreshold: 99};
@@ -180,11 +186,11 @@ test('growing Convai text aligns as it arrives; a revised text gives the alignme
 
 test('bridge client loads the text model only beside its own audio model and honours FACE_TEXT=off', async () => {
   const {model, files} = setup(), folder = mkdtempSync(join(tmpdir(), 'jali-text-'));
-  const write = sha => {
+  const write = (sha, lexiconName = 'face-lexicon.txt', gzip = false) => {
     writeFileSync(join(folder, 'face-model.json'), JSON.stringify(files.meta)); writeFileSync(join(folder, 'face-model.bin'), files.buffer);
     const t = syntheticText(model, {sha});
     writeFileSync(join(folder, 'face-text.json'), JSON.stringify(t.meta)); writeFileSync(join(folder, 'face-text.bin'), t.buffer);
-    writeFileSync(join(folder, 'face-lexicon.txt.gz'), t.lexicon);
+    writeFileSync(join(folder, lexiconName), gzip ? gzipSync(t.lexicon) : t.lexicon);
   };
   try {
     write(createHash('sha256').update(files.buffer).digest('hex'));
@@ -203,7 +209,12 @@ test('bridge client loads the text model only beside its own audio model and hon
     write('0'.repeat(64));
     face = await JaliFace.load(folder);
     try { assert.equal(face.info.text, 'mismatched-model'); assert(!face.textReady); } finally { await face.close(); }
-    write(createHash('sha256').update(files.buffer).digest('hex'));
+    // An older install holds only face-lexicon.txt.gz: it is still read. The plain table is the one used when both are there.
+    const good = createHash('sha256').update(files.buffer).digest('hex');
+    write(good, 'face-lexicon.txt.gz', true); rmSync(join(folder, 'face-lexicon.txt'), {force: true});
+    face = await JaliFace.load(folder);
+    try { assert(face.textReady, 'the old gzip table is still read'); } finally { await face.close(); }
+    write(good);
     process.env.CYBERPUNK_CONVAI_FACE_TEXT = 'off';
     face = await JaliFace.load(folder);
     try { assert.equal(face.info.text, 'absent'); } finally { await face.close(); delete process.env.CYBERPUNK_CONVAI_FACE_TEXT; }
