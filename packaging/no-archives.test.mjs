@@ -121,7 +121,7 @@ test('the Full zip builder refuses a nested archive from either input, by name a
     await zipOf(join(dir, 'u.zip'), u); await zipOf(join(dir, 'r.zip'), r);
     return {updatePath: join(dir, 'u.zip'), runtimePath: join(dir, 'r.zip'), outDir: join(dir, 'out'), version: VERSION, game: '2.5', config, log: () => {}};
   };
-  assert.equal((await buildFull(await fix('good', update(), runtime()))).file, 'AI-NPC-LLM-Companions-0.4.0.zip');
+  assert.equal((await buildFull(await fix('good', update(), runtime()))).file, 'AI-Companions-LLM-0.4.0.zip');
   // By name: caught when the two packages are planned.
   await assert.rejects(buildFull(await fix('gz-name', update(), runtime({[`${APP}/models/lipsync/face-lexicon.txt.gz`]: gzipSync(Buffer.from('x'))}))),
     /face-lexicon\.txt\.gz is an archive by its name/);

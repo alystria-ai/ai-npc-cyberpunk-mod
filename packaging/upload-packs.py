@@ -4,7 +4,7 @@ Run by .github/workflows/release.yml (the omni, localai, mature and micpacks job
 Each pack is ONE zip, with no parts. The repository is organised in folders by kind, the files carry no version (the version goes in the commit
 message), the optional packs no product prefix, and there are NO checksum files:
 
-    AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip        (root: the FULL INSTALL, the main file for a new player, and the UPDATE for an
+    AI-Companions-LLM.zip   AI-Companions-LLM-Update.zip        (root: the FULL INSTALL, the main file for a new player, and the UPDATE for an
                                                                          install that already has the Runtime base the update names; owner decision 2026-10-28)
     runtime/Runtime.zip                                                 (the Runtime base alone: an input of the full install, and for old two-mod setups; not advertised to new installs)
     local-ai/LocalAI-Standard-Gemma-4-E4B.zip   local-ai/LocalAI-Lite-Bonsai-2-4B.zip
@@ -22,22 +22,22 @@ LocalAI-Standard.zip, LocalAI-Lite.zip, Mature-Standard.zip, Mature-Lite.zip, Mi
 multilingual/PocketTTS-Model-<Language>.zip (docs/PACKAGING.md, "Pack file names"). A build folder that still holds a zip under an old name is accepted and published
 under the new name; --also-old-name additionally publishes the same file at the old path (Hugging Face stores identical content once), so links to the old
 names keep working for a while.
-    game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip   updates/game-2.31/...    (the build for the older
+    game-2.31/AI-Companions-LLM.zip   game-2.31/AI-Companions-LLM-Update.zip   game-2.31/runtime/Runtime.zip   updates/game-2.31/...    (the build for the older
     game 2.31, --game 2.31; docs/GAME_VERSIONS.md)
 
 The files at the top (the Full install, the Update, runtime/, updates/) are the build for game 2.5, the default game. updates/ (the Runtime update zips,
 Runtime-Update-<from>-to-<to>.zip) is no longer offered to players since 0.3.4 and nothing here uploads to it; what is in it stays.
 
-The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs). The Full install is AI-NPC-LLM-Companions-<version>.zip (packaging/build-full.mjs)
-and the Update AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, <from> being the Runtime base it needs, with "-and-up" when it covers several releases (packaging/lib/full-package.mjs); both
+The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs). The Full install is AI-Companions-LLM-<version>.zip (packaging/build-full.mjs)
+and the Update AI-Companions-LLM-Update-<from>-to-<version>.zip, <from> being the Runtime base it needs, with "-and-up" when it covers several releases (packaging/lib/full-package.mjs); both
 have -for-2.31 after the version for game 2.31. Before 0.3.4 the update was AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip, published as Scripts.zip: --also-old-name
 additionally publishes the Update at Scripts.zip and the Runtime at Runtime.zip (the root, where it was), so the links of older texts keep working for a while.
 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR   (upload the pack's zip from DIR to its folder)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR --dry-run   (list what would be uploaded)
-    python packaging/upload-packs.py --version 0.3.4 --pack full --packages DIR [--game 2.31]     (the Full install: AI-NPC-LLM-Companions.zip)
-    python packaging/upload-packs.py --version 0.3.4 --pack update --packages DIR [--game 2.31]   (the Update: AI-NPC-LLM-Companions-Update.zip)
+    python packaging/upload-packs.py --version 0.3.4 --pack full --packages DIR [--game 2.31]     (the Full install: AI-Companions-LLM.zip)
+    python packaging/upload-packs.py --version 0.3.4 --pack update --packages DIR [--game 2.31]   (the Update: AI-Companions-LLM-Update.zip)
     python packaging/upload-packs.py --version 0.3.4 --pack omni-amd --packages DIR        (upload every OmniAMD-*.zip in DIR to voice/amd/; the names carry no release version)
 
 The token comes from the HF_PACKS_TOKEN environment variable (the GitHub Actions secret of the account that owns the pack
@@ -58,10 +58,12 @@ REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
 # The file names of the packs: the "packFiles" block of release.config.json (a model pack's name carries the model and its parameter count).
 PACK_FILES = json.loads((Path(__file__).with_name("release.config.json")).read_text(encoding="utf-8"))["packFiles"]
 # pack id -> (folder in the repository, title). The zip a build writes is <title>-<version>.zip and is published as <folder>/<title>.zip.
-# The Full install and the Update sit at the root (a build names them AI-NPC-LLM-Companions-<version>.zip and
-# AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, the names for Nexus Mods), the Runtime base alone in runtime/.
-FULL_TITLE = "AI-NPC-LLM-Companions"
+# The Full install and the Update sit at the root (a build names them AI-Companions-LLM-<version>.zip and
+# AI-Companions-LLM-Update-<from>-to-<version>.zip, the names for Nexus Mods), the Runtime base alone in runtime/.
+FULL_TITLE = "AI-Companions-LLM"
 UPDATE_TITLE = f"{FULL_TITLE}-Update"
+# The name of both zips up to 0.3.5 (the Nexus page was titled "AI NPC LLM Companions" then): an Update zip of that name is still found in a build folder.
+LEGACY_UPDATE_TITLE = "AI-NPC-LLM-Companions-Update"
 LAYOUT = {
     "full": ("", FULL_TITLE),
     "update": ("", UPDATE_TITLE),
@@ -162,9 +164,10 @@ def built_name(pack: str, version: str, game: str = "2.5") -> str:
 
 
 def update_zip(packages: Path, version: str, game: str = "2.5") -> Path | None:
-    """The one Update zip of this version and game in the folder: AI-NPC-LLM-Companions-Update-<from>-to-<version>[-for-2.31].zip, <from> a version, or a version with "-and-up" (an older "any" is still read)."""
+    """The one Update zip of this version and game in the folder: AI-Companions-LLM-Update-<from>-to-<version>[-for-2.31].zip, <from> a version, or a version with "-and-up" (an older "any" is still read)."""
     suffix = variant_of(game, "update")["suffix"]
-    pattern = re.compile(rf"{re.escape(UPDATE_TITLE)}-(?:any|\d+(?:\.\d+){{1,3}}(?:-and-up)?)-to-{re.escape(version)}{re.escape(suffix)}\.zip")
+    titles = "|".join(re.escape(title) for title in (UPDATE_TITLE, LEGACY_UPDATE_TITLE))
+    pattern = re.compile(rf"(?:{titles})-(?:any|\d+(?:\.\d+){{1,3}}(?:-and-up)?)-to-{re.escape(version)}{re.escape(suffix)}\.zip")
     found = sorted(path for path in packages.iterdir() if path.is_file() and pattern.fullmatch(path.name))
     if len(found) > 1:
         raise SystemExit(f"More than one Update zip for {version} in {packages}: {', '.join(path.name for path in found)}.")

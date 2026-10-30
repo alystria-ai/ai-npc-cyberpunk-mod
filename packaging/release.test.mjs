@@ -999,8 +999,8 @@ test('the release notes open with where the download files are, and a rebuild re
   const workflow = await workflowText();
   assert.match(workflow, /very bottom of this page, under Assets/);
   assert.match(workflow, /releases\/download\/\$tag/);
-  assert.match(workflow, /AI-NPC-LLM-Companions-\$version\.zip/);
-  assert.match(workflow, /AI-NPC-LLM-Companions-Update-\$from-to-\$version\.zip/);
+  assert.match(workflow, /AI-Companions-LLM-\$version\.zip/);
+  assert.match(workflow, /AI-Companions-LLM-Update-\$from-to-\$version\.zip/);
   assert.match(workflow, /node packaging\/build-full\.mjs --version/);
   assert.match(workflow, /\[Runtime-\$version\.zip\]\(\$base\/Runtime-\$version\.zip\)/);
   assert.doesNotMatch(workflow, /sha256sums|## Checksums/i, 'no checksum file is attached to the release or mentioned on its page');

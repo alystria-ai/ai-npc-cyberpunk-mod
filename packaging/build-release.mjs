@@ -4,12 +4,12 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf   (CI: CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET in the environment)
 //
 // Packages (dist/release/packages/):
-//   AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip  the UPDATE (package id "scripts", the former Scripts zip; <from> = runtimeBase.required, the oldest Runtime base it
+//   AI-Companions-LLM-Update-<from>-to-<v>.zip  the UPDATE (package id "scripts", the former Scripts zip; <from> = runtimeBase.required, the oldest Runtime base it
 //                                               runs on): CET Lua, redscript, JSON catalogs (text only), and from 0.3.4 ALL of the mod's code in
 //                                               red4ext/plugins/AiNpcCyberpunkCode/: the launcher and native DLLs, install-code.mjs and app/ (Nexus Mods)
 //   Runtime-<v>[...].zip                        the Runtime BASE: bundled Node/Python, llama.cpp, vgmstream, Playwright, models, voices,
 //                                               game archives (Hugging Face runtime/; GitHub). It is an input of the Full install zip, not a download of its own
-//                                               for most players. The FULL INSTALL zip (AI-NPC-LLM-Companions-<v>.zip, Update + Runtime in one) is made
+//                                               for most players. The FULL INSTALL zip (AI-Companions-LLM-<v>.zip, Update + Runtime in one) is made
 //                                               from these two by packaging/build-full.mjs, after this build.
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
@@ -1273,7 +1273,7 @@ async function main() {
     if (ARCHIVE_GUARDED_PACKAGES.includes(id)) await assertNoArchives(id, pkg.entries);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
-    // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> being the oldest
+    // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-Companions-LLM-Update-<from>-to-<version>, <from> being the oldest
     // Runtime base it runs on (packaging/lib/full-package.mjs). The others have no product prefix.
     const archiveBase = id === 'scripts' ? updateBaseNameFor(config, version, game) : `${titles[id]}-${version}${variant.suffix}`;
     const result = await writeArchives(pkg, archiveBase, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});

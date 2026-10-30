@@ -55,7 +55,7 @@ built per game: the two differ in `app/release.json` and, with `fix/driver-guard
 ```
 node packaging/build-release.mjs --version 0.3.1 --packages scripts,runtime,omni,...        (2.5, the default)
 node packaging/build-release.mjs --version 0.3.1 --game 2.31 --packages scripts,runtime     (2.31, the older game)
-node packaging/build-full.mjs --version 0.3.4 [--game 2.31]                                 (the full install: the update and the Runtime of that game in one zip, AI-NPC-LLM-Companions-0.3.4[-for-2.31].zip)
+node packaging/build-full.mjs --version 0.3.4 [--game 2.31]                                 (the full install: the update and the Runtime of that game in one zip, AI-Companions-LLM-0.3.4[-for-2.31].zip)
 python packaging/upload-packs.py --version 0.3.4 --pack full|update|runtime --packages DIR --game 2.31  (uploads to game-2.31/, the default goes to the root; runtime goes to runtime/Runtime.zip)
 node packaging/build-runtime-update.mjs --old <2.31 Runtime> --new <2.31 Runtime> --out DIR (-> Runtime-Update-<a>-to-<b>-for-2.31.zip, a 2.5 step has no suffix)
 powershell scripts/Build-NativeCore.ps1 -Game 2.5 -SdkDirectory <RED4ext.SDK checkout at b139fcbd>     (the script's own default is still 2.31)
@@ -72,14 +72,14 @@ keep working.
 
 Hugging Face (`alystria-ai/ai-npc-cyberpunk-mod-packs`): the root is the 2.5 build (the default), the older 2.31 build has its own folder.
 ```
-AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip   runtime/Runtime.zip        2.5 (the default): the full install, the update (manual installs only), the Runtime alone (old two-mod setups, not advertised)
-game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip      2.31
+AI-Companions-LLM.zip   AI-Companions-LLM-Update.zip   runtime/Runtime.zip        2.5 (the default): the full install, the update (manual installs only), the Runtime alone (old two-mod setups, not advertised)
+game-2.31/AI-Companions-LLM.zip   game-2.31/AI-Companions-LLM-Update.zip   game-2.31/runtime/Runtime.zip      2.31
 updates/  updates/game-2.31/                                                   the Runtime update zips up to 0.3.3: no longer offered since 0.3.4, left as they are (nothing deleted)
 local-ai/  mature/  mic/  voice/  multilingual/                                 shared by both
 ```
-Nexus Mods (one page, titled "AI NPC LLM Companions" since 0.3.4): the Main file is the 2.5 full install, `AI NPC LLM Companions` (`AI-NPC-LLM-Companions-<v>.zip`), and its update is an Update file, `Update <from> to <v>`
-(`AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip`; `<from>` is `any` when it covers several releases, docs/PACKAGING.md, "The Full install package"). The 2.31 build is two Optional files,
-`AI NPC LLM Companions - for game 2.31 (older game version)` (`AI-NPC-LLM-Companions-<v>-for-2.31.zip`) and `Update <from> to <v> - for game 2.31 (older game version)` (`...-for-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
+Nexus Mods (one page, titled "AI NPC LLM Companions" from 0.3.4 to 0.3.5 and "AI Companions using Large Language Models" from 0.4.0, owner decision 2026-10-31: the zips and the texts in the mod use the new name, the page itself is retitled by the owner on the Nexus site): the Main file is the 2.5 full install, `AI Companions using Large Language Models` (`AI-Companions-LLM-<v>.zip`), and its update is an Update file, `Update <from> to <v>`
+(`AI-Companions-LLM-Update-<from>-to-<v>.zip`; `<from>` is `any` when it covers several releases, docs/PACKAGING.md, "The Full install package"). The 2.31 build is two Optional files,
+`AI Companions using Large Language Models - for game 2.31 (older game version)` (`AI-Companions-LLM-<v>-for-2.31.zip`) and `Update <from> to <v> - for game 2.31 (older game version)` (`...-for-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
 Before 0.3.4 the two files were `Scripts` (`Scripts.zip`) and `Scripts - for game 2.31` (`Scripts-for-game-2.31.zip`), with the Runtime on Hugging Face.
 
 A player who moves from 2.31 to 2.5 extracts the 2.5 full install over the old one (from 0.3.4 there is no switch zip to apply: the full install replaces the Runtime in one step). The switch zip of 0.3.1 stays in `updates/` for those who still use it.
