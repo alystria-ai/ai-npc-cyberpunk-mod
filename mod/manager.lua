@@ -1331,11 +1331,11 @@ function M.setCustomCharacters(rows)
     dirty = true
 end
 
--- Characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
+-- Main characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
 local invitableCache, invitableFor
 local function invitableProfiles()
     if invitableCache and invitableFor == customSignature then return invitableCache end
-    -- A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person and cannot be invited: it stays out of this list.
+    -- A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person: it is listed under Side characters to invite, not here.
     local all, minors = {}, false
     for _, profile in ipairs(profiles) do
         if profile.minor == true then minors = true else all[#all + 1] = profile end
@@ -1348,6 +1348,19 @@ local function invitableProfiles()
     end
     invitableFor = customSignature
     return invitableCache
+end
+
+-- Side characters to invite (docs/SIDE_CHARACTERS.md): the minor profiles whose record spawns a copy in both game versions (invite is not false), in name order.
+-- Worked out once for the loaded roster (M.configure drops it), never per frame or per page build.
+local sideCache
+local function sideProfiles()
+    if sideCache then return sideCache end
+    local list = {}
+    for _, profile in ipairs(profiles) do
+        if profile.minor == true and profile.invite ~= false then list[#list + 1] = profile end
+    end
+    sideCache = list
+    return list
 end
 
 -- M.switchedOff(key) -> true: the player switched this character off in the character editor (set by init.lua from mod/character-options.lua; a table lookup).
@@ -1743,7 +1756,7 @@ end
 
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
-    invitableCache = nil
+    invitableCache, sideCache = nil, nil
     companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
@@ -2306,7 +2319,7 @@ function M.snapshot(player)
     local dynamicInfo = {}
     for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
-        profiles = profiles, invitable = invitableProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
+        profiles = profiles, invitable = invitableProfiles(), side = sideProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
             useOwnConvaiKey = settings.useOwnConvaiKey,

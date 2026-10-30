@@ -1,0 +1,7666 @@
+{
+ "games": {
+  "v25": "E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077",
+  "v231": "E:\\SteamLibrary\\Cyberpunk2077-2.31"
+ },
+ "rows": {
+  "aaron-mccarlson": {
+   "record": "Character.sts_wat_nid_07_aaron",
+   "records": [
+    "Character.sts_wat_nid_07_aaron"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "adam-brocki": {
+   "record": "Character.impulse_adam",
+   "records": [
+    "Character.impulse_adam"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "adam-finlay": {
+   "record": "Character.mws_pac_01_the_puker",
+   "records": [
+    "Character.mws_pac_01_the_puker"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "adam-giles": {
+   "record": "Character.ma_wbr_jpn_19_adam_giles",
+   "records": [
+    "Character.ma_wbr_jpn_19_adam_giles"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "agent-orange": {
+   "record": "Character.sq017_agent_orange",
+   "records": [
+    "Character.sq017_agent_orange"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "agent-weiss": {
+   "record": "Character.q307_fia_av_agent",
+   "records": [
+    "Character.q307_fia_av_agent"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "aiko-harada": {
+   "record": "Character.q307_fia_reception",
+   "records": [
+    "Character.q307_fia_reception",
+    "Character.q307_nurse"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {
+    "Character.q307_nurse": "ep1"
+   },
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {
+    "Character.q307_nurse": "ep1"
+   }
+  },
+  "airi-okawa": {
+   "record": "Character.mq026_tourist_02",
+   "records": [
+    "Character.mq026_tourist_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "akane-ito": {
+   "record": "Character.hil_07_body2",
+   "records": [
+    "Character.hil_07_body2"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "akari-yamakage": {
+   "record": "Character.ma_wat_nid_04_shard_ganger",
+   "records": [
+    "Character.ma_wat_nid_04_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "akira": {
+   "record": "Character.q108_akira",
+   "records": [
+    "Character.q108_akira"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alamini-davis": {
+   "record": "Character.nw4_spaceport_medic_01",
+   "records": [
+    "Character.nw4_spaceport_medic_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "alan-crank": {
+   "record": "Character.ma_wat_nid_12_shard_scav",
+   "records": [
+    "Character.ma_wat_nid_12_shard_scav"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alberto-ruiz": {
+   "record": "Character.sts_hey_rey_06_hologram_man",
+   "records": [
+    "Character.sts_hey_rey_06_hologram_man"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alec-johnson": {
+   "record": "Character.ma_wat_lch_06_cyberpsycho",
+   "records": [
+    "Character.ma_wat_lch_06_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alex-pushkin": {
+   "record": "Character.sts_wbr_jpn_01_alex",
+   "records": [
+    "Character.sts_wbr_jpn_01_alex"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alexandre-batisma": {
+   "record": "Character.q110_contact",
+   "records": [
+    "Character.q110_contact"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alma-maria": {
+   "record": "Character.ma_std_arr_02_alma",
+   "records": [
+    "Character.ma_std_arr_02_alma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "alois-daquin": {
+   "record": "Character.sts_wat_kab_05_aloise_daquin",
+   "records": [
+    "Character.sts_wat_kab_05_aloise_daquin"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "aluna": {
+   "record": "Character.q306_orbital_mourning_pilot",
+   "records": [
+    "Character.q306_orbital_mourning_pilot"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "alva": {
+   "record": "Character.q203_alva",
+   "records": [
+    "Character.q203_alva"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "amat-escalante": {
+   "record": "Character.ma_std_rcr_09_captain",
+   "records": [
+    "Character.ma_std_rcr_09_captain"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "andrew-bolt": {
+   "record": "Character.sts_std_arr_01_sixthstreet_officer_officer_overture_ma",
+   "records": [
+    "Character.sts_std_arr_01_sixthstreet_officer_officer_overture_ma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "andrew-moore": {
+   "record": "Character.ma_wat_lch_12_maelstrom_onscreen_01",
+   "records": [
+    "Character.ma_wat_lch_12_maelstrom_onscreen_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "andrew-newman": {
+   "record": "Character.cbj_ep1_011_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_011_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "anel-duffault": {
+   "record": "Character.mq006_anel",
+   "records": [
+    "Character.mq006_anel"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "angel": {
+   "record": "Character.q105_doll_male_angel",
+   "records": [
+    "Character.q105_doll_male_angel"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "angie-pakeha-mielech": {
+   "record": "Character.mws_hey_02_woman",
+   "records": [
+    "Character.mws_hey_02_woman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "anna-hamill": {
+   "record": "Character.sts_wat_kab_08_dave_hamill",
+   "records": [
+    "Character.sts_wat_kab_08_dave_hamill"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "anna-nox": {
+   "record": "Character.sts_wat_nid_01_cyberpsycho",
+   "records": [
+    "Character.sts_wat_nid_01_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "annie-capolino": {
+   "record": "Character.q108_crowd_f_02_drugs",
+   "records": [
+    "Character.q108_crowd_f_02_drugs"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "anthony-anderson": {
+   "record": "Character.cz_monument_ripperdoc_anderson",
+   "records": [
+    "Character.cz_monument_ripperdoc_anderson"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "anthony-harris": {
+   "record": "Character.sq021_meatman",
+   "records": [
+    "Character.sq021_meatman",
+    "Character.sq021_young_meatman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sq021_young_meatman": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sq021_young_meatman": "base"
+   }
+  },
+  "anton-kolev": {
+   "record": "Character.ma_pac_wwd_02_outpost_miniboss",
+   "records": [
+    "Character.ma_pac_wwd_02_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "aoki-sonoda": {
+   "record": "Character.ma_wat_nid_09_shard_ganger",
+   "records": [
+    "Character.ma_wat_nid_09_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "arabelle-luvasha": {
+   "record": "Character.mws_hey_01_girl",
+   "records": [
+    "Character.mws_hey_01_girl"
+   ],
+   "isChild": true,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "archibald-crane": {
+   "record": "Character.sts_bls_ina_05_archibald",
+   "records": [
+    "Character.sts_bls_ina_05_archibald"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "arden-bentzen": {
+   "record": "Character.sts_bls_ina_101_arden_bentzen",
+   "records": [
+    "Character.sts_bls_ina_101_arden_bentzen"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "arif-iqbal": {
+   "record": "Character.q303_paradise_iqbal",
+   "records": [
+    "Character.q303_paradise_iqbal"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "arif-koneczko": {
+   "record": "Character.ma_wat_kab_09_shard_ganger",
+   "records": [
+    "Character.ma_wat_kab_09_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "arlene-anwyl": {
+   "record": "Character.mq059_engineer",
+   "records": [
+    "Character.mq059_engineer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "arnold-haponik": {
+   "record": "Character.ma_bls_ina_se5_13_arnold",
+   "records": [
+    "Character.ma_bls_ina_se5_13_arnold"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "asa-risu": {
+   "record": "Character.mq019_technician",
+   "records": [
+    "Character.mq019_technician"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ash": {
+   "record": "Character.Ash",
+   "records": [
+    "Character.Ash"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "asher-peterson": {
+   "record": "Character.q305_maxtac_miniboss_mantis_ma",
+   "records": [
+    "Character.q305_maxtac_miniboss_mantis_ma"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "august": {
+   "record": "Character.q306_bridge_august",
+   "records": [
+    "Character.q306_bridge_august"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "axel-mankievicz": {
+   "record": "Character.q108_mercenary_mb_02_drinking",
+   "records": [
+    "Character.q108_mercenary_mb_02_drinking"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ayden-daniels": {
+   "record": "Character.sa_ep1_courier_introquest_buyer",
+   "records": [
+    "Character.sa_ep1_courier_introquest_buyer"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "ayo-zarin": {
+   "record": "Character.we_ep1_05_mini_boss",
+   "records": [
+    "Character.we_ep1_05_mini_boss"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "aziz-masee": {
+   "record": "Character.sts_ep1_07_kurtz_ma_aziz",
+   "records": [
+    "Character.sts_ep1_07_kurtz_ma_aziz",
+    "Character.sts_ep1_07_kurtz_ma_fast_handgun",
+    "Character.sts_ep1_07_kurtz_ma_sniper"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {
+    "Character.sts_ep1_07_kurtz_ma_fast_handgun": "ep1",
+    "Character.sts_ep1_07_kurtz_ma_sniper": "ep1"
+   },
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {
+    "Character.sts_ep1_07_kurtz_ma_fast_handgun": "ep1",
+    "Character.sts_ep1_07_kurtz_ma_sniper": "ep1"
+   }
+  },
+  "barry-alken": {
+   "record": "Character.ma_wat_lch_01_outpost_miniboss",
+   "records": [
+    "Character.ma_wat_lch_01_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "barry-lewis": {
+   "record": "Character.mq010_barry",
+   "records": [
+    "Character.mq010_barry"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "bart": {
+   "record": "Character.q301_construction_worker_01",
+   "records": [
+    "Character.q301_construction_worker_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "bartolomeo-mordellini": {
+   "record": "Character.q005_mordelinii",
+   "records": [
+    "Character.q005_mordelinii"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ben-azaria": {
+   "record": "Character.kab_06_officer",
+   "records": [
+    "Character.kab_06_officer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ben-debaillon": {
+   "record": "Character.ma_pac_cvi_15_cyberpsycho",
+   "records": [
+    "Character.ma_pac_cvi_15_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "benedict-mcadams": {
+   "record": "Character.ina_09_benedict",
+   "records": [
+    "Character.ina_09_benedict"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "benjamin-stone": {
+   "record": "Character.q000_basketballer_02_mb",
+   "records": [
+    "Character.q000_basketballer_02_mb",
+    "Character.q302_basketballer_02_main_mb"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q302_basketballer_02_main_mb": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q302_basketballer_02_main_mb": "ep1"
+   }
+  },
+  "bickle": {
+   "record": "Character.Bickle",
+   "records": [
+    "Character.Bickle"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "big-joe": {
+   "record": "Character.q000_kid_bar_kirks_bodyguard",
+   "records": [
+    "Character.q000_kid_bar_kirks_bodyguard"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "big-pete": {
+   "record": "Character.ina_02_new_big_pete",
+   "records": [
+    "Character.ina_02_new_big_pete"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "bill-jablonsky": {
+   "record": "Character.sq023_bill_jablonsky",
+   "records": [
+    "Character.sq023_bill_jablonsky"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "blake-croyle": {
+   "record": "Character.kab_06_Blake",
+   "records": [
+    "Character.kab_06_Blake"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "booker-updike": {
+   "record": "Character.sts_std_arr_01_fixer_contacct",
+   "records": [
+    "Character.sts_std_arr_01_fixer_contacct"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "boris-ribakov": {
+   "record": "Character.sts_ep1_08_kgb_boss",
+   "records": [
+    "Character.sts_ep1_08_kgb_boss",
+    "Character.sts_ep1_08_kgb_boss_hologram",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene_sniper"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {
+    "Character.sts_ep1_08_kgb_boss_hologram": "ep1",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene": "ep1",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene_sniper": "ep1"
+   },
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {
+    "Character.sts_ep1_08_kgb_boss_hologram": "ep1",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene": "ep1",
+    "Character.sts_ep1_08_kgb_boss_hologram_final_scene_sniper": "ep1"
+   }
+  },
+  "brad-stacy": {
+   "record": "Character.mq013_punk_01",
+   "records": [
+    "Character.mq013_punk_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "bradley-burrows": {
+   "record": "Character.ma_std_rcr_03_captain",
+   "records": [
+    "Character.ma_std_rcr_03_captain"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "brandon-frost": {
+   "record": "Character.nid_05_maelstrom_officer",
+   "records": [
+    "Character.nid_05_maelstrom_officer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "brandon-soto": {
+   "record": "Character.q304_transmitter_kid_01",
+   "records": [
+    "Character.q304_transmitter_kid_01"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "brittany-hayes": {
+   "record": "Character.hey_gle_prostitute_female",
+   "records": [
+    "Character.hey_gle_prostitute_female"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "bruce-ward": {
+   "record": "Character.ma_bls_ina_se1_17_outpost_miniboss",
+   "records": [
+    "Character.ma_bls_ina_se1_17_outpost_miniboss",
+    "Character.we_ep1_05_miniboss_placeholder"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.we_ep1_05_miniboss_placeholder": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.we_ep1_05_miniboss_placeholder": "ep1"
+   }
+  },
+  "bruce-welby": {
+   "record": "Character.sts_bls_ina_05_bruce",
+   "records": [
+    "Character.sts_bls_ina_05_bruce"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "buck-arnold": {
+   "record": "Character.mq025_buck",
+   "records": [
+    "Character.mq025_buck"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "camilo-castilla": {
+   "record": "Character.q000_kid_coyote_staffer",
+   "records": [
+    "Character.q000_kid_coyote_staffer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "captain-joan-by-the-book-mcclane": {
+   "record": "Character.sq029_joss_kid_girl_vr",
+   "records": [
+    "Character.sq029_joss_kid_girl_vr"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "captain-sherman": {
+   "record": "Character.mq008_6th_street_representative",
+   "records": [
+    "Character.mq008_6th_street_representative"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "carlos-rubio": {
+   "record": "Character.ma_hey_spr_02_enemy_001",
+   "records": [
+    "Character.ma_hey_spr_02_enemy_001"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "carter-smith": {
+   "record": "Character.q000_corpo_assistant",
+   "records": [
+    "Character.q000_corpo_assistant"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "cassius-ryder": {
+   "record": "Character.wat_nid_ripperdoc_01",
+   "records": [
+    "Character.wat_nid_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "catherina-byrn": {
+   "record": "Character.ma_hey_spr_03_enemy_001",
+   "records": [
+    "Character.ma_hey_spr_03_enemy_001"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "cedric-muller": {
+   "record": "Character.ma_cct_dtn_03_cyberpsycho",
+   "records": [
+    "Character.ma_cct_dtn_03_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "cesar-diego-ruiz": {
+   "record": "Character.mq025_cesar",
+   "records": [
+    "Character.mq025_cesar"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "charlene-fox": {
+   "record": "Character.wbr_jpn_prostitute_female",
+   "records": [
+    "Character.wbr_jpn_prostitute_female"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "charles-bucks": {
+   "record": "Character.sts_wat_kab_05_ripperdoc",
+   "records": [
+    "Character.sts_wat_kab_05_ripperdoc",
+    "Character.wat_kab_ripperdoc_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.wat_kab_ripperdoc_02": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.wat_kab_ripperdoc_02": "base"
+   }
+  },
+  "charles-graham": {
+   "record": "Character.mq304_jago_bodyguard_01",
+   "records": [
+    "Character.mq304_jago_bodyguard_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "charles-wilson": {
+   "record": "Character.sts_ep1_10_charles",
+   "records": [
+    "Character.sts_ep1_10_charles"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "chase-coley": {
+   "record": "Character.ma_std_rcr_11_cyberpsycho",
+   "records": [
+    "Character.ma_std_rcr_11_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "cheri-nowlin": {
+   "record": "Character.q105_yakuza_manager",
+   "records": [
+    "Character.q105_yakuza_manager"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "chester-hamilton": {
+   "record": "Character.cbj_ep1_007_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_007_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "chiyo-omoto": {
+   "record": "Character.wbr_jpn_ripdoc_01",
+   "records": [
+    "Character.wbr_jpn_ripdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "chris-dupont": {
+   "record": "Character.cz_stadium_gunsmith_son_01_ma",
+   "records": [
+    "Character.cz_stadium_gunsmith_son_01_ma"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "christine-markov": {
+   "record": "Character.sq012_market_vendor",
+   "records": [
+    "Character.sq012_market_vendor"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "chuck-dermond": {
+   "record": "Character.sts_ep1_07_kurtz_guard_garage",
+   "records": [
+    "Character.sts_ep1_07_kurtz_guard_garage"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "chuck-segel": {
+   "record": "Character.ma_std_rcr_18_hostage_01",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "claudio-moreno": {
+   "record": "Character.ma_cct_dtn_02_claudio_moreno",
+   "records": [
+    "Character.ma_cct_dtn_02_claudio_moreno"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "cody-crosby": {
+   "record": "Character.cbj_ep1_005_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_005_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "corey-aldwyn": {
+   "record": "Character.mq005_police_officer_01",
+   "records": [
+    "Character.mq005_police_officer_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "costin-lahovary": {
+   "record": "Character.cz_con_ripdoc_01",
+   "records": [
+    "Character.cz_con_ripdoc_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "cross": {
+   "record": "Character.Cross",
+   "records": [
+    "Character.Cross"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "crox-alvarado": {
+   "record": "Character.ma_std_rcr_06_captain",
+   "records": [
+    "Character.ma_std_rcr_06_captain"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dallas-foster": {
+   "record": "Character.q305_maxtac_miniboss_fshotgun_mb",
+   "records": [
+    "Character.q305_maxtac_miniboss_fshotgun_mb"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "damir-kovac": {
+   "record": "Character.mq306_damir",
+   "records": [
+    "Character.mq306_damir"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "dan-thoss": {
+   "record": "Character.ma_std_rcr_slacker_03",
+   "records": [
+    "Character.ma_std_rcr_slacker_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "daniel-duarte": {
+   "record": "Character.q000_kid_bar_patron_male_02",
+   "records": [
+    "Character.q000_kid_bar_patron_male_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "daniel-lark": {
+   "record": "Character.sq012_lark",
+   "records": [
+    "Character.sq012_lark"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "danilo-ruiz": {
+   "record": "Character.ma_hey_gle_05_valentinos_grunt2_ranged2_overture_ma_Danilo_Ruiz",
+   "records": [
+    "Character.ma_hey_gle_05_valentinos_grunt2_ranged2_overture_ma_Danilo_Ruiz"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dao-hyunh": {
+   "record": "Character.ma_hey_spr_04_cyberpsycho",
+   "records": [
+    "Character.ma_hey_spr_04_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "darius-clarke": {
+   "record": "Character.cct_dtn_ripdoc_01",
+   "records": [
+    "Character.cct_dtn_ripdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "darius-dupont": {
+   "record": "Character.cz_stadium_gunsmith_son_03_mb",
+   "records": [
+    "Character.cz_stadium_gunsmith_son_03_mb"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "darius-miles": {
+   "record": "Character.ma_std_arr_03_outpost_miniboss",
+   "records": [
+    "Character.ma_std_arr_03_outpost_miniboss",
+    "Character.ma_std_arr_03_darius"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.ma_std_arr_03_darius": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.ma_std_arr_03_darius": "base"
+   }
+  },
+  "darline-boucicault": {
+   "record": "Character.mq006_darline",
+   "records": [
+    "Character.mq006_darline"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "darrell-zhou": {
+   "record": "Character.std_arr_foodshop_03",
+   "records": [
+    "Character.std_arr_foodshop_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "davarius-washington": {
+   "record": "Character.q105_jigjig_sex_shop",
+   "records": [
+    "Character.q105_jigjig_sex_shop"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "david-beemer": {
+   "record": "Character.ma_hey_spr_10_enemy_002",
+   "records": [
+    "Character.ma_hey_spr_10_enemy_002"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "david-dover": {
+   "record": "Character.cbj_ep1_006_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_006_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "david-walker": {
+   "record": "Character.cz_stadium_clothing_01",
+   "records": [
+    "Character.cz_stadium_clothing_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "dennis-chavez": {
+   "record": "Character.q105_jigjig_goon_01",
+   "records": [
+    "Character.q105_jigjig_goon_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "denzel-cryer": {
+   "record": "Character.ma_hey_spr_11_outpost_miniboss",
+   "records": [
+    "Character.ma_hey_spr_11_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "deputy-mayor-weldon-holt": {
+   "record": "Character.sq012_weldon_holt",
+   "records": [
+    "Character.sq012_weldon_holt",
+    "Character.sq012_weldon_holt_clue"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sq012_weldon_holt_clue": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sq012_weldon_holt_clue": "base"
+   }
+  },
+  "desi-abdi": {
+   "record": "Character.ma_bls_ina_se5_03_desi",
+   "records": [
+    "Character.ma_bls_ina_se5_03_desi"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "det-harold-han": {
+   "record": "Character.sq012_det_yu",
+   "records": [
+    "Character.sq012_det_yu"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "diana-floyd": {
+   "record": "Character.cbj_ep1_009_civilian",
+   "records": [
+    "Character.cbj_ep1_009_civilian"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "diego-ramirez": {
+   "record": "Character.ma_pac_cvi_08_psycho",
+   "records": [
+    "Character.ma_pac_cvi_08_psycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dietlinde": {
+   "record": "Character.wat_nid_foodshop_02",
+   "records": [
+    "Character.wat_nid_foodshop_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dirk-brooks": {
+   "record": "Character.ma_wat_nid_07_proper_shard_merc",
+   "records": [
+    "Character.ma_wat_nid_07_proper_shard_merc"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "donnie-carter": {
+   "record": "Character.sq012_peralez_driver",
+   "records": [
+    "Character.sq012_peralez_driver"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dorian": {
+   "record": "Character.sq021_joss_kid_boy",
+   "records": [
+    "Character.sq021_joss_kid_boy"
+   ],
+   "isChild": true,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "doris-soto": {
+   "record": "Character.q304_transmitter_mall_rat_01",
+   "records": [
+    "Character.q304_transmitter_mall_rat_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "dorothy-allred": {
+   "record": "Character.wst_ep1_ctz_101_child",
+   "records": [
+    "Character.wst_ep1_ctz_101_child"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "dotty": {
+   "record": "Character.q306_orbital_dead_stew",
+   "records": [
+    "Character.q306_orbital_dead_stew"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "dr-ensai-yajima": {
+   "record": "Character.q201_assistant_male",
+   "records": [
+    "Character.q201_assistant_male"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dr-kinuko-taniguchi": {
+   "record": "Character.q201_space_scientist",
+   "records": [
+    "Character.q201_space_scientist"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dr-yawen-packard": {
+   "record": "Character.sq021_dr_mitsuko",
+   "records": [
+    "Character.sq021_dr_mitsuko"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "drausin": {
+   "record": "Character.sq011_drausin",
+   "records": [
+    "Character.sq011_drausin"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "driss-scorpion-meriana": {
+   "record": "Character.Scorpion",
+   "records": [
+    "Character.Scorpion"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dustbunny": {
+   "record": "Character.mws_hey_07_trauma_soldier_05",
+   "records": [
+    "Character.mws_hey_07_trauma_soldier_05"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "dusty-lowe": {
+   "record": "Character.wbr_jpn_prostitute_male",
+   "records": [
+    "Character.wbr_jpn_prostitute_male"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "earl-diaz": {
+   "record": "Character.q105_jigjig_goon_03",
+   "records": [
+    "Character.q105_jigjig_goon_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "el-chamuco-endiablado": {
+   "record": "Character.sq029_el_chamuco_ar_game",
+   "records": [
+    "Character.sq029_el_chamuco_ar_game"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "el-gallo": {
+   "record": "Character.sts_hey_gle_05_el_gallo",
+   "records": [
+    "Character.sts_hey_gle_05_el_gallo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "elektra-ovirova": {
+   "record": "Character.ma_std_rcr_18_hostage_10",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_10"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "elijah-olsen": {
+   "record": "Character.wst_ep1_ctz_103_elijah",
+   "records": [
+    "Character.wst_ep1_ctz_103_elijah"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "elis-hauk": {
+   "record": "Character.ma_std_rcr_04_captain",
+   "records": [
+    "Character.ma_std_rcr_04_captain"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "elizabeth-roider": {
+   "record": "Character.ma_hey_gle_13_militech_ranger2_ranged2_ajax_ma_Elizabeth_Roider",
+   "records": [
+    "Character.ma_hey_gle_13_militech_ranger2_ranged2_ajax_ma_Elizabeth_Roider"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ellie": {
+   "record": "Character.q103_nomad_ellie",
+   "records": [
+    "Character.q103_nomad_ellie"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ellis-carter": {
+   "record": "Character.ma_wat_nid_03_shard_psycho",
+   "records": [
+    "Character.ma_wat_nid_03_shard_psycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "emilie-massenat": {
+   "record": "Character.q110_placide_girlfriend",
+   "records": [
+    "Character.q110_placide_girlfriend"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "emily-scooter": {
+   "record": "Character.mq021_scooter_wife",
+   "records": [
+    "Character.mq021_scooter_wife"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "emma-li": {
+   "record": "Character.sts_ep1_13_kya",
+   "records": [
+    "Character.sts_ep1_13_kya"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "emmanuel-cadelus": {
+   "record": "Character.q110_butcher",
+   "records": [
+    "Character.q110_butcher"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "emmerick-bronson": {
+   "record": "Character.Emmerick",
+   "records": [
+    "Character.Emmerick"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "emon-fujikura": {
+   "record": "Character.jpn_03_tyger_guard_emon_fujikura",
+   "records": [
+    "Character.jpn_03_tyger_guard_emon_fujikura"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "enrique-lozano": {
+   "record": "Character.q307_fia_av_doctor",
+   "records": [
+    "Character.q307_fia_av_doctor"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "eric": {
+   "record": "Character.q306_terminal_boy_07",
+   "records": [
+    "Character.q306_terminal_boy_07"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "ernesto-munoz": {
+   "record": "Character.sq018_gle_04_bouncer",
+   "records": [
+    "Character.sq018_gle_04_bouncer",
+    "Character.gle_04_bouncer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.gle_04_bouncer": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.gle_04_bouncer": "base"
+   }
+  },
+  "ernie-hawkins": {
+   "record": "Character.q000_basketballer_01_ma",
+   "records": [
+    "Character.q000_basketballer_01_ma",
+    "Character.q302_basketballer_01_main_ma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q302_basketballer_01_main_ma": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q302_basketballer_01_main_ma": "ep1"
+   }
+  },
+  "eron-acedo": {
+   "record": "Character.cz_stadium_ripperdoc_01",
+   "records": [
+    "Character.cz_stadium_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "ertha-ojasma": {
+   "record": "Character.q110_grann_ertha",
+   "records": [
+    "Character.q110_grann_ertha"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "esquerdo-certo": {
+   "record": "Character.mq025_twin_02",
+   "records": [
+    "Character.mq025_twin_02",
+    "Character.mq025_twin_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.mq025_twin_01": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.mq025_twin_01": "base"
+   }
+  },
+  "euralio-alma": {
+   "record": "Character.ma_bls_ina_se1_07_cyberpsycho_1",
+   "records": [
+    "Character.ma_bls_ina_se1_07_cyberpsycho_1",
+    "Character.q305_cerberus_robot_TEST"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q305_cerberus_robot_TEST": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q305_cerberus_robot_TEST": "ep1"
+   }
+  },
+  "evan-mcray": {
+   "record": "Character.mq305_scientist",
+   "records": [
+    "Character.mq305_scientist"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "eve-martinez": {
+   "record": "Character.sts_wat_kab_08_prostitute",
+   "records": [
+    "Character.sts_wat_kab_08_prostitute"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "fae-nesheim": {
+   "record": "Character.wst_ep1_17_merc",
+   "records": [
+    "Character.wst_ep1_17_merc"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "farah-bleus": {
+   "record": "Character.mq006_farah",
+   "records": [
+    "Character.mq006_farah"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "faye-russo": {
+   "record": "Character.q305_maxtac_miniboss_frifle_wa",
+   "records": [
+    "Character.q305_maxtac_miniboss_frifle_wa"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "faye-spiegel": {
+   "record": "Character.ma_std_rcr_18_hostage_06",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_06"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "fiona-vargas": {
+   "record": "Character.sts_ep1_13_fiona",
+   "records": [
+    "Character.sts_ep1_13_fiona"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "flavio-dos-santos": {
+   "record": "Character.sts_std_rcr_03_flavio",
+   "records": [
+    "Character.sts_std_rcr_03_flavio"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "forrest-lee": {
+   "record": "Character.ma_std_arr_01_forrest",
+   "records": [
+    "Character.ma_std_arr_01_forrest"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "frank-osmani": {
+   "record": "Character.sts_ep1_07_6thstreet_grunt1_ranged1_nova_ma_deal",
+   "records": [
+    "Character.sts_ep1_07_6thstreet_grunt1_ranged1_nova_ma_deal"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "freddie-burns": {
+   "record": "Character.q108_bouncer_entrance",
+   "records": [
+    "Character.q108_bouncer_entrance"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "fredrik-persson": {
+   "record": "Character.sts_wat_nid_04_fredrik",
+   "records": [
+    "Character.sts_wat_nid_04_fredrik"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "fujo": {
+   "record": "Character.q112_shinto_female",
+   "records": [
+    "Character.q112_shinto_female"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "futoshi-yamada": {
+   "record": "Character.ma_wat_lch_11_tyger_claw_onscreen_01",
+   "records": [
+    "Character.ma_wat_lch_11_tyger_claw_onscreen_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "garry-bates": {
+   "record": "Character.cbj_ep1_004_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_004_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "gaston-phillips": {
+   "record": "Character.ma_hey_spr_06_cyberpsycho",
+   "records": [
+    "Character.ma_hey_spr_06_cyberpsycho",
+    "Character.Q304_boss_placeholder"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.Q304_boss_placeholder": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.Q304_boss_placeholder": "ep1"
+   }
+  },
+  "gauge-harris": {
+   "record": "Character.ma_wat_nid_08_shard_ganger",
+   "records": [
+    "Character.ma_wat_nid_08_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gawker-hawk": {
+   "record": "Character.sts_wat_nid_07_enemy_officer",
+   "records": [
+    "Character.sts_wat_nid_07_enemy_officer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "george-cooke": {
+   "record": "Character.q204_steves_dad_friend_01",
+   "records": [
+    "Character.q204_steves_dad_friend_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "george-prosky": {
+   "record": "Character.ma_bls_ina_se5_12_george",
+   "records": [
+    "Character.ma_bls_ina_se5_12_george"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "georgina-zembinsky": {
+   "record": "Character.sts_ep1_06_target",
+   "records": [
+    "Character.sts_ep1_06_target"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "gillean-jordan": {
+   "record": "Character.gillean_jordan",
+   "records": [
+    "Character.gillean_jordan",
+    "Character.q112_gillean_jordan",
+    "Character.q303_paradise_jordan",
+    "Character.q306_interview_gillean"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q112_gillean_jordan": "base",
+    "Character.q303_paradise_jordan": "ep1",
+    "Character.q306_interview_gillean": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q112_gillean_jordan": "base",
+    "Character.q303_paradise_jordan": "ep1",
+    "Character.q306_interview_gillean": "ep1"
+   }
+  },
+  "gina-barnes": {
+   "record": "Character.gle_04_reporter",
+   "records": [
+    "Character.gle_04_reporter"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gloria-el-ahmar": {
+   "record": "Character.sq023_gloria",
+   "records": [
+    "Character.sq023_gloria"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gorira": {
+   "record": "Character.gorira",
+   "records": [
+    "Character.gorira",
+    "Character.sq031_bushido_x_gorira"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sq031_bushido_x_gorira": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sq031_bushido_x_gorira": "base"
+   }
+  },
+  "gottfrid-persson": {
+   "record": "Character.sts_wat_nid_04_gottfrid",
+   "records": [
+    "Character.sts_wat_nid_04_gottfrid"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "grace": {
+   "record": "Character.grace",
+   "records": [
+    "Character.grace",
+    "Character.sq031_bushido_x_grace"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sq031_bushido_x_grace": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sq031_bushido_x_grace": "base"
+   }
+  },
+  "grant-gibson": {
+   "record": "Character.mq306_boxer_01",
+   "records": [
+    "Character.mq306_boxer_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "greg-wilson": {
+   "record": "Character.cbj_ep1_010_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_010_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "gregory-schulz": {
+   "record": "Character.mws_hey_07_zetatech_executive",
+   "records": [
+    "Character.mws_hey_07_zetatech_executive"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "griselda-martinez": {
+   "record": "Character.mq028_herring_girl",
+   "records": [
+    "Character.mq028_herring_girl"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gustaf-ekland": {
+   "record": "Character.sts_wat_nid_06_enemy_shotgunner",
+   "records": [
+    "Character.sts_wat_nid_06_enemy_shotgunner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gustav-asensio": {
+   "record": "Character.q000_kid_bar_dealer",
+   "records": [
+    "Character.q000_kid_bar_dealer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "gustavo-orta": {
+   "record": "Character.sq018_rey_01_gustavo",
+   "records": [
+    "Character.sq018_rey_01_gustavo",
+    "Character.sts_hey_rey_01_gustavo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sts_hey_rey_01_gustavo": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sts_hey_rey_01_gustavo": "base"
+   }
+  },
+  "hal-cantos": {
+   "record": "Character.sts_wat_nid_01_hal_cantos",
+   "records": [
+    "Character.sts_wat_nid_01_hal_cantos"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hank-davis": {
+   "record": "Character.sts_ep1_06_cop",
+   "records": [
+    "Character.sts_ep1_06_cop"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "harry-lyon": {
+   "record": "Character.sts_wat_nid_06_enemy_officer",
+   "records": [
+    "Character.sts_wat_nid_06_enemy_officer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "haruhiro-o-connell": {
+   "record": "Character.haruhiro_oconnel",
+   "records": [
+    "Character.haruhiro_oconnel"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "haruyoshi-nishikata": {
+   "record": "Character.mq038_surgeon",
+   "records": [
+    "Character.mq038_surgeon"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "helen-wandoo": {
+   "record": "Character.cz_monument_foodshop_01",
+   "records": [
+    "Character.cz_monument_foodshop_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "henry-blake": {
+   "record": "Character.Ghost_Henry_Blake",
+   "records": [
+    "Character.Ghost_Henry_Blake"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "henry-sanchez": {
+   "record": "Character.q204_steves_dad",
+   "records": [
+    "Character.q204_steves_dad"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "henry-stints": {
+   "record": "Character.q000_kid_parking_stints",
+   "records": [
+    "Character.q000_kid_parking_stints"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "herold-lowe": {
+   "record": "Character.cz_stadium_black_market_01",
+   "records": [
+    "Character.cz_stadium_black_market_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "hideo-nishio": {
+   "record": "Character.ma_wbr_jpn_12_hideo",
+   "records": [
+    "Character.ma_wbr_jpn_12_hideo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hideshi-hino": {
+   "record": "Character.q303_paradise_hideshi",
+   "records": [
+    "Character.q303_paradise_hideshi"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "hideyoshi-oshima": {
+   "record": "Character.q005_hideyoshi_oshima",
+   "records": [
+    "Character.q005_hideyoshi_oshima"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hilary-mckenna": {
+   "record": "Character.ma_std_arr_09_hilary",
+   "records": [
+    "Character.ma_std_arr_09_hilary"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hiromi-sato": {
+   "record": "Character.sq026_hiromi",
+   "records": [
+    "Character.sq026_hiromi"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hiroto-saiki": {
+   "record": "Character.ma_wat_kab_01_shard_ganger",
+   "records": [
+    "Character.ma_wat_kab_01_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "holden-mccoy": {
+   "record": "Character.ma_std_rcr_11_enforcer",
+   "records": [
+    "Character.ma_std_rcr_11_enforcer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hugo-selvig": {
+   "record": "Character.mws_arr_07_lost",
+   "records": [
+    "Character.mws_arr_07_lost"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hutch-spindler": {
+   "record": "Character.bls_ina_se1_ripperdoc_01",
+   "records": [
+    "Character.bls_ina_se1_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "hwangbo-dong-gun": {
+   "record": "Character.nid_03_haruo",
+   "records": [
+    "Character.nid_03_haruo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ian-cimino": {
+   "record": "Character.ma_std_rcr_16_sec",
+   "records": [
+    "Character.ma_std_rcr_16_sec"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ignacio-vega": {
+   "record": "Character.q105_jigjig_04d_gang_m_02",
+   "records": [
+    "Character.q105_jigjig_04d_gang_m_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ilsa-grabmen": {
+   "record": "Character.q306_mood_casa_01",
+   "records": [
+    "Character.q306_mood_casa_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "imad-toma": {
+   "record": "Character.sts_wat_kab_08_food_courier",
+   "records": [
+    "Character.sts_wat_kab_08_food_courier"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "imogen": {
+   "record": "Character.q301_vendor_crier_female",
+   "records": [
+    "Character.q301_vendor_crier_female"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "irene-hermoso": {
+   "record": "Character.q000_kid_bar_woman",
+   "records": [
+    "Character.q000_kid_bar_woman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "iria-zeiram": {
+   "record": "Character.ma_std_rcr_18_hostage_05",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_05"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "isabella-fuscino": {
+   "record": "Character.sq018_gle_01_mom",
+   "records": [
+    "Character.sq018_gle_01_mom"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "isao-suzuki": {
+   "record": "Character.ma_wbr_jpn_16_sao",
+   "records": [
+    "Character.ma_wbr_jpn_16_sao"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ivan-guerreiro": {
+   "record": "Character.ivan_guerreiro",
+   "records": [
+    "Character.ivan_guerreiro"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jack-mausser": {
+   "record": "Character.sts_cct_dtn_02_dozy",
+   "records": [
+    "Character.sts_cct_dtn_02_dozy",
+    "Character.wst_ep1_ctz_107_mausser"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.wst_ep1_ctz_107_mausser": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.wst_ep1_ctz_107_mausser": "ep1"
+   }
+  },
+  "jack-paul": {
+   "record": "Character.sts_wat_kab_04_guard",
+   "records": [
+    "Character.sts_wat_kab_04_guard"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jackal": {
+   "record": "Character.q000_roadhouse_town_boxer",
+   "records": [
+    "Character.q000_roadhouse_town_boxer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jacob-bernard": {
+   "record": "Character.cbj_ep1_003_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_003_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jacob-tomchak": {
+   "record": "Character.sa_ep1_courier_introquest_driver",
+   "records": [
+    "Character.sa_ep1_courier_introquest_driver"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jacqueline-peele": {
+   "record": "Character.cbj_ep1_008_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_008_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jae-hyun-lee": {
+   "record": "Character.sts_wat_kab_101_enemy_scav_officer_shotgun2",
+   "records": [
+    "Character.sts_wat_kab_101_enemy_scav_officer_shotgun2",
+    "Character.sts_hey_rey_101_mark_fayard"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sts_hey_rey_101_mark_fayard": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sts_hey_rey_101_mark_fayard": "base"
+   }
+  },
+  "jaime": {
+   "record": "Character.q000_roadhouse_town_jaime",
+   "records": [
+    "Character.q000_roadhouse_town_jaime"
+   ],
+   "isChild": true,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jake-scooter": {
+   "record": "Character.mq021_nomad_scooter",
+   "records": [
+    "Character.mq021_nomad_scooter"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jakub-luigi-antonowicz": {
+   "record": "Character.sq024_luigi",
+   "records": [
+    "Character.sq024_luigi"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "james-ito": {
+   "record": "Character.mq029_james",
+   "records": [
+    "Character.mq029_james"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jan-woycicki": {
+   "record": "Character.impulse_jan",
+   "records": [
+    "Character.impulse_jan"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "janet-brewer": {
+   "record": "Character.q105_jigjig_prostitue_queue_03",
+   "records": [
+    "Character.q105_jigjig_prostitue_queue_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jared-cortes": {
+   "record": "Character.ma_hey_spr_03_youngster",
+   "records": [
+    "Character.ma_hey_spr_03_youngster"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jasmine-dixon": {
+   "record": "Character.rcr_02_jason_dixon",
+   "records": [
+    "Character.rcr_02_jason_dixon"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jason-foreman": {
+   "record": "Character.sts_ep1_03_gunfight_citizen_jason",
+   "records": [
+    "Character.sts_ep1_03_gunfight_citizen_jason"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jason-wildriver": {
+   "record": "Character.ina_09_jason_2",
+   "records": [
+    "Character.ina_09_jason_2"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jasper-collins": {
+   "record": "Character.q305_maxtac_miniboss_netrunner_ma",
+   "records": [
+    "Character.q305_maxtac_miniboss_netrunner_ma"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jax-forgrave": {
+   "record": "Character.mq057_driver_02",
+   "records": [
+    "Character.mq057_driver_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jax-morgan": {
+   "record": "Character.ma_wat_nid_06_shard_ganger",
+   "records": [
+    "Character.ma_wat_nid_06_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jean-rochelin": {
+   "record": "Character.mq006_jean",
+   "records": [
+    "Character.mq006_jean"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jeff": {
+   "record": "Character.mq002_aldecaldo_2",
+   "records": [
+    "Character.mq002_aldecaldo_2"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jeremy-sutton": {
+   "record": "Character.Ghost_Jeremy_Sutton",
+   "records": [
+    "Character.Ghost_Jeremy_Sutton"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jermaine-norton": {
+   "record": "Character.Riot_Bouncer",
+   "records": [
+    "Character.Riot_Bouncer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jerry-fawlter": {
+   "record": "Character.q303_paradise_ncpd_chief",
+   "records": [
+    "Character.q303_paradise_ncpd_chief"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jesse-sabara": {
+   "record": "Character.ma_hey_spr_11_enemy_001",
+   "records": [
+    "Character.ma_hey_spr_11_enemy_001"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jessica-yu": {
+   "record": "Character.mq027_director",
+   "records": [
+    "Character.mq027_director"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jessie-turner": {
+   "record": "Character.sts_ep1_10_dealer_body",
+   "records": [
+    "Character.sts_ep1_10_dealer_body"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jet-white": {
+   "record": "Character.ma_std_rcr_18_hostage_08",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_08"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jill-sanchez": {
+   "record": "Character.q204_steves_mom",
+   "records": [
+    "Character.q204_steves_mom"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jim-smith": {
+   "record": "Character.q307_thug_02",
+   "records": [
+    "Character.q307_thug_02"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "jiro-oba": {
+   "record": "Character.ma_std_rcr_05_valentinos",
+   "records": [
+    "Character.ma_std_rcr_05_valentinos"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "joanne-koch": {
+   "record": "Character.sts_dtn_04_target",
+   "records": [
+    "Character.sts_dtn_04_target"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "joe-carrillo": {
+   "record": "Character.q204_steves_dad_friend_02",
+   "records": [
+    "Character.q204_steves_dad_friend_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "joe-kaneshiro": {
+   "record": "Character.lch_06_tyger_joe_kaneshiro",
+   "records": [
+    "Character.lch_06_tyger_joe_kaneshiro"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "john-crimi": {
+   "record": "Character.wst_ep1_ctz_106_child_02",
+   "records": [
+    "Character.wst_ep1_ctz_106_child_02"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "john-king": {
+   "record": "Character.wst_ep1_ctz_108_john",
+   "records": [
+    "Character.wst_ep1_ctz_108_john"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "john-lipczynsky": {
+   "record": "Character.ma_cct_dtn_01_John_Lipczynsky",
+   "records": [
+    "Character.ma_cct_dtn_01_John_Lipczynsky"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "john-lucas": {
+   "record": "Character.sq012_lucas",
+   "records": [
+    "Character.sq012_lucas"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "john-milard": {
+   "record": "Character.q110_butcher_shop_vendor",
+   "records": [
+    "Character.q110_butcher_shop_vendor"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "john-quaid": {
+   "record": "Character.ma_std_arr_14_john",
+   "records": [
+    "Character.ma_std_arr_14_john"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "johnnie-peterson": {
+   "record": "Character.q108_barman_m_01",
+   "records": [
+    "Character.q108_barman_m_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jorge-ron": {
+   "record": "Character.ma_hey_spr_12_enemy_001",
+   "records": [
+    "Character.ma_hey_spr_12_enemy_001"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jose-gonzalez": {
+   "record": "Character.ma_hey_rey_01_onscreen_002",
+   "records": [
+    "Character.ma_hey_rey_01_onscreen_002"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jose-luis": {
+   "record": "Character.sts_hey_spr_01_jose",
+   "records": [
+    "Character.sts_hey_spr_01_jose"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "joseph-j-odman": {
+   "record": "Character.mq040_corpo",
+   "records": [
+    "Character.mq040_corpo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "josh-floyd": {
+   "record": "Character.q105_street_dealer",
+   "records": [
+    "Character.q105_street_dealer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "josh-kavorkin": {
+   "record": "Character.josh_kavorkin",
+   "records": [
+    "Character.josh_kavorkin",
+    "Character.q303_paradise_kavorkin"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_kavorkin": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_kavorkin": "ep1"
+   }
+  },
+  "jotaro-shobo": {
+   "record": "Character.sts_wat_kab_07_jotaro",
+   "records": [
+    "Character.sts_wat_kab_07_jotaro",
+    "Character.q303_paradise_jotaro"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_jotaro": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_jotaro": "ep1"
+   }
+  },
+  "journey-ruiz": {
+   "record": "Character.q204_music_store_owner",
+   "records": [
+    "Character.q204_music_store_owner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "joyce-marchal": {
+   "record": "Character.wst_ep1_12_civilian_woman",
+   "records": [
+    "Character.wst_ep1_12_civilian_woman"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "juan-esteban-abasto": {
+   "record": "Character.sq018_ma_ganger_01",
+   "records": [
+    "Character.sq018_ma_ganger_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "juan-mendez": {
+   "record": "Character.mq010_policeman",
+   "records": [
+    "Character.mq010_policeman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "juan-peque": {
+   "record": "Character.ma_hey_rey_02_onscreen_002",
+   "records": [
+    "Character.ma_hey_rey_02_onscreen_002"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "juanita-tseng": {
+   "record": "Character.juanita_tseng",
+   "records": [
+    "Character.juanita_tseng"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jude-night": {
+   "record": "Character.ma_hey_spr_02_corpo_arasaka",
+   "records": [
+    "Character.ma_hey_spr_02_corpo_arasaka"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jules-carrel": {
+   "record": "Character.sts_std_arr_03_worker_named",
+   "records": [
+    "Character.sts_std_arr_03_worker_named"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "julia-bonet": {
+   "record": "Character.ma_std_rcr_01_solo",
+   "records": [
+    "Character.ma_std_rcr_01_solo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "julia-young": {
+   "record": "Character.wst_ep1_ctz_102_julia",
+   "records": [
+    "Character.wst_ep1_ctz_102_julia"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "julius-garrett": {
+   "record": "Character.q105_jigjig_04d_gang_m_01",
+   "records": [
+    "Character.q105_jigjig_04d_gang_m_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jumbo-josh": {
+   "record": "Character.mq003_homeless_fat",
+   "records": [
+    "Character.mq003_homeless_fat"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "jun-azegami": {
+   "record": "Character.sq026_tc_leader_01",
+   "records": [
+    "Character.sq026_tc_leader_01",
+    "Character.q303_paradise_tc_leader_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_tc_leader_01": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_tc_leader_01": "ep1"
+   }
+  },
+  "justin-anderson": {
+   "record": "Character.ma_std_rcr_08_captain_sergeant_03",
+   "records": [
+    "Character.ma_std_rcr_08_captain_sergeant_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "justin-leduc": {
+   "record": "Character.mq306_boxer_02",
+   "records": [
+    "Character.mq306_boxer_02"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "kaiser-herzog": {
+   "record": "Character.ma_wat_nid_06_outpost_miniboss",
+   "records": [
+    "Character.ma_wat_nid_06_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kajetan-zilevski": {
+   "record": "Character.ma_cct_dtn_12_kajetan_zilevsk",
+   "records": [
+    "Character.ma_cct_dtn_12_kajetan_zilevsk"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kamala-smith": {
+   "record": "Character.ma_std_arr_05_kamala",
+   "records": [
+    "Character.ma_std_arr_05_kamala"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kameal-hawk": {
+   "record": "Character.ma_std_rcr_slacker_04",
+   "records": [
+    "Character.ma_std_rcr_slacker_04"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kaoru": {
+   "record": "Character.q000_kid_parking_kaoru",
+   "records": [
+    "Character.q000_kid_parking_kaoru"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karim-noel": {
+   "record": "Character.mq023_bootleg_street_vendor",
+   "records": [
+    "Character.mq023_bootleg_street_vendor"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karina-lee": {
+   "record": "Character.karina_lee",
+   "records": [
+    "Character.karina_lee"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karl-ginsky": {
+   "record": "Character.sts_std_arr_06_karl_greenski",
+   "records": [
+    "Character.sts_std_arr_06_karl_greenski"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karl-hopfen": {
+   "record": "Character.ma_std_rcr_slacker_02",
+   "records": [
+    "Character.ma_std_rcr_slacker_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karolina-vinthir": {
+   "record": "Character.mws_hey_07_trauma_pilot_01",
+   "records": [
+    "Character.mws_hey_07_trauma_pilot_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "karubo-barei": {
+   "record": "Character.sts_hey_rey_08_karubo",
+   "records": [
+    "Character.sts_hey_rey_08_karubo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "katherine-mccannon": {
+   "record": "Character.sts_ep1_13_katie",
+   "records": [
+    "Character.sts_ep1_13_katie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "kathryn-o-brien": {
+   "record": "Character.kathryn_obrien",
+   "records": [
+    "Character.kathryn_obrien"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kean-broughton": {
+   "record": "Character.sts_ep1_10_dodger_goon_02",
+   "records": [
+    "Character.sts_ep1_10_dodger_goon_02"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "keegan-kelly": {
+   "record": "Character.mq005_police_officer_02",
+   "records": [
+    "Character.mq005_police_officer_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "keenan": {
+   "record": "Character.ma_pac_wwd_01_animal_keenan",
+   "records": [
+    "Character.ma_pac_wwd_01_animal_keenan"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "keisuke-kagawa": {
+   "record": "Character.wat_lch_foodshop_02",
+   "records": [
+    "Character.wat_lch_foodshop_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kelvin-strickland": {
+   "record": "Character.sts_ep1_13_kelvin",
+   "records": [
+    "Character.sts_ep1_13_kelvin"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "kenji-sakura": {
+   "record": "Character.sts_wat_kab_107_kenji_sakura",
+   "records": [
+    "Character.sts_wat_kab_107_kenji_sakura"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kevin-flores": {
+   "record": "Character.q307_zetatech_clerk",
+   "records": [
+    "Character.q307_zetatech_clerk"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "kevin-king": {
+   "record": "Character.kevin_king",
+   "records": [
+    "Character.kevin_king"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kikil-ivakin": {
+   "record": "Character.mq027_recorder",
+   "records": [
+    "Character.mq027_recorder"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kimiko-sanchez": {
+   "record": "Character.q108_mercenary_f_02_deal_chat",
+   "records": [
+    "Character.q108_mercenary_f_02_deal_chat"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kirk-sawyer": {
+   "record": "Character.fixer_kirk",
+   "records": [
+    "Character.fixer_kirk"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kovachek": {
+   "record": "Character.kovachek",
+   "records": [
+    "Character.kovachek"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kuniko-aso": {
+   "record": "Character.ma_wbr_jpn_01_soko",
+   "records": [
+    "Character.ma_wbr_jpn_01_soko"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kunio-shiki": {
+   "record": "Character.sq006_ramen_cook",
+   "records": [
+    "Character.sq006_ramen_cook"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "kyle-araujo": {
+   "record": "Character.sts_ep1_12_courier",
+   "records": [
+    "Character.sts_ep1_12_courier"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "lana-prince": {
+   "record": "Character.mq042_nomad_alice",
+   "records": [
+    "Character.mq042_nomad_alice"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lance-hardy": {
+   "record": "Character.ma_cct_dtn_14_lance_hardy",
+   "records": [
+    "Character.ma_cct_dtn_14_lance_hardy"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "laura-may": {
+   "record": "Character.cz_con_junkshop_01",
+   "records": [
+    "Character.cz_con_junkshop_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "lauren-costigan": {
+   "record": "Character.jpn_02_bill",
+   "records": [
+    "Character.jpn_02_bill"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "leah-gladen": {
+   "record": "Character.sts_wbr_jpn_12_leah_gladen",
+   "records": [
+    "Character.sts_wbr_jpn_12_leah_gladen"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lely-hein": {
+   "record": "Character.ma_wat_nid_22_monk",
+   "records": [
+    "Character.ma_wat_nid_22_monk"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lena-dominguez": {
+   "record": "Character.sts_hey_rey_02_valentinos_grunt1_ranged1_nue_wa_Lena_dominguez",
+   "records": [
+    "Character.sts_hey_rey_02_valentinos_grunt1_ranged1_nue_wa_Lena_dominguez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lenny-nero": {
+   "record": "Character.q105_jigjig_braindance_dealer",
+   "records": [
+    "Character.q105_jigjig_braindance_dealer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "leon-watson": {
+   "record": "Character.cz_con_gunsmith_01",
+   "records": [
+    "Character.cz_con_gunsmith_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "leslie-wawuda": {
+   "record": "Character.q306_wawuda",
+   "records": [
+    "Character.q306_wawuda"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "leszek-pea": {
+   "record": "Character.mws_hey_07_trauma_soldier_03",
+   "records": [
+    "Character.mws_hey_07_trauma_soldier_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lieutenant-mower": {
+   "record": "Character.ma_wat_kab_08_cyberpsycho",
+   "records": [
+    "Character.ma_wat_kab_08_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lilayah": {
+   "record": "Character.q108_crowd_f_01_dancefloor_chat",
+   "records": [
+    "Character.q108_crowd_f_01_dancefloor_chat"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "linda-spencer": {
+   "record": "Character.mq019_fa_club_staff",
+   "records": [
+    "Character.mq019_fa_club_staff"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "logan-garcia": {
+   "record": "Character.wwd_05_target",
+   "records": [
+    "Character.wwd_05_target"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "logan-scott": {
+   "record": "Character.hey_gle_prostitute_male",
+   "records": [
+    "Character.hey_gle_prostitute_male"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lori": {
+   "record": "Character.sts_ep1_06_drug_dealer_friend",
+   "records": [
+    "Character.sts_ep1_06_drug_dealer_friend"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "lt-carter-reynolds": {
+   "record": "Character.q000_nomad_border_patrol_officer",
+   "records": [
+    "Character.q000_nomad_border_patrol_officer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lt-crazy-henry-callahan": {
+   "record": "Character.sq029_joss_kid_boy_vr",
+   "records": [
+    "Character.sq029_joss_kid_boy_vr"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lucas-fletcher": {
+   "record": "Character.q000_basketballer_03_ma",
+   "records": [
+    "Character.q000_basketballer_03_ma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lucas-palmer": {
+   "record": "Character.q000_kid_bar_patron_male_01",
+   "records": [
+    "Character.q000_kid_bar_patron_male_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lucas-vasiley": {
+   "record": "Character.q304_stadium_utility_worker",
+   "records": [
+    "Character.q304_stadium_utility_worker"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "luciano-duarte": {
+   "record": "Character.ma_std_rcr_18_hostage_02",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "lucius-thoran": {
+   "record": "Character.sts_std_arr_11_lucius",
+   "records": [
+    "Character.sts_std_arr_11_lucius"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "luka-soto": {
+   "record": "Character.q304_transmitter_kid_02",
+   "records": [
+    "Character.q304_transmitter_kid_02"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "luke-anderson": {
+   "record": "Character.ma_std_rcr_02_luke",
+   "records": [
+    "Character.ma_std_rcr_02_luke"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "maggie-isley": {
+   "record": "Character.cbj_ep1_002_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_002_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "marcelo-azevedo": {
+   "record": "Character.sts_std_arr_06_sec_chief",
+   "records": [
+    "Character.sts_std_arr_06_sec_chief"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "marcus-barros": {
+   "record": "Character.q000_kid_marcus",
+   "records": [
+    "Character.q000_kid_marcus"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "marcus-ichida": {
+   "record": "Character.sq026_tc_leader_02",
+   "records": [
+    "Character.sq026_tc_leader_02",
+    "Character.q303_paradise_tc_leader_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_tc_leader_02": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_tc_leader_02": "ep1"
+   }
+  },
+  "margaret-skoczynski": {
+   "record": "Character.wst_ep1_12_13_media",
+   "records": [
+    "Character.wst_ep1_12_13_media"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "margot-wojciechowicz": {
+   "record": "Character.sq024_margot",
+   "records": [
+    "Character.sq024_margot"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "maria-jimenez": {
+   "record": "Character.maria_jimenez",
+   "records": [
+    "Character.maria_jimenez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "marilyn": {
+   "record": "Character.q306_bridge_marilyn",
+   "records": [
+    "Character.q306_bridge_marilyn"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "mark-muratovich": {
+   "record": "Character.mark_muratovitch",
+   "records": [
+    "Character.mark_muratovitch"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "markus-ayers": {
+   "record": "Character.sts_ep1_06_violent_guy",
+   "records": [
+    "Character.sts_ep1_06_violent_guy"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "marlon-fuscino": {
+   "record": "Character.sq018_gle_01_dad",
+   "records": [
+    "Character.sq018_gle_01_dad"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "marta-liu": {
+   "record": "Character.wat_kab_foodshop_03",
+   "records": [
+    "Character.wat_kab_foodshop_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "martha-devis": {
+   "record": "Character.sts_ep1_03_mother",
+   "records": [
+    "Character.sts_ep1_03_mother"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "martha-young": {
+   "record": "Character.sq018_rey_01_girlfriend",
+   "records": [
+    "Character.sq018_rey_01_girlfriend"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "martin-coleman": {
+   "record": "Character.martin_coleman",
+   "records": [
+    "Character.martin_coleman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "martin-tin": {
+   "record": "Character.q101_parasite",
+   "records": [
+    "Character.q101_parasite"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "masao-adams": {
+   "record": "Character.q307_radio_guy",
+   "records": [
+    "Character.q307_radio_guy"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "mat-duda": {
+   "record": "Character.ma_cct_cpz_01_maelstrom",
+   "records": [
+    "Character.ma_cct_cpz_01_maelstrom"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mateo-lorenzo": {
+   "record": "Character.q000_kid_bar_patron_male_03",
+   "records": [
+    "Character.q000_kid_bar_patron_male_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "matilda-k-rose": {
+   "record": "Character.q110_animals_boss",
+   "records": [
+    "Character.q110_animals_boss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "matt-dupont": {
+   "record": "Character.cz_stadium_gunsmith_son_02_mb",
+   "records": [
+    "Character.cz_stadium_gunsmith_son_02_mb"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "matt-liaw": {
+   "record": "Character.ma_wat_kab_02_cyberpsycho",
+   "records": [
+    "Character.ma_wat_kab_02_cyberpsycho",
+    "Character.q305_maxtac_miniboss_sniper_ma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q305_maxtac_miniboss_sniper_ma": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q305_maxtac_miniboss_sniper_ma": "ep1"
+   }
+  },
+  "maurice": {
+   "record": "Character.q306_terminal_boy_08",
+   "records": [
+    "Character.q306_terminal_boy_08"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "maximum-mike": {
+   "record": "Character.Maximum_Mike",
+   "records": [
+    "Character.Maximum_Mike"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mayor-lucius-rhyne": {
+   "record": "Character.sq012_lucius_rhyne",
+   "records": [
+    "Character.sq012_lucius_rhyne"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "meghan-hattori": {
+   "record": "Character.mq026_tourist_01",
+   "records": [
+    "Character.mq026_tourist_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "melissa-rory": {
+   "record": "Character.mq030_melisa",
+   "records": [
+    "Character.mq030_melisa"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "melissa-wellingham": {
+   "record": "Character.q108_barman_f_01",
+   "records": [
+    "Character.q108_barman_f_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mia": {
+   "record": "Character.Mia",
+   "records": [
+    "Character.Mia"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "micaela-ruiz": {
+   "record": "Character.mq025_cesars_girl",
+   "records": [
+    "Character.mq025_cesars_girl"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "michael-maldonado": {
+   "record": "Character.sts_ep1_06_client",
+   "records": [
+    "Character.sts_ep1_06_client"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "michael-marcinkowsky": {
+   "record": "Character.ma_bls_ina_se5_11_michael",
+   "records": [
+    "Character.ma_bls_ina_se5_11_michael"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "michiko-arasaka": {
+   "record": "Character.Michiko",
+   "records": [
+    "Character.Michiko"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "miguel-rodrigez": {
+   "record": "Character.ma_hey_rey_06_outpost_miniboss",
+   "records": [
+    "Character.ma_hey_rey_06_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mike-edwards": {
+   "record": "Character.ma_std_rcr_02_mike",
+   "records": [
+    "Character.ma_std_rcr_02_mike"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mike-kowalsky": {
+   "record": "Character.ma_wat_lch_07_maelstrom_onscreen_02",
+   "records": [
+    "Character.ma_wat_lch_07_maelstrom_onscreen_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mike-kruger": {
+   "record": "Character.q304_stadium_utility_worker3",
+   "records": [
+    "Character.q304_stadium_utility_worker3"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "mikey": {
+   "record": "Character.Mikey",
+   "records": [
+    "Character.Mikey",
+    "Character.sa_ep1_courier_outro_muammar_worker_mb"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sa_ep1_courier_outro_muammar_worker_mb": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sa_ep1_courier_outro_muammar_worker_mb": "ep1"
+   }
+  },
+  "mikhail-akulov": {
+   "record": "Character.q005_akulov",
+   "records": [
+    "Character.q005_akulov",
+    "Character.sts_wat_kab_04_tanyimu"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sts_wat_kab_04_tanyimu": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sts_wat_kab_04_tanyimu": "base"
+   }
+  },
+  "miles-toast": {
+   "record": "Character.q105_yakuza_bar_barkeeper",
+   "records": [
+    "Character.q105_yakuza_bar_barkeeper"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "milko": {
+   "record": "Character.sts_ep1_12_milko_alexis",
+   "records": [
+    "Character.sts_ep1_12_milko_alexis"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "milt-nauman": {
+   "record": "Character.q108_ripper",
+   "records": [
+    "Character.q108_ripper"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "misha-orlova": {
+   "record": "Character.ma_pac_cvi_09_scavenger_fast3_fmelee3_machete_wa_elite_Misha_Orlova",
+   "records": [
+    "Character.ma_pac_cvi_09_scavenger_fast3_fmelee3_machete_wa_elite_Misha_Orlova"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mitzi-sparks": {
+   "record": "Character.q105_jigjig_prostitue_queue_01",
+   "records": [
+    "Character.q105_jigjig_prostitue_queue_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mokomichi-motorboy-yamada": {
+   "record": "Character.ma_wat_lch_08_outpost_miniboss",
+   "records": [
+    "Character.ma_wat_lch_08_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "monique-ashka": {
+   "record": "Character.mws_hey_07_trauma_soldier_06",
+   "records": [
+    "Character.mws_hey_07_trauma_soldier_06"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "mr-kipper": {
+   "record": "Character.impulse_dj",
+   "records": [
+    "Character.impulse_dj"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "myaku-janowski": {
+   "record": "Character.mws_hey_07_trauma_medic_01",
+   "records": [
+    "Character.mws_hey_07_trauma_medic_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "myriam-glesile": {
+   "record": "Character.q110_butcher_shop_grandma",
+   "records": [
+    "Character.q110_butcher_shop_grandma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nachtigall": {
+   "record": "Character.Nachtigall",
+   "records": [
+    "Character.Nachtigall"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nadezhda-tiurina": {
+   "record": "Character.q005_nadjezda",
+   "records": [
+    "Character.q005_nadjezda",
+    "Character.sts_wat_kab_04_ryoko"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.sts_wat_kab_04_ryoko": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.sts_wat_kab_04_ryoko": "base"
+   }
+  },
+  "nadia-petrova": {
+   "record": "Character.mq010_policewoman",
+   "records": [
+    "Character.mq010_policewoman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nash": {
+   "record": "Character.q103_raffen_nash",
+   "records": [
+    "Character.q103_raffen_nash"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "needles": {
+   "record": "Character.mws_thenerves_driver_01",
+   "records": [
+    "Character.mws_thenerves_driver_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "neil-white": {
+   "record": "Character.sq012_sex_shop_owner",
+   "records": [
+    "Character.sq012_sex_shop_owner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nell-rees": {
+   "record": "Character.q000_traveller_female",
+   "records": [
+    "Character.q000_traveller_female"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nigel-hamilton": {
+   "record": "Character.mq005_corpo",
+   "records": [
+    "Character.mq005_corpo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nika-yankovich": {
+   "record": "Character.sts_ep1_01_nika",
+   "records": [
+    "Character.sts_ep1_01_nika"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "nils-dahlberg": {
+   "record": "Character.ma_wat_nid_07_shard_merc",
+   "records": [
+    "Character.ma_wat_nid_07_shard_merc"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nina-kraviz": {
+   "record": "Character.wbr_hil_ripdoc_01",
+   "records": [
+    "Character.wbr_hil_ripdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "noah": {
+   "record": "Character.Roadhouse_Barman",
+   "records": [
+    "Character.Roadhouse_Barman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "noel-ducael": {
+   "record": "Character.q110_sermon_leader",
+   "records": [
+    "Character.q110_sermon_leader"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "norio-akuhara": {
+   "record": "Character.ma_cct_dtn_07_cyberpsycho",
+   "records": [
+    "Character.ma_cct_dtn_07_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "nova-maccaster": {
+   "record": "Character.mq057_driver_01",
+   "records": [
+    "Character.mq057_driver_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "octavio-delgado": {
+   "record": "Character.std_rcr_ripperdoc_01",
+   "records": [
+    "Character.std_rcr_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "odell-blanco": {
+   "record": "Character.sts_ep1_01_odel",
+   "records": [
+    "Character.sts_ep1_01_odel"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "officer-eric-wolfson": {
+   "record": "Character.sq012_cop",
+   "records": [
+    "Character.sq012_cop"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "officer-vasquez": {
+   "record": "Character.sq023_vasquez",
+   "records": [
+    "Character.sq023_vasquez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ogawa": {
+   "record": "Character.Ogawa",
+   "records": [
+    "Character.Ogawa"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ola-murasaki": {
+   "record": "Character.mws_hey_07_trauma_medic_02",
+   "records": [
+    "Character.mws_hey_07_trauma_medic_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "old-elliot": {
+   "record": "Character.q000_roadhouse_town_trainer",
+   "records": [
+    "Character.q000_roadhouse_town_trainer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "oleg-darkevich": {
+   "record": "Character.Dex_bodyguard",
+   "records": [
+    "Character.Dex_bodyguard"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "olga-cygan": {
+   "record": "Character.sq023_bd_director",
+   "records": [
+    "Character.sq023_bd_director"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "olga-elisabeth-longmead": {
+   "record": "Character.ma_std_rcr_08_outpost_miniboss",
+   "records": [
+    "Character.ma_std_rcr_08_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "oliver-cooper": {
+   "record": "Character.ma_wbr_nok_05_netrunner",
+   "records": [
+    "Character.ma_wbr_nok_05_netrunner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "oliver-fernandez": {
+   "record": "Character.oliver_fernandez",
+   "records": [
+    "Character.oliver_fernandez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "olivier-o-brien": {
+   "record": "Character.ma_wbr_jpn_16_olivier",
+   "records": [
+    "Character.ma_wbr_jpn_16_olivier"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "pablo-delgado": {
+   "record": "Character.spr_03_valentinos_man_Pablo",
+   "records": [
+    "Character.spr_03_valentinos_man_Pablo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "patrick-horman": {
+   "record": "Character.sts_ep1_07_kurt_worker_ma_patrick",
+   "records": [
+    "Character.sts_ep1_07_kurt_worker_ma_patrick"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "patrick-sylap": {
+   "record": "Character.hil_07_body1",
+   "records": [
+    "Character.hil_07_body1"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "paul-craven": {
+   "record": "Character.ma_std_rcr_18_outpost_miniboss",
+   "records": [
+    "Character.ma_std_rcr_18_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "paul-roberts": {
+   "record": "Character.ma_pac_cvi_05_animals_grunt1_ranged1_pulsar_mb_Paul_Roberts",
+   "records": [
+    "Character.ma_pac_cvi_05_animals_grunt1_ranged1_pulsar_mb_Paul_Roberts"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "pedro-lopez": {
+   "record": "Character.ma_hey_rey_02_onscreen_001",
+   "records": [
+    "Character.ma_hey_rey_02_onscreen_001"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "percival-wemys-madison": {
+   "record": "Character.q306_terminal_boy_10",
+   "records": [
+    "Character.q306_terminal_boy_10"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "peter-horvath": {
+   "record": "Character.sq012_assassin",
+   "records": [
+    "Character.sq012_assassin"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "peter-pj-sampson": {
+   "record": "Character.sq024_dominic",
+   "records": [
+    "Character.sq024_dominic"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "peter-upmann": {
+   "record": "Character.ma_wat_kab_06_merc_01",
+   "records": [
+    "Character.ma_wat_kab_06_merc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "piggy": {
+   "record": "Character.q306_terminal_boy_01",
+   "records": [
+    "Character.q306_terminal_boy_01"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "prof-sachiko-kusama": {
+   "record": "Character.q201_doctor_scientist",
+   "records": [
+    "Character.q201_doctor_scientist"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "purple-force": {
+   "record": "Character.sq017_purple_force",
+   "records": [
+    "Character.sq017_purple_force"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "qian-si-hu": {
+   "record": "Character.cz_stadium_qian_si_hu",
+   "records": [
+    "Character.cz_stadium_qian_si_hu"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "quincy-rivers": {
+   "record": "Character.ma_hey_gle_09_sixthstreet_hooligan_ranged1_saratoga_ma_Quincy_Rivers",
+   "records": [
+    "Character.ma_hey_gle_09_sixthstreet_hooligan_ranged1_saratoga_ma_Quincy_Rivers"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rafael-perez": {
+   "record": "Character.std_arr_ripperdoc_01",
+   "records": [
+    "Character.std_arr_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ralph-logan": {
+   "record": "Character.Riot_Barman",
+   "records": [
+    "Character.Riot_Barman"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "randy-kutcher": {
+   "record": "Character.sq021_randy",
+   "records": [
+    "Character.sq021_randy"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "razor-hughes": {
+   "record": "Character.mq025_razor",
+   "records": [
+    "Character.mq025_razor"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rebeca-price": {
+   "record": "Character.sts_hey_spr_06_rebeca_price",
+   "records": [
+    "Character.sts_hey_spr_06_rebeca_price"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "red-menace": {
+   "record": "Character.sq017_red_menace",
+   "records": [
+    "Character.sq017_red_menace"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "reginald": {
+   "record": "Character.Reginald",
+   "records": [
+    "Character.Reginald"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "reverend-colver": {
+   "record": "Character.reverend_colver",
+   "records": [
+    "Character.reverend_colver",
+    "Character.q303_paradise_reverend"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_reverend": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_reverend": "ep1"
+   }
+  },
+  "rhino": {
+   "record": "Character.mq025_rhino",
+   "records": [
+    "Character.mq025_rhino"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "richard-fresh": {
+   "record": "Character.q304_stadium_utility_worker2",
+   "records": [
+    "Character.q304_stadium_utility_worker2"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "rick-gobrat": {
+   "record": "Character.q306_mood_casa_02",
+   "records": [
+    "Character.q306_mood_casa_02"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "rick-martinez": {
+   "record": "Character.q000_kid_parking_security",
+   "records": [
+    "Character.q000_kid_parking_security"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rick-the-cripple": {
+   "record": "Character.mq003_homeless_suitcase",
+   "records": [
+    "Character.mq003_homeless_suitcase"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rick-waters": {
+   "record": "Character.sts_ep1_10_dodger_goon_01",
+   "records": [
+    "Character.sts_ep1_10_dodger_goon_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "rick-young": {
+   "record": "Character.sts_wat_kab_102_worker_Rick",
+   "records": [
+    "Character.sts_wat_kab_102_worker_Rick"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "robert-rainwater": {
+   "record": "Character.wat_kab_ripperdoc_03",
+   "records": [
+    "Character.wat_kab_ripperdoc_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rodrigo-martinez": {
+   "record": "Character.rodrigo_martinez",
+   "records": [
+    "Character.rodrigo_martinez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rogelio-cruz": {
+   "record": "Character.ma_hey_gle_02_valentinos_grunt2_ranged2_ajax_ma_Rogelio_Cruz",
+   "records": [
+    "Character.ma_hey_gle_02_valentinos_grunt2_ranged2_ajax_ma_Rogelio_Cruz"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "roger-wang": {
+   "record": "Character.wat_kab_medicstore_01",
+   "records": [
+    "Character.wat_kab_medicstore_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "roh-chi-won": {
+   "record": "Character.sts_wat_lch_03_ricky_wu",
+   "records": [
+    "Character.sts_wat_lch_03_ricky_wu"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ronald-typhoon-malone": {
+   "record": "Character.q302_homeless_scav_caliente",
+   "records": [
+    "Character.q302_homeless_scav_caliente"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "rony-lafleur": {
+   "record": "Character.pac_wwd_ripdoc_01",
+   "records": [
+    "Character.pac_wwd_ripdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rose-horrigan": {
+   "record": "Character.rcr_05_cyberpsycho",
+   "records": [
+    "Character.rcr_05_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rosi": {
+   "record": "Character.wst_ep1_ctz_111_rosi",
+   "records": [
+    "Character.wst_ep1_ctz_111_rosi"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "rosie-harper": {
+   "record": "Character.q105_jigjig_prostitue_queue_02",
+   "records": [
+    "Character.q105_jigjig_prostitue_queue_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ross-austin": {
+   "record": "Character.q105_jigjig_prostitue_queue_04",
+   "records": [
+    "Character.q105_jigjig_prostitue_queue_04"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ross-ulmer": {
+   "record": "Character.we_ep1_01_mini_boss_1st_phase",
+   "records": [
+    "Character.we_ep1_01_mini_boss_1st_phase",
+    "Character.we_ep1_01_mini_boss_2nd_phase"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {
+    "Character.we_ep1_01_mini_boss_2nd_phase": "ep1"
+   },
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {
+    "Character.we_ep1_01_mini_boss_2nd_phase": "ep1"
+   }
+  },
+  "roxanne-colton": {
+   "record": "Character.q108_mercenary_f_01_deal_chat",
+   "records": [
+    "Character.q108_mercenary_f_01_deal_chat"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "roxanne-sumner": {
+   "record": "Character.Roxanne",
+   "records": [
+    "Character.Roxanne"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ruby": {
+   "record": "Character.sq031_streapper",
+   "records": [
+    "Character.sq031_streapper"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "rufus-mcbride": {
+   "record": "Character.ma_bls_se5_07_outpost_miniboss",
+   "records": [
+    "Character.ma_bls_se5_07_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "russell-bora": {
+   "record": "Character.sts_ep1_07_kurt_officer",
+   "records": [
+    "Character.sts_ep1_07_kurt_officer"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "russell-greene": {
+   "record": "Character.ma_bls_ina_se1_08_cyberpsycho",
+   "records": [
+    "Character.ma_bls_ina_se1_08_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ruth-dzeng": {
+   "record": "Character.ruth_dzeng",
+   "records": [
+    "Character.ruth_dzeng",
+    "Character.q303_paradise_ruth"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.q303_paradise_ruth": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.q303_paradise_ruth": "ep1"
+   }
+  },
+  "ryan-baxter": {
+   "record": "Character.mws_se5_02_run_away",
+   "records": [
+    "Character.mws_se5_02_run_away"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ryoko-kumi": {
+   "record": "Character.ma_wbr_jpn_19_tyger_claw",
+   "records": [
+    "Character.ma_wbr_jpn_19_tyger_claw"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "saburo-arasaka": {
+   "record": "Character.Saburo",
+   "records": [
+    "Character.Saburo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "saki-seo": {
+   "record": "Character.cz_stadium_medic_01",
+   "records": [
+    "Character.cz_stadium_medic_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "sam-jacobs": {
+   "record": "Character.wst_ep1_gp_102_sam",
+   "records": [
+    "Character.wst_ep1_gp_102_sam"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "samantha-samu": {
+   "record": "Character.ma_wat_lch_14_tygerclaw_onscreen_01",
+   "records": [
+    "Character.ma_wat_lch_14_tygerclaw_onscreen_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sammy-taylor": {
+   "record": "Character.cz_stadium_netrunner_01",
+   "records": [
+    "Character.cz_stadium_netrunner_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "sandley-lebreton": {
+   "record": "Character.mq006_sandley",
+   "records": [
+    "Character.mq006_sandley"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sandra-butler": {
+   "record": "Character.ma_std_rcr_08_captive_wa",
+   "records": [
+    "Character.ma_std_rcr_08_captive_wa"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "santiago-molina": {
+   "record": "Character.hey_spr_ripperdoc_01",
+   "records": [
+    "Character.hey_spr_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sarah-balbo": {
+   "record": "Character.wst_ep1_ctz_106_child_01",
+   "records": [
+    "Character.wst_ep1_ctz_106_child_01"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "sarah-remmeuer": {
+   "record": "Character.q301_border_ncpd_f",
+   "records": [
+    "Character.q301_border_ncpd_f"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "satoshi-ueno": {
+   "record": "Character.cz_con_clothingshop_01",
+   "records": [
+    "Character.cz_con_clothingshop_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "saulo-capon": {
+   "record": "Character.sts_hey_rey_02_valentinos_officer_officer_overture_ma",
+   "records": [
+    "Character.sts_hey_rey_02_valentinos_officer_officer_overture_ma"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "scott-hammer": {
+   "record": "Character.ma_std_rcr_08_sergeant_01",
+   "records": [
+    "Character.ma_std_rcr_08_sergeant_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "seamus-horgan": {
+   "record": "Character.ma_std_arr_10_seamus",
+   "records": [
+    "Character.ma_std_arr_10_seamus"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "seamus-sawicki": {
+   "record": "Character.ma_cct_cpz_17_animal",
+   "records": [
+    "Character.ma_cct_cpz_17_animal"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "seamus-smooth": {
+   "record": "Character.ma_std_rcr_slacker_01",
+   "records": [
+    "Character.ma_std_rcr_slacker_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sean-diaz": {
+   "record": "Character.sts_std_arr_10_worker_Diaz",
+   "records": [
+    "Character.sts_std_arr_10_worker_Diaz"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sean-mcmillan": {
+   "record": "Character.cbj_ep1_009_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_009_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "shaitan": {
+   "record": "Character.q101_blackhand_minion",
+   "records": [
+    "Character.q101_blackhand_minion"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sheila": {
+   "record": "Character.ma_pac_wwd_01_animal_sheila",
+   "records": [
+    "Character.ma_pac_wwd_01_animal_sheila"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "shinobu-imai": {
+   "record": "Character.ma_wbr_jpn_20_outpost_miniboss",
+   "records": [
+    "Character.ma_wbr_jpn_20_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "simon": {
+   "record": "Character.q306_terminal_boy_04",
+   "records": [
+    "Character.q306_terminal_boy_04"
+   ],
+   "isChild": true,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "simone": {
+   "record": "Character.sq031_simone",
+   "records": [
+    "Character.sq031_simone"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "siri": {
+   "record": "Character.q005_penthouse_siri",
+   "records": [
+    "Character.q005_penthouse_siri"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "skye": {
+   "record": "Character.q105_doll_female_skye",
+   "records": [
+    "Character.q105_doll_female_skye"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sofia-ramirez": {
+   "record": "Character.ma_pac_cvi_08_daughter",
+   "records": [
+    "Character.ma_pac_cvi_08_daughter"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sofia-rossi": {
+   "record": "Character.q000_kid_hooker",
+   "records": [
+    "Character.q000_kid_hooker"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sogo-watanabe": {
+   "record": "Character.wat_kab_ripperdoc_01",
+   "records": [
+    "Character.wat_kab_ripperdoc_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sophia-dupont": {
+   "record": "Character.cz_stadium_gunsmith_01",
+   "records": [
+    "Character.cz_stadium_gunsmith_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "spector-cheng": {
+   "record": "Character.wbr_jpn_melee_01",
+   "records": [
+    "Character.wbr_jpn_melee_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "spencer-harris": {
+   "record": "Character.q000_traveller_male",
+   "records": [
+    "Character.q000_traveller_male"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "spencer-young": {
+   "record": "Character.ma_std_rcr_14_young",
+   "records": [
+    "Character.ma_std_rcr_14_young"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "spike-valentine": {
+   "record": "Character.ma_std_rcr_18_hostage_07",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_07"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "stanislaus-zbyszko": {
+   "record": "Character.ma_pac_cvi_12_outpost_miniboss",
+   "records": [
+    "Character.ma_pac_cvi_12_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "stanley-carlson": {
+   "record": "Character.mq027_driver",
+   "records": [
+    "Character.mq027_driver",
+    "Character.mq304_jago_bodyguard_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.mq304_jago_bodyguard_03": "ep1"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.mq304_jago_bodyguard_03": "ep1"
+   }
+  },
+  "stanley-judith": {
+   "record": "Character.q000_corpo_arasaka_m_receptionist",
+   "records": [
+    "Character.q000_corpo_arasaka_m_receptionist"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "stefan": {
+   "record": "Character.mq036_stefan",
+   "records": [
+    "Character.mq036_stefan"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "stella-ramos": {
+   "record": "Character.sts_ep1_10_informer",
+   "records": [
+    "Character.sts_ep1_10_informer"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "sue-glover": {
+   "record": "Character.mq026_disciple",
+   "records": [
+    "Character.mq026_disciple"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "susan-abernathy": {
+   "record": "Character.q000_corpo_abernathy",
+   "records": [
+    "Character.q000_corpo_abernathy"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "susana-brito": {
+   "record": "Character.ma_std_rcr_18_hostage_03",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "susanna-mack": {
+   "record": "Character.cz_con_medicstore_01",
+   "records": [
+    "Character.cz_con_medicstore_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "susanna-quinn": {
+   "record": "Character.q105_lizzies_boss",
+   "records": [
+    "Character.q105_lizzies_boss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "sweet-prince": {
+   "record": "Character.mws_hey_07_trauma_pilot_02",
+   "records": [
+    "Character.mws_hey_07_trauma_pilot_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "taco": {
+   "record": "Character.mq002_aldecaldo_1",
+   "records": [
+    "Character.mq002_aldecaldo_1"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "takeshi-kazou": {
+   "record": "Character.ma_wat_kab_12_shard_ganger",
+   "records": [
+    "Character.ma_wat_kab_12_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "taki-kenmochi": {
+   "record": "Character.sts_wat_kab_107_taki_kenmochi",
+   "records": [
+    "Character.sts_wat_kab_107_taki_kenmochi"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tamara-cosby": {
+   "record": "Character.ma_std_arr_06_cyberpsycho",
+   "records": [
+    "Character.ma_std_arr_06_cyberpsycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tang-tai": {
+   "record": "Character.ma_wbr_jpn_15_tang",
+   "records": [
+    "Character.ma_wbr_jpn_15_tang"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tasha-rodriquez": {
+   "record": "Character.q105_fingers_patient",
+   "records": [
+    "Character.q105_fingers_patient"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tatiana-gilligan": {
+   "record": "Character.ma_wbr_hil_04_victim",
+   "records": [
+    "Character.ma_wbr_hil_04_victim"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tatsuya-nyasha": {
+   "record": "Character.wst_ep1_ctz_111_tatsuya",
+   "records": [
+    "Character.wst_ep1_ctz_111_tatsuya"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "tatsuya-takei": {
+   "record": "Character.sts_wat_lch_01_Tatsuya_Takei",
+   "records": [
+    "Character.sts_wat_lch_01_Tatsuya_Takei"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "taylor-gibbs": {
+   "record": "Character.q302_james",
+   "records": [
+    "Character.q302_james"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "ted-fox": {
+   "record": "Character.sts_std_arr_05_ted_fox",
+   "records": [
+    "Character.sts_std_arr_05_ted_fox"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "terry-hall": {
+   "record": "Character.q307_thug_01",
+   "records": [
+    "Character.q307_thug_01"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "theo-price": {
+   "record": "Character.mq037_girlfriend",
+   "records": [
+    "Character.mq037_girlfriend"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "thiago-brichta": {
+   "record": "Character.ma_std_rcr_18_hostage_04",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_04"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "thomas-hays": {
+   "record": "Character.mq017_streetkid_thomas",
+   "records": [
+    "Character.mq017_streetkid_thomas"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "ti-neptune": {
+   "record": "Character.q110_tineptune",
+   "records": [
+    "Character.q110_tineptune"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tim-anderson": {
+   "record": "Character.mws_cc_01_shock",
+   "records": [
+    "Character.mws_cc_01_shock"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tim-autry": {
+   "record": "Character.kab_06_melee",
+   "records": [
+    "Character.kab_06_melee"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tim-robitel": {
+   "record": "Character.ma_std_rcr_08_sergeant_02",
+   "records": [
+    "Character.ma_std_rcr_08_sergeant_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "timothee-lebeau": {
+   "record": "Character.sts_wat_lch_03_owner",
+   "records": [
+    "Character.sts_wat_lch_03_owner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "timothy-malek": {
+   "record": "Character.ma_bls_ina_se5_16_timothy",
+   "records": [
+    "Character.ma_bls_ina_se5_16_timothy"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tom-ayer": {
+   "record": "Character.ma_wat_nid_02_outpost_miniboss",
+   "records": [
+    "Character.ma_wat_nid_02_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tom-caldera": {
+   "record": "Character.Tom",
+   "records": [
+    "Character.Tom"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tomiko-sawaya": {
+   "record": "Character.ma_wat_nid_26_netrunner",
+   "records": [
+    "Character.ma_wat_nid_26_netrunner"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tommie-walker": {
+   "record": "Character.sts_ep1_13_tommie",
+   "records": [
+    "Character.sts_ep1_13_tommie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "toshiro": {
+   "record": "Character.q108_toshiro",
+   "records": [
+    "Character.q108_toshiro"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "towfiq-iqbal": {
+   "record": "Character.towfiq_iqbal",
+   "records": [
+    "Character.towfiq_iqbal"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tracy-phillips": {
+   "record": "Character.ma_hey_gle_07_afterlife_merc_generic_medium_range_w_hard_Tracy_Phillips",
+   "records": [
+    "Character.ma_hey_gle_07_afterlife_merc_generic_medium_range_w_hard_Tracy_Phillips"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "trevor-brass": {
+   "record": "Character.sts_bls_ina_08_guide",
+   "records": [
+    "Character.sts_bls_ina_08_guide"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tsutomu": {
+   "record": "Character.Tsutomu",
+   "records": [
+    "Character.Tsutomu"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tucker-albach": {
+   "record": "Character.gle_01_tucker",
+   "records": [
+    "Character.gle_01_tucker"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tyler-brown": {
+   "record": "Character.ma_wat_lch_03_corpo_002",
+   "records": [
+    "Character.ma_wat_lch_03_corpo_002"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "tyler-zan": {
+   "record": "Character.q307_new_merc",
+   "records": [
+    "Character.q307_new_merc"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "vance-noren": {
+   "record": "Character.mq013_punk_02",
+   "records": [
+    "Character.mq013_punk_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "vic-vega": {
+   "record": "Character.sts_std_rcr_01_vic_vega",
+   "records": [
+    "Character.sts_std_rcr_01_vic_vega"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "vicious-volaju": {
+   "record": "Character.ma_std_rcr_18_hostage_09",
+   "records": [
+    "Character.ma_std_rcr_18_hostage_09"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "vortex": {
+   "record": "Character.hil_07_vortex",
+   "records": [
+    "Character.hil_07_vortex"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "walt-alda": {
+   "record": "Character.ma_std_rcr_08_captain",
+   "records": [
+    "Character.ma_std_rcr_08_captain"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "wayne-johnson": {
+   "record": "Character.ma_wat_nid_14_shard_ganger",
+   "records": [
+    "Character.ma_wat_nid_14_shard_ganger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "wayne-sludge": {
+   "record": "Character.q105_jigjig_goon_02",
+   "records": [
+    "Character.q105_jigjig_goon_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "wesley-avedon": {
+   "record": "Character.ma_hey_spr_10_victim",
+   "records": [
+    "Character.ma_hey_spr_10_victim"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "wesley-hunt": {
+   "record": "Character.cbj_ep1_001_cyberjunkie",
+   "records": [
+    "Character.cbj_ep1_001_cyberjunkie"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "william-becker": {
+   "record": "Character.mq005_police_officer_03",
+   "records": [
+    "Character.mq005_police_officer_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "william-correy": {
+   "record": "Character.mq306_boxer",
+   "records": [
+    "Character.mq306_boxer"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "william-hare": {
+   "record": "Character.sts_wat_kab_03_solo",
+   "records": [
+    "Character.sts_wat_kab_03_solo"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "willy-mccoy": {
+   "record": "Character.q000_socal_fixer",
+   "records": [
+    "Character.q000_socal_fixer"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "wyatt-alken": {
+   "record": "Character.sts_wbr_hil_06_wyatt_alken",
+   "records": [
+    "Character.sts_wbr_hil_06_wyatt_alken"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "xavi-velez": {
+   "record": "Character.ma_hey_gle_03_valentinos_grunt1_ranged1_nova_ma_Xavi_Velez",
+   "records": [
+    "Character.ma_hey_gle_03_valentinos_grunt1_ranged1_nova_ma_Xavi_Velez"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "yasha-ivanov": {
+   "record": "Character.sts_ep1_03_miniboss_placeholder",
+   "records": [
+    "Character.sts_ep1_03_miniboss_placeholder"
+   ],
+   "isChild": false,
+   "v25": "ep1",
+   "v25Template": "ep1",
+   "v25Others": {},
+   "v231": "ep1",
+   "v231Template": "ep1",
+   "v231Others": {}
+  },
+  "yelena-sidorova": {
+   "record": "Character.ma_wat_nid_01_outpost_miniboss",
+   "records": [
+    "Character.ma_wat_nid_01_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "yishen-rhee": {
+   "record": "Character.q108_crowd_f_02_vending_machine",
+   "records": [
+    "Character.q108_crowd_f_02_vending_machine"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "yoko-tsuru": {
+   "record": "Character.wat_kab_netrunner_01",
+   "records": [
+    "Character.wat_kab_netrunner_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "yuri-shaku": {
+   "record": "Character.sts_wat_lch_01_Yuri_Shaku",
+   "records": [
+    "Character.sts_wat_lch_01_Yuri_Shaku"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "yusaku-ogata": {
+   "record": "Character.lch_06_tyger_yusaku_ogata",
+   "records": [
+    "Character.lch_06_tyger_yusaku_ogata"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zane-jagger": {
+   "record": "Character.Zane_Jagger",
+   "records": [
+    "Character.Zane_Jagger"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zaria-hughes": {
+   "record": "Character.ma_wat_nid_15_psycho",
+   "records": [
+    "Character.ma_wat_nid_15_psycho",
+    "Character.ma_wat_nid_15_psycho_02",
+    "Character.ma_wat_nid_15_psycho_03"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {
+    "Character.ma_wat_nid_15_psycho_02": "base",
+    "Character.ma_wat_nid_15_psycho_03": "base"
+   },
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {
+    "Character.ma_wat_nid_15_psycho_02": "base",
+    "Character.ma_wat_nid_15_psycho_03": "base"
+   }
+  },
+  "zeke-daniels": {
+   "record": "Character.q108_barman_m_02",
+   "records": [
+    "Character.q108_barman_m_02"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zhan-qiu": {
+   "record": "Character.wbr_jpn_junk_01",
+   "records": [
+    "Character.wbr_jpn_junk_01"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zion-wylde": {
+   "record": "Character.ma_bls_ina_se1_22_psycho",
+   "records": [
+    "Character.ma_bls_ina_se1_22_psycho"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zoe-alonzo": {
+   "record": "Character.ma_hey_gle_02_outpost_miniboss",
+   "records": [
+    "Character.ma_hey_gle_02_outpost_miniboss"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  },
+  "zuleikha-el-ahmar": {
+   "record": "Character.sq023_mariah",
+   "records": [
+    "Character.sq023_mariah"
+   ],
+   "isChild": false,
+   "v25": "base",
+   "v25Template": "base",
+   "v25Others": {},
+   "v231": "base",
+   "v231Template": "base",
+   "v231Others": {}
+  }
+ }
+}
