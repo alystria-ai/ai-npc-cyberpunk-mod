@@ -232,7 +232,7 @@ export function sharedPart(entry, gameSeconds) {
 const MAX_FILE_CHARS = 2_000_000;
 const SETTABLE = ['path', 'keyFor', 'now', 'limit', 'debounceMs', 'read', 'write', 'timers', 'log'];
 const freshEntry = () => ({warm: 0, hurt: 0, hurtAt: null, day: null, dayCount: 0, realDay: null, realPoints: 0,
-  profileKey: null, name: '', story: 0, arcDone: 0, arcTotal: 0, lastAt: 0, seenAt: null});
+  profileKey: null, name: '', story: 0, arc: null, arcDone: 0, arcTotal: 0, lastAt: 0, seenAt: null});
 
 function cleanEntry(row) {
   if (!plain(row)) return null;
@@ -249,6 +249,8 @@ function cleanEntry(row) {
   entry.profileKey = typeof row.profileKey === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(row.profileKey) ? row.profileKey : null;
   entry.name = typeof row.name === 'string' && !/\p{Cc}/u.test(row.name) ? row.name.slice(0, 80) : '';
   entry.story = number(row.story, 0, 1000) ?? 0;
+  // The arc points of the last turn that had a COMPLETE journal inventory: what a turn with an unfinished read (right after a load or a time skip) falls back on.
+  entry.arc = number(row.arc, 0, 1000);
   entry.arcDone = Number.isSafeInteger(row.arcDone) && row.arcDone >= 0 && row.arcDone <= 64 ? row.arcDone : 0;
   entry.arcTotal = Number.isSafeInteger(row.arcTotal) && row.arcTotal >= 0 && row.arcTotal <= 64 ? row.arcTotal : 0;
   entry.lastAt = number(row.lastAt, 0, 1e14) ?? 0;
@@ -321,7 +323,7 @@ export class BondStore {
     if (meta) {
       if (meta.profileKey) entry.profileKey = meta.profileKey;
       if (meta.name) entry.name = meta.name;
-      for (const field of ['story', 'arcDone', 'arcTotal']) if (Number.isFinite(meta[field])) entry[field] = meta[field];
+      for (const field of ['story', 'arc', 'arcDone', 'arcTotal']) if (Number.isFinite(meta[field])) entry[field] = meta[field];
       entry.lastAt = nowMs;
       if (gameSeconds !== undefined) entry.seenAt = gameSeconds;
     }
@@ -429,12 +431,17 @@ export class Bonds {
     const key = this.store.memoryKey(input.profileKey);
     if (!key) return null;
     const gameSeconds = gameSecondsOf(input.turnContext?.gameTime);
-    const story = storyPart({profileKey: input.profileKey, journalHistory: input.journalHistory, romance: facts.romance ?? null,
+    let story = storyPart({profileKey: input.profileKey, journalHistory: input.journalHistory, romance: facts.romance ?? null,
       eddiesRow: input.eddies?.row ?? null, arcs: this.arcs ?? undefined});
     const entry = this.store.peek(key);
+    // The journal inventory is not complete yet (the first turn after a game load or a Skip Time): it says nothing about the character's quests, so the arc points
+    // are the last ones a complete read gave (kept with the bond state), never 0. A level never drops because of an unfinished read. A complete read always wins.
+    const complete = inventoryComplete(input.journalHistory);
+    const kept = !complete && Number.isFinite(entry?.arc) && entry.arc > story.arc;
+    if (kept) story = {...story, points: story.points - story.arc + entry.arc, arc: entry.arc, kept: true};
     const shared = sharedPart(entry, gameSeconds);
     const points = clamp(story.points + shared, 0, MAX_POINTS);
-    return {key, story, shared, points, level: levelOf(points).level, hurt: fadedHurt(entry, gameSeconds), gameSeconds};
+    return {key, story, shared, points, level: levelOf(points).level, hurt: fadedHurt(entry, gameSeconds), gameSeconds, journalComplete: complete};
   }
 
   /** The turn's view, decided once per request id (the first build wins): the bond level and what the packs and Eddies need. null when bonds are not in the turn. */
@@ -488,14 +495,15 @@ export class Bonds {
       const value = exchangeValue(channelOf(input), words);
       const name = typeof input.name === 'string' ? input.name.slice(0, 80) : '';
       const arc = arcCounts(input.profileKey, input.journalHistory, this.arcs ?? undefined);
+      // Only a complete read may move the remembered arc and its counts (an unfinished one would write 0 over them).
       const added = this.store.add(before.key, value, {gameSeconds: before.gameSeconds, nowMs: this.now(),
-        meta: {profileKey: input.profileKey, name, story: before.story.points, arcDone: arc.done, arcTotal: arc.total}});
+        meta: {profileKey: input.profileKey, name, story: before.story.points, ...(before.journalComplete ? {arc: before.story.arc, arcDone: arc.done, arcTotal: arc.total} : {})}});
       if (!added) return null;
       if (before.gameSeconds !== undefined) this.clock = before.gameSeconds;
       const shared = sharedPart(added.entry, before.gameSeconds);
       const points = clamp(before.story.points + shared, 0, MAX_POINTS);
       const level = levelOf(points);
-      this.log(`profile=${input.profileKey} channel=${channelOf(input)} story=${before.story.points} (arc ${before.story.arc}, romance ${before.story.romance}, money ${before.story.money}) shared=${shared}`
+      this.log(`profile=${input.profileKey} channel=${channelOf(input)} story=${before.story.points} (arc ${before.story.arc}, romance ${before.story.romance}, money ${before.story.money}${before.journalComplete ? '' : before.story.kept ? ', journal not complete: kept the last known arc' : ', journal not complete'}) shared=${shared}`
         + ` gained=${added.gained}${value.threat ? ` hurt=${value.hurt}(${value.threat})` : ''} level=${level.level}`);
       // The level the game knows: the first turn of a character this session only sets it (no notice for a level V already had).
       const known = this.levels.get(before.key);
