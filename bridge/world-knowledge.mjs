@@ -10,7 +10,7 @@ import {receiptWitnesses} from './witness-receipts.mjs';
 // key (mod/world-knowledge.lua maxAgeSeconds 45), instead of every second.
 export const WORLD_SNAPSHOT_MAX_AGE_MS = 45_000;
 const LIMIT = Object.freeze({snapshotBytes: 256 * 1024, packBytes: 16 * 1024 * 1024,
-  profiles: 256, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
+  profiles: 1024, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
   observations: 1024, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,
   children: 16, exclusiveGroups: 8, events: 64, errors: 64, traces: 128, context: 12000, shared: 256});
 const EXECUTABLE = new Set(['source-verified', 'live-verified']);

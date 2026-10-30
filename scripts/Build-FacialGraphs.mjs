@@ -152,7 +152,8 @@ export function extendFacialGraph(original, options = {}) {
 export function namedRecords() {
   const read = name => JSON.parse(readFileSync(new URL(`../characters/${name}`, import.meta.url), 'utf8').replace(/^﻿/, ''));
   const records = new Set();
-  for (const row of read('roster.json')) for (const record of row.records || []) records.add(record);
+  // A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person: the crowd preparation keeps serving that record.
+  for (const row of read('roster.json')) if (row.minor !== true) for (const record of row.records || []) records.add(record);
   for (const row of read('manager-characters.json')) if (row.record) records.add(row.record);
   for (const row of read('phone-contacts.json')) if (row.record) records.add(row.record);
   for (const record of records) if (!/^(?:[A-Za-z][A-Za-z0-9_]*\.)?Character\.[A-Za-z0-9_]+$/.test(record)) throw new Error(`Unexpected record name ${record}`);
