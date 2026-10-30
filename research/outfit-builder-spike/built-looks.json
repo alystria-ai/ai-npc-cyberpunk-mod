@@ -1,0 +1,29 @@
+{
+  "note": "Proof of the outfit builder spike (docs/OUTFIT_BUILDER_SPIKE.md). A built look is one of the template's own looks (base) plus a few operations on its pieces, run on our own copy by OutfitBuilder.reds. Every mesh and mesh appearance is one the game ships; nothing here is a mesh. Not read by the mod yet. Component names are the ones of panam-components.json.",
+  "version": 1,
+  "characters": {
+    "Character.Panam": [
+      {
+        "id": "panam_built_clean_jacket", "label": "Clean clothes with the jacket", "kind": "any", "base": "panam_no_jacket_and_harness",
+        "ops": [
+          {"op": "add", "like": "t1_001_wa_shirt__panam7726", "name": "t2_001_wa_jacket__panam", "mesh": "base\\characters\\main_npc\\panam\\t2_001_wa_jacket__panam.mesh", "appearance": "default"}
+        ]
+      },
+      {
+        "id": "panam_built_shirt_gloves", "label": "Shirt and gloves", "kind": "day", "base": "panam_no_jacket",
+        "ops": [
+          {"op": "add", "like": "t1_001_wa_shirt__panam7726", "name": "g1_001_wa_gloves__panam0112", "mesh": "base\\characters\\main_npc\\panam\\g1_001_wa_gloves__panam.mesh", "appearance": "default"}
+        ]
+      },
+      {
+        "id": "panam_built_jacket_gloves_no_belt", "label": "Jacket and gloves over the clean shirt, no belt", "kind": "night", "base": "panam_no_jacket",
+        "ops": [
+          {"op": "tint", "name": "t1_001_wa_shirt__panam7726", "appearance": "no_dirt"},
+          {"op": "toggle", "name": "i1_001_wa_belt__panam2642", "on": false},
+          {"op": "add", "like": "t1_001_wa_shirt__panam7726", "name": "t2_001_wa_jacket__panam", "mesh": "base\\characters\\main_npc\\panam\\t2_001_wa_jacket__panam.mesh", "appearance": "default"},
+          {"op": "add", "like": "t1_001_wa_shirt__panam7726", "name": "g1_001_wa_gloves__panam0112", "mesh": "base\\characters\\main_npc\\panam\\g1_001_wa_gloves__panam.mesh", "appearance": "default"}
+        ]
+      }
+    ]
+  }
+}
