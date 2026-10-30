@@ -15,6 +15,12 @@
 //                                   torch_shm_manager). The build already drops the .exe files that were the rest of this folder.
 //  <package>/tests/                 The packages' own unit tests and their data (2,348 files). Nothing imports a tests folder; torch/testing,
 //                                   numpy/testing and sympy/testing are different folders (real packages other code imports) and stay.
+//  Three archives that the main file must not hold (an archive inside a download trips antivirus scanners, packaging/lib/package-guards.mjs):
+//  networkx/generators/atlas.dat.gz The graph atlas (1253 small graphs). Only networkx.generators.atlas.graph_atlas() and graph_atlas_g() open it, on a call: the
+//                                   module reads the path at import and the file at call time. Nothing of ours, torch or sympy calls either.
+//  scipy/stats/_sobol_direction_numbers.npz  A numpy zip of Sobol direction numbers, opened by scipy.stats.qmc.Sobol when a generator is made. Importing scipy.stats
+//                                   does not open it. Nothing of ours uses scipy.stats.qmc (the phone worker and the clip builder use scipy.signal).
+//  Lib/site-packages/<name>.whl     A zero-byte file named like the scipy wheel, found at the top of site-packages in the 0.3.5 Runtime. Nothing reads it.
 const SITE = 'Lib/site-packages/';
 const TESTS_FOLDER = /^Lib\/site-packages\/(?:[^/]+\/)+tests\//;
 
@@ -22,6 +28,9 @@ export const PYTHON_PRUNE_RULES = Object.freeze([
   {id: 'sherpa-core-scripts', test: rel => rel.startsWith(`${SITE}Scripts/`)},
   {id: 'torch-bin', test: rel => rel.startsWith(`${SITE}torch/bin/`)},
   {id: 'package-tests', test: rel => TESTS_FOLDER.test(rel)},
+  {id: 'networkx-atlas', test: rel => rel === `${SITE}networkx/generators/atlas.dat.gz`},
+  {id: 'scipy-sobol-numbers', test: rel => rel === `${SITE}scipy/stats/_sobol_direction_numbers.npz`},
+  {id: 'stray-wheel', test: rel => /^Lib\/site-packages\/[^/]+\.whl$/i.test(rel)},
 ]);
 
 // Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches. Applied to every Python the release builds (the Runtime's and the

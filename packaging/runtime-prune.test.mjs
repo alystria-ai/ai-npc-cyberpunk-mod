@@ -26,7 +26,9 @@ test('the Python rules leave out the sherpa-onnx wheel\'s second copy, torch/bin
   for (const rel of [`${SITE}/Scripts/onnxruntime.dll`, `${SITE}/Scripts/sherpa-onnx-c-api.dll`, `${SITE}/Scripts/sherpa-onnx-cxx-api.lib`,
     `${SITE}/torch/bin/fbgemm.dll`, `${SITE}/torch/bin/asmjit.dll`,
     `${SITE}/numpy/_core/tests/test_dtype.py`, `${SITE}/scipy/special/tests/data/boost.npz`, `${SITE}/networkx/algorithms/flow/tests/test_maxflow.py`,
-    `${SITE}/sympy/core/tests/test_basic.py`, `${SITE}/mpmath/tests/test_basic_ops.py`, `${SITE}/setuptools/_distutils/tests/support.py`]) {
+    `${SITE}/sympy/core/tests/test_basic.py`, `${SITE}/mpmath/tests/test_basic_ops.py`, `${SITE}/setuptools/_distutils/tests/support.py`,
+    // The archives the main file must not hold (packaging/lib/package-guards.mjs).
+    `${SITE}/networkx/generators/atlas.dat.gz`, `${SITE}/scipy/stats/_sobol_direction_numbers.npz`, `${SITE}/scipy-1.18.1-cp312-cp312-win_amd64.whl`]) {
     assert.equal(pythonPruned(rel), true, rel);
   }
 });
@@ -38,10 +40,11 @@ test('the Python rules keep what is loaded: the DLLs torch and sherpa-onnx use, 
     `${SITE}/torch/testing/_comparison.py`, `${SITE}/numpy/testing/__init__.py`, `${SITE}/sympy/testing/pytest.py`, `${SITE}/torch/_numpy/testing/utils.py`,
     // Names that only look alike.
     `${SITE}/pkg/contests/a.py`, `${SITE}/pkg/tests.py`, `${SITE}/pkg/mytests/a.py`, `${SITE}/pkg/test/a.py`, `${SITE}/ScriptsOther/a.dll`, `${SITE}/torch/binary/a.dll`,
-    `${SITE}/tests/a.py`, 'Lib/tests/a.py', 'python312.dll', 'python312.zip', 'python312._pth', 'Lib/Scripts/a.dll']) {
+    `${SITE}/tests/a.py`, 'Lib/tests/a.py', `${SITE}/networkx/generators/atlas.py`, `${SITE}/networkx/generators/__init__.py`, `${SITE}/scipy/stats/_sobol.cp312-win_amd64.pyd`,
+    `${SITE}/scipy/stats/_qmc.py`, `${SITE}/scipy/_lib/other.npz`, `${SITE}/scipy/sub/x.whl`, 'python312.dll', 'python312.zip', 'python312._pth', 'Lib/Scripts/a.dll']) {
     assert.equal(pythonPruned(rel), false, rel);
   }
-  assert.deepEqual(PYTHON_PRUNE_RULES.map(rule => rule.id), ['sherpa-core-scripts', 'torch-bin', 'package-tests']);
+  assert.deepEqual(PYTHON_PRUNE_RULES.map(rule => rule.id), ['sherpa-core-scripts', 'torch-bin', 'package-tests', 'networkx-atlas', 'scipy-sobol-numbers', 'stray-wheel']);
 });
 
 test('the Pocket TTS rule ships the package and the licence of the pinned revision and nothing else', async () => {

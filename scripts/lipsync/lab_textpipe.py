@@ -105,7 +105,10 @@ def normalize_text(text: str) -> list:
 
 def load_lexicon(path: Path) -> dict:
     lex = {}
-    with gzip.open(path, 'rt', encoding='utf8') as f:
+    # Plain text (face-lexicon.txt, what the Runtime ships) or the older gzip of the same text, told by the first bytes.
+    with path.open('rb') as raw:
+        packed = raw.read(2) == bytes([0x1f, 0x8b])
+    with (gzip.open(path, 'rt', encoding='utf8') if packed else path.open('rt', encoding='utf8')) as f:
         for line in f:
             parts = line.split()
             if len(parts) >= 2 and parts[0] not in lex:
