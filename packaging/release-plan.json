@@ -474,6 +474,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-target.lua"
         },
         {
+          "source": "mod/talk-exclusion.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-exclusion.lua"
+        },
+        {
           "source": "mod/manager.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager.lua"
         },

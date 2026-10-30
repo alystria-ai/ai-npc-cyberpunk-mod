@@ -42,6 +42,7 @@ export function editorClient() {
     heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
     users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    userX: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/>',
     userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
     book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
     pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
@@ -98,7 +99,7 @@ export function editorClient() {
   // prompting: the Prompting page (the options, the open one and its draft) while it is open, else null; it belongs to no character either.
   // look: the Look and moves choices of the open character ({key, draft}); null when it has none (everyday people, V's voices, a character not saved yet).
   // The picker: `chip` is the role filter ('all', a role, or 'edited'), `recent` the keys saved in this session (newest first), `facing` the key of the character V was facing.
-  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, look: null, world: null, prompting: null, tab: 'bio', filter: '', note: null, chip: 'all', recent: [], facing: ''};
+  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, look: null, world: null, prompting: null, tab: 'bio', filter: '', note: null, chip: 'all', recent: [], facingInfo: null, facing: ''};
   let noteTimer = 0, pickSeq = 0;
 
   // The toast: a short message that stays a few seconds (a problem a little longer) and can be dismissed. #note keeps the message as its only text.
@@ -156,6 +157,8 @@ export function editorClient() {
       case 'outfit-bad': return T('That look is not one of this character’s.');
       case 'option-bad': return T('That choice is not available.');
       case 'options-full': return T('The editor keeps choices for {max} characters. Reset one first.', values);
+      case 'people-full': return T('You have switched off as many people as the editor keeps ({max}). Switch one back on first.', values);
+      case 'bad-record': return T('That person cannot be switched off.');
       default: return T('Could not save. Try again.');
     }
   };
@@ -532,6 +535,61 @@ export function editorClient() {
     draw();
     return box;
   };
+  // ---- Switching someone off: a character the player does not want to talk to. The game then never picks them to talk to or for a group chat. A named or own character is switched
+  // off by its key (the `off` choice of the options, saved at once); an ordinary person by the game record they are built from (/api/off), which also stops the other people the game builds
+  // from the same record. model.state.off lists both, so each can be switched back on.
+  const refreshOff = async () => {
+    try { model.state.off = await api('GET', '/api/off'); } catch { /* the list is a convenience; the switch itself is saved */ }
+    drawList();
+  };
+  const offBox = () => {
+    const data = model.data, key = data.key;
+    const input = h('input', {type: 'checkbox', id: 'f-off', 'aria-describedby': 'h-off'});
+    input.checked = data.options.values.off === true;
+    input.addEventListener('change', async () => {
+      const want = input.checked;
+      try { hush(); apply(await api('PUT', '/api/character/' + encodeURIComponent(key) + '/options', {off: want ? true : null}), true); await refreshOff(); say(want ? T('Switched off.') : T('Switched back on.')); }
+      catch (error) { input.checked = !want; say(problem(error), true); }
+    });
+    return h('div', {class: 'field off'}, h('div', {class: 'check'}, input, h('label', {for: 'f-off'}, T('Don’t talk to this character'))),
+      h('p', {class: 'help', id: 'h-off'}, T('While this is on, they do not answer you and never join a group chat. Untick it to talk to them again.')));
+  };
+  const personIsOff = record => !!model.state.off && model.state.off.people.some(person => person.record.toLowerCase() === String(record).toLowerCase());
+  const setPerson = async (person, off) => {
+    try { hush(); model.state.off = await api('POST', '/api/off', {record: person.record, name: person.name || '', off}); drawList(); say(off ? T('Switched off.') : T('Switched back on.')); }
+    catch (error) { say(problem(error), true); }
+  };
+  const switchBackOn = async key => {
+    try {
+      hush();
+      const reply = await api('PUT', '/api/character/' + encodeURIComponent(key) + '/options', {off: null});
+      if (model.data && model.data.key === key) apply(reply, true);
+      await refreshOff();
+      say(T('Switched back on.'));
+    } catch (error) { say(problem(error), true); }
+  };
+  const personRow = (person, label, act) => h('div', {class: 'person'}, avatar({key: person.record || person.key, name: person.name || person.record}),
+    h('span', {class: 'text'}, h('span', {class: 'name'}, person.name || person.record), person.name && person.record ? h('span', {class: 'sub'}, person.record) : null),
+    h('button', {type: 'button', class: 'secondary', onclick: act}, label));
+  // The ordinary person V was facing when the editor was opened (one that is not in the list of characters), with the switch for them.
+  const facingPerson = () => {
+    const facing = model.facingInfo;
+    if (!model.state.off || !facing || !facing.record) return null;
+    const person = {record: facing.record, name: facing.name || ''}, off = personIsOff(person.record);
+    return h('section', {class: 'sect quick'}, h('h3', {class: 'group'}, icon('crosshair'), h('span', {}, T('In front of you'))),
+      personRow(person, off ? T('Switch back on') : T('Don’t talk to this person'), () => setPerson(person, !off)),
+      off ? null : h('p', {class: 'help person-help'}, T('It also stops everyone the game builds from the same record, so other people of the same kind may stop answering too.')));
+  };
+  // Everyone switched off, each with the way back.
+  const offSection = () => {
+    const off = model.state.off;
+    if (!off || !(off.characters.length || off.people.length)) return null;
+    const rows = [...off.characters.map(item => personRow({key: item.key, name: item.name}, T('Switch back on'), () => switchBackOn(item.key))),
+      ...off.people.map(person => personRow(person, T('Switch back on'), () => setPerson(person, false)))];
+    return h('section', {class: 'sect quick'}, h('h3', {class: 'group'}, icon('userX'), h('span', {}, T('Switched off')), h('span', {class: 'n'}, String(rows.length))),
+      h('p', {class: 'help person-help'}, T('People and characters you chose not to talk to. Switch one back on to talk to them again.')), ...rows);
+  };
+
   // ---- Look and moves: the clothes, gestures, idle moves, seating, reactions and reply length of one character. The saved choices hold only what differs from today's
   // behaviour; the draft has a value for every control ('' is the default of a list, true the default of a box).
   const lookDraft = values => ({outfit: values.outfit || '', talk: values.talk || '', nods: values.nods !== false, idle: values.idle || '',
@@ -561,7 +619,7 @@ export function editorClient() {
     const box = h('div', {class: 'field look'});
     let save = null, undo = null;
     const refresh = () => {
-      const dirty = lookDirty(), stored = Object.keys(data.options.values).length > 0;
+      const dirty = lookDirty(), stored = Object.keys(data.options.values).some(field => field !== 'off');
       if (save) save.disabled = !dirty;
       if (undo) undo.disabled = !stored && !dirty;
       refreshButtons();
@@ -1189,6 +1247,9 @@ export function editorClient() {
     if (!query && model.chip === 'all') {
       const facing = all.find(item => item.key === model.facing);
       if (facing) section(T('In front of you'), 'crosshair', [facing], 'quick');
+      else { const person = facingPerson(); if (person) nodes.push(person); }
+      const switched = offSection();
+      if (switched) nodes.push(switched);
       const seen = [...model.recent, ...all.filter(item => item.edited).map(item => item.key)];
       const recent = [...new Set(seen)].map(key => all.find(item => item.key === key)).filter(item => item && (item.edited || model.recent.includes(item.key))).slice(0, 6);
       if (recent.length) section(T('Recently edited'), 'clock', recent, 'quick');
@@ -1283,7 +1344,7 @@ export function editorClient() {
     const data = model.data, entry = model.state.characters.find(item => item.key === data.key) || data;
     if (data.group === 'custom') {
       const title = data.key ? (model.custom.draft.name || data.name) : T('New character');
-      main.replaceChildren(headOf(entry, title, [h('span', {class: 'chip edited'}, T('Your character')), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null]), h('div', {class: 'panel'}, customPanel()));
+      main.replaceChildren(headOf(entry, title, [h('span', {class: 'chip edited'}, T('Your character')), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null]), model.state.off && data.options && data.key ? offBox() : null, h('div', {class: 'panel'}, customPanel()));
       return;
     }
     if (data.voiceOnly) {
@@ -1306,6 +1367,7 @@ export function editorClient() {
     main.replaceChildren(
       headOf(entry, data.name, [roleBadge(roleOf(entry)), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null, h('span', {class: 'chip' + (edited ? ' edited' : '')}, edited ? T('Edited') : T('As shipped'))],
         h('button', {type: 'button', class: 'quiet', disabled: !edited, onclick: () => reset(FIELDS, true)}, withIcon('undo', T('Reset everything')))),
+      model.state.off && data.options ? offBox() : null,
       tabs, h('div', {role: 'tabpanel', id: 'tabpanel', 'aria-labelledby': 'tab-' + model.tab, class: 'panel'}, panel(model.tab)));
     refreshButtons();
   }
@@ -1384,9 +1446,11 @@ export function editorClient() {
     // The character V was facing when the editor was opened (the game says it by name): the picker offers it at the top. Nothing breaks when there is none.
     try {
       const {facing} = await api('GET', '/api/facing');
+      model.facingInfo = facing || null;
       const name = facing && norm(facing.name || '');
       const found = name && model.state.characters.find(item => item.group !== 'custom' && item.group !== 'v' && norm(item.name) === name);
-      if (found) { model.facing = found.key; drawList(); }
+      if (found) model.facing = found.key;
+      drawList();
     } catch { /* the page works without it */ }
   })();
 }
@@ -1504,6 +1568,13 @@ h3.group .n{font-weight:500;letter-spacing:0}
 .pick .sub{font-size:11.5px;color:var(--text-3)}
 .sect:not(.quick) .pick .sub{display:none}
 .pick.on{background:var(--accent-soft);border-color:var(--accent-line)}
+.person{display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 8px}
+.person .text{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.2;flex:1 1 auto;font-size:14px}
+.person .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person .sub{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person button{flex:none}
+.person-help{margin:2px 8px 6px}
+.field.off{margin:0 0 12px}
 .marks{margin-left:auto;display:flex;gap:6px;flex:none;color:var(--text-3)}
 .mark{display:inline-flex}
 .mark .icon{width:13px;height:13px}

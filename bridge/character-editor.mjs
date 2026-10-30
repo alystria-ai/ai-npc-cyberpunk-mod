@@ -84,6 +84,18 @@ export class CharacterEditor {
     return {values: Object.fromEntries(Object.entries(OPTION_VALUES).map(([field, list]) => [field, [...list]])), words: {...REPLY_WORDS}};
   }
 
+  /**
+   * Who the player switched off: named and own characters by key (the `off` choice), ordinary people by the game record they are built from. The page lists them so each can be
+   * switched back on. Null without a store.
+   */
+  get offForPage() {
+    if (!this.options) return null;
+    const names = new Map(this.catalog().map(item => [item.key, item.name]));
+    const characters = this.options.keys().filter(key => this.options.get(key)?.off === true).map(key => ({key, name: names.get(key) ?? key}))
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
+    return {characters, people: this.options.offPeople().map(person => ({...person})), max: this.options.maxPeople};
+  }
+
   #row(key) {
     const row = KEY.test(key ?? '') ? this.personas.rows.get(key) : null;
     if (!row || !['named', 'ambient', 'archetype'].includes(row.kind)) throw new EditorError(404, 'not-found');
@@ -99,7 +111,7 @@ export class CharacterEditor {
     return [...shipped, ...own, ...v]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
-  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage, prompting: this.prompting?.forPage ?? null, options: this.optionsForPage}; }
+  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage, prompting: this.prompting?.forPage ?? null, options: this.optionsForPage, off: this.offForPage}; }
 
   // ---- the world rules: one text for every character (bridge/world-rules.mjs). Saved at once; the next turn already reads it.
   /** Stores the text ('' clears it). Throws EditorError 422 with `errors` when it is over the limit; nothing is stored then. */
@@ -194,10 +206,31 @@ export class CharacterEditor {
     this.#changed(key);
     return this.details(key);
   }
-  /** Back to today's behaviour: the named choices, or all of them. */
+  /**
+   * Switches an ordinary person off or back on, by the game record V faced (`name` is only for the list). 422 `bad-record` for a name the game could not hold, `people-full` at
+   * the limit. Resolves to the list of who is switched off.
+   */
+  async setPersonOff(body) {
+    if (!this.options) throw new EditorError(404, 'not-found');
+    if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.off !== 'boolean') throw new EditorError(400, 'bad-request');
+    try { await this.options.setPersonOff(body.record, body.name, body.off); }
+    catch (error) {
+      if (error?.code === 'bad-record') throw new EditorError(422, 'invalid', [{field: 'record', code: 'bad-record'}]);
+      if (error?.code === 'full') throw new EditorError(422, 'invalid', [{field: '', code: 'people-full', max: error.max}]);
+      throw new EditorError(500, 'not-saved');
+    }
+    this.#changed('');
+    return this.offForPage;
+  }
+  /** The list of who is switched off. */
+  off() {
+    if (!this.options) throw new EditorError(404, 'not-found');
+    return this.offForPage;
+  }
+  /** Back to today's behaviour: the named choices, or all of them (the switch that turns a character off is not one of the look and moves, so "all" leaves it). */
   async resetOptions(key, fields) {
     this.#optionsTarget(key);
-    const list = fields == null ? OPTION_FIELDS : Array.isArray(fields) ? fields : null;
+    const list = fields == null ? OPTION_FIELDS.filter(field => field !== 'off') : Array.isArray(fields) ? fields : null;
     if (!list || list.some(field => !OPTION_FIELDS.includes(field))) throw new EditorError(400, 'bad-request');
     const stored = {...(this.options.get(key) ?? {})};
     for (const field of list) delete stored[field];
