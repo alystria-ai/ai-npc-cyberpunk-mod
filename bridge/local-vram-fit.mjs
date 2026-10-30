@@ -103,7 +103,7 @@ export async function fitLadder({freeMiB, marginMiB = FIT_LIMITS.marginMiB, prob
 
 /**
  * The same ladder worked out again for another amount of free memory, from projections that were already asked for (no tool run): a vision projector takes memory the model cannot have
- * (docs/LOCAL_AI.md, "Pictures (Companions can see)"), so the rung that fits is looked for against what is left. `fit` is a result of fitLadder (with or without `marginMiB`). Returns a new
+ * (docs/LOCAL_AI.md, "Vision (Companion vision)"), so the rung that fits is looked for against what is left. `fit` is a result of fitLadder (with or without `marginMiB`). Returns a new
  * {projections, pick, share, marginMiB}.
  */
 export function fitAgainst(fit, freeMiB, marginMiB = fit?.marginMiB ?? FIT_LIMITS.marginMiB) {

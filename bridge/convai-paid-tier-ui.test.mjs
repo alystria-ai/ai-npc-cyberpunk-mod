@@ -51,7 +51,7 @@ const paidFixture = `
     jsonFile('runtime/paid-tier-state.json', value)
   end
   local function openPage()
-    assert(invoke('tab:settings').ok)
+    assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
     assert(invoke('paid-tier').ok and managerUi.inspect().view == 'paid-tier')
     pump(false, 4)
     loaded = registered.loadMod('manager')
@@ -61,7 +61,7 @@ const paidFixture = `
 test('Settings lists Convai paid tier under the Convai API key row; the page shows the plans and needs a key to buy', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
   service({keySaved = false})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   local provider = category('conversation-provider').settings
   local ownIndex, paidIndex
   for index, item in ipairs(provider) do
@@ -95,12 +95,13 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
       assert(not text:find('price_', 1, true) and not text:lower():find('recommend'), text)
     end
   end
-  assert(invoke('paid-tier:back').ok and managerUi.inspect().view == 'settings')
+  assert(loaded.categories[1].settings[1].description == 'Return to AI provider.', loaded.categories[1].settings[1].description)
+  assert(invoke('paid-tier:back').ok and managerUi.inspect().view == 'settings-provider', 'Back returns to the AI provider page')
 `));
 
 test('without the conversation service the page says so instead of showing plans', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
-  assert(invoke('tab:settings').ok and invoke('paid-tier').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok and invoke('paid-tier').ok)
   loaded = registered.loadMod('manager')
   assert(row('paid-unavailable') and not category('paid-plans'))
 `));
@@ -115,7 +116,7 @@ test('an empty status file (the shipped placeholder) is no service yet, and ever
   os.remove = function(path) if not exempt(path) then removed[#removed + 1] = path end return remove(path) end
   os.rename = function(from, to) if not exempt(from) then renamed[#renamed + 1] = from end return rename(from, to) end
   io.open = function(path, mode) if mode == 'wb' and not exempt(path) then opened[#opened + 1] = path end return open(path, mode) end
-  assert(invoke('tab:settings').ok and invoke('paid-tier').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok and invoke('paid-tier').ok)
   loaded = registered.loadMod('manager')
   assert(row('paid-unavailable') and not category('paid-plans'), 'an empty status file reads as no service')
   assert(command().action == 'refresh')
@@ -335,7 +336,7 @@ test('each of the four plan rows shows its own quota, whatever the running servi
 test('Conversation provider: the Google Gemini API key row sits above the Convai API key row (no Mistral key row any more), the paid tier entry right under the Convai key', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
   service({keySaved = false})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   local at = {}
   for index, item in ipairs(category('conversation-provider').settings) do at[item.id] = index end
   assert(at['gemini-key'] and at['own-key'] and at['paid-tier'], 'all three rows are there')

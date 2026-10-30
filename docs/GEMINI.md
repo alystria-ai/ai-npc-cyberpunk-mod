@@ -28,7 +28,7 @@ It is the Custom provider's client on a second endpoint, not a new client.
 | Module | `bridge/gemini-provider.mjs`: `openGeminiEndpoint`, `activeEndpoint` (a view that follows `provider.applied`, so the switch happens at the provider's idle boundary), `migrateEarlierSetups` |
 | Route name | `gemini` (`customRoute` in `bridge/text-provider-host.mjs`). `MATURE_PROVIDERS` in `bridge/mature-content.mjs` has no entry for it, so **Mature content never goes to Gemini** (or to any cloud provider, as with Mistral before). Choosing it turns Mature content off, like Convai |
 | Prompt | the generic profile a Custom endpoint gets, chosen from the endpoint and the model ID (`bridge/prompt-profiles.mjs`). The character editor's Prompting tab works with it, as with Custom |
-| Pictures | companions can see: with Companions can see on, the picture goes along with the turn as an `image_url` part |
+| Vision | with Companion vision on, vision goes along with the turn as an `image_url` part |
 | Characters | it writes for the characters players make and for add-on speakers, like the Custom provider (`ADDON_ROUTES` in `bridge/addons.mjs` lists `gemini`) |
 | Voice and microphone | the same rules as the Custom provider: a cloud voice loads no local model, the Convai cloud voice is replaced by a local voice with one notice (`gemini-voice`), and the microphone is recognised on this computer (English, other languages with a Microphone pack). The Voxtral voice needs a Mistral key (the Mistral preset on the Custom page), never the Gemini key |
 

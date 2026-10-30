@@ -1,4 +1,4 @@
-// Which vision projector (`--mmproj`) belongs to a Local AI model (docs/LOCAL_AI.md, "Pictures (Companions can see)").
+// Which vision projector (`--mmproj`) belongs to a Local AI model (docs/LOCAL_AI.md, "Vision (Companion vision)").
 //
 // A model has a projector when
 //   (a) its manifest entry names one: a pack manifest's `standard` / `lite` entry (`mmproj: 'models/x.gguf'`, bridge/local-ai-pack.mjs), a Mature marker's entry

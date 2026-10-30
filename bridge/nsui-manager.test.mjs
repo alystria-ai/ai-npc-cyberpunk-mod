@@ -31,6 +31,8 @@ const harness = (options = {}) => nsuiHarness({modules: everything, ...options})
     return count == highest
   end
   local function shownOutline() return table.concat(ns.outline(), ' | ') end
+  -- Settings is a list of category pages: this opens one of them from Home.
+  local function settingsPage(name) press('Settings'); press(name) end
   frames(3)
 `;
 
@@ -54,27 +56,41 @@ test('every page builds on the tab and the tab always starts with the way back, 
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
   for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'},
-      {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
+      {'Key bindings', 'Talk by voice'}, {'Settings', 'Settings'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
     assert(ns.sections()[2].label == page[2], page[1] .. ': ' .. ns.sections()[2].label)
     press('Back to Companion Manager')
     assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', 'back on Home')
   end
-  -- Settings has its sub-pages: Memory, Relationships, Help, the paid tier and the Custom endpoint, each with its Back to Settings at the top.
+  -- Settings is a list of category pages, each with its Back to settings at the top, and no row of any category sits on the list itself.
   press('Settings')
-  assert(ns.find('Memory') and ns.find('Relationships') and ns.find('Help and support') and ns.find('Convai paid tier') and ns.find('Custom endpoint'))
-  for _, page in ipairs({'Memory', 'Relationships', 'Help and support', 'Convai paid tier', 'Custom endpoint'}) do
+  assert(not ns.find('Memory') and not ns.find('Subtitles') and not ns.find('Conversation provider'), 'the list holds the Open rows only')
+  for _, page in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
     press(page)
     check(page, 'Back to settings')
+    assert(ns.sections()[2].label == page, page .. ': ' .. ns.sections()[2].label)
     press('Back to settings')
-    assert(ns.sections()[2].label == 'Interface', 'back on Settings after ' .. page)
+    assert(ns.sections()[2].label == 'Settings', 'back on the Settings list after ' .. page)
+  end
+  -- The pages that open from a row of a category page go back to that page (not to the list), each with its Back at the top.
+  for _, case in ipairs({{'AI provider', {'Convai paid tier', 'Custom endpoint'}}, {'Conversations', {'Memory', 'Relationships', 'Dynamic info'}},
+      {'Companions', {'Immersive invitations', 'Housemates'}}, {'Privacy and help', {'Help and support'}}}) do
+    press(case[1])
+    for _, page in ipairs(case[2]) do
+      press(page)
+      check(page, 'Back to settings')
+      press('Back to settings')
+      assert(ns.sections()[2].label == case[1], 'back on ' .. case[1] .. ' after ' .. page .. ', not on ' .. ns.sections()[2].label)
+    end
+    press('Back to settings')
   end
   -- Relationships is a button in Conversations (a page of its own, with one row per character), the Memory character list is part of
   -- the Memory page.
+  press('Conversations')
   local labels = {}
   for _, section in ipairs(ns.sections()) do labels[#labels + 1] = section.label end
-  assert(table.concat(labels, ','):find('Conversations,Conversation provider', 1, true) and not table.concat(labels, ','):find('Relationships', 1, true),
+  assert(table.concat(labels, ','):find('Conversations', 1, true) and not table.concat(labels, ','):find('Relationships', 1, true),
     table.concat(labels, ','))
   press('Relationships')
   assert(ns.sections()[2].label == 'Relationships' and ns.find('Judy Alvarez') and not ns.find('Memory'))
@@ -142,7 +158,7 @@ test('the model browser reads the scan first, then a letter group and a page of 
 `));
 
 test('the manager opens on its first page: after leaving the tab, after closing the screen and on the shortcut', () => run(`${harness()}
-  press('Settings'); press('Memory')
+  settingsPage('Conversations'); press('Memory')
   assert(ns.sections()[2].label == 'Memory')
   -- Another tab is chosen (the closed callback), then ours again: the first page.
   ns.leave(); frames(3)
@@ -163,21 +179,26 @@ test('the manager opens on its first page: after leaving the tab, after closing 
 `));
 
 test('a change is applied for real after a moment, as one transaction; rows the rules corrected are put back in place with one line under the way back', () => run(`${harness()}
-  press('Settings')
-  local gestures = ns.find('React to battles')
-  assert(gestures.state == true, 'battle reactions are on by default')
-  ns.interact.toggle(gestures)
+  settingsPage('Companions')
+  local reactions = ns.find('Companions react')
+  assert(reactions.state == true, 'Companions react is on by default')
+  ns.interact.toggle(reactions)
   frames(1)
   assert(manager.snapshot(player).settings.battleReactions == true, 'nothing is saved at the moment of the click')
   frames(6)
-  assert(manager.snapshot(player).settings.battleReactions == false and saved.battleReactions == false and saved.battleReactionsChosen == true, 'applied once the changes have settled')
-  assert(ns.find('React to battles') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
+  assert(manager.snapshot(player).settings.battleReactions == false and saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true, 'applied once the changes have settled, as both stored settings')
+  assert(ns.find('Companions react') == reactions and reactions.state == false, 'the row is the same widget and shows the saved value')
+  -- Subtitles Off keeps the chosen display.
+  press('Back to settings'); press('Interface')
+  ns.interact.select(ns.find('Subtitles'), 1); frames(8)
+  assert(saved.subtitles == false and saved.subtitleStyle == 'dialogue' and ns.find('Subtitles').selectedElementIndex == 1, 'Off, the chosen display is kept')
+  press('Back to settings'); press('Voice and microphone')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
-  ns.interact.select(ns.find('Subtitles'), 1); ns.interact.select(ns.find('Companion voices'), 1)
+  ns.interact.select(ns.find('V’s voice'), 1); ns.interact.select(ns.find('Companion voices'), 1)
   frames(8)
-  assert(saved.subtitles == false and saved.voice == false and saved.voiceProvider == 'pocket' and saved.subtitleStyle == 'dialogue', 'Off for both rows, the chosen voice and display are kept')
-  assert(ns.find('Companion voices').selectedElementIndex == 1 and ns.find('Subtitles').selectedElementIndex == 1 and ns.find('Voice playback') == nil and ns.find('Subtitle display') == nil)
+  assert(saved.vVoice == false and saved.vVoiceMic == false and saved.voice == false and saved.voiceProvider == 'pocket', 'Off for both rows, the chosen voice is kept')
+  assert(ns.find('Companion voices').selectedElementIndex == 1 and ns.find('V’s voice').selectedElementIndex == 1 and ns.find('Voice playback') == nil)
   local settingsWrites = 0
   for index = writes + 1, #fileWrites do if fileWrites[index].path == 'runtime/settings.json' or fileWrites[index].path:find('settings', 1, true) then settingsWrites = settingsWrites + 1 end end
   assert(settingsWrites <= 2, 'one transaction (a file and its swap), not one per change: ' .. settingsWrites)
@@ -185,10 +206,10 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   ns.interact.select(ns.find('Companion voices'), 2); frames(8); ns.verify()
   assert(saved.voice == true and saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 2)
   -- A refused choice goes back and says why; the other change in the same moment is kept.
-  ns.interact.toggle(ns.find('React to collected loot'))
+  ns.interact.toggle(ns.find('Speak dialogue choices'))
   ns.interact.select(ns.find('Companion voices'), 3)   -- Voxtral without a Mistral key
   frames(8); ns.verify()
-  assert(saved.lootReactions == false, 'the change that could be made was made')
+  assert(saved.voiceChoices == true, 'the change that could be made was made')
   assert(ns.find('Companion voices').selectedElementIndex == 2, 'the refused voice went back to the saved one')
   assert(managerUi.inspect().shown == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Requires a Mistral key', 1, true) == 1, 'the line is under the way back')
@@ -203,13 +224,13 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   assert(managerUi.inspect().shown:find('Natural speech needs a local voice', 1, true), tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Natural speech needs a local voice', 1, true) == 1)
   -- The line goes away with the next page.
-  press('Back to Companion Manager')
+  press('Back to settings')
   assert(not managerUi.inspect().shown)
 `));
 
 test('a slider is applied once, after it stops moving, and the page is not drawn again while it is held', () => run(`${harness()}
-  press('Settings')
-  local volume = ns.find('Voice volume (%)')
+  settingsPage('Voice and microphone')
+  local volume = ns.find('Companion voice volume (%)')
   assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 300 and volume.step == 5)
   local vVolume = ns.find('V’s voice volume (%)')
   assert(vVolume.type == 'rangeInt' and vVolume.min == 50 and vVolume.max == 300 and vVolume.step == 5 and vVolume.currentValue == 150 and volume.currentValue == 150, "V's own slider, same range, default 150")
@@ -218,7 +239,7 @@ test('a slider is applied once, after it stops moving, and the page is not drawn
   assert(manager.snapshot(player).settings.voiceVolume == 150, 'nothing saved while it moves')
   frames(10)
   assert(saved.voiceVolume == 300 and saved.vVoiceVolume == 150, tostring(saved.voiceVolume) .. ' / ' .. tostring(saved.vVoiceVolume))
-  assert(ns.find('Voice volume (%)') == volume and volume.currentValue == 300)
+  assert(ns.find('Companion voice volume (%)') == volume and volume.currentValue == 300)
   assert(ns.callCount('removeOption') == 0, 'the slider was not rebuilt')
   -- V's slider is applied the same way and leaves the other one alone.
   ns.interact.slide(vVolume, 250); frames(10)
@@ -237,7 +258,7 @@ test('Mature content turned on in place selects Local AI and the uncensored mode
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   files['runtime/local-voice-state.json'] = 'voice-state'
-  press('Settings')
+  settingsPage('AI provider')
   frames(20)
   local provider, model, mature = ns.find('Conversation provider'), ns.find('Local AI model'), ns.find('Mature content')
   assert(provider and model and mature, 'the rows are there')
@@ -266,7 +287,7 @@ test('Mature content turned off while the model row is on an uncensored model (n
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   files['runtime/local-voice-state.json'] = 'voice-state'
-  press('Settings')
+  settingsPage('AI provider')
   frames(20)
   -- Both packs installed, Mature content on, the uncensored model chosen, and no earlier choice recorded (it was set by hand, or by an older version).
   assert(manager.applySettings(player, {conversationProvider = 'local', matureContent = true, localModel = 'mature:unc'}))
@@ -291,7 +312,7 @@ test('Mature content beside Google Gemini or a saved legacy Mistral: turning it 
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   files['runtime/local-voice-state.json'] = 'voice-state'
-  press('Settings')
+  settingsPage('AI provider')
   frames(20)
   -- A saved legacy Mistral (shown as the third entry): Mature content cannot be on beside it, so turning it on selects Local AI and the uncensored model, and names them.
   assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
@@ -322,11 +343,14 @@ test('Mature content beside Google Gemini or a saved legacy Mistral: turning it 
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(saved.voiceProvider))
-  assert(managerUi.inspect().shown == 'Also changed: Pocket · Performance, V’s voice for typed lines.', tostring(managerUi.inspect().shown))
-  assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  assert(managerUi.inspect().shown == 'Also changed: Pocket · Performance, V’s voice engine.', tostring(managerUi.inspect().shown))
+  press('Back to settings'); press('Voice and microphone')
+  assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice engine').selectedElementIndex == 1)
+  press('Back to settings'); press('AI provider')
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
-  assert(ns.find('Companion voices').selectedElementIndex == 3 and ns.find('V’s voice for typed lines').selectedElementIndex == 3)
+  press('Back to settings'); press('Voice and microphone')
+  assert(ns.find('Companion voices').selectedElementIndex == 3 and ns.find('V’s voice engine').selectedElementIndex == 2)
 `));
 
 test('with Mature content on the Voxtral entries say so in their labels and a click on one is refused in place (Native Settings UI has no greyed-out entries), the rows go back to what is saved', () => run(`${harness()}
@@ -334,48 +358,53 @@ test('with Mature content on the Voxtral entries say so in their labels and a cl
   bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = true,
     localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
-  press('Settings')
+  settingsPage('Voice and microphone')
   frames(20)
   assert(manager.applySettings(player, {conversationProvider = 'local', matureContent = true}))
   frames(8)
-  local companions, engine = ns.find('Companion voices'), ns.find('V’s voice for typed lines')
+  local companions, engine = ns.find('Companion voices'), ns.find('V’s voice engine')
   local voxtral
   for index, label in ipairs(companions.elements) do if label:find('Voxtral', 1, true) then voxtral = index end end
-  assert(companions.elements[voxtral] == 'Voxtral · not with Mature' and engine.elements[3] == 'Voxtral · not with Mature', tostring(companions.elements[voxtral]))
+  assert(companions.elements[voxtral] == 'Voxtral · not with Mature' and engine.elements[2] == 'Voxtral · not with Mature', tostring(companions.elements[voxtral]))
   ns.interact.select(companions, voxtral); frames(8); ns.verify()
   assert(saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 2, 'refused, the row shows the saved voice')
   assert(managerUi.inspect().shown == 'Voxtral is not used with Mature content.', tostring(managerUi.inspect().shown))
-  ns.interact.select(ns.find('V’s voice for typed lines'), 3); frames(8); ns.verify()
-  assert(saved.vVoiceEngine == 'pocket' and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  ns.interact.select(ns.find('V’s voice engine'), 2); frames(8); ns.verify()
+  assert(saved.vVoiceEngine == 'pocket' and ns.find('V’s voice engine').selectedElementIndex == 1)
   assert(managerUi.inspect().shown == 'Voxtral is not used with Mature content.', tostring(managerUi.inspect().shown))
 `));
 
 
-test('Restore defaults goes through the same validated path, only on the Settings page', () => run(`${harness()}
-  -- On another page it says where it works and changes nothing.
+test('Restore defaults goes through the same validated path, on Settings and every category page, and only there', () => run(`${harness()}
+  -- On a page that has none (Home) it says where it works and changes nothing.
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
-  press('Settings')
   assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 200, vVoiceVolume = 80, voiceProvider = 'convai',
-    naturalSpeech = false}))
+    naturalSpeech = false, reputation = false}))
   frames(20)
-  assert(ns.find('React to battles').state == false and ns.find('Subtitles').selectedElementIndex == 3)
+  settingsPage('Voice and microphone')
+  assert(ns.find('Companion voice volume (%)').currentValue == 200 and ns.find('V’s voice volume (%)').currentValue == 80)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true)
+  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true and settings.reputation == true,
+    'the rows of every page, from the Voice page')
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
-  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 150 and ns.find('V’s voice volume (%)').currentValue == 150 and ns.find('Battle reactions') == nil)
-  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 2)
+  assert(ns.find('Companion voice volume (%)').currentValue == 150 and ns.find('V’s voice volume (%)').currentValue == 150 and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
-  -- Restore defaults after the cloud voice was chosen puts the default voice back.
+  press('Back to settings'); press('Companions')
+  assert(ns.find('Companions react').state == true and ns.find('Battle reactions') == nil)
+  press('Back to settings'); press('Interface')
+  assert(ns.find('Subtitles').selectedElementIndex == 2)
+  -- Restore defaults after the cloud voice was chosen puts the default voice back, from the Settings list too.
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
   frames(4)
+  press('Back to settings')
   ns.interact.restoreDefaults(); frames(8)
   assert(manager.snapshot(player).settings.voiceProvider == 'pocket')
   -- The Relationships page is part of Settings: its rows go back to Auto too.
   assert(manager.applySettings(player, {relationshipModes = {['judy-alvarez'] = 'on'}}))
-  press('Relationships'); frames(4)
+  press('Conversations'); press('Relationships'); frames(4)
   assert(ns.find('Judy Alvarez').selectedElementIndex == 2)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto')
@@ -383,8 +412,8 @@ test('Restore defaults goes through the same validated path, only on the Setting
 `));
 
 test('Dynamic info is a page of its own on the Native Settings UI tab: twelve switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
-  press('Settings')
-  local open = assert(ns.find('Dynamic info'), 'no Dynamic info button on Settings')
+  settingsPage('Conversations')
+  local open = assert(ns.find('Dynamic info'), 'no Dynamic info button on Conversations')
   assert(open.type == 'button' and open.buttonText == 'Open')
   assert(not ns.find('Location'), 'the switches are on their own page')
   press('Dynamic info')
@@ -410,7 +439,7 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   assert(ns.find('Location').state == true and ns.find('Other mods’ state').state == false and managerUi.inspect().shown == 'Defaults restored.')
   assert(convaiDynamicInfo.location == true and saved.dynamicInfo.location == true)
   press('Back to settings')
-  assert(managerUi.inspect().view == 'settings')
+  assert(managerUi.inspect().view == 'settings-conversations')
 `));
 
 test('without Native Settings UI the shortcut says so; a copy that loads later is found and registered', () => run(`${harness({nsui: false, screen: false})}
@@ -434,7 +463,7 @@ test('without Native Settings UI the shortcut says so; a copy that loads later i
   assert(ns.find('Characters to invite'))
 `));
 
-test('add-on settings are rows of the Settings page, staged and committed with the main settings', () => run(`${harness()}
+test('add-on settings are rows of the Content packs page, staged and committed with the main settings', () => run(`${harness()}
   local committed = {}
   convaiAddons = {live = true, staged = {}, values = {remarkGap = 2, markLines = true}}
   function convaiAddons.settingsSections()
@@ -456,22 +485,30 @@ test('add-on settings are rows of the Settings page, staged and committed with t
   end
   function convaiAddons.signature() return tostring(convaiAddons.values.remarkGap) .. tostring(convaiAddons.values.markLines) end
   press('Settings'); frames(4)
+  assert(ns.find('Content packs') and ns.find('Content packs').buttonText == 'Open', 'with an add-on that has settings the list has a Content packs page')
+  assert(not ns.find('Time between remarks'), 'the add-on rows are not on the list')
+  press('Content packs'); frames(4)
   local labels = {}
   for _, section in ipairs(ns.sections()) do labels[#labels + 1] = section.label end
   assert(table.concat(labels, ','):find('Skippy', 1, true), 'the add-on has its section: ' .. table.concat(labels, ','))
   local gap, marks = ns.find('Time between remarks'), ns.find('Mark our lines in the subtitles')
   assert(gap.type == 'selectorString' and gap.selectedElementIndex == 2 and marks.type == 'switch' and marks.state == true)
-  -- An add-on change alone is saved by the add-on; with a main change in the same moment, after the main settings were saved.
-  ns.interact.select(gap, 3); ns.interact.select(ns.find('Subtitles'), 1); frames(8); ns.verify()
+  -- An add-on change alone is saved by the add-on.
+  ns.interact.select(gap, 3); frames(8); ns.verify()
   assert(table.concat(committed, ',') == 'addon:skippy:remarkGap=3', table.concat(committed, ','))
-  assert(saved.subtitles == false and ns.find('Time between remarks').selectedElementIndex == 3)
-  -- A refused main change drops the add-on's staged change with it (nothing is half saved), and the row goes back.
+  assert(ns.find('Time between remarks').selectedElementIndex == 3)
+  -- The add-on rows and the main rows sit on different pages, so a batch of both comes from Restore defaults or from another host: the add-on change is
+  -- committed after the main settings were saved.
   committed = {}
-  ns.interact.toggle(marks)
-  ns.interact.select(ns.find('Companion voices'), 3)
-  frames(8)
-  assert(table.concat(committed, ',') == 'addon:skippy:markLines=false', 'the add-on change is its own: ' .. table.concat(committed, ','))
-  assert(ns.find('Companion voices').selectedElementIndex == 2)
+  local result = core.apply({{id = 'addon:skippy:remarkGap', value = 1}, {id = 'subtitleStyle', value = 1}})
+  assert(result.ok, tostring(result.error))
+  assert(saved.subtitles == false and table.concat(committed, ',') == 'addon:skippy:remarkGap=1', table.concat(committed, ','))
+  -- A refused main change drops the add-on's staged change with it (nothing is half saved).
+  committed = {}
+  convaiAddons.staged = {}
+  local refused = core.apply({{id = 'addon:skippy:markLines', value = false}, {id = 'voiceProvider', value = 3}})   -- Voxtral without a Mistral key
+  assert(not refused.ok, 'the batch is refused')
+  assert(#committed == 0 and #convaiAddons.staged == 0, 'nothing of the add-on was kept: ' .. table.concat(committed, ','))
 `));
 
 test('nothing runs while the Mods screen is closed: no calls into Native Settings UI, no page build, no reads of the page state', () => run(`${harness()}
@@ -521,7 +558,8 @@ test('the tab keeps what is on screen current: a state that changes is drawn, a 
 test('sections are only ever removed from the end, so Native Settings UI never holds a hole in its list', () => run(`${harness()}
   local function holes() return not dense(ns.data[TAB]) end
   for _, name in ipairs({'Settings', 'Back to Companion Manager', 'Characters to invite', 'Back to Companion Manager', 'Parties',
-      'Back to Companion Manager', 'Settings', 'Memory', 'Back to settings', 'Help and support', 'Back to settings', 'Back to Companion Manager'}) do
+      'Back to Companion Manager', 'Settings', 'Conversations', 'Memory', 'Back to settings', 'Back to settings', 'Privacy and help', 'Help and support',
+      'Back to settings', 'Back to settings', 'Back to Companion Manager'}) do
     press(name)
     assert(not holes(), 'a hole after ' .. name)
   end
@@ -566,8 +604,8 @@ test('Mod Configuration Menu installed beside it changes nothing for the host: t
     return base(name)
   end
   frames(5)
-  press('Settings'); ns.verify()
-  assert(ns.find('React to battles'), 'the page works')
+  settingsPage('Companions'); ns.verify()
+  assert(ns.find('Companions react'), 'the page works')
   assert(convaiSetupCheck, 'the setup check is loaded')
   convaiSetupCheck.run(os.time())
   local text = table.concat(convaiSetupCheck.reportLines(), '\\n')
@@ -633,7 +671,8 @@ test('with a language that has its own font family the rows get it in batches; w
 test('no row on any page speaks of Inworld, a shared key or plan or calls an option recommended, with Developer mode off or on', () => run(`${harness()}
   local function everything()
     local text = {}
-    for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'memory', 'help', 'paid-tier', 'custom-endpoint'}) do
+    for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'settings-provider', 'settings-voice', 'settings-conversations', 'settings-companions',
+        'settings-night-city', 'settings-interface', 'settings-privacy', 'dynamic-info', 'memory', 'help', 'paid-tier', 'custom-endpoint'}) do
       core.setView(view); frames(view == 'models' and 140 or 8)
       for _, section in ipairs(ns.sections()) do
         text[#text + 1] = section.label
@@ -649,7 +688,7 @@ test('no row on any page speaks of Inworld, a shared key or plan or calls an opt
   assert(not off:find('inworld', 1, true), 'Inworld is visible with Developer mode off')
   assert(not off:find('recommend', 1, true) and not off:find('shared key', 1, true) and not off:find('shared plan', 1, true)
     and not off:find('shared convai', 1, true), 'a banned word is on a page')
-  core.setView('settings'); frames(4)
+  core.setView('settings-privacy'); frames(4)
   ns.interact.toggle(ns.find('Developer mode')); frames(10)
   assert(manager.snapshot(player).settings.developerMode == true)
   local on = everything()
@@ -730,7 +769,10 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
   local function titlePress(label) ns.interact.press(assert(ns.find(label), 'no row: ' .. label)); titleFrames(6); ns.verify() end
   -- Pages that need no save open.
   titlePress('Settings')
+  assert(ns.sections()[2].label == 'Settings' and ns.find('Interface'), shownOutline())
+  titlePress('Interface')
   assert(ns.sections()[2].label == 'Interface' and ns.find('Interface language'), shownOutline())
+  titlePress('Back to settings')
   titlePress('Back to Companion Manager')
   assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', shownOutline())
   -- Pages that need one say so, visibly, and their invite buttons are not offered as if they worked.
@@ -777,7 +819,8 @@ test('a read-only row shows its value (or its line) where a button would be, and
     end
     assert(row.controller.offStateBody.node.visible == false and row.controller.onStateBody.node.visible == false, 'the state bodies are hidden through the static reference')
   end
-  press('Settings'); press('Memory')
+  local function openMemory() settingsPage('Conversations'); press('Memory') end
+  openMemory()
   local line = assert(ns.find('Memory service'))
   assert(line.buttonText == 'Ready' or line.buttonText == 'Unavailable', line.buttonText)
   bare(line)
@@ -794,7 +837,7 @@ test('a read-only row shows its value (or its line) where a button would be, and
   -- The screen is closed and opened again: the rows are made again, and the frames are hidden again.
   ns.closeScreen(); frames(3)
   ns.openScreen(TAB); frames(2)
-  press('Settings'); press('Memory')
+  openMemory()
   bare(ns.find('Memory service'))
   local realAgain = ns.parts(ns.find('Forget all memories').controller)
   assert(realAgain.off.button and realAgain.bkFill and realAgain.bkBorder, 'a real button keeps its frame after a redraw')
@@ -849,23 +892,25 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   ${mirror}
   assert(ns.currentTab == '', 'the tab is not on screen')
   go('Settings')
+  go('Voice and microphone')
   local held = handles()
-  assert(#held > 20, 'the Settings page is mirrored: ' .. #held)
+  assert(#held > 10, 'the Voice and microphone page is mirrored: ' .. #held)
   -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
-  local gestures = ns.find('React to battles', TAB)
-  ns.setOption(gestures, not gestures.state); frames(8)
-  assert(manager.snapshot(player).settings.battleReactions == false, 'the change was applied')
+  local choices = ns.find('Speak dialogue choices', TAB)
+  ns.setOption(choices, not choices.state); frames(8)
+  assert(manager.snapshot(player).settings.voiceChoices == true, 'the change was applied')
   assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
-  ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
+  ns.setOption(ns.find('Companion voice volume (%)', TAB), 135); frames(8)
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
-  ns.setOption(ns.find('Subtitles', TAB), 3); frames(8)
-  assert(stale(held) == 0, 'selector: ' .. stale(held))
+  ns.setOption(ns.find('V’s voice', TAB), 3); frames(8)
+  assert(saved.vVoice == true and saved.vVoiceMic == true and stale(held) == 0, 'selector: ' .. stale(held))
   -- A rule that moves another row (Natural speech moves the voice) and puts a line under the way back: still the same options.
   ns.setOption(ns.find('Natural speech', TAB), true); frames(8)
   assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'the rule ran')
   assert(stale(held) == 0, 'rule: ' .. stale(held))
   assert(ns.find('Companion voices', TAB).selectedElementIndex == 2, 'and the row shows the corrected value')
   -- Pressing a button through the mirror works while the tab is not on screen, and the page it opens is the page MCM reads next.
+  go('Back to settings')
   go('Back to Companion Manager')
   assert(#ns.sections(TAB) == 1 and ns.sections(TAB)[1].options[1].label == 'Characters to invite')
 `));
@@ -873,27 +918,28 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
 test('a row whose text changes while the tab is not on screen is updated in place (same option table, new label); on screen it is replaced as before', () => run(`${harness({screen: false, locale: 'de'})}
   ${mirror}
   go('Settings')
+  go('Companions')
   local held = handles()
-  local gestures = ns.find('React to battles', TAB)
+  local gestures = ns.find('Companions react', TAB)
   local label = gestures.label
   ns.resetCalls()
   convaiUiLocale.configure('de'); convaiUiLocale.update(0)
   managerUi._test.render(); frames(2)
-  assert(ns.find('React to battles', TAB) == nil, 'the page is drawn in German now')
+  assert(ns.find('Companions react', TAB) == nil, 'the page is drawn in German now')
   assert(gestures.label ~= label, 'the same option table carries the new label: ' .. gestures.label)
   assert(stale(held) == 0, 'no handle was invalidated by the language change: ' .. stale(held))
   assert(ns.callCount('removeOption') == 0, 'nothing was removed')
   -- The same change with the tab on screen replaces the rows (their widgets show what they were spawned with).
   convaiUiLocale.configure('en'); convaiUiLocale.update(0)
   ns.openScreen(TAB); frames(6); ns.verify()
-  assert(ns.find('React to battles', TAB) ~= gestures, 'on screen the row is a new widget')
+  assert(ns.find('Companions react', TAB) ~= gestures, 'on screen the row is a new widget')
 `));
 
 test('a draw of the tab never rebuilds what has not changed: a value changed from the screen leaves every option table and no call but the setter', () => run(`${harness()}
-  press('Settings')
+  settingsPage('Companions')
   local held = (function() local list = {} for _, section in ipairs(ns.sections()) do for _, option in ipairs(section.options) do list[#list + 1] = option end end return list end)()
   ns.resetCalls()
-  ns.interact.toggle(ns.find('React to battles')); frames(8); ns.verify()
+  ns.interact.toggle(ns.find('Companions react')); frames(8); ns.verify()
   assert(ns.callCount('removeOption') == 0 and ns.callCount('removeSubcategory') == 0 and ns.callCount('addSubcategory') == 0,
     'a value change rebuilt something: ' .. ns.callCount('removeOption'))
   local now, same = {}, 0
@@ -920,12 +966,12 @@ const customState = `
   local function geminiCommand() return jsonFixtures[files['runtime/gemini-provider-command.json']] end
 `;
 
-test('Custom endpoint is a page of its own: one button on Settings where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => run(`${harness()}
+test('Custom endpoint is a page of its own: one button on AI provider where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => run(`${harness()}
   ${customState}
-  press('Settings')
-  assert(ns.find('Custom endpoint').buttonText == 'Open', 'one button on Settings')
-  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on Settings any more') end
-  -- The Google Gemini key and its connection test are rows of Settings (a second instance of the same module, on its own files). Add sends preset-gemini, a saved key shows its last four characters.
+  settingsPage('AI provider')
+  assert(ns.find('Custom endpoint').buttonText == 'Open', 'one button on AI provider')
+  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on AI provider any more') end
+  -- The Google Gemini key and its connection test are rows of AI provider (a second instance of the same module, on its own files). Add sends preset-gemini, a saved key shows its last four characters.
   assert(ns.find('Mistral API key') == nil and ns.find('Google Gemini (free)') == nil)
   assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection') == nil, 'Google Gemini has the key row only: no Test connection')
   press('Google Gemini API key'); assert(geminiCommand().action == 'preset-gemini', tostring(geminiCommand() and geminiCommand().action))
@@ -954,7 +1000,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   local shown = {}
   for _, option in ipairs(sections[2].options) do shown[#shown + 1] = option.label end
   assert(table.concat(shown, ' | ') == 'Mistral | Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
-  assert(ns.find('Conversation provider') == nil and ns.find('Subtitles') == nil, 'nothing of Settings is on the page')
+  assert(ns.find('Conversation provider') == nil and ns.find('Subtitles') == nil, 'nothing of AI provider is on the page')
   press('Mistral'); assert(command().action == 'preset-mistral', tostring(command() and command().action))
   press('Custom endpoint URL'); assert(command().action == 'paste-url', tostring(command() and command().action))
   press('Custom API key'); assert(command().action == 'paste-key')
@@ -973,24 +1019,24 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   assert(ns.find('Test connection (Failed)'), shownOutline())
   assert(ns.find('Test connection (Failed)').desc:find('The endpoint does not know that model ID.', 1, true))
   press('Back to settings')
-  assert(ns.sections()[2].label == 'Interface' and ns.find('Custom endpoint') and ns.find('Custom endpoint URL (x.ai)') == nil)
-  press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
+  assert(ns.sections()[2].label == 'AI provider' and ns.find('Custom endpoint') and ns.find('Custom endpoint URL (x.ai)') == nil, 'back on AI provider, not on the Settings list')
+  press('Custom endpoint'); press('Back to settings'); press('Back to settings'); press('Back to Companion Manager')
   assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite')
 `));
 
 test('Custom endpoint with a change just made: the change is still applied after the page is opened, and the page has no pending state of its own', () => run(`${harness()}
-  press('Settings')
-  ns.interact.select(ns.find('Subtitles'), 1)
+  settingsPage('AI provider')
+  ns.interact.toggle(ns.find('Allow Local AI to use RAM'))
   press('Custom endpoint')
   frames(8); ns.verify()
   assert(managerUi.inspect().view == 'custom-endpoint', 'still on the page')
-  assert(saved.subtitles == false, 'the change made on Settings was applied')
+  assert(saved.localOffload == true, 'the change made on AI provider was applied')
   press('Back to settings')
-  assert(ns.find('Subtitles').selectedElementIndex == 1, 'and shown on Settings')
+  assert(ns.find('Allow Local AI to use RAM').state == true, 'and shown on AI provider')
 `));
 
-test('Custom endpoint is not offered without the provider module: no button on Settings, the page cannot be reached', () => run(`${harness({modules: withoutCustomModule})}
-  press('Settings')
+test('Custom endpoint is not offered without the provider module: no button on AI provider, the page cannot be reached', () => run(`${harness({modules: withoutCustomModule})}
+  settingsPage('AI provider')
   assert(ns.find('Custom endpoint') == nil, 'no button without the module')
   assert(ns.find('Conversation provider'), 'the rest of the page is there')
   core.setView('custom-endpoint'); frames(6)
@@ -998,7 +1044,7 @@ test('Custom endpoint is not offered without the provider module: no button on S
 `));
 
 test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
-  press('Settings')
+  settingsPage('Conversations')
   assert(ns.find('Johnny speaks up') == nil and ns.find('Johnny’s standing') == nil, 'the separate rows are gone')
   local row = ns.find('Johnny in your head')
   assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
@@ -1020,7 +1066,7 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up norm
 `));
 
 test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; Often by default, stored as off, rare, medium, normal', () => run(`${harness()}
-  press('Settings')
+  settingsPage('Conversations')
   local row = ns.find('Companions speak up')
   assert(row.selectedElementIndex == 4 and table.concat(row.elements, ' | ') == 'Off | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
   assert(saved.companionSpeakUp == 'normal' and saved.speakUpOftenGiven == true, tostring(saved.companionSpeakUp))
@@ -1031,55 +1077,69 @@ test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally
   assert(saved.johnnyRemarks == 'off' and saved.johnnyInHead == false, 'the Johnny list is its own')
 `));
 
-test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
-  press('Settings')
-  local name = 'V’s voice for typed lines'
-  assert(ns.find('V’s voice engine') == nil, 'the engine row is gone')
+test('V’s voice is one list over typed and spoken lines and its engine is its own list: choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
+  settingsPage('Voice and microphone')
+  local name = 'V’s voice engine'
+  assert(ns.find('V’s voice for typed lines') == nil and ns.find('V’s voice for microphone lines') == nil, 'the old rows are gone')
+  local mode = ns.find('V’s voice')
+  assert(mode.selectedElementIndex == 2 and table.concat(mode.elements, ' | ') == 'Off | Typed lines | Typed and spoken lines', 'Typed lines by default: ' .. table.concat(mode.elements, ' | '))
   local row = ns.find(name)
-  assert(row.selectedElementIndex == 2, 'Pocket by default')
-  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
-  ns.interact.select(ns.find(name), 4); frames(8); ns.verify()
-  assert(managerUi.inspect().shown == 'Requires the Companion voices to be an OmniVoice choice', tostring(managerUi.inspect().shown))
-  assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused OmniVoice choice went back')
+  assert(row.selectedElementIndex == 1, 'Pocket by default')
+  assert(table.concat(row.elements, ' | ') == 'Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
   ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
+  assert(managerUi.inspect().shown == 'Requires the Companion voices to be an OmniVoice choice', tostring(managerUi.inspect().shown))
+  assert(ns.find(name).selectedElementIndex == 1 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused OmniVoice choice went back')
+  ns.interact.select(ns.find(name), 2); frames(8); ns.verify()
   assert(managerUi.inspect().shown == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', tostring(managerUi.inspect().shown))
-  assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused choice went back')
-  ns.interact.select(ns.find(name), 1); frames(8); ns.verify()
-  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.vVoiceChosen == true, tostring(saved.vVoice))
-  assert(ns.find(name).selectedElementIndex == 1)
-  ns.interact.select(ns.find(name), 2); frames(8)
-  assert(saved.vVoice == true and saved.vVoiceEngine == 'pocket' and ns.find(name).selectedElementIndex == 2)
+  assert(ns.find(name).selectedElementIndex == 1 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused choice went back')
+  -- The mode row: Off, Typed lines, Typed and spoken lines write the two stored settings.
+  ns.interact.select(ns.find('V’s voice'), 1); frames(8); ns.verify()
+  assert(saved.vVoice == false and saved.vVoiceMic == false and saved.vVoiceEngine == 'pocket' and saved.vVoiceChosen == true, tostring(saved.vVoice))
+  assert(ns.find('V’s voice').selectedElementIndex == 1)
+  ns.interact.select(ns.find('V’s voice'), 3); frames(8)
+  assert(saved.vVoice == true and saved.vVoiceMic == true and ns.find('V’s voice').selectedElementIndex == 3)
+  ns.interact.select(ns.find('V’s voice'), 2); frames(8)
+  assert(saved.vVoice == true and saved.vVoiceMic == false and ns.find('V’s voice').selectedElementIndex == 2)
   -- The Mistral key is saved: the entry has its name and is saved.
   jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
   files['runtime/mistral-state.json'] = 'mistral-key'
   clock = clock + 2; manager.snapshot(player); frames(10); ns.verify()
-  assert(ns.find(name).elements[3] == 'Voxtral · Mistral cloud', ns.find(name).elements[3])
-  ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
-  assert(saved.vVoice == true and saved.vVoiceEngine == 'voxtral' and ns.find(name).selectedElementIndex == 3)
-  -- Off keeps the engine that was saved, and Pocket on again is Pocket.
-  ns.interact.select(ns.find(name), 1); frames(8)
+  assert(ns.find(name).elements[2] == 'Voxtral · Mistral cloud', ns.find(name).elements[2])
+  ns.interact.select(ns.find(name), 2); frames(8); ns.verify()
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'voxtral' and ns.find(name).selectedElementIndex == 2)
+  -- The engine never turns V on or off: with V Off the engine that was saved stays.
+  ns.interact.select(ns.find('V’s voice'), 1); frames(8)
   assert(saved.vVoice == false and saved.vVoiceEngine == 'voxtral')
+  ns.interact.select(ns.find(name), 1); frames(8)
+  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket')
 `));
 
-test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => run(`${harness()}
-  press('Settings')
-  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
-  ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
-  ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
-  ns.interact.select(ns.find('Companions speak up'), 4)
+test('Companions react is on by default, and Restore defaults puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on', () => run(`${harness()}
+  settingsPage('Companions')
+  assert(ns.find('Companions react').state == true and ns.find('React to battles') == nil and ns.find('React to collected loot') == nil)
+  ns.interact.toggle(ns.find('Companions react'))
+  frames(10); ns.verify()
+  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
+  press('Back to settings'); press('Conversations')
+  ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('Companions speak up'), 4)
   frames(10); ns.verify()
   assert(saved.companionSpeakUp == 'normal')
-  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
+  press('Back to settings'); press('Voice and microphone')
+  ns.interact.select(ns.find('V’s voice'), 1)
+  frames(10); ns.verify()
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'normal' and ns.find('Companions speak up').selectedElementIndex == 4, 'companions are back to Often')
-  assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
-  assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
-  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
+  assert(settings.companionSpeakUp == 'normal', 'companions are back to Often')
+  assert(settings.vVoice == true and settings.vVoiceMic == false and settings.vVoiceEngine == 'pocket', 'V speaks typed lines with Pocket')
+  assert(ns.find('V’s voice').selectedElementIndex == 2 and ns.find('V’s voice engine').selectedElementIndex == 1)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
+  press('Back to settings'); press('Conversations')
+  assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('Companions speak up').selectedElementIndex == 4)
+  press('Back to settings'); press('Companions')
+  assert(ns.find('Companions react').state == true)
 `));
 
 // ---------------------------------------------------------------------------------------------------- Home > Character editor (2026-10-22)
@@ -1103,8 +1163,8 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   frames(20)
   assert(commandWrites() == before + 2, 'nothing is sent by the frames that follow')
   -- Settings still has its own row for the same request.
-  press('Settings')
-  assert(ns.find('Edit characters') and not ns.find('Character editor'), 'Edit characters on Settings, the Home row only on Home')
+  settingsPage('AI provider')
+  assert(ns.find('Edit characters') and not ns.find('Character editor'), 'Edit characters on AI provider, the Home row only on Home')
 `));
 
 test('Native Settings UI: with the conversation service stopped the Character editor row says so and writes nothing; without the module it is not on Home', () => {
@@ -1181,17 +1241,25 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));
 
-test('V’s voice for microphone lines is its own select: independent of the typed lines row, any on/off pair, one shared engine', () => run(`${harness()}
-  press('Settings'); frames(8)
-  local typed, mic = ns.find('V’s voice for typed lines'), ns.find('V’s voice for microphone lines')
-  assert(mic and mic.type == 'selectorString' and table.concat(mic.elements, ' | ') == table.concat(typed.elements, ' | '), 'the same four entries')
-  assert(typed.selectedElementIndex == 2 and mic.selectedElementIndex == 1, 'typed lines on Pocket, the microphone Off by default')
-  -- Microphone on, typed off: the row shows the engine, the other stays Off.
-  ns.interact.select(mic, 2); ns.interact.select(typed, 1); frames(8); ns.verify()
-  assert(saved.vVoiceMic == true and saved.vVoice == false and saved.vVoiceEngine == 'pocket')
-  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 1 and ns.find('V’s voice for microphone lines').selectedElementIndex == 2)
-  -- Typed on, microphone off.
-  ns.interact.select(ns.find('V’s voice for typed lines'), 2); ns.interact.select(ns.find('V’s voice for microphone lines'), 1); frames(8); ns.verify()
-  assert(saved.vVoiceMic == false and saved.vVoice == true)
-  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 2 and ns.find('V’s voice for microphone lines').selectedElementIndex == 1)
+test('V’s voice has no row of its own for microphone lines any more: one list over typed and spoken lines, with the engine shared', () => run(`${harness()}
+  settingsPage('Voice and microphone'); frames(8)
+  assert(ns.find('V’s voice for microphone lines') == nil and ns.find('V’s voice for typed lines') == nil, 'the two old rows are gone')
+  local mode, engine = ns.find('V’s voice'), ns.find('V’s voice engine')
+  assert(mode.type == 'selectorString' and engine.type == 'selectorString' and #mode.elements == 3 and #engine.elements == 3)
+  assert(mode.selectedElementIndex == 2 and engine.selectedElementIndex == 1, 'typed lines on Pocket by default')
+  -- Typed and spoken lines: the microphone lines come on, the typed ones stay on, the engine is the one shared engine.
+  ns.interact.select(mode, 3); frames(8); ns.verify()
+  assert(saved.vVoiceMic == true and saved.vVoice == true and saved.vVoiceEngine == 'pocket')
+  assert(ns.find('V’s voice').selectedElementIndex == 3)
+  -- Off: both go off together. Typed lines: typed on, microphone off.
+  ns.interact.select(ns.find('V’s voice'), 1); frames(8); ns.verify()
+  assert(saved.vVoiceMic == false and saved.vVoice == false and ns.find('V’s voice').selectedElementIndex == 1)
+  ns.interact.select(ns.find('V’s voice'), 2); frames(8); ns.verify()
+  assert(saved.vVoiceMic == false and saved.vVoice == true and ns.find('V’s voice').selectedElementIndex == 2)
+  -- A file that has the microphone on and typed lines off (the old pair) shows Typed and spoken lines and keeps the engine.
+  assert(manager.applySettings(player, {vVoice = false, vVoiceMic = true}))
+  frames(20)
+  press('Back to settings'); press('Back to Companion Manager')
+  settingsPage('Voice and microphone')
+  assert(ns.find('V’s voice').selectedElementIndex == 3 and ns.find('V’s voice engine').selectedElementIndex == 1)
 `));

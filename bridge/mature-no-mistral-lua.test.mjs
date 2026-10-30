@@ -25,6 +25,8 @@ const harness = () => `
     for _ = 1, count or 8 do clock = clock + (step or 0.1); managerUi.update(player, true); if mcm then mcm.update() end end
   end
   local function press(label) local ok, why = mcm.press(label); assert(ok, why); frames(2) end
+  -- Mature content is on the AI provider page. The first call walks Settings > AI provider, a later one finds itself already there.
+  local function toProvider() pcall(press, 'Settings'); pcall(press, 'AI provider'); frames(8) end
   local MODELS = {{id = 'lite', name = 'Bonsai', sizeMiB = 1156}, {id = 'mature:lite', name = 'Qwen uncensored', sizeMiB = 2582},
     {id = 'standard', name = 'Gemma', sizeMiB = 4916}, {id = 'mature:good', name = 'Gemma uncensored', sizeMiB = 5088}}
   local stateCount = 0
@@ -81,7 +83,7 @@ test('Apply writes the settings once, and no saved state ever has Convai in it w
           bridge(initial, key, pack); custom(ready)
           local cloudVoice = key and 'voxtral' or 'pocket'
           assert(manager.applySettings(player, {matureContent = false, conversationProvider = initial, useOwnConvaiKey = false, voiceProvider = cloudVoice, vVoice = true, vVoiceEngine = cloudVoice}))
-          pcall(press, 'Settings'); frames(12)
+          toProvider(); frames(4)
           local label = initial .. ' pack ' .. tostring(pack) .. ' key ' .. tostring(key) .. ' custom ' .. tostring(ready)
           -- Turn Mature content on and press Apply.
           local before = #fileWrites
@@ -97,7 +99,7 @@ test('Apply writes the settings once, and no saved state ever has Convai in it w
           -- And off again.
           before = #fileWrites
           bridge(saved.conversationProvider, key, pack); frames(8)
-          pcall(press, 'Settings'); frames(8)
+          toProvider()
           mcm.set('Mature content', false)
           mcm.apply(); frames(8)
           check(label .. ' off', before, want, initial)
@@ -116,7 +118,7 @@ test('the live-test settings (Mistral, a key, the Local AI pack, Voxtral voices)
   mcm.openScreen(); frames(2)
   bridge('mistral', true, true); custom(false)
   assert(manager.applySettings(player, {conversationProvider = 'mistral', voiceProvider = 'voxtral', vVoice = true, vVoiceEngine = 'pocket'}))
-  press('Settings'); frames(12)
+  press('Settings'); press('AI provider'); frames(12)
   local before = #fileWrites
   assert(mcm.set('Mature content', true))
   local ok, why = mcm.apply()
@@ -139,23 +141,27 @@ test('the live-test settings (Mistral, a key, the Local AI pack, Voxtral voices)
     return choices and choices.states
   end
   frames(4)
+  -- The voice rows are on the Voice and microphone page: MCM only knows the page on screen.
+  press('Back to settings'); press('Voice and microphone'); frames(4)
   local companions = states('voiceProvider')
   assert(companions, 'MCM was given choice states for the companion voices')
   local greyed = {}
   for index, state in pairs(companions) do if state.enabled == false then greyed[#greyed + 1] = index .. ':' .. tostring(state.reason) end end
   assert(#greyed == 1 and greyed[1]:find('Voxtral is not used with Mature content.', 1, true), table.concat(greyed, ' | '))
-  local engine = states('vVoice')
-  assert(engine and engine[3].enabled == false and engine[3].reason == 'Voxtral is not used with Mature content.', engine and tostring(engine[3].reason))
-  assert(engine[1].enabled ~= false and engine[2].enabled ~= false)
+  local engine = states('vVoiceEngine')
+  assert(engine and engine[2].enabled == false and engine[2].reason == 'Voxtral is not used with Mature content.', engine and tostring(engine[2].reason))
+  assert(engine[1].enabled ~= false)
   -- MCM refuses a draft on a greyed-out entry, naming the reason.
-  local drafted, refusal = mcm.set('V’s voice for typed lines', 3)
+  local drafted, refusal = mcm.set('V’s voice engine', 2)
   assert(drafted == false and tostring(refusal):find('Mature', 1, true), tostring(refusal))
+  press('Back to settings'); press('AI provider'); frames(4)
   mcm.set('Mature content', false); assert(mcm.apply()); frames(8)
+  press('Back to settings'); press('Voice and microphone'); frames(4)
   assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.voiceProvider == 'voxtral')
   companions = states('voiceProvider')
   for index, state in pairs(companions) do assert(state.enabled ~= false, 'entry ' .. index .. ' is enabled again') end
-  engine = states('vVoice')
-  assert(engine[3].enabled ~= false, 'V’s Voxtral is enabled again (the key is saved)')
+  engine = states('vVoiceEngine')
+  assert(engine[2].enabled ~= false, 'V’s Voxtral is enabled again (the key is saved)')
 `));
 
 test('the settings poll mapping in the bridge: Mature content makes a saved Voxtral Pocket for the companions and V, off again when it is off, and a Mature turn on Local AI that fails is not handed to Mistral', () => {

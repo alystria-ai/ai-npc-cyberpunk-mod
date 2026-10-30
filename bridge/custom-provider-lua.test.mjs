@@ -18,7 +18,10 @@ function run(code) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
   const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
-  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  let error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  // Name the failing Lua line: the message only carries its number in the generated chunk.
+  const failedLine = /^\[string [^\]]*\]:(\d+):/.exec(error);
+  if (failedLine) error += '\n>> ' + (uiLocaleBootstrap + code).split('\n')[Number(failedLine[1]) - 1].trim().slice(0, 300);
   lua.lua_close(state);
   assert.equal(status, lua.LUA_OK, error);
 }
@@ -804,7 +807,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
   assert(row('custom-endpoint').type == 'action' and row('custom-endpoint').value == 'Open' and row('custom-endpoint').label == 'Custom endpoint')
   assert(not (row('custom-endpoint').description .. row('custom-endpoint').label):lower():find('recommend', 1, true))
-  -- The page: a way back first, then the four rows; the way back returns to Settings.
+  -- The page: a way back first, then the four rows, and the way back returns to the AI provider page.
   assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
   assert(loaded.categories[1].settings[1].id == 'custom-endpoint:back' and loaded.categories[1].settings[1].label == 'Back to settings')
   local pageIds = {}
@@ -818,7 +821,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   end
   assert(row('custom-url').label == 'Custom endpoint URL' and row('custom-url').value == 'Paste endpoint URL')
   assert(row('custom-test').disabled == true, 'no state file: the test cannot run')
-  assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings' and row('custom-endpoint') and not row('custom-url'))
+  assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings-provider' and row('custom-endpoint') and not row('custom-url'))
   -- The help of the provider row names Custom only where it would otherwise be wrong (the description area holds only so much): Custom too
   -- replaces Convai's cloud voice with a local one (2026-10-20 settings audit; bridge/description-fit.test.mjs keeps it within the area).
   local _, customs = provider.description:gsub('Custom', '')
@@ -853,23 +856,23 @@ test('without the module file (or with a module that fails) the page still shows
   // A module whose rows raise: the page is built without them.
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
   run(`${pageFixture(true, raising)}${stateFixture}
-    assert(invoke('tab:settings').ok)
+    assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', providerIds())
     assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
     assert(row('custom-url') == nil and row('custom-test') == nil and row('custom-endpoint:back'), 'the page opens without rows, with its way back')
-    assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings')
+    assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings-provider')
   `);
   // A module that raises while it is made.
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
   run(`${pageFixture(true, broken)}${stateFixture}
-    assert(invoke('tab:settings').ok)
+    assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,own-key', providerIds())
   `);
 });
 
 test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${pageFixture()}${stateFixture}
   files['runtime/custom-provider-command.json'] = ''
-  assert(invoke('tab:settings').ok and invoke('custom-endpoint').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok and invoke('custom-endpoint').ok)
   local removed, renamed = {}, {}
   local remove, rename = os.remove, os.rename
   os.remove = function(path) removed[#removed + 1] = path; return remove(path) end
@@ -908,7 +911,7 @@ test('the rows send their commands on their own channel, in place, with ids of t
 `));
 
 test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${pageFixture()}${stateFixture}
-  assert(invoke('tab:settings').ok and invoke('custom-endpoint').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok and invoke('custom-endpoint').ok)
   -- The page is drawn again when what it shows changes: the calls into Native Settings UI say whether it was.
   local function pump(times)
     for _ = 1, times or 3 do clock = clock + 2; managerUi.update(player, false) end
