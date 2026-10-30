@@ -123,7 +123,7 @@ test('TokenMeter: the ratio learned from one real prompt (Judy, Spanish line) ma
   for (const family of Object.keys(fixture.families)) {
     const meter = new TokenMeter({charsPerToken: seedRatio(FAMILIES[family])});
     const first = scenario('judy-full');
-    meter.observe(first, fixture.families[family].prompts['judy-full'].tokens);
+    meter.observe(first, truth(family, 'judy-full', first).tokens);   // scaled like the others: the Natural speech block in the fixture prompt may have been reworded since the recording
     assert(meter.samples === 1);
     for (const name of ['jackie-full', 'archetype-full', 'archetype2-full', 'judy-compact', 'judy-es', 'judy-ru', 'judy-ja', 'judy-full-mature-rules', 'judy-nohistory']) {
       const messages = scenario(name), real = truth(family, name, messages);
