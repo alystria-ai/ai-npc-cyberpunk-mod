@@ -446,3 +446,11 @@ memory note and, for the good ones, a lasting history line, so she brings it up 
 4. **Rewards and the grudge.** Bond and memory only for now, or also a small gift from the gift tables or a few eddies for a fight or a race win? And should the fight-at enemies count toward the Revenge ambush grudge
    and Street reputation (lore-honest, but a farming loop), or be staged and not counted (my lean)?
 5. **Voice for the finish line on Convai.** Zero extra Convai interactions per plan on every key (templated Phone Chat only, my lean), or allow one live end remark on the player's own key?
+
+## Owner's answers (2026-10-30)
+
+1. Setting: "Plans from talk" is a switch, off by default.
+2. Who proposes: both. V asks, and now and then a character suggests a plan in their own style.
+3. Game-placed characters stay strictly talk-only. Talk quests run only on our own copies.
+4. Rewards: bond points and a memory, sometimes a small gift or eddies, and fight-at enemies count toward Street reputation and Revenge ambushes.
+5. Convai cost: not answered yet, so the default stands: zero extra interactions per plan on the shared key.
