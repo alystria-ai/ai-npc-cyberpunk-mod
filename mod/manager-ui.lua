@@ -1123,7 +1123,7 @@ local function geminiRows(lastParagraph)
         message = sentenced and sentence or nil
     end
     rows[#rows + 1] = keyRow('Google Gemini API key',
-        'Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.',
+        'Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 500 replies, is not offered in every country, and Google may use free-plan chats to improve its products.',
         'Deletes the saved key.',
         'gemini-key', {saved = saved, tail = state.tail, message = message, add = true, checking = saved and state.check ~= nil and state.check.state == 'checking'},
         function() return instance.request('preset-gemini') end, function() return instance.request('clear-preset-gemini') end, lastParagraph)
