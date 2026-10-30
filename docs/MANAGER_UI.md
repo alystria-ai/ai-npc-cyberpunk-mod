@@ -301,14 +301,25 @@ search (one log line). The hint line on the page ("Type in the search box ...") 
 (`M.offerSearch`, set by `mcm-host.lua` while it is registered). **Native Settings UI has no text field**, so its Model browser keeps
 the letter group and the page slider.
 
-**Searching the character lists (2026-10-31, branch `feat/manager-search`).** Main characters to invite and Side characters to invite are searched
-with the same Search box of MCM as the Model browser (provider search mode, see above), but MCM draws that box dim until it is clicked and its
-public API has no text row and no way to focus the box, so the lists carry a section of their own above everything else (category id
-`character-search`, heading "Search characters", built by `M.searchCategory`, only where the host offers a text box, so never in NSUI):
-- No search: one button row, "Use the Search box, top right" with **How to search** (id `search:help`). Pressing it puts "Click the Search box at the top
+**Searching the character lists (2026-10-31, branches `feat/manager-search` and `feat/manager-search-box`).** Main characters to invite and Side characters to invite are searched
+two ways. MCM's own Search box works as for the Model browser (provider search mode, see above), but MCM draws it dim until it is clicked and its
+public API has no text row and no way to focus it, and Native Settings UI has no text box at all. So the lists carry a section of their own above
+everything else (category id `character-search`, heading "Search characters", built by `M.searchCategory`, in both hosts):
+- **Search by name** (id `search:box`, button "Search"), always: it opens the mod's own native text box, the talk box's kind, titled "Search characters"
+  (`Composer.reds` `ConvaiOpenSearchBox`, dressed by `composer-input.lua`: the same chat-bar look, the title and the hint "Type part of a name" in the interface
+  language). Enter applies the typed words as the list filter, Esc leaves the list as it was, Enter on an empty box shows the whole list again. The box
+  shares the talk box's token (so the talk key, the manager shortcut and every "a box is open" check treat it as open) but has fields of its own
+  (`m_convaiComposerMode` "search", `m_convaiSearchState` "open", "confirm" or "cancel", `m_convaiSearchText`): its words never reach
+  `m_convaiSubmittedText` or `m_convaiSubmissionReady`, so the talk path in `init.lua` never sees them, and no conversation state is touched. While a box
+  opened by the button is open, the slow tick reads its state (`M.pollSearchBox`, one nil check otherwise) and applies a confirmed text (`M.applySearchText`,
+  which also writes the text into MCM's box so the two ways agree and MCM's old text cannot bring an older search back). The menu stays open behind the box. A box
+  that never came up (`composer-input.lua` marks `searchShownAt` when its dialog initialises) is forgotten after three seconds (`ConvaiForgetSearchBox`) and
+  the status line says "The search box could not open." (with MCM, plus a pointer to its box). Whether the game's notification layer draws the box over the
+  paused pause menu (Native Settings UI) or over MCM's screen was not tried; if it does not, the watchdog makes the button fail cleanly.
+- MCM only, no search: a second row, "Use the Search box, top right" with **How to search** (id `search:help`). Pressing it puts "Click the Search box at the top
   right of this panel and type a name." on the status line under Back; the row's help says the same at length (the box is dim until it is clicked,
   every match on every page and letter is shown, case and accents do not matter, every typed word must start a word of the name).
-- A search is on: the row reads "search: pan · 2 found" with **Clear search** (id `search:clear`, `M.clearSearch`), and the title of the list says the
+- A search is on (typed in either box): the second row reads "search: pan · 2 found" with **Clear search** (id `search:clear`, `M.clearSearch`), and the title of the list says the
   same ("Main characters to invite · search: pan · 2 found · Page 1 / 1", from the `character-status` row; the query is cut after 18 width units).
   Clear search empties the host's box through the function the host gave `M.offerSearch(offered, clearBox)` (`mcm-host.lua`: `api.ui.setSearch(key, '')`)
   and the search itself; for one second the host ignores the old text still in MCM's context (`clearBoxUntil`), so the old words cannot bring the

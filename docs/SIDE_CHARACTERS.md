@@ -27,9 +27,10 @@ without a flag (doris-soto, marcus-barros, sofia-ramirez, randy-kutcher). The mo
 * The list is `snapshot.side` (`mod/manager.lua` `sideProfiles`): the minor profiles with `invite ~= false`, in name order, worked out once for
   the loaded roster (`M.configure` drops the cache).
 * **Search** works like the main list and searches all 557 whatever the letter group: case and accents are ignored and every typed word has to be
-  the start of a word of the name (or key), the rule of the phone's Chat search. In Mod Configuration Menu a **Search characters** section sits above the list
-  with a button that says where to type (the Search box at the top right of the panel, dim until it is clicked) and, once a search is on, "search: pan · 2 found"
-  with **Clear search**; the title of the list says the same. Native Settings UI has no text box, so there the page keeps Starts with and the page slider.
+  the start of a word of the name (or key), the rule of the phone's Chat search. A **Search characters** section sits above the list in
+  both hosts. **Search by name** opens the mod's own text box (titled "Search characters", Enter applies, Esc cancels, an empty Enter shows all). In Mod Configuration
+  Menu a second row points at its own Search box (top right, dim until it is clicked), which keeps working. Once a search is on the section reads "search: pan · 2 found"
+  with **Clear search**, and the title of the list says the same.
 * **Starts with** groups by the first letter of the name (the Model browser's control). The roster holds no district or faction field, only a
   free-text summary, so the letter is the one reliable group. The groups are worked out the first time the page is built for a list and held.
 * **Paging**: twelve rows a page (`PAGE_SIZE`), the same page control as the other long lists. A page build reads twelve rows, never all 557.

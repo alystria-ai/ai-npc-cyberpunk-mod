@@ -18,7 +18,7 @@ function runLua(program) {
 const setup = `
 local language, generation, calls = 'fr', 1, {}
 local translations = {
-  fr={['TALK TO {character}']='PARLER À {character}',
+  fr={['TALK TO {character}']='PARLER À {character}',['Search characters']='Rechercher des personnages',['Type part of a name']='Saisissez une partie du nom',
     ['Type your message to the character.']='Écrivez votre message au personnage.',
     ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',
     ['Press Enter to write  /  Esc to close']='Entrée : écrire / Échap : fermer',
@@ -200,6 +200,24 @@ assert(title.text=='Judy {A}と話す' and c.placeholder=='' and message.text=='
 for _,key in ipairs(calls)do assert(key~='Judy {A}' and key~=c.draft)end
 assert(title.margin.bottom==44 and title.marginWrites==1,'re-applying does not stack the gap')
 assert(m.lastError==nil,m.lastError)
+`));
+
+test('the Search characters box of the manager is dressed like the talk box, titled and hinted in the interface language, and marks when it came up',()=>runLua(setup+`
+local m=(function()${composer}end)()
+local data={title='Search characters',message='Type part of a name.'}
+local n,c,title,message=notification(data)
+assert(m.searchShownAt==nil)
+m.apply(n)
+assert(title.text=='Rechercher des personnages' and c.placeholder=='Saisissez une partie du nom',title.text..'|'..tostring(c.placeholder))
+assert(message.text=='' and message.visible==false and c.case==textLetterCase.OriginalCase)
+assert(data.title=='Search characters' and data.message=='Type part of a name.','the English marker stays')
+assert(m.searchShownAt~=nil,'the box says it came up')
+assert(m.lastError==nil,m.lastError)
+-- A talk box does not mark a search, and another mod's notification with the same title but another message is left alone.
+local talk=notification({title='TALK TO Judy',message='Type your message to the character.'})
+m.searchShownAt=nil;m.apply(talk);assert(m.searchShownAt==nil)
+local other,oc,otitle=notification({title='Search characters',message='Something else'})
+m.apply(other);assert(otitle.text==''and m.searchShownAt==nil)
 `));
 
 test('world composer pads the typed text from the box edge once and never lowers a larger native margin',()=>runLua(setup+`

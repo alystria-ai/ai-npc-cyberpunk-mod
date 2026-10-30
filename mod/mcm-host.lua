@@ -90,9 +90,10 @@ local currentBack, pageSeen
 -- The Model browser's search (followSearch): the text of MCM's Search settings box as MCM last published it, the page the box was last
 -- followed on, and whether this MCM takes the provider search mode (false once it refused it).
 local contextSearch, searchView, searchProvider = '', nil, true
--- Until when (os.clock) the box's text is not followed after the Clear search button emptied it: MCM takes the new text a few frames later, and
--- the old text in its context must not bring the search back meanwhile. 0 = not waiting.
-local clearBoxUntil = 0
+-- After the host gave MCM's box a text (Clear search, or the words of the Search by name box): the text and until when (os.clock) the box's own
+-- text is not followed, because MCM takes the new text a few frames later and the old text in its context must not bring the old search back
+-- meanwhile. nil = not waiting.
+local boxWait
 -- The page controls of the page last loaded: the page of its long list and how many there are, the letter group and how many.
 -- `status` holds the status lines of the category being converted ({text, help}), which the heading says (see STATUS_ROWS).
 local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil, status = {}}
@@ -406,18 +407,19 @@ local function followSearch()
             contextSearch = ''
         end
     end
-    if clearBoxUntil > 0 then
-        if contextSearch ~= '' and os.clock() < clearBoxUntil then return end
-        clearBoxUntil = 0
+    if boxWait then
+        if contextSearch ~= boxWait.text and os.clock() < boxWait.untilClock then return end
+        boxWait = nil
     end
     if (view == 'models' or view == 'characters' or view == 'side' or view == 'party') and searchProvider then core.setSearch(contextSearch) end
 end
 
--- The Clear search button of the two character lists (manager-ui.lua M.clearSearch): empties MCM's Search box with its public setSearch.
-local function clearSearchBox()
+-- Gives MCM's Search box a text with its public setSearch: Clear search (manager-ui.lua M.clearSearch, '') and the confirmed words of the Search by
+-- name box (M.applySearchText), so the box and the list always say the same.
+local function setSearchBox(text)
     if not api then return false end
-    local called, request = pcall(api.ui.setSearch, MOD_KEY, '')
-    contextSearch, clearBoxUntil = '', os.clock() + 1
+    local called, request = pcall(api.ui.setSearch, MOD_KEY, text)
+    contextSearch, boxWait = text, {text = text, untilClock = os.clock() + 1}
     return called and request ~= nil
 end
 
@@ -663,7 +665,7 @@ local function connect()
     localeRevision = ui.revision()
     pcall(api.refreshProvider, PROVIDER)
     applyPresentation()
-    core.offerSearch(searchProvider, clearSearchBox)
+    core.offerSearch(searchProvider, setSearchBox)
     log('Companion Manager registered with Mod Configuration Menu ' .. version)
     return true
 end

@@ -1256,7 +1256,8 @@ test('Main characters to invite has a Search section above the list: a button th
   press('Main characters to invite')
   local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
   assert(headings() == 'Search characters | Main characters to invite · Page 1 / 2', headings())
-  assert(mcm.rows()[2].id == 'search:help', 'the search row follows Back: ' .. tostring(mcm.rows()[2].id))
+  assert(mcm.rows()[2].id == 'search:box' and mcm.rows()[3].id == 'search:help', 'the search rows follow Back: ' .. tostring(mcm.rows()[2].id))
+  assert(mcm.row('search:box').label == 'Search by name' and mcm.row('search:box').value == 'Search')
   local help = mcm.row('search:help')
   assert(help.type == 'action' and help.value == 'How to search' and help.label == 'Use the Search box, top right' and not help.disabled)
   press('search:help')
@@ -1277,6 +1278,37 @@ test('Main characters to invite has a Search section above the list: a button th
   -- The Model browser keeps its own search (no section there), and Parties' box is still the name for Rename.
   press('Back to Companion Manager'); press('Model browser')
   assert(mcm.row('search:help') == nil and not headings():find('Search characters', 1, true), headings())
+`));
+
+test('Search by name in MCM: the confirmed words are the search and are written into the own Search box of MCM, so its text does not bring the old search back', () => withScreen(`
+  ${footer}
+  press('Main characters to invite')
+  local box = {state = '', text = ''}
+  function player:ConvaiOpenSearchBox() box.state = 'open'; return true end
+  function player:ConvaiSearchBoxState() return box.state end
+  function player:ConvaiTakeSearchText() local text = box.text; box.text = ''; if box.state ~= 'open' then box.state = '' end; return text end
+  function player:ConvaiForgetSearchBox() box.state = '' end
+  convaiComposerInput = {}
+  local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
+  press('search:box')
+  assert(box.state == 'open')
+  convaiComposerInput.searchShownAt = 1
+  box.state, box.text = 'confirm', 'Johnny'
+  frames(8)
+  assert(core.search() == 'johnny' and invites() == 1 and mcm.row('Johnny Silverhand'), 'the list is filtered')
+  assert(mcm.searchText() == 'Johnny', 'the MCM box holds the typed text: ' .. mcm.searchText())
+  assert(mcm.row('search:clear').label == 'search: johnny · 1 found' and headings():find('search: johnny · 1 found', 1, true), headings())
+  frames(10)
+  assert(core.search() == 'johnny', 'it stays')
+  -- Typing in MCM's own box still works as a second way, and Clear search empties both.
+  mcm.search('viktor'); frames(8)
+  assert(core.search() == 'viktor' and invites() == 1 and mcm.row('Viktor Vektor'))
+  press('search:clear'); frames(8)
+  assert(core.search() == '' and mcm.searchText() == '' and invites() == 12)
+  -- A cancelled box changes nothing.
+  press('search:box'); convaiComposerInput.searchShownAt = 1
+  box.state = 'cancel'; frames(8)
+  assert(core.search() == '' and invites() == 12)
 `));
 
 test('Clear search does not let the old text of MCM\'s box bring the search back while MCM takes the empty text', () => withScreen(`
