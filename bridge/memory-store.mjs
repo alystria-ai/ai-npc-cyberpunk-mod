@@ -37,6 +37,8 @@ const BACKOFF_FIRST_MS = 60000;
 const BACKOFF_MAX_MS = 15 * 60000;
 const EMBED_BATCH = 8;
 const EMBED_GAP_MS = 500;
+// The records the player edited that every private or phone turn carries (retrieve): how many, and the most characters.
+const PINNED = Object.freeze({k: 3, chars: 600});
 const DUPLICATE = 0.90;           // cosine at or above which a new fact updates an existing record
 const RECENCY_MS = 30 * 24 * 3600 * 1000;
 
@@ -393,7 +395,33 @@ export class MemoryStore {
    * The records worth remembering for this line, best first: [{id, kind, text}]. Empty for ordinary NPCs, the group channel, an
    * empty query, a missing embedder, or when embedding does not finish within `timeoutMs` (the late result is discarded).
    */
-  async retrieve({profileKey, query, channel = 'private', ambientKey, k = 4, budgetChars = 1200, minScore, timeoutMs = 400, signal} = {}) {
+  /**
+   * What the character remembers that bears on V's words: first the records the player edited in the editor (pinned, at most `PINNED.k`, newest first, `PINNED.chars` characters), which
+   * are in every private or phone turn because the player wrote them to be known (the similarity search below misses a natural question about them: with the shipped granite model 10 of 15
+   * natural questions about an edited fact were not brought up by their meaning, 2 of 15 with EmbeddingGemma, measured 2026-10-31), then the ones that match V's words by meaning. A bare greeting brings up nothing.
+   */
+  async retrieve(options = {}) {
+    const {profileKey, query, channel = 'private', ambientKey, budgetChars = 1200} = options;
+    if (ambientKey || !CHANNELS.includes(channel) || channel === 'group') return [];
+    const mine = this.#edited(profileKey, query);
+    const used = mine.reduce((sum, item) => sum + item.text.length + 1, 0);
+    const found = await this.#ranked({...options, budgetChars: Math.max(0, budgetChars - used)});
+    const have = new Set(mine.map(item => item.id));
+    return [...mine, ...found.filter(item => !have.has(item.id))];
+  }
+  #edited(profileKey, query) {
+    const row = this.rows.get(profileKey), text = clean(query, 500);
+    if (!row || !text || isPureSmallTalk(text)) return [];
+    const out = [];
+    let length = 0;
+    for (const record of row.records.filter(item => item.pinned).sort((a, b) => b.updated - a.updated)) {
+      if (out.length >= PINNED.k || length + record.text.length + 1 > PINNED.chars) break;
+      length += record.text.length + 1;
+      out.push({id: record.id, kind: record.kind, text: record.text});
+    }
+    return out;
+  }
+  async #ranked({profileKey, query, channel = 'private', ambientKey, k = 4, budgetChars = 1200, minScore, timeoutMs = 400, signal} = {}) {
     if (ambientKey || !CHANNELS.includes(channel) || channel === 'group' || !this.embedder) return [];
     const row = this.rows.get(profileKey), text = clean(query, 500);
     if (!row || !text || !row.index?.recs.length || signal?.aborted || !this.#available()) return [];

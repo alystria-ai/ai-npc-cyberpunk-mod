@@ -440,6 +440,9 @@ test('records can be listed, pinned and deleted for the editor', async () => {
   await clock.advance(800);
   const document = saved(fs, 'judy-alvarez');
   assert.deepEqual(document.records.map(r => [r.id, r.pinned]), [['a', true]]);
+  // A pinned record is one the player edited: it is in the turn whatever V asks (retrieve), here with no similarity to the line at all.
+  assert.deepEqual(await store.retrieve({profileKey: 'judy-alvarez', query: 'judy favour'}), [{id: 'a', kind: 'fact', text: 'V likes whiskey'}]);
+  store.pinRecord('judy-alvarez', 'a', false);
   assert.deepEqual(await store.retrieve({profileKey: 'judy-alvarez', query: 'judy favour'}), []);
 });
 
@@ -462,6 +465,43 @@ test('retrieve ranks by cosine, drops what is below the threshold, and respects 
   assert.deepEqual((await ask({budgetChars: 20})).map(hit => hit.id), ['whiskey'], 'the second would exceed the budget');
   assert.deepEqual((await ask({budgetChars: 100})).map(hit => hit.id), ['whiskey', 'night']);
   assert.deepEqual(await store.retrieve({profileKey: 'judy-alvarez', query: 'santo domingo car'}).then(hits => hits.map(h => h.id)), ['car']);
+});
+
+test('a record the player edited is in every private or phone turn, whatever V asks and whether or not an embedder is there, ahead of the matches; a bare greeting and the group get none', async () => {
+  const files = {};
+  seedFile(files, 'judy-alvarez', [{id: 'cat', text: 'V has a tabby cat called Biscuit.', pinned: true, updated: T0}, {id: 'sister', text: 'V has a sister called Lena.', pinned: true, updated: T0 - DAY},
+    {id: 'whiskey', text: 'V likes whiskey'}, {id: 'car', text: 'Panam car broke down near Santo Domingo'}]);
+  const {store, embedder} = await setup({files});
+  const ids = async (query, options = {}) => (await store.retrieve({profileKey: 'judy-alvarez', query, ...options})).map(hit => hit.id);
+  assert.deepEqual(await ids('what do you think about the rain tonight'), ['cat', 'sister'], 'newest edit first, nothing else matches');
+  assert.deepEqual(await ids('v whiskey'), ['cat', 'sister', 'whiskey'], 'the matches follow, without repeating an edited record');
+  assert.deepEqual(await ids('v likes whiskey', {channel: 'phone'}), ['cat', 'sister', 'whiskey']);
+  assert.deepEqual(await ids('hey there'), [], 'a bare greeting brings up nothing');
+  assert.deepEqual(await ids('thanks'), []);
+  assert.deepEqual(await ids('what do you think about the rain tonight', {channel: 'group'}), [], 'private memories stay out of a group');
+  assert.deepEqual(await ids('what do you think about the rain tonight', {ambientKey: 'x'}), []);
+  assert.deepEqual(await ids('   '), []);
+  embedder.ok = false;
+  assert.deepEqual(await ids('anything at all, V?'), ['cat', 'sister'], 'the own words of the player do not wait for the embedding model');
+  // At most three, within 600 characters, the newest first.
+  const many = {};
+  seedFile(many, 'judy-alvarez', [1, 2, 3, 4, 5].map(n => ({id: 'p' + n, text: `Edited fact number ${n}.`, pinned: true, updated: T0 + n})));
+  const second = await setup({files: many});
+  assert.deepEqual((await second.store.retrieve({profileKey: 'judy-alvarez', query: 'weather talk'})).map(hit => hit.id), ['p5', 'p4', 'p3']);
+  const long = {};
+  seedFile(long, 'judy-alvarez', [1, 2, 3].map(n => ({id: 'l' + n, text: 'x'.repeat(250) + n, pinned: true, updated: T0 + n})));
+  const third = await setup({files: long});
+  assert.deepEqual((await third.store.retrieve({profileKey: 'judy-alvarez', query: 'weather talk'})).map(hit => hit.id), ['l3', 'l2'], 'the third would pass 600 characters');
+});
+
+test('editing a record in the editor makes it a standing one: the next turn carries it before its new vector exists', async () => {
+  const files = {};
+  seedFile(files, 'judy-alvarez', [{id: 'orig', text: 'V mentioned a pet once.'}, {id: 'car', text: 'Panam car broke down near Santo Domingo'}]);
+  const {store} = await setup({files});
+  assert.deepEqual((await store.retrieve({profileKey: 'judy-alvarez', query: 'how is my cat doing today'})).map(hit => hit.id), []);
+  store.editRecord('judy-alvarez', 'orig', 'V has a tabby cat called Biscuit.');
+  const hits = await store.retrieve({profileKey: 'judy-alvarez', query: 'how is my cat doing today'});
+  assert.deepEqual(hits, [{id: 'orig', kind: 'fact', text: 'V has a tabby cat called Biscuit.'}]);
 });
 
 test('recency, importance and pinning break ties between equally similar records', async () => {
