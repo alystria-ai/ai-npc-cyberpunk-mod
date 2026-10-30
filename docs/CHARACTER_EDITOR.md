@@ -2,6 +2,8 @@
 
 Players change a character's bio, speaking style, speaking rules and memories for the Mistral and Local AI conversation options. Settings > **Edit characters** opens a page in the player's browser. It does not apply to Convai: the page says so, and so does the settings row. The same page also makes **new characters** for people who have no profile in the mod (see "Your own characters").
 
+Players: [CHARACTER_EDITOR_GUIDE.md](CHARACTER_EDITOR_GUIDE.md) is the short guide (how to open it, what each tab does, when an edit counts, how to make a character know a new fact). This page is the technical description.
+
 Status: built and unit-tested on branch `character-editor`; headless-browser tested; NOT yet seen in the game.
 
 Prompting (the section of that name below, branch `feat/editor-prompting`, 2026-10-22): the same page edits the prompt wording of each conversation option (Mistral, Local AI Lite and Standard, Mature on, and the player's Custom models). Built; unit- and headless-browser tested; NOT yet seen in the game. The editor opens from Settings > Edit characters and from the **Character editor** destination of the manager's Home page (both send the same command).
@@ -71,7 +73,7 @@ Only the fields the player changed are stored, so a later update to the shipped 
 `PersonaBook.persona()` merges the override into the shipped persona on every turn (a map lookup, no I/O). Two sections are new:
 
 - `YOUR OWN RULES OF SPEECH (always follow these; they outrank the style above)`, after the speaking style.
-- `WHAT YOU KNOW AND REMEMBER`, after the example lines: the hand-written memories.
+- `WHAT YOU KNOW AND REMEMBER`, after the example lines: the hand-written memories. The heading tells the model to answer from them when V asks about one and to mention one otherwise only when it fits (2026-10-31: it used to say "never recite it", which a model can read as "do not say it when asked").
 
 With no override the prompt is byte-identical to before (tested for every roster character), so prompt caching and the existing tests are unaffected.
 
@@ -84,14 +86,37 @@ With no override the prompt is byte-identical to before (tested for every roster
 | Speaking rules | 10 lines of up to 160 |
 | Example lines | 20 lines of up to 240, 3,000 in all |
 | Memories | 12 of up to 200 |
-| Whole persona | 14,000 characters |
+| Whole persona | 12,500 characters (`EDIT_LIMITS.total`) |
 
 The longest shipped profile is 11,295 characters (bio 8,266), so every default fits. Over-limit saves are refused with a 422 and a stable error code; the page shows the counters before that happens.
+
+## When a text is cut, and the chat before a save (2026-10-31, branch `fix/editor-knowledge`)
+
+Player report (Discord, 31 Oct): "sometimes I do modifications and it works, sometimes when I ask something about the modification they seem not knowing." The causes found by tracing every field to the request, and what was done about each (`bridge/character-edit-reach.test.mjs` goes through the real editor, persona book and text host for every provider and model profile):
+
+| Field | Saved in | Counts from | Where it goes in the prompt (Gemini, Local AI, Custom) | Can be cut or missed |
+| --- | --- | --- | --- | --- |
+| Bio | `character-overrides/<key>.json`, `bio` | the next reply | `WHO YOU ARE`, in place of the shipped bio | Yes, from the end: over the profile's length cap (Local AI Lite 6,000 plus 2,000 for the rules, others 16,000), on a computer measured to read slowly (compact text) and on a server with a small context (persona levels). Fixed below |
+| Speaking style | `style` | the next reply | `HOW YOU TALK` | The compact text and the small-context levels keep the start of it only |
+| Speaking rules | `rules` | the next reply | `YOUR OWN RULES OF SPEECH`, never cut | No |
+| Example lines | `examples` | the next reply | `EXAMPLES OF YOUR VOICE`, in place of the shipped lines | Yes: the first thing dropped over the cap (the Lite model already drops them for 5 of the 701 named characters unedited, Johnny among them), two kept by the compact text, none by the small-context levels. The player's own lines now go last |
+| Things they always know | `memories` | the next reply | `WHAT YOU KNOW AND REMEMBER`, never cut | No |
+| Picked up in your talks | the memory store (`local-memory/<player>/<key>.json`) | the next reply for a changed record (it is pinned) | the `things` block before V's words | Was found by meaning only and missed 10 of 15 natural questions with the shipped granite model. Now up to three changed records are always in (below) |
+| Short summary of earlier talks | the memory store | the next reply | `WHAT YOU REMEMBER OF V FROM EARLIER TALKS` | A later fold of older talks can rewrite it |
+
+Convai takes none of them (its profile lives in the owner's Convai account). That is the most likely reason for "sometimes": the provider falls back to Convai when the chosen one cannot be used (Google Gemini with no key, Custom without a setup) and the page said so only at the top, once, when it was opened.
+
+What changed:
+
+- **A cut spares the player's words** (`bridge/player-text.mjs`). `applyOverride` gives the persona `bioEdits` (the bio paragraphs that are not paragraphs of the shipped bio) and `samplesMine` (the example lines that are not shipped ones). Over the length cap `systemHead` drops the shipped example lines, then the shipped bio paragraphs from the end (the last one needed only in part), and the player's own example lines only when that does not make the room. The compact text (`bridge/compact-persona.mjs`) takes the player's paragraphs as blocks of their own (kind `player`, 1,500 characters each) right after the opening paragraph. The small-context levels (`bridge/prompt-budget.mjs`) cut the shipped paragraphs first. Before this, a paragraph added to Judy's or Alt's bio on the Lite model was cut away with the shipped end: Judy had room for 54 more characters and Alt for 20, and Jackie, Panam and Johnny for 577 to 674. Without an edit the prompt is byte for byte as before.
+- **The chat before a save steps aside.** `CharacterOverrides.editedAt(key)` is the moment of the last save or reset that changed something (a file's `updated` after a restart), the persona carries it as `editedAt`, and `buildMessages` leaves out the history exchanges recorded before it (`turn.at`). The memory keeps them and they still reach the summary. A model repeats its own earlier answer over the profile above it (the same finding as `bridge/fresh-facts.mjs`), so "I have no pets" from before the edit outvoted the new fact. A player's own characters carry their row's `updated` the same way.
+- **Changed picked-up records are always in** (`MemoryStore.retrieve`): up to three pinned records, newest first, 600 characters, ahead of the ones found by meaning, in private and phone talk, not in a group and not for a bare greeting, and without waiting for the embedding model. Measured offline with the real `MemoryStore`, 150 records, three edited facts and five natural phrasings each: granite found 5 of 15, EmbeddingGemma 13 of 15, now 15 of 15.
+- **The Convai note is beside the text fields**, on the Bio, Speaking style, Speaking rules and Memories tabs, besides the warning bar, and the page asks the service for the provider again whenever the player returns to its tab.
 
 ## Memories
 
 - **Things they always know**: hand-written facts, stored in the override and always in the prompt. These work for Mistral-only players, who have no embedder for vector memory.
-- **Picked up in your talks**: the records the Local AI memory store collected. Each can be edited (the edit pins it, so later extraction never rewrites it) or deleted. Editing clears the stored vector so it is re-embedded.
+- **Picked up in your talks**: the records the Local AI memory store collected. Each can be edited (the edit pins it, so later extraction never rewrites it) or deleted. Editing clears the stored vector so it is re-embedded. A pinned record is also in every private and phone turn (up to three, newest first), whatever V asks.
 - **Short summary of earlier talks**: editable or clearable.
 - Archetype and ambient characters have no memories.
 
