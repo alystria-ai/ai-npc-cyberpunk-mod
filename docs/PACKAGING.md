@@ -298,7 +298,7 @@ red4ext/plugins/AiNpcCyberpunkMod/    Runtime base (0.3.3 and older: also Cyberp
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed (models/, licenses/, manifest.*.json; llama/ in a pack that still carries its own engine)
-  voices/                    reference clips (outside app/: the Omni worker requires it)
+  voices/                    reference clips (outside app/: the Omni worker requires it). From 0.4.0 (voiceClips.fromGame) only Lucy's, the two clips that cannot be rebuilt and the two stand-in voices' are in the packages: the player's PC builds the rest from the game's own voice files into voices/generated/ (docs/VOICE_EXTRACTION.md)
     prepared/                the bridge's cache of the Mistral voice's references, and the OmniVoice pack's slots (see below)
     prepared-runtime/        the Runtime's pre-built slots for the Pocket clips (read after prepared/, never written)
 red4ext/plugins/AiNpcCyberpunkModNative/   0.3.3 and older only: the old native plugin, renamed to .retired by the Scripts' launcher
@@ -544,7 +544,7 @@ looks first.
 ### The OmniVoice pack
 
 One zip, `voice/OmniPack-OmniVoice-0.6B.zip` on Hugging Face (`omni` in `build-release.mjs`): the CUDA Python 3.11 environment (`app/omni/python/`), the VoiceStudio adapter (`app/omni/voicestudio/`), the OmniVoice
-model (`app/omni/model/`), the reference clips of the voices it was frozen with (`voices/archetypes/omni-long`, `omni-short`, `voices/picked/autobest/omni-long`, `omni-short`), the Mistral voice's
+model (`app/omni/model/`), the reference clips of the voices it was frozen with (`voices/archetypes/omni-long`, `omni-short`, `voices/picked/autobest/omni-long`, `omni-short`; from 0.4.0 only the few that the player's PC cannot rebuild and the stand-in voices, `voiceClips.fromGame`, `packaging/lib/voice-clips-left-out.mjs`), the Mistral voice's
 prepared slots for them (`voices/prepared/`), its own copies of the voice lists (`app/omni/defaults/`, the read-second fall-back), the notices and the marker `app/omni/omni-pack.json`.
 
 **The leaner pack of 0.2.9 (2026-10-22, 6,585.5 MB zipped before, 5,341 MB after; 8,693 MB on disk before, about 7,400 MB after).** Four changes, all pinned or ruled in code:
