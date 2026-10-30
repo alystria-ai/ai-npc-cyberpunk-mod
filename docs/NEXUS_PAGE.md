@@ -197,10 +197,10 @@ Update for older game 2.31, for manual installs only: extract it into the game f
 ## 3. Short summary (brief overview field)
 
 ```text
-Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer in their own voices. Run it fully on your own PC with Local AI, free, with no account and no internet. Or use the Convai free tier, or a free Google Gemini key. Pocket TTS voices need no setup.
+Talk to 700+ Cyberpunk 2077 characters by voice or text, and invite them along as companions who answer in their own voices, remember you and build a bond with V. Run it free on your own PC with Local AI, no account needed, or use a free Google Gemini key or Convai. Works with Vortex and Mod Organizer 2.
 ```
 
-Character count of the summary (including spaces and punctuation): 265
+Character count of the summary (including spaces and punctuation): 305
 
 ## 4. Screenshot captions (suggested)
 
