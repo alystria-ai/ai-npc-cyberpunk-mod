@@ -12,7 +12,8 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {USVFS_IMPORT_VARIABLE, USVFS_VARIABLE, childEnvironment, installUsvfsCompat, locate, pinPythonPaths, usvfsLoaded} from './runtime/usvfs-compat.mjs';
+import {CHILD_IMPORT_FILE, USVFS_IMPORT_VARIABLE, USVFS_VARIABLE, childEnvironment, installUsvfsCompat, locate, pinPythonPaths, stageChildImport, usvfsLoaded} from './runtime/usvfs-compat.mjs';
+import {usvfsCompatImport} from '../bridge/bridge-supervisor.mjs';
 
 const compatUrl = new URL('./runtime/usvfs-compat.mjs', import.meta.url).href;
 const enoent = path => Object.assign(new Error(`ENOENT: no such file or directory, stat '${path}'`), {code: 'ENOENT', path});
@@ -224,6 +225,67 @@ test('the module file URL works from a folder with spaces and non-ASCII letters'
       {encoding: 'utf8', timeout: 30_000, env: {...process.env, ...env}});
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout.trim(), 'true');
+  } finally { await rm(root, {recursive: true, force: true}); }
+});
+
+// Report c44c3c95 (30 Oct 2026): a child's `--import` is resolved before any fallback exists in it, so under MO2 it must name a plain file outside the game folder.
+test('the child import is a copy in the data folder: made once, kept, renewed when the module changes, and a name the supervisor accepts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ai npc ünï stage '));
+  try {
+    const folder = join(root, 'AppData', 'Local', 'AiNpcCyberpunkMod', 'data');
+    const source = join(root, 'game', 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'app', 'launcher', 'usvfs-compat.mjs');
+    fs.mkdirSync(dirname(source), {recursive: true});
+    fs.writeFileSync(source, 'export const version = 1;\n');
+    const sourceUrl = pathToFileURL(source).href;
+    const url = stageChildImport(folder, sourceUrl);
+    const copy = join(folder, 'launcher', 'usvfs-compat.mjs');
+    assert.equal(url, pathToFileURL(copy).href);
+    assert.match(url, CHILD_IMPORT_FILE);
+    assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: url}), url, 'the supervisor accepts exactly this name');
+    assert.equal(fs.readFileSync(copy, 'utf8'), 'export const version = 1;\n');
+    assert.deepEqual(fs.readdirSync(dirname(source)), ['usvfs-compat.mjs'], 'nothing is written beside the source');
+    assert.deepEqual(fs.readdirSync(dirname(copy)), ['usvfs-compat.mjs'], 'no temporary file is left');
+
+    // Unchanged: left alone (its time does not move), so a bridge that has it open is never disturbed.
+    const before = fs.statSync(copy).mtimeMs;
+    assert.equal(stageChildImport(folder, sourceUrl), url);
+    assert.equal(fs.statSync(copy).mtimeMs, before);
+
+    // A new module in the Runtime (an update): the copy is renewed.
+    fs.writeFileSync(source, 'export const version = 2;\n');
+    assert.equal(stageChildImport(folder, sourceUrl), url);
+    assert.equal(fs.readFileSync(copy, 'utf8'), 'export const version = 2;\n');
+    assert.deepEqual(fs.readdirSync(dirname(copy)), ['usvfs-compat.mjs']);
+
+    // The real module, imported from the copy by a plain Node, installs the fallbacks (the child's first line).
+    const real = stageChildImport(join(root, 'real'), compatUrl);
+    const result = spawnSync(process.execPath, ['-e', "console.log(!!require('node:fs')[Symbol.for('ai-npc-cyberpunk-mod.usvfs-compat')])"],
+      {encoding: 'utf8', timeout: 30_000, env: {...process.env, ...childEnvironment(real)}});
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), 'true');
+  } finally { await rm(root, {recursive: true, force: true}); }
+});
+
+test('the child import is not used when the copy cannot be made, differs, or cannot be seen by a plain stat', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ai npc stage fail '));
+  try {
+    const source = join(root, 'usvfs-compat.mjs');
+    fs.writeFileSync(source, 'export {};\n');
+    const sourceUrl = pathToFileURL(source).href;
+    // A file where the folder should be.
+    fs.writeFileSync(join(root, 'blocked'), 'x');
+    assert.equal(stageChildImport(join(root, 'blocked'), sourceUrl), null);
+    // The source cannot be read.
+    assert.equal(stageChildImport(join(root, 'data'), pathToFileURL(join(root, 'nothing.mjs')).href), null);
+    // A write that does not take (the copy would differ from the module): not used, and no temporary file is left.
+    const lying = {...fs, writeFileSync: (path, data, options) => fs.writeFileSync(path, 'tampered', options)};
+    assert.equal(stageChildImport(join(root, 'lying'), sourceUrl, lying), null);
+    assert.deepEqual(fs.existsSync(join(root, 'lying', 'launcher')) ? fs.readdirSync(join(root, 'lying', 'launcher')).filter(name => name.endsWith('.tmp')) : [], []);
+    // A place where a plain stat says ENOENT (a folder usvfs redirects too): what the child's own loader would meet, so it is not used.
+    const hidden = {...fs, statSync: path => { throw Object.assign(new Error('ENOENT'), {code: 'ENOENT', path}); }};
+    assert.equal(stageChildImport(join(root, 'hidden'), sourceUrl, hidden), null);
+    // An apostrophe in the path is a name the supervisor would not accept.
+    assert.equal(stageChildImport(join(root, "it's"), sourceUrl), null);
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 

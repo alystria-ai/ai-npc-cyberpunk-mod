@@ -209,6 +209,10 @@
       }
     }
   },
+  "voiceClips": {
+    "notes": "fromGame false: the Runtime and the OmniVoice pack carry the voice reference clips as before. true (since 0.4.0, 2026-10-30): they carry none of the clips the manifest can rebuild, and the player's PC builds each character's clips from the game's own English voice files when the character is first invited or talked to (bridge/voice-clips.mjs, characters/voice-clips-manifest.json, docs/VOICE_EXTRACTION.md), or downloads them from the Hugging Face repository (voice-clips/<kind>/<key>.wav, 1017 files, uploaded and read back 2026-10-30; the list is packaging/voice-clips-upload-list.json). Still shipped: Lucy (a web clip, not game audio), the two clips that cannot be rebuilt (spider-murphy omni-long, npc-kang-tao-male omni-short) and the two stand-in voices resident-male and resident-female (STAND_IN_VOICES in bridge/voice-clips.mjs), which a character speaks with for a line it needs before its own clips are built.",
+    "fromGame": true
+  },
   "omniPack": {
     "notes": "The OmniVoice pack (docs/PACKAGING.md, 'The OmniVoice pack'). `runtimeClips`: the reference clips the RUNTIME carries for the 60 voices added after the pack was frozen (path, size, CRC-32 of each). The Mistral voice (Voxtral) reads them for players without this pack, so they stay in the Runtime; the pack leaves them out, so the Runtime and the pack never ship the same file (packaging/check-pack-overlap.mjs). A build from scratch skips those paths and stops when the clip it would skip differs from the listed bytes.",
     "runtimeClips": "packaging/pack-listings/runtime-omni-clips-0.2.9.json"
@@ -368,8 +372,8 @@
     {"source": "characters/phone-contacts.json", "target": "phone-contacts.json"}
   ],
   "appData": [
-    "characters/roster.json", "characters/archetype-roster.json", "characters/world-knowledge.json",
-    "characters/phone-contacts.json", "characters/gift-tables.json", "characters/romance-traits.json", "characters/bond-packs/jackie-come-home.json",
+    "characters/roster.json", "characters/archetype-roster.json", "characters/world-knowledge.json", "characters/phone-contacts.json", "characters/voice-clips-manifest.json",
+    "characters/gift-tables.json", "characters/romance-traits.json", "characters/bond-packs/jackie-come-home.json",
     "characters/bond-packs/jackie-drink.json", "characters/bond-packs/jackie-hangout-constellations-of-northside.json", "characters/bond-packs/jackie-hangout-gone-fishing.json",
     "characters/bond-packs/jackie-hangout-grease-monkeys.json", "characters/bond-packs/jackie-hangout-salsa-for-beginners.json", "characters/bond-packs/jackie-hangout-slowest-wins.json",
     "characters/bond-packs/jackie-sopa-test.json", "characters/bond-packs/jackie-sticky-fingers.json", "characters/bond-packs/jackie-the-bottle.json",
@@ -415,7 +419,7 @@
   ],
   "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
   "bridgeWorkers": [
-    "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py",
+    "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py", "bridge/voice_clip_build.py",
     "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py",
     "bridge/choice-keys.py"
   ],

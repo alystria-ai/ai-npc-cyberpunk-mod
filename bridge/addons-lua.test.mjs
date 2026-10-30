@@ -990,7 +990,8 @@ test('speech, subtitles, continuous speech, group chat and the manager change no
   for (const match of page.matchAll(/convaiAddons\.(\w+)\(/g)) {
     const window = page.slice(Math.max(0, match.index - 900), match.index);
     // The content-pack calls (API 1.1) are guarded by their own function's existence: they run with no add-on registered.
-    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0|convaiAddons and convaiAddons\.content\w+|addonSettingsInUse\(\)|convaiAddons\.live == true or \(type\(convaiAddons\.hasContent\)/, `manager-ui.lua ${match[1]} is not guarded`);
+    // The Content packs page checks the same guards in settingsPages.packsShown: it returns false with no add-on module, then asks for the sections only while the add-ons are live.
+    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0|convaiAddons and convaiAddons\.content\w+|addonSettingsInUse\(\)|convaiAddons\.live == true or \(type\(convaiAddons\.hasContent\)|if not convaiAddons then return false end\s+if convaiAddons\.live and #/, `manager-ui.lua ${match[1]} is not guarded`);
   }
 });
 

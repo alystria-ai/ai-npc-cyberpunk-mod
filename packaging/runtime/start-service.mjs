@@ -428,7 +428,15 @@ try {
   else if (choice) log(`${choice.problem}. Looking for a browser the usual way instead.`);
 } catch (error) { log(`Reading the browser file failed: ${error?.message || error}`); }
 // Every Node process the service starts (the bridge and its workers) gets the same stat fallbacks before its first line runs.
-if (usvfsCompat) Object.assign(env, usvfsCompat.childEnvironment(new URL('./usvfs-compat.mjs', import.meta.url).href));
+// The file they import it from is a copy in the data folder, outside the game folder (usvfsCompat.stageChildImport): a Runtime written into the game folder under
+// MO2 lies in Overwrite, which a child's own `--import` cannot stat (report c44c3c95). Without a data folder of its own, or when the copy fails, the Runtime's file is used.
+if (usvfsCompat) {
+  const own = new URL('./usvfs-compat.mjs', import.meta.url).href;
+  const staged = layout.dataHome ? usvfsCompat.stageChildImport(layout.state, own) : null;
+  log(staged ? 'The Mod Organizer 2 fallbacks for the service\'s Node processes are imported from the data folder, outside the game folder.'
+    : 'The Mod Organizer 2 fallbacks for the service\'s Node processes are imported from the Runtime\'s own launcher folder.');
+  Object.assign(env, usvfsCompat.childEnvironment(staged ?? own));
+}
 if (prepareOnly) {
   const localAi = await localAiJoined;
   const cleaned = await legacyCleanup(0);

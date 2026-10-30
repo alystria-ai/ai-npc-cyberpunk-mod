@@ -46,3 +46,17 @@ test('an installed pack that lacks reference clips is reported with the characte
   assert.deepEqual(missingOmniClips({config, referenceDirectory: undefined}).missing, []);
   assert.deepEqual(missingOmniClips({config: {}, referenceDirectory}), {total: 0, missing: []});
 });
+
+test('characters whose clips are built on the player\'s PC are not counted as missing: with the clips left out of the packages the line never lists the cast', () => {
+  const referenceDirectory = resolve('refs-fixture');
+  const voices = {};
+  for (let index = 0; index < 400; index++) voices[`built-${index}`] = {reference: `runtime/voice-references/picked/autobest/omni-long/built-${index}.wav`};
+  voices.lucy = {reference: 'runtime/voice-references/picked/autobest/omni-long/lucy.wav'};
+  const config = {voices};
+  const except = Object.keys(voices).filter(key => key.startsWith('built-'));
+  const nothing = missingOmniClips({config, referenceDirectory, exists: () => false, except});
+  assert.deepEqual(nothing, {total: 1, missing: ['picked/autobest/omni-long/lucy.wav']}, 'only the clip that is shipped and gone is named');
+  assert.match(missingOmniClipsLine(nothing, 'long'), /1 of 1 long reference clips are missing \(for example lucy\)/);
+  assert.equal(missingOmniClipsLine(missingOmniClips({config, referenceDirectory, exists: path => path.endsWith('lucy.wav'), except})), null);
+  assert.equal(missingOmniClips({config, referenceDirectory, exists: () => false}).missing.length, 401, 'without the list every clip is counted, as before');
+});

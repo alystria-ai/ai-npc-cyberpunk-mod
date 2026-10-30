@@ -48,7 +48,9 @@ export const STDLIB_FILES = Object.freeze([
 
 // Packages of Lib/site-packages the workers import (numpy and torch: the Pocket model; yaml and safetensors: its settings and voice files;
 // sherpa_onnx: the local speech recognition). A package is there when its __init__.py is.
-export const SITE_PACKAGES = Object.freeze(['numpy', 'torch', 'yaml', 'safetensors', 'sherpa_onnx']);
+// The voice clip builder (bridge/voice_clip_build.py, docs/VOICE_EXTRACTION.md) also imports scipy.signal (the resampler of the older clips) and torch.nn.functional
+// (the resampler of the newer ones): with the clips no longer shipped (voiceClips.fromGame) a Runtime without them cannot make its characters' voices, so a broken one is reported.
+export const SITE_PACKAGES = Object.freeze(['numpy', 'torch', 'torch/nn', 'scipy', 'scipy/signal', 'yaml', 'safetensors', 'sherpa_onnx']);
 // site-packages/distutils-precedence.pth (setuptools) imports this at every start; with the package gone Python prints "Error processing line 1".
 export const DISTUTILS_PTH = 'distutils-precedence.pth';
 export const DISTUTILS_PACKAGE = '_distutils_hack';
@@ -56,7 +58,7 @@ export const DISTUTILS_PACKAGE = '_distutils_hack';
 /** The modules the file stage looks for, as dotted module names: 'urllib.parse'. */
 export const moduleNameOf = path => String(path).replace(/\/__init__$/, '').replace(/\//g, '.');
 /** Every module name the import stage asks Python to find (the standard library files, then the site-packages). */
-export const REQUIRED_MODULES = Object.freeze([...new Set([...STDLIB_FILES.map(moduleNameOf), ...SITE_PACKAGES])]);
+export const REQUIRED_MODULES = Object.freeze([...new Set([...STDLIB_FILES, ...SITE_PACKAGES].map(moduleNameOf))]);
 
 const MIN_ZIP_BYTES = 1024 * 1024;
 const MAX_NAMES = 8;
@@ -125,7 +127,11 @@ export async function checkPythonFiles({project} = {}) {
     if (layout !== 'zip') {
       for (const file of STDLIB_FILES) if (!await findIn(roots, file, cache)) missing.push(moduleNameOf(file));
     }
-    for (const name of SITE_PACKAGES) if (!await findIn(roots, `${name}/__init__`, cache)) missing.push(name);
+    for (const name of SITE_PACKAGES) {
+      // A part of a package (torch/nn) is not named again when the whole package is gone.
+      if (name.includes('/') && missing.includes(moduleNameOf(name.split('/')[0]))) continue;
+      if (!await findIn(roots, `${name}/__init__`, cache)) missing.push(moduleNameOf(name));
+    }
     // A site-packages file that imports a package which is gone (setuptools' distutils-precedence.pth).
     for (const root of roots) {
       if (await exists(join(root, DISTUTILS_PTH)) && !await findIn(roots, `${DISTUTILS_PACKAGE}/__init__`, cache)) { missing.push(DISTUTILS_PACKAGE); break; }

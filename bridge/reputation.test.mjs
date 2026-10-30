@@ -373,13 +373,15 @@ test('npc-reactions tells Street reputation which reaction actually started', ()
 });
 
 // ------------------------------------------------------------------------------------------------------------------------ the setting
-test('the setting is off by default, saved as a boolean, and offered under Gameplay', () => {
+test('the setting is on by default, saved as a boolean, and offered under Night City', () => {
   const out = run(`${managerLua}
     local manager = newManager()
     local player = newPlayer()
     manager.update(player, 0.1)
     report('default', manager.reputation()); report('saved', settingsTable().reputation)
     report('snapshot', manager.snapshot(player).settings.reputation)
+    manager.applySettings(player, {reputation = false})
+    report('firstOff', manager.reputation()); report('pendingBefore', convaiReputationPending == true)
     local ok = manager.applySettings(player, {reputation = true})
     report('on', ok == true and manager.reputation()); report('pending', convaiReputationPending == true)
     report('savedOn', settingsTable().reputation)
@@ -387,16 +389,16 @@ test('the setting is off by default, saved as a boolean, and offered under Gamep
     manager.applySettings(player, {reputation = false})
     report('off', manager.reputation())
   `);
-  assert.deepEqual(out, {default: false, saved: false, snapshot: false, on: true, pending: true, savedOn: true, bad: true, off: false});
+  assert.deepEqual(out, {default: true, saved: true, snapshot: true, firstOff: false, pendingBefore: false, on: true, pending: true, savedOn: true, bad: true, off: false});
   const ui = read('../mod/manager-ui.lua');
-  const conversations = ui.slice(ui.indexOf("category('gameplay'"), ui.indexOf("-- The list: Pocket Performance"));
-  assert.match(conversations, /setting\('reputation', 'Street reputation', 'bool', snapshot\.settings\.reputation == true, false,/);
+  const nightCity = ui.slice(ui.indexOf("settingsPages['settings-night-city']"), ui.indexOf("settingsPages['settings-interface']"));
+  assert.match(nightCity, /setting\('reputation', 'Street reputation', 'bool', snapshot\.settings\.reputation == true, true,/);
   assert.match(ui, /elseif key == 'reputation' then values\.reputation = change\.value/);
 });
 
 test('the setting\'s two strings are in the catalog and in every locale', () => {
   const catalog = JSON.parse(read('../localization/en.json')).strings;
-  const row = /setting\('reputation', '([^']+)', 'bool', [^,]+, false,\s*'((?:[^'\\]|\\.)*)'\)/.exec(read('../mod/manager-ui.lua'));
+  const row = /setting\('reputation', '([^']+)', 'bool', [^,]+, true,\s*'((?:[^'\\]|\\.)*)'\)/.exec(read('../mod/manager-ui.lua'));
   assert.ok(row, 'the row');
   const description = row[2].replace(/\\n/g, '\n');
   for (const text of [row[1], description]) assert.ok(Object.hasOwn(catalog, text), `catalog: ${text.slice(0, 40)}`);

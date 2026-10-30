@@ -225,10 +225,26 @@ ${lines.join('\n')}
   local TAB = 'aiNpcCyberpunkMod'
   if ${nsui && screen} then ns.openScreen(TAB) end
   local loaded = core.model()
-  local function row(id)
-    for _, category in ipairs(loaded.categories) do
+  -- Settings is a list of category pages (2026-10-30). A row that is not on the page shown is looked for on the category pages, and the page that holds it is opened,
+  -- so a test that opens Settings and asks for a row by its id finds it wherever the row lives. The tests of the pages themselves (bridge/settings-pages.test.mjs) navigate.
+  local SETTINGS_PAGES = {'settings-provider', 'settings-voice', 'settings-conversations', 'settings-companions', 'settings-night-city', 'settings-interface', 'settings-content-packs', 'settings-privacy'}
+  local function rowIn(model, id)
+    for _, category in ipairs(model.categories) do
       for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
     end
+  end
+  local function row(id)
+    local found = rowIn(loaded, id)
+    if found or not core.view():match('^settings') then return found end
+    local before = core.view()
+    for _, page in ipairs(SETTINGS_PAGES) do
+      core.setView(page)
+      local model = core.model()
+      found = rowIn(model, id)
+      if found then loaded = model; return found end
+    end
+    core.setView(before)
+    loaded = core.model()
   end
   local registered = {id = 'cyberpunk-convai'}
   function registered.loadMod() loaded = core.model(); return loaded end

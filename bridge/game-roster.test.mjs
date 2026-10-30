@@ -22,13 +22,17 @@ test('every row is there once, in order; minor rows keep only the lean fields an
       minors++;
       for (const field of Object.keys(row)) assert(LEAN_FIELDS.includes(field), `${row.key} carries ${field}`);
       assert.equal(row.name, full.name); assert.deepEqual(row.records, full.records);
-      assert.equal(row.invite, false, `${row.key}: a minor profile is never invited`);
+      assert.equal(typeof row.invite, 'boolean', `${row.key}: a minor profile says whether it can be invited`);
+      assert.equal(row.invite, full.invite);
       assert.equal(row.minor, true); assert.equal(row.kind, 'named');
       for (const dropped of ['backstory', 'speakingStyleDescription', 'speakingStyleSampleDialogues', 'sources', 'uncertainty', 'voice', 'voiceName', 'model', 'summary'])
         assert(!(dropped in row), `${row.key} keeps ${dropped}`);
     } else assert.deepEqual(row, full, `${row.key} is a full row`);
   });
   assert(minors >= 500, 'the roster holds the cast sweep: ' + minors);
+  // Side characters (docs/SIDE_CHARACTERS.md): all but the children and possible children can be invited.
+  const invitable = game.filter(row => row.minor === true && row.invite === true).length;
+  assert(invitable >= 550 && invitable <= minors, 'side characters that can be invited: ' + invitable);
 });
 
 test('the lean file is a fraction of the roster the bridge reads', () => {

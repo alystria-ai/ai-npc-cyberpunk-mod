@@ -287,6 +287,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-activity.mjs',
   'bridge/voice-choice-match.mjs',
   'bridge/voice-choice.mjs',
+  'bridge/voice-clips.mjs',
   'bridge/voice-config-paths.mjs',
   'bridge/voice-failures.mjs',
   'bridge/voice-key-stream.mjs',
@@ -326,6 +327,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/voice-cuda-graph.py',
   'bridge/pocket-voice-worker.py',
   'bridge/pocket_voice_runtime.py',
+  'bridge/voice_clip_build.py',
   'bridge/local-stt-worker.py',
   'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
   // The automatic error reports' sender: the service's supervisor (bridge/bridge-supervisor.mjs) loads it with a dynamic import, so a

@@ -9,6 +9,8 @@
 --     subtraction per call, and a file read of a few hundred bytes every few seconds only while the editor was opened lately. Without a recent editor
 --     visit the file is never read again, so a game that never uses the editor pays nothing.
 --   - a character with no row behaves as it always did: get(key) is nil.
+--   - off = true on a row: the player switched that character off (never a talk target or listener); off(key) answers it with a table lookup.
+--   - records = {...}: game records of ordinary people the player switched off; offRecord(record) answers it with a table lookup (case ignored).
 local M = {version = 1}
 
 local FILE = 'runtime/character-options.json'
@@ -18,6 +20,10 @@ local WATCH_FOR = 7200      -- seconds after the editor was opened
 -- The values each choice may hold (anything else is ignored); the same lists as bridge/character-options.mjs OPTION_VALUES.
 local TALK = {calm = true, lively = true, none = true}
 local IDLE = {plain = true, none = true}
+local MAX_RECORDS = 400
+
+-- A record name as it is compared: lower case, without the "Character." table prefix (mod/talk-exclusion.lua plain), so Character.Wat_X and wat_x are one.
+local function normal(record) return (record:lower():gsub('^character%.', '')) end
 
 local function usable(row)
     if type(row) ~= 'table' then return nil end
@@ -28,6 +34,7 @@ local function usable(row)
     if row.nods == false then out.nods = false; any = true end
     if row.sit == false then out.sit = false; any = true end
     if row.react == false then out.react = false; any = true end
+    if row.off == true then out.off = true; any = true end
     return any and out or nil
 end
 
@@ -39,7 +46,7 @@ end
 function M.new(options)
     options = options or {}
     local clock = options.clock or os.time
-    local self = {rows = {}, outfits = 0, raw = nil, watchUntil = nil, wait = 0}
+    local self = {rows = {}, outfits = 0, records = {}, raw = nil, watchUntil = nil, wait = 0}
 
     local function readFile()
         local file = io.open(FILE, 'rb')
@@ -68,7 +75,14 @@ function M.new(options)
             local cleaned = type(key) == 'string' and #key <= 80 and usable(row) or nil
             if cleaned then rows[key] = cleaned; if cleaned.outfit then outfits = outfits + 1 end end
         end
-        self.rows, self.outfits = rows, outfits
+        local records, count = {}, 0
+        for _, record in ipairs(type(decoded.records) == 'table' and decoded.records or {}) do
+            if count >= MAX_RECORDS then break end
+            if type(record) == 'string' and #record <= 120 and record:find('^[%w_][%w_%.%-]*$') then
+                records[normal(record)] = true; count = count + 1
+            end
+        end
+        self.rows, self.outfits, self.records = rows, outfits, records
         if options.onChange then pcall(options.onChange, self) end
         return true
     end
@@ -93,6 +107,12 @@ function M.new(options)
     function self.get(key) return key ~= nil and self.rows[key] or nil end
     -- The look chosen for a profile key, or nil.
     function self.outfit(key) local row = key ~= nil and self.rows[key] or nil; return row and row.outfit or nil end
+    -- True when the player switched this character (profile key) off. A table lookup.
+    function self.off(key) local row = key ~= nil and self.rows[key] or nil; return row ~= nil and row.off == true end
+    -- True when the player switched off the ordinary people built from this game record (Character.wat_lch_ma_citizen and the like), case ignored.
+    function self.offRecord(record) return type(record) == 'string' and self.records[normal(record)] == true end
+    -- True while any ordinary person is switched off (the talk filter skips its record read when none is).
+    function self.anyRecords() return next(self.records) ~= nil end
     -- True while any character has a chosen look (the outfit module runs for those even with the setting off).
     function self.hasOutfits() return self.outfits > 0 end
 

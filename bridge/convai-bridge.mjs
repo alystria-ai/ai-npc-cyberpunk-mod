@@ -1,7 +1,7 @@
 // First, so a full disk or a closed output can never end this process through a log line (bridge/safe-streams.mjs, error report 1cbe337a5144ebbd).
 import './safe-streams-install.mjs';
 import {readFile, stat, mkdir} from 'node:fs/promises';
-import {readFileSync, statSync} from 'node:fs';
+import {existsSync, readFileSync, statSync} from 'node:fs';
 import {decisionLedgerReader} from './game-dialogue.mjs';
 import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
@@ -104,6 +104,7 @@ import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
+import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, readManifest as readVoiceClipManifest, standInDescriptors} from './voice-clips.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -164,7 +165,7 @@ import {createVoiceChoice, KeySender, parseHub, HUB_FILE, RESULT_FILE} from './v
 import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
-import {SlowTurnWatch} from './slow-turns.mjs';
+import {KNOWLEDGE_PARTS_MS, SlowTurnWatch, knowledgeParts} from './slow-turns.mjs';
 import {VoiceSilenceWatch} from './voice-silence.mjs';
 import {LearnedLimits} from './prompt-fit.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
@@ -356,24 +357,50 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
-// An OmniVoice pack that is installed but short of reference clips (an extraction that stopped, a folder a mod manager cleared) leaves some characters
-// without an OmniVoice voice; say so once in the log (bridge/omni-pack.mjs). File checks only, once, at start.
-try {
-  if (detectOmniPack({project, config: omniVoiceConfigs.long}).installed) {
-    for (const mode of ['short', 'long']) {
-      const line = missingOmniClipsLine(missingOmniClips({config: omniVoiceConfigs[mode],
-        referenceDirectory: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(project, 'runtime/voice-references')}), mode);
-      if (line) console.error(line);
-    }
-  }
-} catch (error) { console.error('[OmniPack] clip check failed:', error?.message ?? error); }
 // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
 // found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
 const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});
 await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] scan failed:', error?.message ?? error));
+// Voice clips built on this PC from the player's own game files (docs/VOICE_EXTRACTION.md, bridge/voice-clips.mjs). Only a character whose shipped clip is missing (or with
+// CYBERPUNK_CONVAI_GAME_CLIPS=1) is ever built, once, when it is first invited or talked to; the clips are kept in <references>/generated and the tables name them like any
+// reference. A game with no English voice files downloads them from Hugging Face instead (CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD=0 turns that off). Nothing here runs per frame
+// and nothing is started at start: the builder is a process of its own, below normal priority, that exits when the character's clips are written.
+const shippedVoiceTables = shippedVoicesReader(originalVoiceConfigPaths);
+let gameVoiceClips = null;
+const standInVoices = {pocket: {}, short: {}, long: {}};
+// 'female' or 'male' for the stand-in voice: the roster's word, else the archetype key's (npc-valentinos-female).
+const genderOfVoiceKey = key => {
+  const gender = String(roster.find(row => row?.key === key)?.gender ?? '').toLowerCase();
+  return gender === 'female' || gender === 'male' ? gender : /(^|-)female(-|$)/.test(String(key)) ? 'female' : 'male';
+};
+try {
+  const manifestPath = resolve(project, 'characters/voice-clips-manifest.json');
+  const manifest = existsSync(manifestPath) ? readVoiceClipManifest(await readFile(manifestPath, 'utf8')) : {};
+  gameVoiceClips = await GameVoiceClips.open({manifest, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory,
+    mirrorRoots: [...referenceRoots.slice(1), voiceConfig.runtime?.referenceDirectory],
+    ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
+    prefer: process.env.CYBERPUNK_CONVAI_GAME_CLIPS === '1', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},
+    onBuilt: key => liveVoices?.refresh(key), log: message => console.error('[VoiceClips] ' + message)});
+  const tables = {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)};
+  // The stand-in voices (the two archetype voices that always ship) as the shipped tables have them, kept for the live tables (standInDescriptors).
+  for (const engine of Object.keys(tables)) standInVoices[engine] = Object.fromEntries(Object.values(STAND_IN_VOICES).map(key => [key, tables[engine]?.[key]]).filter(([, row]) => row));
+  const named = applyReadyClips(gameVoiceClips, tables);
+  if (named.length) console.error(`[VoiceClips] ${named.length} character(s) speak with clips built from the game's files`);
+  // Packages without the clips (voiceClips.fromGame): a character whose clips are not built yet speaks with the stand-in voice of its gender until they are, with no error.
+  const waiting = applyStandIns(gameVoiceClips, tables, genderOfVoiceKey);
+  if (waiting.length) console.error(`[VoiceClips] ${waiting.length} character(s) speak with a stand-in voice until their clips are built from the game's files`);
+} catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
+// A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
+const wantVoiceClips = (profile, reason) => {
+  if (!gameVoiceClips) return null;
+  let key = profile;
+  try { key = localVoice.voiceKeyFor(profile, profile) || profile; } catch { /* the voice selection is not up yet */ }
+  return gameVoiceClips.wanted(key, {shipped: shippedVoiceTables, reason});
+};
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
   voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
-  shipped: shippedVoicesReader(originalVoiceConfigPaths), log: message => console.error('[PlayerVoices] ' + message),
+  shipped: shippedVoiceTables, log: message => console.error('[PlayerVoices] ' + message),
+  generated: (key, shipped) => gameVoiceClips?.descriptors(key, shipped) ?? (gameVoiceClips ? standInDescriptors(gameVoiceClips, key, shipped, standInVoices, genderOfVoiceKey(key)) : null),
   // V is not in the shipped configurations (its voices are merged in as extras, from the mod-built or shipped clip copied to voice-references/addons):
   // with the player's clip gone V goes back to that reference, with no restart.
   fallback: key => {
@@ -381,6 +408,18 @@ liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed,
     return voice ? {reference: `runtime/voice-references/addons/${key}.wav`, sha256: voice.sha256, transcript: voice.transcript} : null;
   },
   apply: update => { const applied = localVoice.setVoices(update); if (applied) { dropPrefetch(); prefetchObserved = ''; } return applied; }});
+// An OmniVoice pack that is installed but short of reference clips (an extraction that stopped, a folder a mod manager cleared) leaves some characters
+// without an OmniVoice voice; say so once in the log (bridge/omni-pack.mjs). File checks only, once, at start. It runs after the voice clip service has put the stand-in
+// voices into the tables: a character whose clips are built on this PC (voiceClips.fromGame) names a clip that is there, so the line never lists the whole cast.
+try {
+  if (detectOmniPack({project, config: omniVoiceConfigs.long}).installed) {
+    for (const mode of ['short', 'long']) {
+      const line = missingOmniClipsLine(missingOmniClips({config: omniVoiceConfigs[mode], except: gameVoiceClips ? Object.keys(gameVoiceClips.manifest) : [],
+        referenceDirectory: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(project, 'runtime/voice-references')}), mode);
+      if (line) console.error(line);
+    }
+  }
+} catch (error) { console.error('[OmniPack] clip check failed:', error?.message ?? error); }
 // What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
 // start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
 // <reference root>/addons/. Nothing else is touched (releaseVoiceFiles names exactly the files it may remove). Voxtral's slots of player clips
@@ -1284,13 +1323,13 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
 const memoryNamespace = memoryScopes(addonContent);
 // When V last talked to each character (Settings > Dynamic info > Time since last talk, bridge/last-talk.mjs): kept per memory key, so a pack's characters have their own, read before the first turn.
 await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[LastTalk] ' + message)});
-// Character bonds (Settings > Gameplay > Character bonds, bridge/bonds.mjs): the shared part of each bond, per memory key (it follows the memory, and Forget clears it),
+// Character bonds (Settings > Companions > Character bonds, bridge/bonds.mjs): the shared part of each bond, per memory key (it follows the memory, and Forget clears it),
 // read before the first turn; the levels and their changes go to the game in runtime/bonds-status.json for the one notice per change (mod/bonds.lua).
 const bondStore = new BondStore();
 await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
 const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
 romanceBond.bonds = bonds;
-// Story packs (Settings > Gameplay > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
+// Story packs (Settings > Companions > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
 // (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
 const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
   bonds, log: line => console.error('[BondPacks] ' + line),
@@ -1989,6 +2028,7 @@ function warmTalkTargets(profileKeys, {persona = true} = {}) {
   if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
+    void wantVoiceClips(key, 'talk');
     if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) {
       // A fixed reply language with a voice pack: the pack's clip of this character is what speaks, so that is what is prepared (the English reference only
       // when the pack has no clip of this character).
@@ -2112,7 +2152,16 @@ function invitedVoiceCurrent(profile, receipt) {
   return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
+// The invited character's clips are made first when it has none (a minute at the most: the invitation already waits for its voice, and a failure leaves the voice it had).
+async function waitForVoiceClips(wanting, signal) {
+  let timer;
+  try { await abortable(Promise.race([wanting, new Promise(done => { timer = setTimeout(done, 60_000); })]), signal); }
+  catch (error) { if (signal?.aborted) throw error; }
+  finally { clearTimeout(timer); }
+}
 async function prepareInvitedVoice(profile, {signal} = {}) {
+  const wanting = wantVoiceClips(profile, 'invitation');
+  if (wanting) await waitForVoiceClips(wanting, signal);
   for (;;) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
@@ -3531,8 +3580,17 @@ async function runInput(request, prepared, clock) {
     let vLine = null;
     current.vLine = () => vLine;
     if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
+    const prepareStarted = performance.now();
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
-    stages.knowledgePreparedMs = performance.now() - preparationStarted;
+    const preparedAt = performance.now();
+    stages.knowledgePreparedMs = preparedAt - preparationStarted;
+    // A knowledge stage over a second (two installs: 3.3 to 3.8 s on every turn) also records how long each part took, in the turn's record for the slow-turn report. Nothing is done below the limit.
+    if (stages.knowledgePreparedMs > KNOWLEDGE_PARTS_MS) {
+      try {
+        clock.annotate({knowledgeParts: knowledgeParts({...knowledgeTurn.timings, totalMs: stages.knowledgePreparedMs, cancelMicrophoneMs: stages.cancelMicrophoneMs,
+          beforePrepareMs: prepareStarted - preparationStarted - (stages.cancelMicrophoneMs ?? 0), prepareMs: preparedAt - prepareStarted})});
+      } catch { /* the report is never worth a turn */ }
+    }
     clock.mark('knowledge');
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
     // A turn the admission refuses ends here without a reply: its reason goes to the log, or the turn would vanish without a trace.

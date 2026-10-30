@@ -58,11 +58,13 @@ syncBuiltinESMExports();
 
 // A game folder whose AI NPC Cyberpunk Mod folders exist only virtually, a Runtime and a Local AI pack each in an MO2 mod folder, and a
 // data home of its own. `compat: false` leaves usvfs-compat.mjs out of the Runtime (as in a Runtime from before this fix).
-async function mo2Install({compat = true} = {}) {
+// `overwrite: true` is the other layout (report c44c3c95): the Runtime lives in the game folder and the hooked installer has just written it, so MO2 holds
+// every file of it in its Overwrite folder, a place that is no mod of the list: the real files are there and the game's view of them is virtual all the same.
+async function mo2Install({compat = true, overwrite = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'ai npc usvfs runtime Ünï '));
   const game = join(root, 'Games', 'Cyberpunk 2077');
   const mods = join(root, 'Modding', 'MO2', 'mods');
-  const runtimeMod = join(mods, 'AI NPC Cyberpunk Mod - Runtime');
+  const runtimeMod = overwrite ? join(root, 'Modding', 'MO2', 'overwrite') : join(mods, 'AI NPC Cyberpunk Mod - Runtime');
   const localAiMod = join(mods, 'AI NPC Cyberpunk Mod - LocalAI Lite');
   const realApp = join(runtimeMod, PLUGIN, 'app');
   await mkdir(join(realApp, 'launcher'), {recursive: true});
@@ -153,8 +155,10 @@ test('under USVFS the start puts the stat fallbacks in, runs the Runtime from it
     // packaging/mo2-split-packs.test.mjs); the old single real folder hid every other mod's pack.
     assert.equal(summary.packs.localAi.toLowerCase(), join(f.game, PLUGIN, 'app/local-ai').toLowerCase());
     assert.equal(summary.packs.omni.toLowerCase(), join(f.realApp, 'omni').toLowerCase(), 'a pack that is not installed stays under the app');
-    assert.match(summary.childNodeOptions, /^--import=file:\/\/\/.*\/app\/launcher\/usvfs-compat\.mjs$/);
+    // The children import the fallbacks from a copy in the data folder, outside the game folder and the mod folder (report c44c3c95).
+    assert.match(summary.childNodeOptions, /^--import=file:\/\/\/.*\/launcher\/usvfs-compat\.mjs$/);
     const url = summary.childNodeOptions.slice('--import='.length);
+    assert.equal(fileURLToPath(url).toLowerCase(), join(f.state, 'launcher', 'usvfs-compat.mjs').toLowerCase());
     assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: url}), url, 'the supervisor lets exactly this module into the bridge');
     const log = await read(join(f.state, 'bridge-service.log'));
     assert.match(log, /inside a virtual file system \(usvfs\): yes \(stat fallbacks on\)/);
@@ -165,6 +169,53 @@ test('under USVFS the start puts the stat fallbacks in, runs the Runtime from it
     assert.doesNotMatch(log, /locating the Local AI pack files failed/, 'the pack locator ran (it lists a pack\'s files only when they are somewhere else than where they were looked for)');
     assert.doesNotMatch(log, /locating the voice-input packs failed/);
     assert.equal(await exists(join(f.game, PLUGIN)), false, 'nothing is created for the Runtime in the game folder');
+  } finally { await f.cleanup(); }
+});
+
+// The two MO2 layouts of a Runtime. The child's first import (NODE_OPTIONS --import) is resolved by Node's own loader, whose stat cannot see a file that MO2 holds in a mod
+// folder or in Overwrite (ERR_MODULE_NOT_FOUND for launcher/usvfs-compat.mjs, the bridge stopped at once, seven starts in a row). The preload cannot reach that loader, so what is
+// proved here is what the fix relies on: the file named in NODE_OPTIONS is a plain file that stat sees, outside every virtual folder, with the module's own bytes.
+for (const [name, options] of [['the Runtime and the Scripts as separate mods', {}], ['the Runtime in the game folder, its files in Overwrite', {overwrite: true}]]) {
+  test(`under USVFS with ${name} the service's Node processes import the fallbacks from a plain file in the data folder`, async () => {
+    const f = await mo2Install(options);
+    try {
+      const result = launch(f, '--prepare-only');
+      assert.equal(result.status, 0, result.stderr + result.stdout);
+      const summary = JSON.parse(result.stdout.trim().split('\n').pop());
+      const url = summary.childNodeOptions.slice('--import='.length);
+      const staged = join(f.state, 'launcher', 'usvfs-compat.mjs');
+      assert.equal(fileURLToPath(url).toLowerCase(), staged.toLowerCase());
+      assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: url}), url, 'the supervisor lets exactly this file into the bridge');
+      assert.deepEqual(await readFile(staged), await readFile(join(project, 'packaging/runtime/usvfs-compat.mjs')), "the module's own bytes");
+      assert.equal(await exists(join(f.game, PLUGIN, 'app/launcher/usvfs-compat.mjs')), false, 'nothing of the Runtime is created in the game folder');
+      // Under the simulation the Runtime's own copy cannot be stat'ed through the game's path (what Node's loader meets), the staged file can.
+      const probe = spawnSync(process.execPath, ['--require', f.preload, '-e', `const fs = require('node:fs'); const seen = path => { try { fs.statSync(path); return true; } catch (error) { return error.code; } };
+        console.log(JSON.stringify({virtual: seen(process.argv[1]), staged: seen(process.argv[2])}));`, join(f.game, PLUGIN, 'app/launcher/usvfs-compat.mjs'), staged],
+        {encoding: 'utf8', timeout: 30_000, env: f.env});
+      assert.equal(probe.status, 0, probe.stderr);
+      assert.deepEqual(JSON.parse(probe.stdout), {virtual: 'ENOENT', staged: true});
+      // A child started the way the supervisor starts the bridge gets the fallbacks before its first line.
+      const child = spawnSync(process.execPath, ['--require', f.preload, '-e', "console.log(!!require('node:fs')[Symbol.for('ai-npc-cyberpunk-mod.usvfs-compat')])"],
+        {encoding: 'utf8', timeout: 30_000, env: {...f.env, NODE_OPTIONS: summary.childNodeOptions, CYBERPUNK_CONVAI_USVFS: '1'}});
+      assert.equal(child.status, 0, child.stderr);
+      assert.equal(child.stdout.trim(), 'true');
+      const log = await read(join(f.state, 'bridge-service.log'));
+      assert.match(log, /imported from the data folder, outside the game folder/);
+    } finally { await f.cleanup(); }
+  });
+}
+
+test('without a data folder of its own, or when the copy cannot be made, the children keep the Runtime\'s own file', async () => {
+  const f = await mo2Install();
+  try {
+    // A file where the data folder's launcher/ folder should go: the copy fails, and the start goes on with the Runtime's file.
+    await put(join(f.state, 'launcher'), 'a file, not a folder');
+    const result = launch(f, '--prepare-only');
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+    const summary = JSON.parse(result.stdout.trim().split('\n').pop());
+    assert.match(summary.childNodeOptions, /^--import=file:\/\/\/.*\/app\/launcher\/usvfs-compat\.mjs$/);
+    assert.equal(fileURLToPath(summary.childNodeOptions.slice('--import='.length)).toLowerCase(), join(f.realApp, 'launcher', 'usvfs-compat.mjs').toLowerCase());
+    assert.match(await read(join(f.state, 'bridge-service.log')), /imported from the Runtime's own launcher folder/);
   } finally { await f.cleanup(); }
 });
 

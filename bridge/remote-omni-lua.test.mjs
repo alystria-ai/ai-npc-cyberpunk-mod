@@ -6,7 +6,7 @@ import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {nsuiHarness} from './manager-fixture.mjs';
 
 // The game side of Remote OmniVoice (docs/REMOTE_OMNIVOICE.md): mod/remote-omni.lua on its own (state cleaning, the two rows, the commands, the test sentences) and
-// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the Custom voices button on the Voices page, the page with its switch, status,
+// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the Custom voices button on the Voice and microphone page, the page with its switch, status,
 // address and test, the saved setting, the pack rule and the notice). The conversation service is played by the test: it writes the state files the bridge would.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
@@ -175,10 +175,10 @@ const stateFixture = `
   end
 `;
 
-test('a Custom voices button sits right under the voice list; the page has the switch, the status, the address and the test, and a way back', () => run(`${pageFixture()}${stateFixture}
-  assert(invoke('tab:settings').ok)
+test('a Custom voices button is the last row of the Voice and microphone page; the page has the switch, the status, the address and the test, and a way back', () => run(`${pageFixture()}${stateFixture}
+  assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
   local ids = voiceIds()
-  assert(ids:find('voiceProvider,custom%-voices,replyLanguage', 1), ids)
+  assert(ids:find('audioDelay,custom%-voices$'), ids)
   assert(row('custom-voices').type == 'action' and row('custom-voices').value == 'Open' and row('custom-voices').label == 'Custom voices')
   assert(invoke('custom-voices').ok and managerUi.inspect().view == 'custom-voices')
   assert(loaded.categories[1].settings[1].id == 'custom-voices:back' and loaded.categories[1].settings[1].label == 'Back to settings')
@@ -193,30 +193,30 @@ test('a Custom voices button sits right under the voice list; the page has the s
   for _, id in ipairs({'remoteOmni', 'remote-status', 'remote-address', 'remote-test'}) do
     assert(not (row(id).description .. row(id).label):lower():find('recommend', 1, true), id)
   end
-  assert(invoke('custom-voices:back').ok and managerUi.inspect().view == 'settings' and row('custom-voices') and not row('remote-address'))
+  assert(invoke('custom-voices:back').ok and managerUi.inspect().view == 'settings-voice' and row('custom-voices') and not row('remote-address'))
 `));
 
-test('without the module (or with one that fails) the Voices page is unchanged and the page is not offered', () => {
+test('without the module (or with one that fails) the Voice and microphone page is unchanged and the page is not offered', () => {
   run(`${pageFixture(false)}${stateFixture}
-    assert(invoke('tab:settings').ok)
+    assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
     assert(row('custom-voices') == nil and not invoke('custom-voices').ok)
     assert(not voiceIds():find('custom', 1, true), voiceIds())
-    assert(voiceIds():find('voiceProvider,replyLanguage', 1, true), voiceIds())
+    assert(voiceIds():find('voiceProvider,replyLanguage', 1, true) and voiceIds():find('audioDelay$'), voiceIds())
   `);
   const raising = remoteSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
   run(`${pageFixture(true, raising)}${stateFixture}
-    assert(invoke('tab:settings').ok and invoke('custom-voices').ok)
+    assert(invoke('tab:settings').ok and invoke('settings:voice').ok and invoke('custom-voices').ok)
     assert(row('remoteOmni') and row('remote-status') and row('remote-address') == nil and row('remote-test') == nil, 'the switch and status stay, the rows are left out')
   `);
   const broken = remoteSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
   run(`${pageFixture(true, broken)}${stateFixture}
-    assert(invoke('tab:settings').ok and row('custom-voices') == nil)
+    assert(invoke('tab:settings').ok and invoke('settings:voice').ok and row('custom-voices') == nil)
   `);
 });
 
 test('the switch is a saved setting: off by default, applied with the rest, survives a reload, and only a boolean is accepted', () => run(`${pageFixture()}${stateFixture}
   assert(manager.snapshot(player).settings.remoteOmni == false)
-  assert(invoke('tab:settings').ok and invoke('custom-voices').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:voice').ok and invoke('custom-voices').ok)
   assert(registered.applyBatch('manager', {{id = 'remoteOmni', value = true}}).ok)
   assert(manager.snapshot(player).settings.remoteOmni == true and saved.remoteOmni == true)
   loaded = registered.loadMod('manager')
@@ -227,7 +227,7 @@ test('the switch is a saved setting: off by default, applied with the rest, surv
 `));
 
 test('the status line follows the setting, the saved address and the voice service\'s own report', () => run(`${pageFixture()}${stateFixture}
-  assert(invoke('tab:settings').ok and invoke('custom-voices').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:voice').ok and invoke('custom-voices').ok)
   assert(registered.applyBatch('manager', {{id = 'remoteOmni', value = true}}).ok); loaded = registered.loadMod('manager')
   -- Pocket is the saved voice: it keeps speaking until an address is saved, and the status says so.
   assert(row('remote-status').value == 'On, but no server address is saved. Pocket is used until you add one.', row('remote-status').value)
@@ -252,7 +252,7 @@ test('the status line follows the setting, the saved address and the voice servi
 
 test('the rows send their commands on their own channel, in place; the page follows the service', () => run(`${pageFixture()}${stateFixture}
   files['runtime/remote-omni-command.json'] = ''
-  assert(invoke('tab:settings').ok and invoke('custom-voices').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:voice').ok and invoke('custom-voices').ok)
   local removed = {}
   local remove = os.remove
   os.remove = function(path) removed[#removed + 1] = path; return remove(path) end

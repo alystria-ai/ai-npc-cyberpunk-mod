@@ -2184,7 +2184,7 @@ test('back to the card: a card whose free memory cannot be read (no nvidia-smi) 
   assert.deepEqual([h.calls.length, h.returned.length], [1, 0]);
 });
 
-// ---- Pictures (Companions can see): the vision projector loads only while the setting is on (docs/LOCAL_AI.md, "Pictures (Companions can see)") ------------------------------------
+// ---- Vision (Companion vision): the vision projector loads only while the setting is on (docs/LOCAL_AI.md, "Vision (Companion vision)") ------------------------------------
 // The projector is `mm.gguf` (900 MiB by CHOICE_SIZES, so 900 + 384 MiB of encoder buffer are counted: 1,284). No real projector exists on the development machine: these tests use a stand-in file
 // with a clip header and the fake server, so the arguments, the memory arithmetic and the restarts are what is measured, never llama-server's own use of a projector.
 const PROJECTOR_MIB = 1284;

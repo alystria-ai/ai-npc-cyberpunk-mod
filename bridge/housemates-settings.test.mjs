@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {run, nsuiHarness, managerFixture, source} from './manager-fixture.mjs';
 
-// Settings > Gameplay > Housemates: its own page on the Native Settings UI tab, saved as one table, Off by default, validated like every
+// Settings > Companions > Housemates: its own page on the Native Settings UI tab, saved as one table, Off by default, validated like every
 // setting, and part of Restore defaults (docs/HOUSEMATES.md).
 const everything = {
   'service-status.lua': source('service-status.lua'), 'character-editor.lua': source('character-editor.lua'),
@@ -25,9 +25,10 @@ const harness = (options = {}) => nsuiHarness({modules: everything, ...options})
   frames(3)
 `;
 
-test('Companion behavior has an Open button for the page; the page starts Off with the pair chat On', () => run(`${harness()}
-  press('Settings')
-  local open = assert(ns.find('Housemates'), 'no Housemates button on Settings')
+test('the Companions page has an Open button for the page; the page starts Off with the pair chat On', () => run(`${harness()}
+  press('Settings'); press('Companions')
+  assert(managerUi.inspect().view == 'settings-companions')
+  local open = assert(ns.find('Housemates'), 'no Housemates button on the Companions page')
   assert(open.type == 'button' and open.buttonText == 'Open')
   press('Housemates')
   assert(managerUi.inspect().view == 'housemates')
@@ -41,7 +42,7 @@ test('Companion behavior has an Open button for the page; the page starts Off wi
 `));
 
 test('a change is applied and saved as one validated table, and Restore defaults puts everything back', () => run(`${harness()}
-  press('Settings'); press('Housemates')
+  press('Settings'); press('Companions'); press('Housemates')
   ns.interact.toggle(ns.find('Housemates')); frames(8); ns.verify()
   ns.interact.toggle(ns.find('Housemates talk to each other')); frames(8); ns.verify()
   local value = manager.housemates()
@@ -52,7 +53,7 @@ test('a change is applied and saved as one validated table, and Restore defaults
   assert(value.enabled == false and value.chat == true)
   assert(ns.find('Housemates').state == false and ns.find('Housemates talk to each other').state == true)
   press('Back to settings')
-  assert(managerUi.inspect().view == 'settings')
+  assert(managerUi.inspect().view == 'settings-companions', 'back to the Companions page that holds the row')
 `));
 
 test('an invalid value is refused and changes nothing; a damaged saved value falls back to the default', () => run(`${harness()}
@@ -83,7 +84,7 @@ test('a saved bad value falls back to the default (Off, chat On) and the cleaned
 test('the options: Move-in apartment lists Ask me and the flats V owns, the pause and the chat size are lists, and every change is saved', () => run(`${harness()}
   local owned = {{id = 'h10', name = 'Megabuilding H10'}, {id = 'glen', name = 'Heywood Glen'}}
   convaiHousemateOwned = function() return owned end
-  press('Settings'); press('Housemates')
+  press('Settings'); press('Companions'); press('Housemates')
   local move = assert(ns.find('Move-in apartment'), 'no Move-in apartment row')
   assert(move.type == 'selectorString' and #move.elements == 3 and move.selectedElementIndex == 1, 'Ask me, then the two flats')
   assert(move.elements[1] == 'Ask me' and move.elements[2] == 'Megabuilding H10' and move.elements[3] == 'Heywood Glen')
@@ -140,7 +141,7 @@ test('Evict all housemates is a button on the page: off while nobody lives there
   local rows, evicted = {}, 0
   convaiHousemateRows = function() return rows end
   convaiHousemateEvictAll = function() evicted = evicted + 1; local n = #rows; rows = {}; return n end
-  press('Settings'); press('Housemates')
+  press('Settings'); press('Companions'); press('Housemates')
   local button = assert(ns.find('Evict all housemates'), 'no Evict all housemates row')
   assert(button.type == 'button' and button.buttonText == 'Evict')
   ns.interact.press(button); frames(3); ns.verify()

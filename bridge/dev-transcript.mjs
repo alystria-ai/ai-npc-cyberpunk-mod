@@ -2,7 +2,7 @@
 // (the owner, 2026-10-30: "you should be able to see the replies, at least in dev mode").
 //
 //   <state>/dev-transcript.log   one entry per turn, newest last:
-//       [2026-10-30 12:01:02] Judy Alvarez | provider local | picture yes
+//       [2026-10-30 12:01:02] Judy Alvarez | provider local | vision yes
 //         where: You are inside the Afterlife, a merc bar in Little China, Watson.
 //         V: what do you think of this place
 //         Judy Alvarez: It's where the real deals happen.
@@ -58,7 +58,7 @@ export class DevTranscript {
   /** The entry as text (no write). */
   format({speaker, provider, user, reply, picture, where} = {}) {
     const name = String(speaker ?? 'unknown').replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, 60) || 'unknown';
-    const head = `[${stamp(this.now())}] ${name} | provider ${String(provider ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 24) || 'unknown'} | picture ${picture === true ? 'yes' : 'no'}`;
+    const head = `[${stamp(this.now())}] ${name} | provider ${String(provider ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 24) || 'unknown'} | vision ${picture === true ? 'yes' : 'no'}`;
     const lines = [head];
     if (where) lines.push(body('where', where));
     lines.push(body('V', user || '(nothing)'), body(name, reply || '(no reply)'));

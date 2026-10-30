@@ -336,9 +336,9 @@ test('the wiring: three send sites attach (group rounds too, never a reaction or
   const ui = read('../mod/manager-ui.lua');
   assert.match(ui, /setting\('characterBonds', 'Character bonds', 'bool', snapshot\.settings\.characterBonds == true, false,/);
   assert.match(ui, /setting\('storyPacks', 'Story packs', 'bool', snapshot\.settings\.storyPacks == true, false,/);
-  assert(ui.indexOf("setting('characterBonds'") > ui.indexOf("category('gameplay'"), 'in Settings > Gameplay');
+  assert(ui.indexOf("setting('characterBonds'") > ui.indexOf("settingsPages['settings-companions']"), 'in Settings > Companions');
   assert.equal(ui.indexOf("setting('storyPacks'") > ui.indexOf("setting('characterBonds'"), true, 'right after Character bonds');
-  assert(ui.indexOf("setting('storyPacks'") < ui.indexOf("action('immersive-invitations'"), 'and before the next row');
+  assert(ui.indexOf("setting('storyPacks'") < ui.indexOf("setting('companionReactions'"), 'and before the next row');
   assert.match(ui, /elseif key == 'storyPacks' then values\.storyPacks = change\.value/);
   assert.match(ui, /ui\.t\('Bond: level \{level\}, \{title\}'/);
   assert.match(ui, /ui\.t\('Story: \{title\}'/);
@@ -447,7 +447,7 @@ test('Characters text first: OFF by default in the settings file (30 Oct, revers
   assert.match(manager, /elseif key == 'reachOuts' then\n\s*if type\(value\) ~= 'boolean' then return false, 'This setting must be on or off\.' end\n\s*nextSettings\.reachOuts = value/);
   const ui = read('../mod/manager-ui.lua');
   assert.match(ui, /setting\('reachOuts', 'Characters text first', 'bool', snapshot\.settings\.reachOuts == true, false,/);
-  assert(ui.indexOf("setting('reachOuts'") > ui.indexOf("setting('storyPacks'") && ui.indexOf("setting('reachOuts'") < ui.indexOf("action('immersive-invitations'"), 'right after Story packs');
+  assert(ui.indexOf("setting('reachOuts'") > ui.indexOf("setting('storyPacks'") && ui.indexOf("setting('reachOuts'") < ui.indexOf("setting('companionReactions'"), 'right after Story packs');
   assert.match(ui, /elseif key == 'reachOuts' then values\.reachOuts = change\.value/);
   assert.match(read('../mod/init.lua'), /reach = function\(\) return type\(manager\.reachOuts\) == 'function' and manager\.reachOuts\(\) end,/);
 });

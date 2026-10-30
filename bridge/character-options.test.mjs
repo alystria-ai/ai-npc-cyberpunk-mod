@@ -56,7 +56,7 @@ test('a row holds only known fields with allowed values; nothing else is ever st
   assert.deepEqual(readOptions({talk: 'wild', nods: true, idle: 'x', sit: 0, react: 'no', length: 'long', outfit: '../x', other: 1}), {}, 'today\'s values and unknown ones are not stored');
   assert.deepEqual(readOptions(null), {});
   assert.deepEqual(readOptions([]), {});
-  assert.deepEqual(OPTION_FIELDS, ['outfit', 'talk', 'nods', 'idle', 'sit', 'react', 'length']);
+  assert.deepEqual(OPTION_FIELDS, ['outfit', 'talk', 'nods', 'idle', 'sit', 'react', 'length', 'off']);
   assert.deepEqual(OPTION_VALUES.talk, ['calm', 'lively', 'none']);
   assert(Object.values(REPLY_WORDS).every(words => words >= 8 && words <= 60), 'the prompt builder accepts 8 to 60 words');
 });

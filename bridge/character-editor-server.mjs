@@ -200,6 +200,10 @@ export class EditorServer {
       if (method === 'PUT') return this.editor.saveWorldRules((await this.#body(request))?.text);
       if (method === 'DELETE') return this.editor.clearWorldRules();
     }
+    if (parts[0] === 'off' && parts.length === 1) {
+      if (method === 'GET') return this.editor.off();
+      if (method === 'POST') return this.editor.setPersonOff(await this.#body(request));
+    }
     if (parts[0] === 'custom') return this.#customRoute(request, method, parts.slice(1));
     if (parts[0] === 'prompting') return this.#promptingRoute(request, method, parts.slice(1));
     if (parts[0] === 'voice') return this.#voiceRoute(request, method, parts.slice(1));

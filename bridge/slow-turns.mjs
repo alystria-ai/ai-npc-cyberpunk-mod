@@ -20,6 +20,26 @@
 export const SLOW_TURNS = Object.freeze({windowTurns: 5, slowInWindow: 3, slowMs: 10_000, extremeMs: 30_000,
   headTurns: 3, keepTurns: 8, slowListed: 5, maxMarks: 40});
 
+// The knowledge stage of a turn (bridge/player-knowledge.mjs prepare) is 10 to 300 ms everywhere except on two installs (fe801d, dde45e: 3.3 to 3.8 s on every turn, triage of 30 Oct 2026). When
+// the stage takes longer than KNOWLEDGE_PARTS_MS the turn's record also holds how long each part of it took, so the next report says which one stalled. The parts, as numbers of milliseconds under
+// fixed names (never a word of any text): `cancelMicrophoneMs` (the microphone stopped before the stage), `beforePrepareMs` (the rest of the turn's own set-up, V's voice request included),
+// `prepareMs` (the whole prepare call), and inside it `setupMs` (the copy and parse of the request and the world snapshot), `liveMs` (the wait for the world heartbeat), `ledgerMs` and
+// `receiptsMs` (the two state files read on every turn), `resolveMs` (the knowledge resolver) and `attachMs` (quest and journal context, the frozen result). Nothing is measured beyond
+// a few timestamps on a fast turn, and nothing is built unless the stage is over the limit.
+export const KNOWLEDGE_PARTS_MS = 1000;
+export const KNOWLEDGE_PART_NAMES = Object.freeze(['totalMs', 'cancelMicrophoneMs', 'beforePrepareMs', 'prepareMs', 'setupMs', 'liveMs', 'ledgerMs', 'receiptsMs', 'resolveMs', 'attachMs']);
+
+/** The parts of a slow knowledge stage, or undefined when the stage was not over the limit (or nothing usable is given). Fixed names, whole milliseconds. Pure. */
+export function knowledgeParts(values, limit = KNOWLEDGE_PARTS_MS) {
+  if (!values || typeof values !== 'object' || !(values.totalMs > limit)) return undefined;
+  const parts = {};
+  for (const name of KNOWLEDGE_PART_NAMES) {
+    const value = values[name];
+    if (Number.isFinite(value) && value >= 0) parts[name] = Math.round(value);
+  }
+  return Object.keys(parts).length ? parts : undefined;
+}
+
 const WORD = /^[A-Za-z0-9._:-]{1,80}$/;
 const MARK = /^[A-Za-z][A-Za-z0-9]{1,23}$/;
 const round = (value, places = 0) => Math.round(value * 10 ** places) / 10 ** places;
@@ -41,6 +61,14 @@ export function localFacts(value) {
   return Object.keys(facts).length ? facts : undefined;
 }
 
+// The parts as a turn's record keeps them: only the fixed names, only numbers.
+function knowledgePartsOf(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const parts = {};
+  for (const name of KNOWLEDGE_PART_NAMES) if (count(value[name]) !== undefined) parts[name] = count(value[name]);
+  return Object.keys(parts).length ? parts : undefined;
+}
+
 /** One turn as the report keeps it: small, numbers and fixed names. `marks`: stage -> ms after the bridge read the request. */
 function entryOf({n, atMin, soundMs, details = {}, snapshot, fallback = {}, withMarks = true}) {
   const marks = {};
@@ -51,6 +79,7 @@ function entryOf({n, atMin, soundMs, details = {}, snapshot, fallback = {}, with
   return {n, atMin, soundMs, provider: word(details.provider) ?? word(fallback.provider), model: word(details.model),
     voice: word(details.voice) ?? word(fallback.voice), promptTokens: count(details.promptTokens), cachedTokens: count(details.cachedTokens),
     ...(details.cold === true ? {cold: true} : {}),
+    ...(knowledgePartsOf(details.knowledgeParts) ? {knowledgeParts: knowledgePartsOf(details.knowledgeParts)} : {}),
     ...(stalls.length ? {stalls: {count: stalls.length, maxMs: round(Math.max(...stalls.map(stall => Number(stall.ms) || 0)))}} : {}),
     ...(withMarks ? {marks} : {})};
 }

@@ -1,4 +1,4 @@
-// Story packs, running (docs/RELATIONSHIPS_AND_QUESTS.md section 7.3): Settings > Gameplay > Story packs, off by default, on top of Character bonds.
+// Story packs, running (docs/RELATIONSHIPS_AND_QUESTS.md section 7.3): Settings > Companions > Story packs, off by default, on top of Character bonds.
 //
 // A pack is a short arc of one character (bridge/bond-packs.mjs holds the format and the plot-safety gate). This file plays it:
 //   START   on a private turn of V's (in person with one of V's own copies, Phone Chat, a holocall), when the gate is open and the dice say so: that turn's

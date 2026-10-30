@@ -12,7 +12,7 @@
 //    embed: {file: 'models/e.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'}}
 //   Paths are relative to the root; absolute paths and `..` are rejected. Another model is only another manifest.
 //   A model entry may also name its vision projector: `standard: {file, name, mmproj: 'models/x-mmproj.gguf'}` (same path rules). It is carried as `mmproj` on the tier and
-//   loaded only while Companions can see is on (bridge/local-projector.mjs checks the file, docs/LOCAL_AI.md "Pictures (Companions can see)"). A bad path is dropped, the model stays.
+//   loaded only while Companions can see is on (bridge/local-projector.mjs checks the file, docs/LOCAL_AI.md "Vision (Companion vision)"). A bad path is dropped, the model stays.
 //
 // The optional Mature packs (bridge/mature-pack.mjs) carry the same server and embedding files, so each works alone. Their markers
 // (manifest.mature-lite.json, manifest.mature-standard.json) may also name `server` and `embed` (same shape as above); this module reads

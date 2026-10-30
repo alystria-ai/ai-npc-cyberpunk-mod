@@ -44,18 +44,29 @@ Mods screen (Esc > Mods)
 | Characters to invite | Home | Characters to invite |
 | Parties (was Current party until 2026-10-28) | Home | Your group (only while a companion drives), Current party, one Saved party section for each saved party |
 | Model browser | Home | Installed character models |
-| Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Gameplay, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
-| Memory | Settings | Memory, Whose memories |
-| Dynamic info | Settings | Dynamic info (twelve switches, `docs/DYNAMIC_INFO.md`) |
-| Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
-| Convai paid tier | Settings | Convai paid tier, Plans |
-| Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
-| Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
-| Housemates | Settings | Housemates (six rows and a button: the switch, Off by default, Housemates talk to each other, Move-in apartment, Pause between chats, Housemates in one chat, and Evict all housemates; `docs/HOUSEMATES.md`) |
+| Settings (since 2026-10-30 a list of category pages) | Home | one **Open** row with a line of help for each category page, in this order: AI provider, Voice and microphone, Conversations, Companions, Night City, Interface, Content packs (only while an add-on has settings or the bridge lists a content pack), Privacy and help |
+| AI provider | Settings | AI provider (the provider rows, see "Settings") |
+| Voice and microphone | Settings | Voice and microphone |
+| Conversations | Settings | Conversations |
+| Companions | Settings | Companions |
+| Night City | Settings | Night City |
+| Interface | Settings | Interface |
+| Content packs | Settings | one section per installed add-on that has settings, then Content packs (one switch per content pack) |
+| Privacy and help | Settings | Privacy and help |
+| Memory | Conversations | Memory, Whose memories |
+| Dynamic info | Conversations | Dynamic info (twelve switches, `docs/DYNAMIC_INFO.md`) |
+| Relationships | Conversations | Relationships (one selector per character that has the setting) |
+| Help and support | Privacy and help | Setup check, If something goes wrong, Report for the developer, Where the logs are |
+| Convai paid tier | AI provider | Convai paid tier, Plans |
+| Custom endpoint | AI provider | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
+| Custom voices | Voice and microphone | Custom voices (`docs/INWORLD.md`, Remote OmniVoice) |
+| OmniVoice for AMD | Voice and microphone | OmniVoice for AMD (only when the service says this PC offers it) |
+| Immersive invitations | Companions | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
+| Housemates | Companions | Housemates (six rows and a button: the switch, Off by default, Housemates talk to each other, Move-in apartment, Pause between chats, Housemates in one chat, and Evict all housemates; `docs/HOUSEMATES.md`) |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the others (Memory, Romantic relationships, Dynamic info, Help, paid tier, Custom endpoint, Immersive invitations, Housemates). It is the first row of
+The Back row reads "Back to Companion Manager" on the first four pages, Key bindings and Settings, and "Back to settings" on the others. Since 2026-10-30 each category page goes back to the Settings list, and a page that opens from a row of a category page goes back to that category page (its help names it, "Return to Conversations."): Memory, Relationships and Dynamic info to Conversations, Immersive invitations and Housemates to Companions, Custom voices and OmniVoice for AMD to Voice and microphone, Convai paid tier and Custom endpoint to AI provider, Help and support to Privacy and help. It is the first row of
 the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Romantic relationships (Open, renamed 2026-10-30 so it is not taken for the Relationships page of the home) are rows of Settings > Conversations, Help and support is
-the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row, and Custom endpoint (Open, since 2026-10-20) a row of the same section right after the Mistral key row. The Help
+the first row of Settings > Privacy and help, and Convai paid tier is a row of Settings > AI provider under the Convai API key row, and Custom endpoint (Open, since 2026-10-20) a row of the same page right after the Mistral key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
 behind `pcall`). Romantic relationships is absent when no character has a relationship setting.
 
@@ -80,7 +91,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (press its Key or button row, then the key; Clear). Set and Clear are
   actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button). Since 0.3.4 there is no Controller talk button: a controller button is given to Talk by voice here. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
   when `mod/character-editor.lua` loaded, and pressing it opens the character editor in the player's browser through the very request of
-  Settings > Conversation provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
+  Settings > AI provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
   nothing per frame). The player stays on Home; the result is the line under the way back (NSUI) or the status line (MCM): "Opening the
   editor in your browser. Switch to your browser if it does not come to the front.", or, when the service is stopped, "The conversation
   service is not running, so the editor cannot open. Restart the game.", or "The editor could not be opened. Try again." when the file
@@ -102,34 +113,38 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   the record, else by a readable name made from the record id ("Character.lizzies_bouncer" becomes "Lizzies Bouncer"; a quest code in
   front and the build mark behind are dropped, a mark is kept as (M) or (F)). Those last names are listed after the real ones, and the raw
   record stays in the help and in the search (the game's own name too, so "mox" finds Rita Wheeler).
-- **Settings:** the sections of the page table above, in that order. Rows by section:
-  - Interface: Interface language. Its help says the setting changes this mod's menus and notices only, that character voices and the language the
-    player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
-  - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
-    rarely, Speaks up normally, Speaks up often; default Off), Companions speak up (one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; default Speaks up
-    often since 0.3.4, rarely before, `docs/COMPANION_SPEAK_UP.md`). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
-  - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations; view `dynamic-info`, back to Settings): twelve switches, one per kind of live game info a turn's
+- **Settings** (since 2026-10-30): a short list of category pages, one **Open** row with a line of help for each, in the order of the page table above. A category page is built when it is opened, never per frame. Rows by page, in order:
+  - AI provider (view `settings-provider`): Conversation provider, Local AI model, Allow Local AI to use RAM, Mature content, the Google Gemini key, Convai paid tier (opens its page), Custom endpoint (a button that
+    opens the Custom page, below), Edit characters. These are the provider rows as they were, only moved.
+  - Voice and microphone (`settings-voice`): Companion voices (the first entry is Off, the old Voice playback switch: it keeps the voice that was chosen), Voice language, Companion voice volume (%) (was Voice volume (%)),
+    V's voice (one list, see below), V's voice engine, V's voice volume (%) (the two volume sliders go 50 to 300, default 150: the first for every voice but V's, the second for V's spoken lines), Natural speech (off by default),
+    Microphone, Voice activation, Speak dialogue choices (moved here from Gameplay), Lip sync delay (Bluetooth), then the pages Custom voices and OmniVoice for AMD (shown as before). Subtitles moved to Interface.
+  - Conversations (`settings-conversations`): Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
+    rarely, Speaks up normally, Speaks up often, default Off), Companions speak up (one list: Off, Speaks up rarely, Speaks up normally, Speaks up often, default Speaks up
+    often since 0.3.4, rarely before, `docs/COMPANION_SPEAK_UP.md`), Companion vision (was Companions can see, `docs/COMPANION_VISION.md`), Dynamic info, Romantic relationships, Memory. (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
+    Talk to ordinary NPCs has no row any more: it is always on, and a saved off reads as on.
+  - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations, view `dynamic-info`, back to Conversations): twelve switches, one per kind of live game info a turn's
     context can carry (Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game
-    dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default except Other mods' state (`mods`). Row ids `dynamic:<kind>`; saved as `dynamicInfo.<kind>`; the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
+    dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default except Other mods' state (`mods`). Row ids `dynamic:<kind>`, saved as `dynamicInfo.<kind>`, the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
     What each switch removes, on the game side and in every provider's prompt, is in `docs/DYNAMIC_INFO.md`.
-  - Romantic relationships (a page of its own, opened by the Romantic relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
+  - Romantic relationships (a page of its own, opened by the Romantic relationships row of Conversations, back to Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary, Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
-  - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
-    opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
-  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
-  - Gameplay (a section of its own since 2026-10-28; the rows moved here with their saved values untouched, only the page changed): Street reputation (was in Conversations, off by default), NPCs react to threats and commands (was in Conversations, off), Companions change outfits (was in Companion behavior, off), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page (both were in Companion behavior and still go Back to Settings), and the new Revenge ambushes (off by default, `docs/AMBUSHES.md`). Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
-  - Voices (0.3.4): Companion voices (the first entry is Off, the old Voice playback switch: it keeps the voice that was chosen), Voice language, Subtitles (Off, Cinematic subtitles, Above the speaker: the old switch and
-    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%) and V’s voice volume (%) (two sliders, 50 to 300, default 150: the first for every voice but V's, the second for V's spoken lines), Natural speech (off by default),
-    V's voice for typed lines and V's voice for microphone lines (two rows of one kind: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; typed default Pocket, microphone default Off,
-    one engine for both, `docs/V_VOICE.md`). React to battles and React to collected loot (both on by default since 2026-10-26) moved to Gameplay, and the Subtitles and Automatic reactions sections are gone.
-  - One section per installed add-on that has settings
-    (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
+  - Companions (`settings-companions`): Immersive invitations (Open, since 2026-10-25) and Housemates (Open, since 2026-10-26), each a page of its own that goes back to Companions, Companions change outfits (off by default), Eddies with characters (off), Character bonds, Story packs and Characters text first (each off, `docs/RELATIONSHIPS_AND_QUESTS.md`, the last two needing the one before), and
+    Companions react (on by default, one switch, see below). Eye contact height and Head tracking strength have no row any more: they always use their defaults (0 and 1), whatever the file saved. Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
+  - Night City (`settings-night-city`): Street reputation and NPCs react to threats and commands (both on by default since 2026-10-30, a saved choice is kept), and Revenge ambushes (off by default, `docs/AMBUSHES.md`).
+  - Interface (`settings-interface`): Interface language and Subtitles (Off, Cinematic subtitles, Above the speaker: the old switch and Subtitle display in one list, moved here from Voices). The help of Interface language says the setting changes this mod's menus and notices only, that character voices and the language the
+    player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
+  - Content packs (`settings-content-packs`): one section per installed add-on that has settings
+    (see [ADDON_API.md](ADDON_API.md), the add-on wrote its own labels), then one On/Off row per content pack. The page and its row on Settings exist only while an add-on has settings or the bridge lists a content pack.
+  - Privacy and help (`settings-privacy`): Help and support (opens the Help page), Send error reports automatically, Developer mode.
+  - **Companions react** (row id `companionReactions`, 2026-10-30) replaces React to battles and React to collected loot (both had been on by default since 2026-10-26): one switch, on by default, that writes both stored keys `battleReactions` and `lootReactions`. A file that has not been through the merge yet is merged once on load (marker `reactionsMergedGiven`): on if either was on, off only if both were off.
+  - **V's voice** (row id `vVoice`, 2026-10-30) replaces V's voice for typed lines and V's voice for microphone lines: one list, Off, Typed lines (the default), Typed and spoken lines. It writes `vVoice` (typed) and `vVoiceMic` (spoken), the two keys the bridge still reads. **V's voice engine** (row id `vVoiceEngine`, stored `vVoiceEngine`, Pocket, Voxtral, OmniVoice) is a row of its own right under it: one engine for typed and spoken lines, and choosing an engine no longer turns V's voice on or off. A one-time migration (marker `vVoiceMergedGiven`) turns typed lines on for a file that had microphone lines on, so it reads Typed and spoken lines. `docs/V_VOICE.md`.
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
   OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
   · Cloud voice**, then **Inworld · Cloud voice** as the last entry once an Inworld key is saved (docs/INWORLD.md: the key, its connection test
-  and a status line are the last section of Settings > Voices > Custom voices). Without the optional OmniVoice pack the
+  and a status line are the last section of Settings > Voice and microphone > Custom voices). Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
   The Voice status row was removed on 2026-10-20: the voice state shows through the fallback notices (when the chosen voice cannot run, one gameplay
   notice names the voice, e.g. "OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.") and the Help page.
@@ -146,18 +161,28 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
 
 ### Settings notes
 
+- **Settings reorganised into category pages (2026-10-30, branch `feat/settings-reorg`).** Settings used to be one long page of sections (Interface, Conversations, Conversation provider, Companion behavior, Gameplay, Voices, Development, Help, then add-on sections). It is now a short list of eight category pages, each one an Open row with a line of help (`settingsPages` in `mod/manager-ui.lua`): AI provider, Voice and microphone, Conversations, Companions, Night City, Interface, Content packs, Privacy and help. A page is built when it is opened, never per frame. Every category page has Back to settings, and a page that opens from a row goes back to its category page (see the Back paragraph above). Both hosts draw the same pages from the shared model, and the only host change is that they ask `core.hasDefaults()` before offering Restore defaults. Where each row went (stored keys are unchanged wherever a row only moved):
+  - Conversation provider section to **AI provider**, unchanged. Voices section to **Voice and microphone**, except Subtitles, which is now on **Interface** next to Interface language. Voice volume (%) is now **Companion voice volume (%)** (key `voiceVolume`).
+  - Gameplay section: Speak dialogue choices (`voiceChoices`) to **Voice and microphone**, Street reputation, NPCs react to threats and commands and Revenge ambushes to **Night City**, Companions change outfits, Immersive invitations and Housemates to **Companions**. Eddies with characters is on **Companions** as well, and so are the bond rows of the quests branch (Character bonds, Story packs, Characters text first, stored keys unchanged). The Relationships row of the home opens the bonds page (view `bonds`, back to Home): the characters V has talked to, each with the bond level. Companion behavior section: its rows are gone (below).
+  - Conversations section: Talk to story characters, Johnny in your head, Companions speak up, Dynamic info, Romantic relationships and Memory stay on **Conversations**. Companions can see is renamed **Companion vision** (key `companionVision`, the player-facing sentences say vision, not picture).
+  - Development and Help sections to **Privacy and help**, with Send error reports automatically (was in Privacy). The add-on sections to **Content packs**.
+  - Merged: **Companions react** (replaces React to battles and React to collected loot, one switch, on by default, writes `battleReactions` and `lootReactions`, one-time marker `reactionsMergedGiven`: on if either was on, off only if both were off), and **V's voice** (replaces V's voice for typed lines and V's voice for microphone lines: Off, Typed lines (the default), Typed and spoken lines, writes `vVoice` and `vVoiceMic`, one-time marker `vVoiceMergedGiven`: microphone lines on gives Typed and spoken lines, with typed lines turned on). **V's voice engine** (`vVoiceEngine`) is a new row of its own under V's voice: the old rows carried the engine in their lists and the engine has to stay choosable. The bridge still reads `vVoice`, `vVoiceMic` and `vVoiceEngine`, so it did not change.
+  - No row, fixed: **Talk to ordinary NPCs** is always on (a saved off becomes on at every load, `applySettings` ignores the key), **Eye contact height** and **Head tracking strength** always use their defaults (0 and 1, whatever the file saved, ignored by `applySettings`).
+  - New defaults: **Street reputation** and **NPCs react to threats and commands** are on for a new player (no settings file, or no saved value). A saved value, on or off, is kept.
+  - The migrations are in `loadSettings` (`mod/manager.lua`), `bridge/settings-pages.test.mjs` pins the pages, the Back targets, Restore defaults and the migrations.
+
 - **Provider selector and migration.** Five entries: Convai free tier (default), Convai API key, Mistral (free plan), Local AI, Custom
   (OpenAI-compatible). "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store
   `convai`, `mistral`, `local` or `custom`. A one-time migration on load (marker `convaiProviderChoice` in `settings.json`) maps the old
   switch: on with a key saved becomes "Convai API key", anything else "Convai free tier".
-- **One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
+- **One key button per key.** The Convai key and the Mistral key (Settings > AI provider) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
   status is in brackets in the row name: "Convai API key (...a1F9)" (the last four characters, the only part of a key ever shown),
   "(Added)", "(Checking...)" or "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help.
 - **What the Mistral key's Remove says.** The help starts with the fixed sentence "Deletes the saved key." and then names what the key powers now:
   "Conversations go back to Convai free tier." (the provider is Mistral), "Voxtral stops speaking; companion replies show as text until a key is saved." (the companion voice
   is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on and its engine is Voxtral). With none of them: "Nothing you use now depends on
   it." The Convai key's Remove help stays "Deletes the saved key. Conversations go back to Convai free tier."
-- **Battle and loot reactions are on by default** (owner, 2026-10-26). A saved off the player never chose moves to on once (`battleReactionsChosen` / `lootReactionsChosen`).
+- **Battle and loot reactions are on by default** (owner, 2026-10-26), and since 2026-10-30 they are one row, Companions react (Settings > Companions), which writes both keys. A saved off the player never chose moves to on once (`battleReactionsChosen` / `lootReactionsChosen`).
   Restore defaults turns both on. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
 - **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
   memory)", "(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted
@@ -169,7 +194,7 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`), the "Who can talk" page, the OmniVoice pack row,
   and Groq as a provider (a saved `groq` reads as `convai`; `player-groq-key.txt` is never read).
 - **Add-ons** can hide **Most remarks per fight** with `remarkCap = false` in `handle:settings` (Delamain does; the default guard of
-  30 stays). Add-on rows are sections of the Settings page; the add-on API (`docs/ADDON_API.md`) did not change.
+  30 stays). Add-on rows are sections of the Content packs page (before 2026-10-30, of the one Settings page), and the add-on API (`docs/ADDON_API.md`) did not change.
 
 ## How a change is applied
 
@@ -196,7 +221,7 @@ the main settings saved.
 After every apply the page is drawn again. **What the rules did is shown on the rows in place**, with one line under Back:
 
 - A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
-  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI or Custom."). The other changes of the same moment are kept.
+  Settings > AI provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI or Custom."). The other changes of the same moment are kept.
 - A rule that **moves other rows** corrects them in place, and the line names what moved:
   - **Mature content** works with Local AI and Custom only (owner decision 2026-10-20, after a live test) and never stands beside Convai (free tier or
     API key) or Mistral. Turning it on beside Convai or Mistral selects, in the same transaction, **Local AI** when its pack is installed (with the largest
@@ -209,7 +234,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     `{conversationProvider, localModel, voice, vVoiceEngine}`, each as `{before, set}`; an older record keeps loading), so turning it off puts back what it
     changed, except anything the player changed since (Voxtral only while the Mistral key is saved and the voice is still Pocket); choosing Convai or Mistral
     turns it off the same way; choosing Custom leaves it on. A saved file with Mature content and a Voxtral voice loads as Pocket. The line reads "Also changed: ..."
-    and names the provider ("Local AI" or "Custom (OpenAI-compatible)"), the uncensored model and the voices ("Pocket · Performance", "V’s voice for typed lines").
+    and names the provider ("Local AI" or "Custom (OpenAI-compatible)"), the uncensored model and the voices ("Pocket · Performance", "V’s voice engine").
   - **Cloud voice and Natural speech** (`manager.applySettings`, `honourCloudVoice`; rule changed 2026-10-20): Natural speech and the
     Convai · Cloud voice exclude each other only where that voice is what speaks: the voice is Convai **and** the provider is Convai (free tier
     or own key). With Mistral, Local AI or Custom and the Convai voice selection the bridge plays Pocket, so Natural speech works there and
@@ -218,7 +243,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     existing pairing moves the voice to Pocket · Performance with the "needs a local voice" notice. An older save with the pairing loads with
     Natural speech off. No voice is moved or refused for the language of a reply: Pocket keeps speaking English and shows another language as text with the
     one-time voice-language notice.
-  - V's voice is one list (2026-10-20): Off, Pocket, Voxtral, OmniVoice. The row writes both stored keys (`vVoice`, `vVoiceEngine`: `pocket`, `voxtral`, `omni`); Off keeps the saved engine. Voxtral is greyed out
+  - V's voice engine (since 2026-10-30 the engine is a row of its own, **V's voice engine**, right under **V's voice**, which is the Off / Typed lines / Typed and spoken lines list, the engine list has Pocket, Voxtral and OmniVoice only, so the entry numbers below are one lower than the four-entry list of 2026-10-20, OmniVoice is `disabledElements[3]`, and choosing an engine no longer turns V's voice on or off). The 2026-10-20 list was Off, Pocket, Voxtral, OmniVoice, and one row wrote both stored keys (`vVoice`, `vVoiceEngine`: `pocket`, `voxtral`, `omni`), Off kept the saved engine. Voxtral is greyed out
     until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and
     speaks as Pocket until a key is saved. With Mature content on the Voxtral entry is greyed out and a saved Voxtral reads as Pocket (see Mature content above).
     The fourth entry, OmniVoice (added 2026-10-21; it renders V's line on the GPU voice the companions use, no extra model), is usable only when the OmniVoice pack is installed
@@ -241,8 +266,8 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     `medium` / `normal`; the help says "Rarely: about 2 an hour. Normally: about 4. Often: about 6." and that with Johnny speaking up too the rates add up and they take turns. The help also says that with two or more companions near a speak-up is often a short chat
     among up to three of them that stops when you talk. One scheduler
     (`mod/speak-up.lua`) paces both lists; see `docs/COMPANION_SPEAK_UP.md`.
-- **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
-  page, the Romantic relationships page, the Dynamic info page and the Key bindings page it applies every saved row of all four pages that is not at
+- **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On Settings,
+  every category page, the Romantic relationships page, the Dynamic info page, the Key bindings page, the Immersive invitations page and the Housemates page (the pages `M.hasDefaults` says yes to, which both hosts ask before they offer the button) it applies every saved row of all of those pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits; the own key bindings are cleared in the same
   save as one change, `keyBindings:clear`), then says "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says
   "Open Settings to restore its defaults."
@@ -436,12 +461,12 @@ MCM 0.10.6 added (`close`, `setActionVisibility`, three presentation options) ar
 **The page.** Every category of the page is a category of MCM, each row a setting: `bool`, `select`, `int` rows are drafts
 (capabilities read, write, draft; NO default: MCM draws a row purple only when it has a default and differs from it, and the same rows
 look alike without it; MCM's own Defaults button and Modified counter go with the defaults, so the host has its own **Restore defaults**
-footer button on Settings, Romantic relationships and Dynamic info, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
+footer button on Settings, its category pages, Romantic relationships, Dynamic info, Key bindings, Immersive invitations and Housemates (it asks `core.hasDefaults()` first), pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
 `M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
 without write; the Settings page has no read-only line (Voice status and Johnny's standing were removed 2026-10-20, and with them the
 status-button workaround that drew such lines at the size of the other rows), so the other pages' lines are plain MCM text rows. Two alignments remain that no public option
 changes in MCM 0.10.5: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20); MCM 0.10.6 moves the first with `labelIndent` (see "MCM 0.10.6" below).
-Romantic relationships is a page of its own (view `relationships`, back to Settings), opened by a Romantic relationships button in Conversations; Dynamic info is built the same way (view `dynamic-info`).
+Romantic relationships is a page of its own (view `relationships`, back to Conversations), opened by a Romantic relationships button in Conversations; Dynamic info is built the same way (view `dynamic-info`).
 The Memory page's Forget all row reads "Forget all memories (N characters)" with the one-word button "Forget": the count is in the row's name, within `BUTTON_LABEL_UNITS` (29, the figure `mod/nsui.lua` cuts a button row's name to); a translation or a count that does not fit it is only the number ("Forget all memories (12)"), then the name alone. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
 it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
@@ -626,7 +651,7 @@ remain are resource guards that scale with the party instead of refusing it:
 
 ## Help and support report
 
-**Settings, Help, Help and support** opens the Help page (Back to settings at the top). Its sections:
+**Settings, Privacy and help, Help and support** opens the Help page (Back to settings at the top, it returns to Privacy and help). Its sections:
 
 - **Setup check** (below): the **Conversation service** row first (Running, Starting, Not running, Needs a browser or Unknown), then one
   line per check. "Needs a browser" is shown when the service never started because no Chromium browser (Edge, Chrome, Brave, Opera and
@@ -938,7 +963,7 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
 Current party lists the characters who live at V's place under the party copies, one row each: "{name} · lives in {apartment} · at home / with you / out"
 with a **Move out** button (MCM and Native Settings UI share the page). Move out ends the housemate arrangement only; she stays as she is otherwise. A
 housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built. While
-Settings > Gameplay > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with six rows and a button, **Housemates**
+Settings > Companions > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with six rows and a button, **Housemates**
 (Off, On), **Move-in apartment** (Ask me, then the apartments V owns), **Housemates talk to each other** (On, Off), **Pause between chats** (1, 2, 5, 10
 minutes, 2), **Housemates in one chat** (2, 3, 4 people, 2) and **Evict all housemates** (a button, enabled while somebody lives there; one status line says how
 many moved out), and is part of Restore defaults.

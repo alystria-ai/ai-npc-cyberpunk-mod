@@ -1,4 +1,4 @@
-// Romance with any character through the bond system (docs/SIDE_ROMANCE.md, Settings > Gameplay > Character bonds).
+// Romance with any character through the bond system (docs/SIDE_ROMANCE.md, Settings > Companions > Character bonds).
 //
 // V leads. A romance starts when V asks (or says they are in love) and the character's own trait allows it (bridge/romance-traits.mjs: open to romance, from
 // which bond level, and why not). The bridge decides, the model only voices the decision in character: the same rule as the bond itself ("what the character says

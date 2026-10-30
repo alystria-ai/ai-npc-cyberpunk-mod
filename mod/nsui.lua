@@ -460,7 +460,7 @@ end
 local function onRestoreDefaults()
     -- Everything waiting is dropped: the defaults replace it.
     pending, flushAt, flushFirst = {}, nil, nil
-    if core.view() ~= 'settings' and core.view() ~= 'relationships' and core.view() ~= 'dynamic-info' and core.view() ~= 'key-bindings' and core.view() ~= 'immersive-invitations' and core.view() ~= 'housemates' then
+    if not core.hasDefaults() then
         core.setFeedback(ui.t('Open Settings to restore its defaults.'))
         rebuildAt = os.clock()
         return

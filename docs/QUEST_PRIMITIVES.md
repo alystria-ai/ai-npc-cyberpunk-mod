@@ -196,7 +196,7 @@ Never copy `mod/diagnostics.lua`. Restart the bridge (the service) after copying
 
 ## 8. Live checks (do X, check Y)
 
-Setup: Settings, Gameplay, Character bonds and Story packs on, Immersive invitations on, Developer mode on for the probe. Panam in the roster, bond 3 or more with her, `q104_02_av_chase` finished
+Setup: Settings, Companions, Character bonds and Story packs on, Immersive invitations on, Developer mode on for the probe. Panam in the roster, bond 3 or more with her, `q104_02_av_chase` finished
 in the save. The probe is `scripts/Send-JohnnyProbe.ps1 quest <action>`.
 
 1. Stand at the Sunset Motel forecourt in Rocky Ridge. Run `quest capture:sunset`. Walk to the lookout behind it. Run `quest capture:lookout`. Check `runtime/quest-place-capture.json` holds both with x, y, z, a radius and the district.
@@ -220,7 +220,7 @@ in the save. The probe is `scripts/Send-JohnnyProbe.ps1 quest <action>`.
 
 Round 2 (checks 19 to 52). Setup as above, plus: the round 2 files installed (section 7), Developer mode on, and a throwaway pack copied from the pilot with the primitive under test in a `do` list (the probe injects the events a stage waits for: `quest event:<name>`). Every native here has never run, so each check says what a pass looks like. When a check fails, copy the `Quest` lines of the log and the `runtime/quest-*.json` files into the report.
 
-19. Settings, Gameplay: check a switch "Characters text first" sits beside Story packs and is OFF by default. Turn it on, then off again, check the play file's `reach.enabled` becomes false and nothing below arrives. Turn it on again.
+19. Settings, Companions: check a switch "Characters text first" sits beside Story packs and is OFF by default. Turn it on, then off again, check the play file's `reach.enabled` becomes false and nothing below arrives. Turn it on again.
 20. Reach-out by time: set the game clock inside a trigger's hours (a Panam night text needs bond 6, so use a character at the right level, or edit a copy of her file), wait up to 60 seconds with the phone closed. Check one text from her arrives in her Chat thread with a notice, `reach:<id>` is in `runtime/quest-events.json` and the file has a top-level `at`. Reply to it. Check her answer knows why she wrote (the trigger's note).
 21. Reach-out caps: let a second trigger become due within the same game hour. Check it waits until the next game hour, and that no more than 3 arrive in one game day. Check none arrives in a fight, a scene, a game call or a chase, and that it arrives afterwards.
 22. Reach-out moments: change district into a trigger's district, and end a fight. Check the matching trigger fires once, with no 60 s wait. Check the `healthBelow` and `heatAtLeast` fields are honoured (a fight ended at full health does not fire a `healthBelow` trigger).

@@ -28,7 +28,7 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 - You are 18 or older.
 - AI NPC Cyberpunk Mod (the main mod, Scripts and Runtime, same version) and its requirements.
 - A graphics card with free memory for the model (about 3.4 GB for lite, about 6.5 GB for standard). No Local AI pack is needed; with one installed too, its models stay available while Mature content is off.
-- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.3 GB for both). The vision files (optional, for Companions can see) are separate small zips in the `vision` folder next to the packs, `mature/vision/` on the same page: `Vision-Qwen3.5-4B-projector.zip` for Mature lite (about 0.68 GB) and `Vision-Gemma-4-E4B-projector.zip` for Mature standard (about 0.56 GB). They are read only while Companions can see is on.
+- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.3 GB for both). The vision files (optional, for Companion vision) are separate small zips in the `vision` folder next to the packs, `mature/vision/` on the same page: `Vision-Qwen3.5-4B-projector.zip` for Mature lite (about 0.68 GB) and `Vision-Gemma-4-E4B-projector.zip` for Mature standard (about 0.56 GB). They are read only while Companion vision is on.
 
 **Install**
 

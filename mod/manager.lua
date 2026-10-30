@@ -912,6 +912,14 @@ local function loadSettings()
     if type(settings.lootReactions) ~= 'boolean' or (not settings.lootReactions and not settings.lootReactionsChosen) then
         settings.lootReactions, settingsNeedSave = true, true
     end
+    -- Companions react (Settings > Companions, 2026-10-30): one switch replaced React to battles and React to collected loot. The stored keys stay what the
+    -- rest of the mod reads and the one row writes both. A file that has not been through this (reactionsMergedGiven) turns both on when either was on, and
+    -- both off only when both were off; afterwards the marker is set and the row keeps the two together.
+    if settings.reactionsMergedGiven ~= true then
+        local either = settings.battleReactions == true or settings.lootReactions == true
+        settings.battleReactions, settings.lootReactions = either, either
+        settings.reactionsMergedGiven, settingsNeedSave = true, true
+    end
     -- Settings that are gone (RETIRED_SETTINGS): auto-connect, expressive emotions, game dialogue, the live holocall picture and body
     -- gestures are always on, and the two developer-only features are removed. A saved value, a false included, is ignored; the key is dropped
     -- from the file once.
@@ -927,12 +935,10 @@ local function loadSettings()
     end
     if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = true, true end
     if type(settings.witnessReceipts) ~= 'boolean' then settings.witnessReceipts, settingsNeedSave = true, true end
-    if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
-        settings.eyeContactHeight, settingsNeedSave = 0, true
-    end
-    if not isChoice(settings.headFollowStrength, headFollowStrengths) then
-        settings.headFollowStrength, settingsNeedSave = 1, true
-    end
+    -- Eye contact height and Head tracking strength have no row since 2026-10-30 (Settings > Companions): both always use today's defaults, whatever an older
+    -- file saved, and the file is put right once (a value saved by hand is ignored the same way).
+    if settings.eyeContactHeight ~= 0 then settings.eyeContactHeight, settingsNeedSave = 0, true end
+    if settings.headFollowStrength ~= 1 then settings.headFollowStrength, settingsNeedSave = 1, true end
     local provider = normalizeVoiceProvider(settings.voiceProvider)
     if provider ~= settings.voiceProvider then settings.voiceProvider, settingsNeedSave = provider, true end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
@@ -943,8 +949,9 @@ local function loadSettings()
     end
     -- Prepared voices are always kept (there is no switch for it any more): a saved false from an older settings file is ignored.
     if settings.keepPreparedVoices ~= true then settings.keepPreparedVoices, settingsNeedSave = true, true end
-    -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
-    if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
+    -- Always on since 2026-10-30 (no row): unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md). A saved off, from the
+    -- row this used to have or a hand edit, becomes on.
+    if settings.archetypeConversations ~= true then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default: the game's own named characters can be talked to where they stand once the player turns it on (docs/WORLD_CHARACTERS.md).
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
@@ -995,10 +1002,11 @@ local function loadSettings()
             settings.keyDefaultsGiven, settingsNeedSave = true, true
         end
     end
-    -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
-    if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
-    -- Off by default: ordinary NPCs react to threats and obey commands (docs/NPC_THREATS_COMMANDS.md).
-    if type(settings.npcThreats) ~= 'boolean' then settings.npcThreats, settingsNeedSave = false, true end
+    -- On by default for new players (2026-10-30; off before): Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). A new file, or one that
+    -- never saved the value, starts on. A saved value, on or off, is kept. Off, mod/reputation.lua is not loaded.
+    if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = true, true end
+    -- On by default for new players (2026-10-30): ordinary NPCs react to threats and obey commands (docs/NPC_THREATS_COMMANDS.md). A saved value is kept.
+    if type(settings.npcThreats) ~= 'boolean' then settings.npcThreats, settingsNeedSave = true, true end
     -- Off by default: Revenge ambushes (Settings > Gameplay, docs/AMBUSHES.md). A gang V keeps killing may send a small squad after V now and then.
     -- Off, mod/revenge-ambush.lua is not loaded and nothing is watched.
     if type(settings.revengeAmbushes) ~= 'boolean' then settings.revengeAmbushes, settingsNeedSave = false, true end
@@ -1074,6 +1082,13 @@ local function loadSettings()
     if settings.vVoiceMicOwn ~= true then
         if settings.vVoice ~= true then settings.vVoiceMic = false end
         settings.vVoiceMicOwn, settingsNeedSave = true, true
+    end
+    -- V's voice (Settings > Voice and microphone, 2026-10-30): one list, Off, Typed lines, Typed and spoken lines, replaced the two rows. The stored keys stay what the
+    -- bridge reads (vVoice typed lines, vVoiceMic spoken lines). Microphone lines on means Typed and spoken lines, so a file that has not been through this
+    -- (vVoiceMergedGiven) with vVoiceMic on and vVoice off turns typed lines on once. Afterwards the marker is set and the list writes both keys together.
+    if settings.vVoiceMergedGiven ~= true then
+        if settings.vVoiceMic == true and settings.vVoice ~= true then settings.vVoice, settings.vVoiceChosen = true, true end
+        settings.vVoiceMergedGiven, settingsNeedSave = true, true
     end
     -- 'omni' is kept as saved even when it cannot be used now (the companions are not on OmniVoice, the pack is missing): the page and the bridge read
     -- it as Pocket then (M.vOmniBlock), and the file is left alone.
@@ -1258,20 +1273,20 @@ function M.characterEddies()
     return settings.characterEddies == true
 end
 
--- Character bonds (Settings > Gameplay, docs/RELATIONSHIPS_AND_QUESTS.md): off by default. Read once per private turn V sends to a named character and
+-- Character bonds (Settings > Companions, docs/RELATIONSHIPS_AND_QUESTS.md): off by default. Read once per private turn V sends to a named character and
 -- while a level notice is awaited (one boolean each), never per frame.
 function M.characterBonds()
     loadSettings()
     return settings.characterBonds == true
 end
 
--- Story packs (Settings > Gameplay, docs/RELATIONSHIPS_AND_QUESTS.md section 7): off by default. Read once per turn V sends, when a car or an item effect is decided, never per frame.
+-- Story packs (Settings > Companions, docs/RELATIONSHIPS_AND_QUESTS.md section 7): off by default. Read once per turn V sends, when a car or an item effect is decided, never per frame.
 function M.storyPacks()
     loadSettings()
     return settings.storyPacks == true
 end
 
--- Characters text first (Settings > Gameplay, docs/QUEST_PRIMITIVES.md section 10.7): OFF by default, a missing or non-boolean value is off. Read once per private turn V sends (the bonds
+-- Characters text first (Settings > Companions, docs/QUEST_PRIMITIVES.md section 10.7): OFF by default, a missing or non-boolean value is off. Read once per private turn V sends (the bonds
 -- block carries it as reach) and once a second by the reach timer while it runs (mod/quest-reach.lua), never per frame.
 function M.reachOuts()
     loadSettings()
@@ -1342,11 +1357,11 @@ function M.setCustomCharacters(rows)
     dirty = true
 end
 
--- Characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
+-- Main characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
 local invitableCache, invitableFor
 local function invitableProfiles()
     if invitableCache and invitableFor == customSignature then return invitableCache end
-    -- A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person and cannot be invited: it stays out of this list.
+    -- A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person: it is listed under Side characters to invite, not here.
     local all, minors = {}, false
     for _, profile in ipairs(profiles) do
         if profile.minor == true then minors = true else all[#all + 1] = profile end
@@ -1361,8 +1376,25 @@ local function invitableProfiles()
     return invitableCache
 end
 
+-- Side characters to invite (docs/SIDE_CHARACTERS.md): the minor profiles whose record spawns a copy in both game versions (invite is not false), in name order.
+-- Worked out once for the loaded roster (M.configure drops it), never per frame or per page build.
+local sideCache
+local function sideProfiles()
+    if sideCache then return sideCache end
+    local list = {}
+    for _, profile in ipairs(profiles) do
+        if profile.minor == true and profile.invite ~= false then list[#list + 1] = profile end
+    end
+    sideCache = list
+    return list
+end
+
+-- M.switchedOff(key) -> true: the player switched this character off in the character editor (set by init.lua from mod/character-options.lua; a table lookup).
+-- Such a character is never a talk target or a listener, whatever the chat switch below says.
 function M.profileEnabled(key)
     loadSettings()
+    local off = M.switchedOff
+    if key ~= nil and off ~= nil and off(key) == true then return false end
     if key ~= nil and customKeyOf(key) == true then return true end
     if key ~= nil and archetypeKeys[key] and byKey[key] == nil then return settings.archetypeConversations ~= false end
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
@@ -1750,7 +1782,7 @@ end
 
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
-    invitableCache = nil
+    invitableCache, sideCache = nil, nil
     companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
@@ -2313,7 +2345,7 @@ function M.snapshot(player)
     local dynamicInfo = {}
     for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
-        profiles = profiles, invitable = invitableProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
+        profiles = profiles, invitable = invitableProfiles(), side = sideProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
             useOwnConvaiKey = settings.useOwnConvaiKey,
@@ -2478,9 +2510,8 @@ function M.applySettings(player, values)
                 merged[field] = item
             end
             nextSettings.housemates = merged
-        elseif key == 'archetypeConversations' then
-            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
-            nextSettings.archetypeConversations = value
+        elseif key == 'archetypeConversations' or key == 'eyeContactHeight' or key == 'headFollowStrength' then
+            -- No row any more (2026-10-30): ordinary NPCs can always be talked to and the gaze uses its defaults. An old caller's value is ignored, nothing is saved for it.
         elseif key == 'storyConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.storyConversations = value
@@ -2597,12 +2628,6 @@ function M.applySettings(player, values)
         elseif key == 'omniReference' then
             if value ~= 'short' and value ~= 'long' then return false, 'Choose a short or a long voice reference.' end
             nextSettings.omniReference = value
-        elseif key == 'eyeContactHeight' then
-            if not isChoice(value, eyeContactHeights) then return false, 'Choose an eye-contact height from the available settings.' end
-            nextSettings.eyeContactHeight = value
-        elseif key == 'headFollowStrength' then
-            if not isChoice(value, headFollowStrengths) then return false, 'Choose a head-follow strength from the available settings.' end
-            nextSettings.headFollowStrength = value
         elseif key == 'enabledByKey' then
             if type(value) ~= 'table' then return false, 'Invalid conversation settings.' end
             for profile, enabled in pairs(value) do

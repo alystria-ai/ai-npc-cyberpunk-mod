@@ -37,7 +37,7 @@ test('Developer mode off: nothing is written, not even the file, and a turn reco
   } finally { await f.cleanup(); }
 });
 
-test('Developer mode on: each turn is appended with the time, the speaker, the provider, V\'s words, the reply, the picture and the place', async () => {
+test('Developer mode on: each turn is appended with the time, the speaker, the provider, V\'s words, the reply, the vision flag and the place', async () => {
   const f = await fixture();
   try {
     assert.equal(f.transcript.update({developerMode: true}), true);
@@ -47,11 +47,11 @@ test('Developer mode on: each turn is appended with the time, the speaker, the p
     await f.transcript.flush();
     const text = await readFile(f.path, 'utf8');
     assert.equal(text, [
-      '[2026-10-30 12:01:02] Judy Alvarez | provider local | picture yes',
+      '[2026-10-30 12:01:02] Judy Alvarez | provider local | vision yes',
       '  where: You are inside the Afterlife, a merc bar in Little China, Watson.',
       '  V: what do you think of this place',
       "  Judy Alvarez: It's where the real deals happen.",
-      '[2026-10-30 12:01:02] Panam Palmer | provider custom | picture no',
+      '[2026-10-30 12:01:02] Panam Palmer | provider custom | vision no',
       '  V: a typed line',
       '  Panam Palmer: line one',
       '    line two', ''].join('\n'));
@@ -73,7 +73,7 @@ test('an empty text reads as such, control characters and a speaker name that co
     f.transcript.record(turn({reply: 'x'.repeat(50000)}));
     await f.transcript.flush();
     const text = await readFile(f.path, 'utf8');
-    assert.match(text, /\] Bad {3}Name X \| provider local \| picture yes\n {2}V: \(nothing\)\n {2}Bad {3}Name X: a b\n {4}c\n/);
+    assert.match(text, /\] Bad {3}Name X \| provider local \| vision yes\n {2}V: \(nothing\)\n {2}Bad {3}Name X: a b\n {4}c\n/);
     assert.ok(text.length < 9000, `${text.length}`);
   } finally { await f.cleanup(); }
 });

@@ -46,7 +46,7 @@ conversations, (2) a relationship meter per character after Attack on Titan 2, c
 | Recruited pedestrians may follow (29 Oct) | Ordinary pedestrians only; never story, quest or needed vendor/fixer characters; never in quests or scenes (section 10). |
 | No new content restrictions | Bonds change warmth and willingness, never what may be said. A Ride or die character can still refuse V; a level 1 stranger can still flirt if that is who they are. |
 | Unload what is unused | Setting off: no module loaded, no file read, no block sent. |
-| Off-by-default settings in Settings > Gameplay | **Character bonds** (phase 1). Story packs and recruits are later rows on the same page. |
+| Off-by-default settings in Settings > Companions | **Character bonds** (phase 1). Story packs and recruits are later rows on the same page. |
 | One Convai cap, 500 a day | Nothing generates a model turn the player did not start while the shared key is in use: a pack's phone text uses its fixed line there; only V's own talk moves a pack. |
 | Never name the other spawner mod; "I" in player-facing text | Kept. |
 
@@ -163,7 +163,7 @@ Phase 1:
 * **One notice when a level changes**: "Bond with Judy: level 5, Good friend" (up) or "Bond with Panam fell: level 4, Friend" (down), in the
   menu language, through `mod/notices.lua` (`bond-level`, player class, 10 s repeat window). Shown after the reply, when the bridge's status
   file says so.
-* The Settings > Gameplay row **Character bonds** (off by default) with its description.
+* The Settings > Companions row **Character bonds** (off by default) with its description.
 
 Phase 2 (built):
 * A **Relationships** page in the menu, right after the Model browser: only the characters V has actually interacted with, most recent first, each with
@@ -497,13 +497,13 @@ costs well under 1 ms (a test asserts it) and the note adds under 1,000 characte
 
 1. **Built on `feat/bonds` (this branch)**: the bond model (`bridge/bonds.mjs`, story part from the journal, romance and Eddies; shared part with
    caps, threats and fading hurt; the store with Forget), arcs for 12 characters (`bridge/bond-arcs.mjs`), the prompt line on every provider,
-   the Gameplay setting **Character bonds** (off by default), the level notice (`mod/bonds.lua`, `bond-level`), the pack format, validator and gate
+   the Companions setting **Character bonds** (off by default), the level notice (`mod/bonds.lua`, `bond-level`), the pack format, validator and gate
    (`bridge/bond-packs.mjs`) with the three example packs as data (`characters/bond-packs/`), validated by tests but not run in the game (neither
    ships in the Runtime yet: nothing imports them outside the tests). Ships: `bridge/bonds.mjs`, `bridge/bond-arcs.mjs`, `mod/bonds.lua`. Unit
    tests only; nothing seen in the game.
 2. **Story packs run (built, section 17)**: the pack runner (start, notes, choices from V's words, ledger and meeting outcomes, timers, endings, state with the rollback
    guard), the Eddies `story` link, `vehicleBlocked`, `outfit` and `giveItem`, the Relationships page, Eddies trust from the bond, group turns get the speaker's own line, Phone
-   Chat turns count. Settings > Gameplay > Story packs (off by default). The three example packs ship; more drafted per character and reviewed.
+   Chat turns count. Settings > Companions > Story packs (off by default). The three example packs ship; more drafted per character and reviewed.
    Not built from the first plan: `meet` started by the pack, the `text` and `call` beats, the synthetic memory exchange of an ending, tags in replies (replaced by V's words).
 3. **Favours** (section 9) and the higher-level unlocks (texts first at 6, confidences at 8, the keepsake at 10); time together and invitations as
    bond events; items (`giveItem`, `takeItem`) after a live check of the transaction calls with non-money items.
@@ -612,7 +612,7 @@ the Lua side on a fake game (the block flags, the watch, `vehicleBlocked`, one-s
 * A pack started on Phone Chat: the block reaches the phone request, the note reaches the model, `meet` outcomes arrive as events.
 
 ### 17.3 Live checks for the owner (each: do X, check Y)
-1. Settings > Gameplay: turn on Character bonds and Story packs. Check both rows are there, off by default, and the Relationships button sits right after Model browser.
+1. Settings > Companions: turn on Character bonds and Story packs. Check both rows are there, off by default, and the Relationships button sits right after Model browser.
 2. Open Relationships before talking to anyone. Check the empty state. Talk to an invited character twice, reopen it. Check one entry with level, progress, warmth, "From their story ... from talking ...".
 3. On a save past Queen of the Highway with Eddies with characters on, and Panam as an invited party member at bond 5 or more: talk to her for a while (the dice roll on the first eligible turn of a game day and then every 3rd eligible turn, 3 rolls a day at most). Check the bridge log shows `[BondPacks] pack=panam-truck-ransom started`, and she brings up the stolen truck in that reply.
 4. Tell Panam "I'll lend you 6000". Check the eddies move (6,000 leave your wallet), the next turn's log says `stage=repay`, and over the following game days she pays back 2,000 at a time.

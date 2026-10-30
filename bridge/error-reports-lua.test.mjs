@@ -9,7 +9,7 @@ import {parseGameEvents} from './error-events.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/error-reports.lua', import.meta.url), 'utf8');
-const NOTICE = 'Error reports go to the developer automatically. Turn them off in Settings > Privacy.';
+const NOTICE = 'Error reports go to the developer. Turn them off in Settings > Privacy and help.';
 
 /** Runs `body` with M = mod/error-reports.lua configured with a fake settings domain; returns the string the body returns, if any. */
 function run(body) {

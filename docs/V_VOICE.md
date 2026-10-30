@@ -1,7 +1,7 @@
 # V's voice for typed lines
 
-October 14, 2026. A setting that makes a typed line sound like V said it. With **Companion Manager > Settings > Voices > V's voice
-for typed lines** on, whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
+October 14, 2026. A setting that makes a typed line sound like V said it. With **Companion Manager > Settings > Voice and microphone > V's voice**
+set to Typed lines or Typed and spoken lines (the name and place of the setting since 2026-10-30, see the next section), whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
 lines in the game. Then the companion answers.
 
 **On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only by default: push-to-talk is not replayed (you already spoke it), unless **V speaks your microphone lines** is turned on (below). Reactions, phone Chat, add-on
@@ -10,6 +10,14 @@ remarks and the later speakers of a group round never get a V line. A line typed
 companion, in V's own voice page, and the add-on's reply waits for it. The composer of an add-on's voice leaves a voice-only hint in
 `conversation-prewarm.json` (`voiceOnly`), so V's voice page is warm; it opens no connection. V's words are never part of the add-on speaker's
 reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlayerEcho` and `speakerTurn`).
+
+## Settings row since 2026-10-30
+
+The two rows "V's voice for typed lines" and "V's voice for microphone lines" are retired. Settings now has two rows on **Voice and microphone**, side by side:
+
+- **V's voice** (row id `vVoice`) is one list: **Off**, **Typed lines** (the default), **Typed and spoken lines**. It writes the same two stored keys as before, `vVoice` (typed lines) and `vVoiceMic` (lines you say by microphone, hold to talk or Voice activation), so the bridge did not change. Typed lines is `vVoice` on and `vVoiceMic` off, Typed and spoken lines is both on, Off is both off. There is no entry for spoken lines without typed lines.
+- **V's voice engine** (row id `vVoiceEngine`, stored `vVoiceEngine`) is a row of its own right under it: **Pocket**, **Voxtral**, **OmniVoice**, with the same greying and refusal rules as before. It is one engine for typed and spoken lines, it counts only while V's voice is not Off, and choosing an engine no longer turns V's voice on or off. It had to become its own row because the old rows carried the engine in their lists and the engine must stay choosable. V's voice volume (%) follows it.
+- **Migration.** A one-time step in `loadSettings` (marker `vVoiceMergedGiven` in `runtime/settings.json`): a file with microphone lines on gets typed lines turned on with it, so the row reads Typed and spoken lines. The other pairs keep what they were, a chosen Off stays Off, a new player has Typed lines. After the marker nothing is forced again. Where older paragraphs below name the retired rows, read them as these two.
 
 ## What you hear, and in which order
 
@@ -29,8 +37,8 @@ never touches the conversation.
 
 ## Microphone lines (2026-10-24, setting `vVoiceMic`, off by default; reworked the same day to behave like a typed line)
 
-A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voices > V's voice for microphone lines**, right under
-V's voice for typed lines, off by default. Since 0.3.4 it is a row of its own, the same list as the typed one (Off, Pocket, Voxtral, OmniVoice), and independent of it: typed on and microphone off, the reverse, both or neither all work. Both rows use one engine (`vVoiceEngine`): choosing an engine on one moves the other when it is on. Before 0.3.4 a microphone line was repeated only beside typed lines, so a settings file without `vVoiceMicOwn` that has microphone lines on and typed lines off is turned to microphone Off once (what the player heard stays the same). The bridge applies the same rule to a file the mod has not rewritten yet (`bridge/v-voice.mjs` `update`).
+A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voice and microphone > V's voice**, Typed and spoken lines (this was the row "V's voice for microphone lines" until 2026-10-30, right under
+V's voice for typed lines), off by default. Since 0.3.4 it is a row of its own, the same list as the typed one (Off, Pocket, Voxtral, OmniVoice), and independent of it: typed on and microphone off, the reverse, both or neither all work. Both rows use one engine (`vVoiceEngine`): choosing an engine on one moves the other when it is on. Before 0.3.4 a microphone line was repeated only beside typed lines, so a settings file without `vVoiceMicOwn` that has microphone lines on and typed lines off is turned to microphone Off once (what the player heard stays the same). The bridge applies the same rule to a file the mod has not rewritten yet (`bridge/v-voice.mjs` `update`).
 
 **Why push-to-talk never replayed V (found 2026-10-24).** The first version of the feature (29234fb4, 2026-10-14) wrote it into the setting's description and the docs
 in one phrase: "push-to-talk is never replayed (you already spoke it)". There is no other written reason. The reasoning that follows from it: a typed line is silent,
@@ -191,7 +199,7 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 
 ## V's voice engine (2026-10-17, branch `v-voice-engine`, not merged)
 
-V's line no longer follows the companions' voice. **Settings > Voices > V's voice for typed lines** (one list since 2026-10-20: Off, Pocket · On your PC, Voxtral · Mistral cloud, and since 2026-10-21 OmniVoice · short wait; it writes both stored keys, `vVoice` and `vVoiceEngine`, and Off keeps the saved engine) picks the engine for V alone, and
+V's line no longer follows the companions' voice. **Settings > Voice and microphone > V's voice engine** (until 2026-10-30 the row "V's voice for typed lines" in Voices, one list since 2026-10-20: Off, Pocket · On your PC, Voxtral · Mistral cloud, and since 2026-10-21 OmniVoice · short wait; it writes both stored keys, `vVoice` and `vVoiceEngine`, and Off keeps the saved engine) picks the engine for V alone, and
 the sections below that still describe "the voice you already chose" are history: this section is current.
 
 | Engine | How V's line is made | Loads locally |
@@ -237,11 +245,11 @@ Pocket is English only: a turn in another language gets no V line (subtitle stil
 | anything but OmniVoice | OmniVoice | not offered: the row is greyed out, a saved choice reads as Pocket | V then behaves as in the Pocket rows above |
 
 **Missing key, Mature content, language.** Voxtral for V needs a Mistral key: the Voxtral entry reads "Voxtral · needs Mistral key" and is greyed out, and the
-manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). **Changed 2026-10-20:** if the key
+manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > AI provider)"). **Changed 2026-10-20:** if the key
 is removed later (or an old file holds Voxtral with no key), the row shows Pocket and the bridge speaks V's line with Pocket (its settings poll reads a saved Voxtral without a key as Pocket); it is
 Voxtral again as soon as a key is saved. Removing the key says so in its Remove help ("V's voice switches from Voxtral to Pocket."). Before that change the bridge skipped V's line with
 no fallback, so as not to load a model the player did not choose. **Mature content never uses Voxtral** (decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a live test; it replaces the same-day
-rule that allowed it beside Mature on any text provider): turning Mature content on moves V's Voxtral to Pocket in the same save (the line says "V’s voice for typed lines" changed, and the record `matureRestore.vVoiceEngine`
+rule that allowed it beside Mature on any text provider): turning Mature content on moves V's Voxtral to Pocket in the same save (the line says "V’s voice engine" changed, and the record `matureRestore.vVoiceEngine`
 keeps the way back), turning it off puts Voxtral back while the key is saved and V still speaks with Pocket, the Voxtral entry is greyed out ("Voxtral is not used with Mature content.", label "Voxtral · not with Mature" in Native Settings UI, which
 has no greyed entries) and refused while it is on, and a saved file with both loads as Pocket. The bridge has two nets behind the page: the settings poll reads a saved Voxtral as Pocket while the setting is on, and V's cloud `problem` answers "Mature content is on".
 
@@ -332,7 +340,7 @@ Latency is as important as FPS here, so V never stands in front of anything:
 
 ### V on OmniVoice (2026-10-21, branch `feat/v-voice-omni`)
 
-A player asked to hear V in the same voice engine as the companions. **V's voice for typed lines** gets a fourth entry, "OmniVoice · short wait"
+A player asked to hear V in the same voice engine as the companions. **V's voice for typed lines** (now the V's voice engine row) gets a fourth entry, "OmniVoice · short wait"
 (`vVoiceEngine: 'omni'`). The 2026-10-14 finding below still holds for the default (Pocket): OmniVoice's one GPU worker serves one job at a
 time and cannot cancel one that has started, so V's line cannot be both early and free. The player who picks this entry accepts the wait, so the
 design is the opposite of the grace-and-drop one:
@@ -558,7 +566,7 @@ the whole `pocket-tts` tree (`digest_source`, `bridge/pocket_voice_runtime.py`; 
   cause instead of "Pocket student runtime is unavailable".
 - A voice that could not start (Pocket, V's helper, OmniVoice) is an error report of its own, kind `voice-failed`, message `<engine>: <reason>`
   (`ErrorEvents.voiceFailed`, once per reason per bridge run).
-- Settings > Help has a "Pocket voice" row while Pocket or V's helper is failed (setup check id `voice`, code `pocket-failed`, from
+- Settings > Privacy and help > Help and support has a "Pocket voice" row while Pocket or V's helper is failed (setup check id `voice`, code `pocket-failed`, from
   `VoiceSelection.voiceProblem()`): it says nothing needs installing, to restart the game and to send a report if it happens again.
   When Windows refused to load a file of the voice (Smart App Control, or a company's or school's Application Control policy: "DLL load failed ... An Application
   Control policy has blocked this file", 2026-10-20, `edd41879c00ef0ae`) `voiceProblem()` carries `cause: 'blocked'` (`blockedByWindows`), the Pocket worker is not tried

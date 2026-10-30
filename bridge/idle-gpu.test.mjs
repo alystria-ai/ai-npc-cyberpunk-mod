@@ -119,9 +119,9 @@ function warmTalkTargetsWith(stand) {
     if (bridge[at] === '}' && --depth === 0) { end = at + 1; break; }
   }
   const source = bridge.slice(start, end);
-  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual', 'mistralMemory', 'memoryNamespace',
+  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual', 'mistralMemory', 'memoryNamespace', 'wantVoiceClips',
     `${source}\nreturn warmTalkTargets;`)(stand.stopped ?? false, stand.ids, stand.localVoice, stand.mistral, stand.mistralHost,
-    stand.profileFor, [], stand.multilingual ?? {fixed: null}, stand.mistralMemory ?? {warmFor: () => false}, {keyFor: key => key});
+    stand.profileFor, [], stand.multilingual ?? {fixed: null}, stand.mistralMemory ?? {warmFor: () => false}, {keyFor: key => key}, stand.wantVoiceClips ?? (() => null));
 }
 
 test('warmTalkTargets prepares an OmniVoice voice and a local persona for the people V talks to, and nothing otherwise', () => {

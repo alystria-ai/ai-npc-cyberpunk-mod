@@ -333,7 +333,8 @@ local function serviceCheck(now)
         if down.kind == 'setup' then return {state = 'problem', code = 'missing-key'} end
         if down.kind == 'failed' then
             local code = try(function() return status.failureCode(now) end)
-            return {state = 'problem', code = INCOMPLETE[code] and 'incomplete' or 'failed', detail = code}
+            local reason = code == 'install-incomplete' and try(function() return status.failureReason(now) end) or nil
+            return {state = 'problem', code = INCOMPLETE[code] and 'incomplete' or 'failed', detail = code, reason = reason}
         end
         return {state = 'problem', code = 'stopped'}
     end
@@ -501,6 +502,11 @@ local function lineFor(check)
     -- older launcher): the generic sentence below would say "download it again" without saying which file or why.
     if check.code == 'incomplete' and check.detail == 'launcher-not-configured' then
         return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.') .. managerHint()}
+    end
+    -- Mod Organizer 2 holds the Runtime's own file (launcher/usvfs-compat.mjs) where the program cannot see it (report c44c3c95): extracting the zip again would change
+    -- nothing, so this says what MO2 does and the one thing that helps. No managerHint: it would send the player to install as a mod, which is the setup that fails.
+    if check.code == 'incomplete' and check.reason == 'mo2-hidden-file' then
+        return {value = ui.t('Not running'), description = ui.t('Mod Organizer 2 does not show a file of the Runtime to the program. Close the game and Mod Organizer 2, extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder by hand, then start the game.')}
     end
     if check.code == 'incomplete' then
         return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', {code = check.detail or '?'}) .. managerHint()}

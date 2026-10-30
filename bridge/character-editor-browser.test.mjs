@@ -1093,3 +1093,51 @@ test('the unsaved-changes mark and the toast: the mark shows while the page diff
   assert.deepEqual(unnamed, []);
   assert.deepEqual(e.problems, []);
 });
+
+test('Switching someone off: a box on a character, a button for an ordinary person in front of V, and a list that switches them back on', {skip, timeout: 180000}, async t => {
+  const e = await open(t, {options: true, route: 'local', facing: {record: 'Character.Wat_Lch_Ma_Citizen', name: 'Street man', gender: 'male'}});
+  const {page} = e;
+  // The person V faced is not one of the listed characters: a card with the switch sits under "In front of you", and nothing is listed as switched off yet.
+  assert.match(await page.locator('#list').textContent(), /In front of you/);
+  assert.match(await page.locator('#list .person').first().textContent(), /Street man/);
+  assert.equal(await page.getByText('Switched off', {exact: true}).count(), 0);
+  await page.getByRole('button', {name: 'Don’t talk to this person'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Switched off.');
+  assert.deepEqual(e.choices.offPeople(), [{record: 'Character.Wat_Lch_Ma_Citizen', name: 'Street man'}]);
+  assert.equal(await page.getByText('Switched off', {exact: true}).count(), 1, 'the list appears');
+  assert.equal(await page.getByRole('button', {name: 'Switch back on'}).count(), 2, 'one in the card, one in the list');
+  await e.shot('off-01');
+
+  // A named character: the box is on the page, saved at once, and the list names the character.
+  await pick(page, 'judy');
+  await page.waitForSelector('#f-off');
+  assert.equal(await page.locator('#f-off').isChecked(), false);
+  await page.check('#f-off');
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Switched off.');
+  assert.equal(e.choices.get('judy-alvarez').off, true);
+  assert.equal(await page.locator('#f-off').isChecked(), true);
+  await openList(page);
+  assert.match(await page.locator('#list').textContent(), /Judy Alvarez/);
+  assert.equal(await page.getByRole('button', {name: 'Switch back on'}).count(), 3);
+  await e.shot('off-02');
+  await page.keyboard.press('Escape');
+
+  // Reset to default on Look and moves leaves the switch alone.
+  await page.getByRole('tab', {name: 'Look and moves'}).click();
+  await page.waitForSelector('#f-look-outfit');
+  assert.equal(await page.getByRole('button', {name: 'Reset to default'}).isDisabled(), true, 'the switch is not a look or a move');
+
+  // Back on from the list: the character, then the person.
+  await openList(page);
+  await page.getByRole('button', {name: 'Switch back on'}).nth(1).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Switched back on.');
+  assert.equal(e.choices.get('judy-alvarez'), null);
+  assert.equal(await page.locator('#f-off').isChecked(), false, 'the open page follows the list');
+  await page.getByRole('button', {name: 'Switch back on'}).first().click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Switched back on.');
+  assert.doesNotMatch(await page.locator('#list').textContent(), /People and characters you chose not to talk to/);
+  assert.equal(await page.getByRole('button', {name: 'Don’t talk to this person'}).count(), 1, 'the card offers the switch again');
+  assert.deepEqual(e.choices.offPeople(), []);
+  assert.equal(await page.getByText('Switched off', {exact: true}).count(), 0);
+  assert.deepEqual(e.problems, []);
+});

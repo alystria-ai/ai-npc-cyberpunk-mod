@@ -48,6 +48,8 @@ const harness = (options = {}) => `
     for _, row in ipairs(mcm.rows()) do list[#list + 1] = row.label end
     return table.concat(list, ' | ')
   end
+  -- Settings is a list of category pages: this opens one of them from Home (press('Back to settings') twice leaves it again).
+  local function settingsPage(name) press('Settings'); press(name) end
   frames(3)
 `;
 const withScreen = (body, options) => run(`${harness(options)}
@@ -149,7 +151,7 @@ test('an MCM that loads after this mod is found by the once-a-second look, and t
 test('the home page: one category with the four destinations, explicit apply, no MCM internals touched', () => withScreen(`
   assert(mcm.config().applyPolicy == 'explicit')
   assert(table.concat(mcm.categories(), ',') == 'Companion Manager', table.concat(mcm.categories(), ','))
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
@@ -167,61 +169,85 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   assert(config.footerActions[1] == 'defaults:restore' and config.footerActions[2] == 'settings:back', table.concat(config.footerActions, ','))
   assert(mcm.row('Back to Companion Manager').value == 'Back')
   assert(config.navigation.pageId == 'settings|1|1')
+  -- A category page goes back to the Settings list, a page opened from one goes back to the category page that holds its row.
+  press('Conversations')
+  assert(mcm.config().navigation.backActionId == 'settings-conversations:back' and mcm.config().footerActions[2] == 'settings-conversations:back', 'a category page goes back to settings')
   press('Memory')
-  assert(mcm.config().navigation.backActionId == 'memory:settings', 'the memory page goes back to settings')
-  press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
+  assert(mcm.config().navigation.backActionId == 'memory:settings', 'the memory page goes back to its category page')
+  press('Back to settings')
+  assert(managerUi.inspect().view == 'settings-conversations' and mcm.row('Memory'), 'Memory went back to Conversations')
+  press('Back to settings')
+  assert(managerUi.inspect().view == 'settings' and mcm.row('Conversations'), 'Conversations went back to the list')
+  press('Back to Companion Manager')
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
   -- Closing the screen and opening it again starts on the first page.
   press('Settings')
   mcm.closeScreen(); frames(3)
   assert(managerUi.inspect().view == 'home', 'closeMod puts the page back on Home')
   mcm.openScreen()
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
 `));
 
 test('every kind of row is one MCM can take: switches, selects, sliders, buttons and text, with ids, defaults and capabilities', () => withScreen(`
-  press('Settings')
-  local kinds, ids = {}, {}
-  for _, row in ipairs(mcm.rows()) do
-    kinds[row.type] = (kinds[row.type] or 0) + 1
-    assert(not ids[row.id], 'a row id twice: ' .. row.id)
-    ids[row.id] = true
-    assert(row.label ~= '', 'a row without a label: ' .. row.id)
-    if row.type == 'bool' or row.type == 'select' or row.type == 'int' then
-      assert(row.capabilities.draft == true and row.capabilities.write == true, row.id)
-      -- No default: MCM marks a row purple only when it has a default and differs from it (and the manager has its own Restore defaults).
-      assert(row.default == nil and row.capabilities.canResetToDefault ~= true, row.id .. ' must carry no default')
+  local kinds = {}
+  local function check()
+    local ids = {}
+    for _, row in ipairs(mcm.rows()) do
+      kinds[row.type] = (kinds[row.type] or 0) + 1
+      assert(not ids[row.id], 'a row id twice: ' .. row.id)
+      ids[row.id] = true
+      assert(row.label ~= '', 'a row without a label: ' .. row.id)
+      if row.type == 'bool' or row.type == 'select' or row.type == 'int' then
+        assert(row.capabilities.draft == true and row.capabilities.write == true, row.id)
+        -- No default: MCM marks a row purple only when it has a default and differs from it (and the manager has its own Restore defaults).
+        assert(row.default == nil and row.capabilities.canResetToDefault ~= true, row.id .. ' must carry no default')
+      end
+      if row.type == 'select' then assert(#row.elements > 0 and row.value >= 1 and row.value <= #row.elements, row.id) end
+      if row.type == 'int' then assert(row.min and row.max and row.step and row.value >= row.min and row.value <= row.max, row.id) end
+      if row.type == 'action' then assert(row.capabilities.write == false and row.capabilities.draft == false, row.id) end
+      assert(not row.id:find('^ui:'), 'a page control must not be a draft: ' .. row.id)
     end
-    if row.type == 'select' then assert(#row.elements > 0 and row.value >= 1 and row.value <= #row.elements, row.id) end
-    if row.type == 'int' then assert(row.min and row.max and row.step and row.value >= row.min and row.value <= row.max, row.id) end
-    if row.type == 'action' then assert(row.capabilities.write == false and row.capabilities.draft == false, row.id) end
-    assert(not row.id:find('^ui:'), 'a page control must not be a draft: ' .. row.id)
   end
-  -- The Settings page has no read-only line, so no line of the page is drawn at another size.
-  assert(kinds.bool and kinds.select and kinds.int and kinds.action and not kinds.string, 'every kind is on the Settings page')
+  -- The Settings list is buttons only, and its category pages hold every other kind of row (no read-only line, so no line is drawn at another size).
+  press('Settings')
+  check()
+  assert(kinds.action and not kinds.bool and not kinds.select and not kinds.int and not kinds.string, 'the list is buttons')
+  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+    press(name)
+    check()
+    press('Back to settings')
+  end
+  assert(kinds.bool and kinds.select and kinds.int and kinds.action and not kinds.string, 'every kind is on the category pages')
   assert(mcm.row('feedback') == nil, 'the line of the last action is MCM\s status line, not a row')
-  assert(#mcm.categories() > 6)
+  assert(#mcm.categories() >= 2, 'the way back and the list of categories')
   assert(mcm.mod().loaded)
 `));
 
 test('a change is a draft that MCM keeps until Apply; Apply is one validated, saved transaction, and the page loads again', () => withScreen(`
-  press('Settings')
+  settingsPage('Voice and microphone')
   local before = manager.snapshot(player).settings
   assert(before.subtitles == true and before.voiceVolume == 150 and before.vVoiceVolume == 150)
   local loads = mcm.loads
-  assert(mcm.set('Subtitles', 3) and mcm.set('Voice volume (%)', 120) and mcm.set('V’s voice volume (%)', 250))
+  assert(mcm.set('Companion voice volume (%)', 120) and mcm.set('V’s voice volume (%)', 250))
   frames(6)
-  assert(manager.snapshot(player).settings.subtitleStyle == 'dialogue', 'nothing is saved before Apply')
+  assert(manager.snapshot(player).settings.voiceVolume == 150, 'nothing is saved before Apply')
   assert(mcm.loads == loads, 'the page is not drawn again under pending changes')
   -- A button is refused while changes are pending (MCM's own rule), with its own words.
-  local ok, why = mcm.press('Memory')
+  local ok, why = mcm.press('Back to settings')
   assert(ok == false and why:find('pending changes', 1, true), tostring(why))
   local ok2, why2 = mcm.apply()
   assert(ok2, tostring(why2))
   local after = manager.snapshot(player).settings
-  assert(after.subtitles == true and after.voiceVolume == 120 and after.vVoiceVolume == 250 and after.subtitleStyle == 'overhead', 'saved: ' .. tostring(after.subtitleStyle))
-  assert(mcm.row('Subtitles').value == 3 and mcm.row('Voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 250, 'the page shows what is saved')
+  assert(after.voiceVolume == 120 and after.vVoiceVolume == 250, 'saved: ' .. tostring(after.voiceVolume))
+  assert(mcm.row('Companion voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 250, 'the page shows what is saved')
   assert(not next(mcm.drafts()), 'no draft is left')
+  press('Back to settings'); press('Interface')
+  assert(mcm.set('Subtitles', 3))
+  frames(6)
+  assert(manager.snapshot(player).settings.subtitleStyle == 'dialogue', 'nothing is saved before Apply')
+  assert(mcm.apply())
+  assert(manager.snapshot(player).settings.subtitles == true and manager.snapshot(player).settings.subtitleStyle == 'overhead')
+  assert(mcm.row('Subtitles').value == 3, 'the page shows what is saved')
   -- An invalid value is refused by the rules, MCM keeps the drafts and says why.
   local bad = mcm.set('Subtitles', 2)
   assert(bad == true)
@@ -234,46 +260,47 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
 
 test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
   ${footer}
-  press('Settings')
-  mcm.set('Voice volume (%)', 120)
+  settingsPage('Voice and microphone')
+  mcm.set('Companion voice volume (%)', 120)
   mcm.set('V’s voice volume (%)', 80)
   mcm.revert()
-  assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150)
+  assert(not next(mcm.drafts()) and mcm.row('Companion voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150)
   assert(manager.applySettings(player, {lootReactions = false, voiceVolume = 120, vVoiceVolume = 80, battleReactions = false}))
   frames(10)
-  assert(mcm.row('React to collected loot').value == false and mcm.row('Voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 80, 'an outside change is drawn')
+  assert(mcm.row('Companion voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 80, 'an outside change is drawn')
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
   local layout = mcm.layout()
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   -- Pending changes: MCM refuses the button (its rule for every action), and nothing is reset.
-  mcm.set('Subtitles', 1)
+  mcm.set('Natural speech', true)
   local refused, why = mcm.press('Defaults')
   assert(refused == false and why:find('pending changes', 1, true), tostring(why))
   mcm.revert()
   -- The first press only asks; the button says so, and nothing is changed.
   press('Defaults')
   assert(footerLabels() == 'Confirm | Back', footerLabels())
+  frames(8)   -- the status line follows within a moment
   assert(mcm.status():find('Confirm', 1, true), mcm.status())
   assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 80)
-  -- Another button drops the first press (a page button; the Settings page has no status button any more).
-  press('Memory'); press('Back to settings')
+  -- Another button drops the first press (a page button; the Settings list has no status button).
+  press('Back to settings'); press('Voice and microphone')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
   assert(settings.lootReactions == true and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true, 'defaults saved')
-  assert(mcm.row('React to collected loot').value == true and mcm.row('Voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150, 'the page shows them')
+  assert(mcm.row('Companion voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150, 'the page shows them')
   frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
   assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
-  -- A press on another page drops it too: the confirmation is for the page it was asked on.
-  press('Defaults'); press('Memory'); press('Back to settings')
-  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  -- A press on another page drops it too: the confirmation is for the page it was asked on. The rows of the other pages came back with it.
+  press('Defaults'); press('Back to settings'); press('Companions')
+  assert(footerLabels() == 'Defaults | Back' and mcm.row('Companions react').value == true, footerLabels())
 `));
 
 test('the footer never cuts a label: with changes pending five buttons share the row (Revert, Apply, MCM’s Add to favorites, Defaults, Back), and the mod’s own ones are short enough for that share', () => withScreen(`
   ${footer}
-  press('Settings')
+  settingsPage('Interface')
   -- The mod cannot hide MCM's Add to favorites (a setting of the player in MCM, with no public option for a mod), so the row is counted
   -- with it: Revert, Apply, Add to favorites, ours, Back.
   mcm.set('Subtitles', 1)
@@ -305,7 +332,7 @@ test('Mature content: turned on, Apply saves Local AI and the uncensored model w
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   files['runtime/local-voice-state.json'] = 'voice-state'
-  press('Settings')
+  settingsPage('AI provider')
   frames(12)
   assert(mcm.set('Mature content', true))
   local ok, why = mcm.apply()
@@ -330,7 +357,7 @@ test('Mature content: turned on, Apply saves Local AI and the uncensored model w
 `));
 
 test('the line of the last action is the status line of MCM (info), sent only when it changes', () => withScreen(`
-  press('Characters to invite')
+  press('Main characters to invite')
   local core = managerUi._test.core
   core.setFeedback('Evelyn is on her way.')
   frames(4)
@@ -346,7 +373,7 @@ test('the line of the last action is the status line of MCM (info), sent only wh
 `));
 
 test('the page is drawn again when what it shows changes (not while changes are pending), and never in a loop', () => withScreen(`
-  press('Characters to invite')
+  press('Main characters to invite')
   frames(20)
   local loads = mcm.loads
   frames(40)
@@ -356,7 +383,7 @@ test('the page is drawn again when what it shows changes (not while changes are 
   frames(12)
   assert(mcm.loads > loads, 'the page followed the change')
   -- A change while the player has a pending draft waits for Apply or Revert.
-  press('Back to Companion Manager'); press('Settings')
+  press('Back to Companion Manager'); settingsPage('Interface')
   assert(mcm.set('Subtitles', 1))
   loads = mcm.loads
   managerUi._test.core.refresh()
@@ -390,7 +417,8 @@ test('both hosts read and write the same saved settings: a change made on the Na
   ns.openScreen(TAB)
   frames(6)
   ns.interact.press(assert(ns.find('Settings'))); frames(6)
-  ns.interact.slide(ns.find('Voice volume (%)'), 170); frames(12)
+  ns.interact.press(assert(ns.find('Voice and microphone'))); frames(6)
+  ns.interact.slide(ns.find('Companion voice volume (%)'), 170); frames(12)
   assert(manager.snapshot(player).settings.voiceVolume == 170)
   ns.closeScreen(); frames(3)
   -- MCM appears: it hosts the page and the tab is taken down.
@@ -398,9 +426,9 @@ test('both hosts read and write the same saved settings: a change made on the Na
   frames(60)
   assert(mcmHost.ready(), 'MCM was found')
   assert(ns.data[TAB] == nil, 'no Native Settings UI tab beside MCM')
-  mcm.openScreen(); press('Settings')
-  assert(mcm.row('Voice volume (%)').value == 170, 'MCM shows ' .. tostring(mcm.row('Voice volume (%)').value))
-  assert(mcm.set('Voice volume (%)', 135) and mcm.apply())
+  mcm.openScreen(); settingsPage('Voice and microphone')
+  assert(mcm.row('Companion voice volume (%)').value == 170, 'MCM shows ' .. tostring(mcm.row('Companion voice volume (%)').value))
+  assert(mcm.set('Companion voice volume (%)', 135) and mcm.apply())
   assert(manager.snapshot(player).settings.voiceVolume == 135)
 `));
 
@@ -426,13 +454,13 @@ const footer = `
 
 test('a long list is turned with footer buttons beside the way back (never rows of the list), the page number is in the heading, and the letter group cycles', () => withScreen(`
   ${footer}
-  press('Characters to invite')
+  press('Main characters to invite')
   local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
   assert(invites() == 12 and mcm.row('Johnny Silverhand') and not mcm.row('Viktor Vektor'))
   assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
   assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[2] == 'ui:page:next' and mcm.config().footerActions[3] == 'characters:back')
   assert(listed('Previous page') == nil and listed('Next page') == nil, 'not rows of the list')
-  assert(headings() == 'Characters to invite · Page 1 / 2', headings())
+  assert(headings() == 'Main characters to invite · Page 1 / 2', headings())
   assert(mcm.config().navigation.pageId == 'characters|1|1')
   -- Both buttons are buttons at every page: at the first page Previous does nothing, and nothing is drawn again.
   local loads = mcm.loads
@@ -442,7 +470,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(footerLabels() == 'Previous page | Next page | Back', 'the footer never changes shape')
   press('Next page')
   assert(invites() == 10 and mcm.row('Viktor Vektor') and not mcm.row('Johnny Silverhand'), 'the second page')
-  assert(headings() == 'Characters to invite · Page 2 / 2', headings())
+  assert(headings() == 'Main characters to invite · Page 2 / 2', headings())
   assert(footerLabels() == 'Previous page | Next page | Back')
   assert(mcm.config().navigation.pageId == 'characters|2|1', 'a new page id: MCM scrolls to the top of it')
   loads = mcm.loads
@@ -450,7 +478,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(mcm.config().navigation.pageId == 'characters|2|1' and mcm.loads == loads, 'Next on the last page changes nothing')
   press('Previous page')
   assert(mcm.row('Johnny Silverhand') ~= nil)
-  press('Back to Companion Manager'); press('Characters to invite')
+  press('Back to Companion Manager'); press('Main characters to invite')
   assert(mcm.config().navigation.pageId == 'characters|1|1', 'a list starts on its first page')
   -- The model browser: the scan reads a batch a frame, then a letter group and pages.
   press('Back to Companion Manager'); press('Model browser')
@@ -496,7 +524,8 @@ test('every page the manager can show is drawn in one style: buttons are buttons
     end
     for _, button in ipairs(layout.footer) do assert(button.label ~= '', page .. ': a footer button without text') end
     -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it.
-    if page ~= 'settings' and page ~= 'relationships' and page ~= 'dynamic-info' then assert(not kinds.setting, page .. ' has a switch or list in it') end
+    -- (The Settings list is buttons only: the settings are on its category pages.)
+    if not page:find('^settings%-') and page ~= 'relationships' and page ~= 'dynamic-info' then assert(not kinds.setting, page .. ' has a switch or list in it') end
     -- The page number is never a line of the list: it is in the heading, and the page buttons are in the footer.
     for _, row in ipairs(layout.rows) do assert(not tostring(row.label):find('^Page %d+ / %d+$'), page .. ': a page line ' .. row.label) end
     -- Pages of a list: both page buttons are in the footer, always together.
@@ -507,16 +536,23 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   local function go(...) for _, label in ipairs({...}) do press(label) end end
 
   check('home')
-  go('Characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
+  go('Main characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
   go('Parties'); check('party'); go('Back to Companion Manager')
   go('Model browser'); frames(140)
   check('models'); go('Starts with: All'); check('models letter J'); go('Starts with: J'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
   go('Settings'); check('settings')
+  go('AI provider'); check('settings-provider')
+  go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to settings')
+  go('Voice and microphone'); check('settings-voice'); go('Back to settings')
+  go('Conversations'); check('settings-conversations')
   go('Romantic relationships'); check('relationships'); go('Back to settings')
   go('Dynamic info'); check('dynamic-info'); go('Back to settings')
-  go('Memory'); check('memory'); go('Back to settings')
-  go('Help and support'); check('help'); go('Back to settings')
-  go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to Companion Manager')
+  go('Memory'); check('memory'); go('Back to settings', 'Back to settings')
+  go('Companions'); check('settings-companions'); go('Back to settings')
+  go('Night City'); check('settings-night-city'); go('Back to settings')
+  go('Interface'); check('settings-interface'); go('Back to settings')
+  go('Privacy and help'); check('settings-privacy')
+  go('Help and support'); check('help'); go('Back to settings', 'Back to settings', 'Back to Companion Manager')
   -- A party with copies: the rows of the party page.
   managerUi.party().invite('johnny-silverhand')
   frames(12)
@@ -525,7 +561,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
 
 test('Memory page: choosing a character is a toggle, one at a time; every press draws the list again with the right button text, and nothing runs per frame', () => withScreen(`
   ${footer}
-  press('Settings'); press('Memory')
+  settingsPage('Conversations'); press('Memory')
   local function names()
     local list, chosen = {}, {}
     local inList = false
@@ -562,18 +598,24 @@ test('Memory page: choosing a character is a toggle, one at a time; every press 
 
 test('no row is ever drawn as changed (purple): MCM needs a default for that mark, and none is given', () => withScreen(`
   ${footer}
-  press('Settings')
   local function nothingPurple(when)
+    local seen = 0
     for _, row in ipairs(mcm.layout().rows) do
-      if row.kind == 'setting' then assert(row.color == 'red', when .. ': ' .. row.label .. ' is ' .. row.color) end
+      if row.kind == 'setting' then seen = seen + 1; assert(row.color == 'red', when .. ': ' .. row.label .. ' is ' .. row.color) end
     end
+    assert(seen > 0, when .. ': the page has settings')
   end
-  nothingPurple('fresh install')
+  press('Settings')
+  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+    press(name); nothingPurple('fresh install, ' .. name); press('Back to settings')
+  end
   -- A saved change, a draft and a value away from the manager's default stay red as well.
+  press('Interface')
   assert(mcm.set('Subtitles', 1) and mcm.apply())
   frames(4)
   nothingPurple('after Apply')
-  assert(mcm.set('Voice volume (%)', 170))
+  press('Back to settings'); press('Voice and microphone')
+  assert(mcm.set('Companion voice volume (%)', 170))
   nothingPurple('with a draft')
   mcm.revert()
 `));
@@ -583,28 +625,36 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
   assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
   frames(6)
   press('Settings')
-  local layout = mcm.layout()
   local columns, rows = {}, 0
-  for _, row in ipairs(layout.rows) do
-    if row.kind ~= 'heading' then
-      rows = rows + 1
-      assert(row.size == 22, row.label .. ' is size ' .. row.size .. ' (' .. row.kind .. ')')
-      assert(row.color == 'red', row.label .. ' is ' .. row.color)
-      assert(row.kind == 'setting' or row.kind == 'action', row.label .. ' is a ' .. row.kind .. ' (a read-only line is drawn at size 26)')
-      assert(columns[row.kind] == nil or columns[row.kind] == row.x, row.label .. ' is at another x than the rest of its kind')
-      columns[row.kind] = row.x
+  -- The Settings list and every category page are drawn the same way (the category pages hold the settings the one long page had).
+  local function drawn(page)
+    for _, row in ipairs(mcm.layout().rows) do
+      if row.kind ~= 'heading' then
+        rows = rows + 1
+        assert(row.size == 22, page .. ': ' .. row.label .. ' is size ' .. row.size .. ' (' .. row.kind .. ')')
+        assert(row.color == 'red', page .. ': ' .. row.label .. ' is ' .. row.color)
+        assert(row.kind == 'setting' or row.kind == 'action', page .. ': ' .. row.label .. ' is a ' .. row.kind .. ' (a read-only line is drawn at size 26)')
+        assert(columns[row.kind] == nil or columns[row.kind] == row.x, page .. ': ' .. row.label .. ' is at another x than the rest of its kind')
+        columns[row.kind] = row.x
+      end
     end
+    -- No read-only line (Voice status and Johnny’s standing were removed 2026-10-20) and so no status button either.
+    for _, name in ipairs({'Voice status', 'Johnny’s standing'}) do assert(listed(name) == nil and mcm.row(name) == nil, name .. ' is gone') end
+    for _, row in ipairs(mcm.rows()) do
+      assert(row.type ~= 'string' and not tostring(row.id):find('^status:'), 'a read-only or status row on ' .. page .. ': ' .. tostring(row.id))
+      assert(row.default == nil, row.id)
+    end
+  end
+  drawn('settings')
+  for _, name in ipairs({'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}) do
+    press(name); drawn(name); press('Back to settings')
   end
   assert(rows > 20)
   -- MCM puts the label of a setting in its marker column (x 48) and the label of an action flush left (x 20): neither moves through
-  -- the public interface (see mcm-fake.mjs layout()), so the page has exactly those two.
+  -- the public interface (see mcm-fake.mjs layout()), so the pages have exactly those two.
   assert(columns.setting == 48 and columns.action == 20, tostring(columns.setting) .. ' ' .. tostring(columns.action))
-  -- The Settings page has no read-only line (Voice status and Johnny’s standing were removed 2026-10-20) and so no status button either.
-  for _, name in ipairs({'Voice status', 'Johnny’s standing'}) do assert(listed(name) == nil and mcm.row(name) == nil, name .. ' is gone') end
-  for _, row in ipairs(mcm.rows()) do
-    assert(row.type ~= 'string' and not tostring(row.id):find('^status:'), 'a read-only or status row on Settings: ' .. tostring(row.id))
-  end
   -- The read-only lines of the other pages are MCM's own lines (type string, drawn as read-only text), not buttons.
+  press('Privacy and help')
   press('Help and support')
   local lines = 0
   local drawnById = {}
@@ -622,11 +672,11 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
   for _, row in ipairs(mcm.rows()) do assert(row.default == nil, row.id) end
 `));
 
-test('Dynamic info is a page of its own: a button in Conversations opens it, its rows are switches, Restore defaults is on it, Back returns to Settings', () => withScreen(`
+test('Dynamic info is a page of its own: a button in Conversations opens it, its rows are switches, Restore defaults is on it, Back returns to Conversations', () => withScreen(`
   ${footer}
-  press('Settings')
+  settingsPage('Conversations')
   assert(mcm.row('Dynamic info').type == 'action' and mcm.row('Dynamic info').value == 'Open')
-  assert(mcm.row('Location') == nil, 'the switches are not on Settings')
+  assert(mcm.row('Location') == nil, 'the switches are not on Conversations')
   press('Dynamic info')
   local config = mcm.config()
   assert(config.navigation.pageId == 'dynamic-info|1|1' and config.navigation.backActionId == 'dynamic-info:back' and config.navigation.escapeBack == true)
@@ -643,13 +693,13 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
   assert(mcm.row('Location').value == true and mcm.row('Other mods’ state').value == false)
   press('Back to settings')
-  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Dynamic info'))
-  press('Back to Companion Manager')
+  assert(mcm.config().navigation.pageId == 'settings-conversations|1|1' and mcm.row('Dynamic info'))
+  press('Back to settings'); press('Back to Companion Manager')
 `));
 
-test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Settings', () => withScreen(`
+test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Conversations', () => withScreen(`
   ${footer}
-  press('Settings')
+  settingsPage('Conversations')
   assert(mcm.row('Romantic relationships').type == 'action' and mcm.row('Romantic relationships').value == 'Open')
   assert(mcm.row('Judy Alvarez') == nil and not headings():find('Romantic relationships', 1, true), headings())
   press('Romantic relationships')
@@ -667,60 +717,63 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   -- Restore defaults on this page puts the relationships back to Auto (and Settings with them).
   press('Defaults'); press('Defaults')
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto' and mcm.row('Judy Alvarez').value == 1)
-  -- The way back leads to Settings.
+  -- The way back leads to Conversations, the page that holds the row.
   press('Back to settings')
-  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Romantic relationships'))
-  press('Back to Companion Manager')
+  assert(mcm.config().navigation.pageId == 'settings-conversations|1|1' and mcm.row('Romantic relationships'))
+  press('Back to settings'); press('Back to Companion Manager')
 `));
 
 test('the Settings page has no Multilingual conversations row (the setting was removed 2026-10-21): the language is detected per message', () => withScreen(`
-  press('Settings')
+  settingsPage('Conversations')
   frames(6)
-  assert(mcm.row('React to collected loot') ~= nil or mcm.row('Talk to ordinary NPCs') ~= nil or mcm.row('Johnny in your head') ~= nil, 'the Conversations rows are on the page')
+  assert(mcm.row('Johnny in your head') ~= nil and mcm.row('Talk to story characters') ~= nil, 'the Conversations rows are on the page')
+  assert(mcm.row('Talk to ordinary NPCs') == nil, 'Talk to ordinary NPCs has no row: it is always on')
   assert(mcm.row('Multilingual conversations') == nil, 'the row is gone')
+  press('Back to settings'); press('Voice and microphone')
+  assert(mcm.row('Multilingual conversations') == nil, 'the row is gone from the voice page too')
   assert(manager.snapshot(player).settings.multilingualConversations == nil)
   for key in pairs(mcm.drafts()) do assert(not tostring(key):find('multilingual', 1, true), key) end
 `));
 
-test('Apply of one switch saves exactly that switch: React to collected loot off is saved off, and the rest stays', () => withScreen(`
-  press('Settings')
+test('Apply of one switch saves exactly that switch: Companions react off is the one row sent, it is saved as both reaction settings, and the rest stays', () => withScreen(`
+  settingsPage('Companions')
   frames(6)
   local core = managerUi._test.core
   local realApply, seen = core.apply, nil
   core.apply = function(batch) seen = batch; return realApply(batch) end
   local before = manager.snapshot(player).settings
-  assert(before.lootReactions == true and before.multilingualConversations == nil)
-  assert(mcm.row('React to collected loot').value == true)
-  assert(mcm.set('React to collected loot', false))
-  assert(mcm.drafts()['cyberpunk-convai:manager:lootReactions'] == false, 'the draft is on that row')
+  assert(before.lootReactions == true and before.battleReactions == true and before.multilingualConversations == nil)
+  assert(mcm.row('Companions react').value == true)
+  assert(mcm.set('Companions react', false))
+  assert(mcm.drafts()['cyberpunk-convai:manager:companionReactions'] == false, 'the draft is on that row')
   assert(next(mcm.drafts(), next(mcm.drafts())) == nil, 'and on no other')
   local ok, why = mcm.apply()
   assert(ok, tostring(why))
-  assert(seen and #seen == 1 and seen[1].id == 'lootReactions' and seen[1].value == false, 'the batch is that one switch')
-  assert(saved.lootReactions == false, 'saved: ' .. tostring(saved.lootReactions))
-  assert(manager.snapshot(player).settings.lootReactions == false)
-  assert(mcm.row('React to collected loot').value == false, 'the page shows what is saved')
+  assert(seen and #seen == 1 and seen[1].id == 'companionReactions' and seen[1].value == false, 'the batch is that one switch')
+  assert(saved.lootReactions == false and saved.battleReactions == false, 'saved as both: ' .. tostring(saved.lootReactions) .. ' ' .. tostring(saved.battleReactions))
+  assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.battleReactions == false)
+  assert(mcm.row('Companions react').value == false, 'the page shows what is saved')
   assert(saved.multilingualConversations == nil and saved.subtitles == true, 'the other switches did not move')
   -- And back on.
   core.apply = realApply
-  assert(mcm.set('React to collected loot', true) and mcm.apply())
-  assert(saved.lootReactions == true)
+  assert(mcm.set('Companions react', true) and mcm.apply())
+  assert(saved.lootReactions == true and saved.battleReactions == true)
   -- The same while the list jumps on every redraw (the live check): the switch pressed is the one saved.
   mcm.jumpOnLoad = 0.7
   frames(4)
-  assert(mcm.set('React to collected loot', false) and mcm.apply())
+  assert(mcm.set('Companions react', false) and mcm.apply())
   frames(6)
-  assert(saved.lootReactions == false and saved.multilingualConversations == nil)
+  assert(saved.lootReactions == false and saved.battleReactions == false and saved.multilingualConversations == nil)
 `));
 
 test('the list keeps its place after Apply and after a reload of the page, leaves a later scroll alone, and starts at the top on another page', () => withScreen(`
-  press('Settings')
+  settingsPage('Companions')
   frames(4)
   mcm.scrollTo(0.2); frames(2)
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9)
   -- MCM redraws the page after Apply and the list jumps far down (as in the live check): the host puts it back.
   mcm.jumpOnLoad = 0.6
-  assert(mcm.set('React to collected loot', false) and mcm.apply())
+  assert(mcm.set('Companions react', false) and mcm.apply())
   assert(mcm.scroll() == 0.6, 'the jump happened, as in the live check')
   frames(1)
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'put back: ' .. mcm.scroll())
@@ -735,13 +788,20 @@ test('the list keeps its place after Apply and after a reload of the page, leave
   assert(math.abs(mcm.scroll() - 0.9) < 1e-9, 'a later scroll of the player is not undone')
   -- Another page starts at its top (MCM keeps a position per page id).
   mcm.jumpOnLoad = nil
-  press('Back to Companion Manager'); press('Characters to invite')
-  mcm.scrollTo(0.4); frames(2)
+  press('Back to settings'); press('Back to Companion Manager'); press('Main characters to invite')
+  -- The host looks at the page on a slow tick (every 0.25 s). A tick that falls in the very frame of a page turn would read MCM's position of the old
+  -- page before MCM has moved on, so the press is made just after a tick (found by the host's read of MCM's context), and the next one is a quarter second away.
+  local ticks, realContext = 0, mcm.api.ui.getContext
+  mcm.api.ui.getContext = function(...) ticks = ticks + 1; return realContext(...) end
+  local seen = ticks
+  repeat frames(1, 0.01) until ticks > seen
+  mcm.api.ui.getContext = realContext
+  mcm.scrollTo(0.4); frames(1, 0.01)
   press('Next page')
   assert(mcm.scroll() == 0, 'page 2 starts at the top: ' .. mcm.scroll())
   -- Without the scroll calls (an MCM that lacks them) nothing breaks.
   mcm.api.ui.getScrollPosition, mcm.api.ui.setScrollPosition = nil, nil
-  press('Back to Companion Manager'); press('Settings')
+  press('Back to Companion Manager'); settingsPage('Interface')
   assert(mcm.set('Subtitles', 1) and mcm.apply())
 `));
 
@@ -750,7 +810,7 @@ test('the OmniVoice entries are disabled choices while its pack is missing: MCM 
   files['runtime/local-voice-state.json'] = 'voice-runtime'
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
-  press('Settings')
+  settingsPage('Voice and microphone')
   frames(6)
   local states = mcm.config().choices and mcm.config().choices.voiceProvider
   assert(states, 'choice states for the voice select')
@@ -809,7 +869,7 @@ test('the shortcut opens MCM straight on the manager page with its public open c
   mcm.update()
   local context = mcm.api.ui.getContext()
   assert(context.open == true and context.modKey == 'cyberpunk-convai:manager', 'MCM opened on the manager page')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', 'on the first page: ' .. labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', 'on the first page: ' .. labels())
   assert(#notices == 0, 'no notice: the page is opened for the player')
   -- Pressed again while it is open: nothing more to do (MCM has no public close call).
   assert(managerUi.open() == true)
@@ -1007,8 +1067,8 @@ test('at the main menu the pages that need a save say so in their heading, not i
   frames(4)
   -- A list of buttons: the status is in the heading and its help is the heading's description. A line of the list would be drawn 16 px
   -- right of the names under it (MCM's read-only line has an inset of its own; labelIndent does not reach it).
-  press('Characters to invite')
-  assert(headings():find('^Characters to invite · Load a save first · Page 1 / %d+$'), headings())
+  press('Main characters to invite')
+  assert(headings():find('^Main characters to invite · Load a save first · Page 1 / %d+$'), headings())
   assert(not listed('Characters and party') and not mcm.row('needs-save'), labels())
   assert(mcm.description() == 'Inviting characters and managing your party need a loaded game.', mcm.description())
   for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
@@ -1023,6 +1083,8 @@ test('at the main menu the pages that need a save say so in their heading, not i
   assert(not mcm.row('needs-save') and not mcm.row('model-status'), labels())
   for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
   press('Back to Companion Manager'); press('Settings')
+  assert(labels():find('Interface', 1, true) and not labels():find('Characters and party', 1, true), labels())
+  press('Interface')
   assert(labels():find('Interface language', 1, true) and not labels():find('Characters and party', 1, true), labels())
 `));
 
@@ -1221,8 +1283,10 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   assert(mcm.config().actionVisibility == nil)
   for _, name in ipairs(mcm.calls) do assert(name ~= 'ui.close' and name ~= 'ui.setActionVisibility', 'called ' .. name) end
   -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
-  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
+  assert(#mcm.config().footerActions == 0 and labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
   press('Settings')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  press('Interface')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.set('Subtitles', 1))
   local row = {}
@@ -1248,6 +1312,7 @@ test('MCM 0.10.6: the presentation gets labelIndent 20, highlightModifiedValues 
   assert(mcm.config().applyPolicy == 'explicit')
   -- Settings: labels at the buttons' x, one size, nothing purple, four buttons with changes pending and the whole name of the defaults button.
   press('Settings')
+  press('Interface')
   local layout = mcm.layout()
   for _, row in ipairs(layout.rows) do
     if row.kind == 'setting' then assert(row.x == 20 and row.size == 22 and row.color == 'red', row.label .. ' x ' .. row.x) end
@@ -1293,7 +1358,7 @@ test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape s
   assert(config.navigation.backActionId == nil and config.navigation.escapeBack == true, 'Escape stays the close of MCM')
   local back = mcm.row('Back')
   assert(back and back.type == 'action' and back.value == 'Back' and back.description ~= '' and back.capabilities.action == true)
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings | Back', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings | Back', labels())
   -- The sub-pages keep their own Back, and Home's is only on Home.
   press('Settings')
   assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
@@ -1329,7 +1394,7 @@ test('MCM 0.10.6: a close MCM refuses (no renderer) is answered with MCM\'s reas
   local lines = 0
   for _, line in ipairs(logged) do if line:find('would not close the page', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one console line for three presses: ' .. lines)
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings | Back', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings | Back', labels())
 `));
 
 test('MCM 0.10.6 by version but refusing the new presentation options: the base ones are sent instead, Add to favorites is still hidden, and the old names are used', () => run(`${harness({screen: false, nsui: false, hideMcm: true, mcm: {version: '0.10.6'}})}
@@ -1380,9 +1445,12 @@ test('MCM 0.10.6 at 1366x768: the presentation carries a smaller rowFontSize and
   assert(presentation.labelIndent == 20 and presentation.highlightModifiedValues == false and presentation.descriptionFontSize == 22)
   mcm.openScreen(); frames(3)
   press('tab:settings')
+  press('settings:interface')
+  local found = false
   for _, row in ipairs(mcm.layout().rows) do
-    if row.kind == 'setting' then assert(row.size == 15, row.label .. ' at ' .. tostring(row.size)); break end
+    if row.kind == 'setting' then found = true; assert(row.size == 15, row.label .. ' at ' .. tostring(row.size)); break end
   end
+  assert(found, 'the Interface page has settings')
 `));
 
 test('MCM 0.10.6 with an unreadable resolution or a screen under 1046x589: rowFontSize is left out (MCM keeps its own size) and the rest is sent', () => {
@@ -1466,15 +1534,15 @@ const customState = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('Custom endpoint is a page of its own: one button on Settings where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => withScreen(`
+test('Custom endpoint is a page of its own: one button on AI provider where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => withScreen(`
   ${footer}
   ${customState}
-  press('Settings')
-  assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on Settings')
-  for _, label in ipairs({${customRows.filter(label => label !== 'Test connection').map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
-  -- The Google Gemini key row is on Settings; it has no Test connection row (Add tries the key once instead).
-  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection') == nil, 'the Gemini key row is on Settings, with no Test connection row')
-  assert(mcm.row('Mistral API key') == nil, 'no Mistral key row on Settings any more')
+  settingsPage('AI provider')
+  assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on AI provider')
+  for _, label in ipairs({${customRows.filter(label => label !== 'Test connection').map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on AI provider any more') end
+  -- The Google Gemini key row is on AI provider; it has no Test connection row (Add tries the key once instead).
+  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection') == nil, 'the Gemini key row is on AI provider, with no Test connection row')
+  assert(mcm.row('Mistral API key') == nil, 'no Mistral key row on AI provider any more')
   press('Custom endpoint')
   local config = mcm.config()
   assert(config.navigation.pageId == 'custom-endpoint|1|1' and config.navigation.backActionId == 'custom-endpoint:back' and config.navigation.escapeBack == true,
@@ -1485,7 +1553,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do
     assert(mcm.row(label) and mcm.row(label).type == 'action', label .. ' is a button of the page')
   end
-  assert(mcm.row('Settings') == nil and mcm.row('Conversation provider') == nil, 'nothing of Settings is on the page')
+  assert(mcm.row('Settings') == nil and mcm.row('Conversation provider') == nil, 'nothing of AI provider is on the page')
   for _, drawn in ipairs(mcm.layout().rows) do
     if drawn.kind ~= 'heading' then assert(drawn.kind == 'action' and drawn.size == 22 and drawn.color == 'red', drawn.label .. ' is drawn as ' .. drawn.kind) end
   end
@@ -1510,39 +1578,39 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   assert(mcm.row('Test connection (Failed)').description:find('The endpoint does not know that model ID.', 1, true))
   -- Back to settings leaves the page and the way back works from the footer too.
   press('Back to settings')
-  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil)
-  press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
+  assert(mcm.config().navigation.pageId == 'settings-provider|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil, 'back on AI provider, not on the Settings list')
+  press('Custom endpoint'); press('Back to settings'); press('Back to settings'); press('Back to Companion Manager')
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
 `));
 
 test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
   ${footer}
-  press('Settings')
-  assert(mcm.set('Subtitles', 1))
+  settingsPage('AI provider')
+  assert(mcm.set('Allow Local AI to use RAM', true))
   local ok, why = mcm.press('Custom endpoint')
   assert(ok == false and why:find('pending changes', 1, true), tostring(why))
-  assert(mcm.config().navigation.pageId == 'settings|1|1', 'the page did not change')
+  assert(mcm.config().navigation.pageId == 'settings-provider|1|1', 'the page did not change')
   assert(mcm.apply())
-  assert(saved.subtitles == false)
+  assert(saved.localOffload == true)
   press('Custom endpoint')
   assert(mcm.config().navigation.pageId == 'custom-endpoint|1|1')
   assert(next(mcm.drafts()) == nil, 'the page has no draft')
   -- The way back is a button, and Revert/Apply have nothing to do on this page.
   press('Back to settings')
-  assert(mcm.row('Subtitles').value == 1, 'the saved change is on the page')
+  assert(mcm.config().navigation.pageId == 'settings-provider|1|1' and mcm.row('Allow Local AI to use RAM').value == true, 'the saved change is on the page')
 `));
 
-test('Custom endpoint is not offered without the provider module: no button on Settings, nothing to open', () => run(`${harness({modules: withoutCustomModule})}
+test('Custom endpoint is not offered without the provider module: no button on AI provider, nothing to open', () => run(`${harness({modules: withoutCustomModule})}
   mcm.openScreen()
   frames(2)
-  press('Settings')
+  settingsPage('AI provider')
   assert(mcm.row('Custom endpoint') == nil, 'no button without the module')
   assert(not pcall(mcm.press, 'Custom endpoint'), 'there is nothing to press')
   assert(mcm.row('Mistral key') ~= nil or mcm.row('Conversation provider') ~= nil, 'the rest of the page is there')
 `));
 
 test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => withScreen(`
-  press('Settings')
+  settingsPage('Conversations')
   assert(mcm.row('Johnny speaks up') == nil and mcm.row('Johnny’s standing') == nil, 'the separate rows are gone')
   local row = mcm.row('Johnny in your head')
   assert(row.type == 'select' and row.default == nil and row.value == 1, 'Off by default')
@@ -1564,109 +1632,126 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up norm
   assert(mcm.row('Johnny in your head').value == 3)
 `));
 
-test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
-  press('Settings')
-  local name = 'V’s voice for typed lines'
-  assert(mcm.row('V’s voice engine') == nil, 'the engine row is gone')
+test('V’s voice is one list over typed and spoken lines (Off, Typed lines, Typed and spoken lines) and its engine is its own list: Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
+  settingsPage('Voice and microphone')
+  assert(mcm.row('V’s voice for typed lines') == nil and mcm.row('V’s voice for spoken lines') == nil and mcm.row('V’s voice microphone') == nil, 'the old rows are gone')
+  local mode = mcm.row('V’s voice')
+  assert(mode.type == 'select' and mode.default == nil and mode.value == 2, 'Typed lines by default')
+  assert(table.concat(mode.elements, ' | ') == 'Off | Typed lines | Typed and spoken lines', table.concat(mode.elements, ' | '))
+  local name = 'V’s voice engine'
   local row = mcm.row(name)
-  assert(row.type == 'select' and row.default == nil and row.value == 2, 'Pocket by default')
-  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
-  local states = mcm.config().choices and mcm.config().choices.vVoice
+  assert(row.type == 'select' and row.default == nil and row.value == 1, 'Pocket by default')
+  assert(table.concat(row.elements, ' | ') == 'Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
+  local states = mcm.config().choices and mcm.config().choices.vVoiceEngine
   -- OmniVoice is greyed out too, with its own reason: the companions are on Pocket (the pack is taken as installed while the bridge has not said otherwise).
-  assert(states and states.states[4] and states.states[4].enabled == false and states.states[4].reason == 'Requires the Companion voices to be an OmniVoice choice', tostring(states.states[4] and states.states[4].reason))
-  local okOmni = mcm.set(name, 4)
-  assert(okOmni == false, 'MCM refuses the disabled OmniVoice entry as a draft')
-  assert(states and states.states[3] and states.states[3].enabled == false, 'Voxtral is a disabled choice without a key')
-  assert(states.states[1].enabled ~= false and states.states[2].enabled ~= false, 'Off and Pocket are free')
-  local ok, why = mcm.set(name, 3)
-  assert(ok == false, 'MCM refuses the disabled entry as a draft')
+  assert(states and states.states[3] and states.states[3].enabled == false and states.states[3].reason == 'Requires the Companion voices to be an OmniVoice choice', tostring(states and states.states[3] and states.states[3].reason))
+  assert(mcm.set(name, 3) == false, 'MCM refuses the disabled OmniVoice entry as a draft')
+  assert(states.states[2] and states.states[2].enabled == false, 'Voxtral is a disabled choice without a key')
+  assert(states.states[1].enabled ~= false, 'Pocket is free')
+  assert(mcm.set(name, 2) == false, 'MCM refuses the disabled entry as a draft')
   assert(next(mcm.drafts()) == nil)
-  assert(mcm.set(name, 1) and mcm.apply())
-  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket', tostring(saved.vVoice))
-  assert(mcm.row(name).value == 1)
-  assert(mcm.set(name, 2) and mcm.apply())
-  assert(saved.vVoice == true and saved.vVoiceEngine == 'pocket' and mcm.row(name).value == 2)
+  -- The mode row writes both stored settings: typed lines and spoken lines.
+  assert(mcm.set('V’s voice', 1) and mcm.apply())
+  assert(saved.vVoice == false and saved.vVoiceMic == false and saved.vVoiceEngine == 'pocket', tostring(saved.vVoice))
+  assert(mcm.row('V’s voice').value == 1)
+  assert(mcm.set('V’s voice', 3) and mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceMic == true and mcm.row('V’s voice').value == 3)
+  assert(mcm.set('V’s voice', 2) and mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceMic == false and saved.vVoiceEngine == 'pocket' and mcm.row('V’s voice').value == 2)
   -- The Mistral key is saved: the entry has its name and can be chosen.
   jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
   files['runtime/mistral-state.json'] = 'mistral-key'
   clock = clock + 2; manager.snapshot(player); frames(10)
-  assert(mcm.row(name).elements[3] == 'Voxtral · Mistral cloud', mcm.row(name).elements[3])
+  assert(mcm.row(name).elements[2] == 'Voxtral · Mistral cloud', mcm.row(name).elements[2])
 `));
 
-test('once the Mistral key is saved the Voxtral entry of V’s voice is a normal choice again (the disabled state set without a key is lifted)', () => withScreen(`
-  press('Settings')
-  local name = 'V’s voice for typed lines'
+test('once the Mistral key is saved the Voxtral entry of V’s voice engine is a normal choice again (the disabled state set without a key is lifted), and choosing the engine never turns V on or off', () => withScreen(`
+  settingsPage('Voice and microphone')
+  local name = 'V’s voice engine'
   jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
   files['runtime/mistral-state.json'] = 'mistral-key'
   clock = clock + 2; manager.snapshot(player); frames(10)
-  local ok3, why3 = mcm.set(name, 3)
+  local ok3, why3 = mcm.set(name, 2)
   assert(ok3, 'Voxtral is a normal draft with a key: ' .. tostring(why3))
   assert(mcm.apply())
-  assert(saved.vVoice == true and saved.vVoiceEngine == 'voxtral' and mcm.row(name).value == 3)
+  assert(saved.vVoice == true and saved.vVoiceMic == false and saved.vVoiceEngine == 'voxtral' and mcm.row(name).value == 2)
+  -- With V Off the engine can still be chosen, and V stays Off.
+  assert(mcm.set('V’s voice', 1) and mcm.apply())
+  assert(mcm.set(name, 1) and mcm.apply())
+  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket')
 `));
 
-test('the Voxtral entry of V’s voice says what it needs: the Mistral key (and not the OmniVoice pack)', () => withScreen(`
-  press('Settings')
-  local states = mcm.config().choices.vVoice.states
-  assert(states[3].enabled == false and states[3].reason:find('Mistral', 1, true) and not states[3].reason:find('OmniVoice', 1, true), tostring(states[3].reason))
+test('the Voxtral entry of V’s voice engine says what it needs: the Mistral key (and not the OmniVoice pack)', () => withScreen(`
+  settingsPage('Voice and microphone')
+  local states = mcm.config().choices.vVoiceEngine.states
+  assert(states[2].enabled == false and states[2].reason:find('Mistral', 1, true) and not states[2].reason:find('OmniVoice', 1, true), tostring(states[2].reason))
 `));
 
-test('the OmniVoice entry of V’s voice is greyed out with the pack reason while the pack is missing (the pack first, even with the companions on Pocket)', () => withScreen(`
+test('the OmniVoice entry of V’s voice engine is greyed out with the pack reason while the pack is missing (the pack first, even with the companions on Pocket)', () => withScreen(`
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = os.time() * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-runtime'
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
-  press('Settings')
+  settingsPage('Voice and microphone')
   frames(6)
-  local name = 'V’s voice for typed lines'
-  assert(mcm.row(name).elements[4] == 'OmniVoice · needs Omni pack', mcm.row(name).elements[4])
-  local states = mcm.config().choices.vVoice.states
-  assert(states[4].enabled == false and states[4].reason == 'Requires the optional OmniVoice pack (GPU)', tostring(states[4].reason))
-  assert(mcm.set(name, 4) == false)
-  assert(states[1].enabled ~= false and states[2].enabled ~= false)
+  local name = 'V’s voice engine'
+  assert(mcm.row(name).elements[3] == 'OmniVoice · needs Omni pack', mcm.row(name).elements[3])
+  local states = mcm.config().choices.vVoiceEngine.states
+  assert(states[3].enabled == false and states[3].reason == 'Requires the optional OmniVoice pack (GPU)', tostring(states[3].reason))
+  assert(mcm.set(name, 3) == false)
+  assert(states[1].enabled ~= false)
 `));
 
-test('the OmniVoice entry of V’s voice is a normal choice with the pack installed and the companions on OmniVoice; moving the companions off OmniVoice sets V to Pocket in the same Apply and says so', () => withScreen(`
+test('the OmniVoice entry of V’s voice engine is a normal choice with the pack installed and the companions on OmniVoice; moving the companions off OmniVoice sets the engine to Pocket in the same Apply, leaves V’s voice as it was, and says so', () => withScreen(`
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = os.time() * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-runtime'
   clock = clock + 2
   for _ = 1, 5 do manager.update(player, 0.6) end
   assert(manager.applySettings(player, {voiceProvider = 'omni'}))
-  press('Settings')
+  settingsPage('Voice and microphone')
   frames(6)
-  local name = 'V’s voice for typed lines'
-  assert(mcm.row(name).elements[4] == 'OmniVoice', mcm.row(name).elements[4])
+  local name = 'V’s voice engine'
+  assert(mcm.row(name).elements[3] == 'OmniVoice', mcm.row(name).elements[3])
   local states = mcm.config().choices
-  assert(states == nil or states.vVoice == nil or states.vVoice.states[4].enabled ~= false, 'OmniVoice is a normal choice')
-  assert(mcm.set(name, 4) and mcm.apply())
-  assert(saved.vVoice == true and saved.vVoiceEngine == 'omni' and manager.vVoiceEngine() == 'omni' and mcm.row(name).value == 4)
-  -- The companions move to Pocket: V goes to Pocket in the same save, and the line says so.
+  assert(states == nil or states.vVoiceEngine == nil or states.vVoiceEngine.states[3].enabled ~= false, 'OmniVoice is a normal choice')
+  assert(mcm.set(name, 3) and mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'omni' and manager.vVoiceEngine() == 'omni' and mcm.row(name).value == 3)
+  -- The companions move to Pocket: V's engine goes to Pocket in the same save, V stays on, and the line says so.
   assert(mcm.set('Companion voices', 2) and mcm.apply())
   frames(6)
   assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
-  assert(mcm.row(name).value == 2)
+  assert(mcm.row(name).value == 1 and mcm.row('V’s voice').value == 2)
   assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
 `));
 
-test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => withScreen(`
-  press('Settings')
-  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
-  assert(mcm.set('React to battles', false) and mcm.set('React to collected loot', false) and mcm.set('Johnny in your head', 5) and mcm.set('V’s voice for typed lines', 1)
-    and mcm.set('Companions speak up', 4))
+test('Companions react is on by default, and Restore defaults puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on, from whichever page it is pressed on', () => withScreen(`
+  settingsPage('Companions')
+  assert(mcm.row('Companions react').value == true)
+  assert(mcm.set('Companions react', false))
+  assert(mcm.apply())
+  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
+  press('Back to settings'); press('Conversations')
+  assert(mcm.set('Johnny in your head', 5) and mcm.set('Companions speak up', 4))
   assert(mcm.apply())
   assert(saved.companionSpeakUp == 'normal')
-  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
+  press('Back to settings'); press('Voice and microphone')
+  assert(mcm.set('V’s voice', 1))
+  assert(mcm.apply())
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   frames(6)
+  -- One Restore defaults puts the rows of every Settings page back.
   press('Defaults'); press('Defaults')
   frames(8)
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'normal' and mcm.row('Companions speak up').value == 4, 'companions are back to Often')
-  assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
-  assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
-  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
+  assert(settings.companionSpeakUp == 'normal', 'companions are back to Often')
+  assert(settings.vVoice == true and settings.vVoiceMic == false and settings.vVoiceEngine == 'pocket', 'V speaks typed lines with Pocket')
+  assert(mcm.row('V’s voice').value == 2 and mcm.row('V’s voice engine').value == 1)
+  press('Back to settings'); press('Conversations')
+  assert(mcm.row('Johnny in your head').value == 1 and mcm.row('Companions speak up').value == 4)
+  press('Back to settings'); press('Companions')
+  assert(mcm.row('Companions react').value == true)
 `));
 
 // A setting's label is drawn by MCM in a box that ends in "..." when the text does not fit (MCMPanelWidgetFactory.McmUiApplyTextBounds, textOverflowPolicy
@@ -1696,11 +1781,23 @@ for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl'
         end
       end
     end
+    -- The Settings list has no settings: every category page and the pages that open from one are walked.
     press('tab:settings')
     check('Settings')
-    press('relationships'); check('Romantic relationships'); press('relationships:back')
-    press('dynamic-info'); check('Dynamic info'); press('dynamic-info:back')
-    press('custom-endpoint'); check('Custom endpoint')
+    for _, page in ipairs({'provider', 'voice', 'conversations', 'companions', 'night-city', 'interface', 'privacy'}) do
+      press('settings:' .. page)
+      check(page)
+      if page == 'provider' then press('custom-endpoint'); check('Custom endpoint'); press('custom-endpoint:back') end
+      if page == 'conversations' then
+        press('relationships'); check('Romantic relationships'); press('relationships:back')
+        press('dynamic-info'); check('Dynamic info'); press('dynamic-info:back')
+      end
+      if page == 'companions' then
+        press('immersive-invitations'); check('Immersive invitations'); press('immersive-invitations:back')
+        press('housemates'); check('Housemates'); press('housemates:back')
+      end
+      press('settings-' .. page .. ':back')
+    end
     assert(checked > 25, 'the pages have settings: ' .. checked)
   `));
 }
@@ -1721,7 +1818,7 @@ test('MCM: the Character editor row of Home writes one editor command, the page 
   assert(mcm.status() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', mcm.status())
   frames(40)
   assert(commandWrites() == before + 1, 'nothing more is sent by the frames that follow')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings', labels())
 `));
 
 test('MCM: the Character editor row says the service is not running and writes nothing; without the module it is not on Home', () => {
@@ -1736,7 +1833,7 @@ test('MCM: the Character editor row says the service is not running and writes n
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   withScreen(`
-    assert(labels() == 'Characters to invite | Parties | Model browser | Relationships | Key bindings | Settings' and not mcm.row('Character editor'), labels())
+    assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Key bindings | Settings' and not mcm.row('Character editor'), labels())
   `, {modules: bare, absent: ['character-editor.lua']});
 });
 
@@ -1839,7 +1936,7 @@ test('MCM: without Codeware the Set button says so and nothing waits; without th
 // ---- Saved parties: the Search box names a party (Rename), and does not filter the page.
 test('Parties takes MCM\'s Search box as the new name for Rename: the provider search mode is on, the rows are not filtered, an empty box is refused', () => withScreen(`
   ${footer}
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Johnny Silverhand'); frames(8)
   members[1].state = 'ready'; frames(4)
   press('Back to Companion Manager'); press('Parties')

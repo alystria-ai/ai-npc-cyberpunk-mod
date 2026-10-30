@@ -468,7 +468,9 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch (npc-*) may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-')));
+  // The side characters (minor roster rows, docs/SIDE_CHARACTERS.md) wait for the same step: their original answers every language until it is done.
+  const minorKeys = new Set(JSON.parse(readFileSync(new URL('../characters/roster.json', import.meta.url), 'utf8').replace(/^﻿/u, '')).filter(row => row.minor === true).map(row => row.key));
+  assert.ok(unrouted.every(key => key.startsWith('npc-') || minorKeys.has(key)), 'only a new archetype batch (npc-*) or a side character may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-') && !minorKeys.has(key)));
   for (const key of CAST_EXPANSION_KEYS) assert.equal(document.characters[key]?.languageBoxOff, true, key + ' language box must be off');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {

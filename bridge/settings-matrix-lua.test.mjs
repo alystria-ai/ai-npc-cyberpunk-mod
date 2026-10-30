@@ -19,6 +19,12 @@ const harness = () => nsuiHarness({modules: everything}) + `
   local function press(label)
     ns.interact.press(assert(ns.find(label), 'no row: ' .. label)); frames(3); ns.verify()
   end
+  -- The Native Settings page shows one category at a time: go back to the list of categories, then open the one that holds the row.
+  local function page(name)
+    for _ = 1, 3 do if managerUi.inspect().view ~= 'settings' then press('Back to settings') end end
+    assert(managerUi.inspect().view == 'settings', 'not on the list of categories: ' .. tostring(managerUi.inspect().view))
+    press(name); frames(5)
+  end
   -- What the bridge publishes (runtime/mistral-state.json) and the voice service state (runtime/local-voice-state.json).
   local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
   local function voices(pack)
@@ -35,7 +41,7 @@ test('D1 (2026-10-20, revised after a live test): Mature content turned on with 
   bridge('key', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('AI provider')
   assert(manager.applySettings(player, {voiceProvider = 'voxtral'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
@@ -59,7 +65,7 @@ test('Mature content moves only a Voxtral voice: the Convai cloud voice and Omni
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('AI provider')
   assert(manager.applySettings(player, {voiceProvider = 'convai', vVoice = true, vVoiceEngine = 'voxtral'}))
   frames(8)
   -- The companions on the Convai cloud voice stay; V on Voxtral moves to Pocket (and comes back with the setting off).
@@ -91,32 +97,35 @@ test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leave
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('Voice and microphone')
   assert(manager.applySettings(player, {voiceProvider = 'omni', vVoice = true, vVoiceEngine = 'omni'}))
   frames(8)
-  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 4)
+  assert(ns.find('V’s voice engine').selectedElementIndex == 3 and ns.find('V’s voice').selectedElementIndex == 2)
   -- Mature content moves only a Voxtral voice: OmniVoice for the companions and for V stays.
+  page('AI provider')
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni' and saved.vVoice == true)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.vVoiceEngine == 'omni')
+  page('Voice and microphone')
   -- The pack goes away: the row reads Pocket, its label says why, the file keeps 'omni'.
   clock = clock + 20
   jsonFixtures['voice-state-gone'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = os.time() * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-state-gone'
   manager.snapshot(player); frames(8)
-  local row = ns.find('V’s voice for typed lines')
-  assert(row.selectedElementIndex == 2 and row.elements[4] == 'OmniVoice · needs Omni pack' and saved.vVoiceEngine == 'omni', tostring(row.elements[4]))
+  local row = ns.find('V’s voice engine')
+  assert(row.selectedElementIndex == 1 and row.elements[3] == 'OmniVoice · needs Omni pack' and saved.vVoiceEngine == 'omni', tostring(row.elements[3]))
+  assert(ns.find('V’s voice').selectedElementIndex == 2, 'V stays on Typed lines')
   -- The pack is back; the companions leave OmniVoice from their row: V is Pocket in the same save, and the line says so.
   clock = clock + 20
   jsonFixtures['voice-state-back'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = os.time() * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-state-back'
   manager.snapshot(player); frames(8)
-  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 4)
+  assert(ns.find('V’s voice engine').selectedElementIndex == 3)
   ns.interact.select(ns.find('Companion voices'), 2); frames(8); ns.verify()
   assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
   assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
-  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  assert(ns.find('V’s voice engine').selectedElementIndex == 1 and ns.find('V’s voice').selectedElementIndex == 2)
 `));
 
 test('A saved Mature record from before keeps all its parts; a Voxtral voice beside Mature content in a saved file is Pocket; turning it off with the kept parts puts the provider and Voxtral back', () => run(`${harness()}
@@ -146,7 +155,7 @@ test('A saved Mature record from before keeps all its parts; a Voxtral voice bes
     conversationProvider = {before = 'convai', set = 'local'},
     voice = {before = {provider = 'omni', steps = 16, reference = 'short'}, set = {provider = 'pocket'}},
     vVoiceEngine = {before = 'voxtral', set = 'pocket'}}})
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('AI provider')
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
 `));
@@ -155,7 +164,7 @@ test('Restore defaults while Mature content is on gives the default voices, what
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('AI provider')
   assert(manager.applySettings(player, {voiceProvider = 'voxtral', naturalSpeech = false, vVoiceEngine = 'voxtral'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8)
@@ -172,7 +181,7 @@ test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without th
   local function customState(ready) jsonFixtures['custom-' .. tostring(ready)] = {version = 1, updated = 1, ready = ready, host = 'openrouter.ai', secure = true,
     ['local'] = false, model = ready and 'llama3.2' or nil, keySaved = true, tail = 'wxyz'}
     files['runtime/custom-provider-state.json'] = 'custom-' .. tostring(ready); clock = clock + 2; manager.snapshot(player) end
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('AI provider')
   -- A Mistral key, no Local AI pack, no Custom endpoint: refused (Mistral is never selected), nothing changes.
   bridge('key', {provider = 'convai', effective = 'convai', localAi = 'absent', saved = true})
   customState(false); frames(8)
@@ -203,7 +212,7 @@ test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without th
 test('D8: Natural speech is blocked only by the Convai cloud voice on a Convai provider; Mistral, Local AI and Custom keep it with that voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   voices(true)
-  press('Settings'); frames(20)
+  press('Settings'); frames(20); page('Voice and microphone')
   for _, provider in ipairs({'mistral', 'local', 'custom'}) do
     assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = 'convai', naturalSpeech = true}))
     assert(settings().naturalSpeech == true and settings().voiceProvider == 'convai', provider)
@@ -249,8 +258,9 @@ test('the Multilingual conversations switch is gone (2026-10-21): an Apply that 
 test('the Native Settings page has no Multilingual conversations row, and the snapshot no key for it', () => run(`${harness()}
   bridge('key', {provider = 'convai', effective = 'convai', saved = true})
   voices(true)
-  press('Settings'); frames(20)
-  assert(ns.find('Talk to ordinary NPCs'), 'the Conversations rows are on the page')
+  press('Settings'); frames(20); page('Conversations')
+  assert(ns.find('Companion vision'), 'the Conversations rows are on the page')
+  assert(ns.find('Talk to ordinary NPCs') == nil, 'Talk to ordinary NPCs has no row any more')
   assert(ns.find('Multilingual conversations') == nil, 'the row is gone')
   assert(settings().multilingualConversations == nil)
   assert(not tostring(managerUi.inspect().shown):find('Multilingual', 1, true), tostring(managerUi.inspect().shown))

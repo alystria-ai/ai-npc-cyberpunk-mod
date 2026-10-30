@@ -1,4 +1,4 @@
-// Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): Settings > Gameplay > Character bonds, off by default.
+// Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): Settings > Companions > Character bonds, off by default.
 //
 // Every named character has a bond with V, level 1 to 10. It is two parts added together:
 //   the STORY part, worked out on every turn from what the turn already carries (the character's own quests finished, from the journal inventory;
@@ -71,8 +71,8 @@ export function levelOf(points) {
  * The `bonds` block of a request (mod/bonds.lua attach): {version: 1, on: true, copy?}, sent only while the setting is on, for a private turn V sends.
  * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. `romance`: 'together' | 'ended' when the save holds a romance with V that the bridge started
  * (bridge/romance-bond.mjs; the game keeps it in a saved fact, mod/romance-registry.lua), absent otherwise. Phase 2 adds three flags, each present only when true:
- * `packs` (Settings > Gameplay > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
- * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Gameplay > Characters text first is on: the characters' reach-outs, off by default in the game).
+ * `packs` (Settings > Companions > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
+ * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Companions > Characters text first is on: the characters' reach-outs, off by default in the game).
  * Returns {on: true, copy, packs?, invitations?, eddies?, busy?, reach?, romance?} or null.
  */
 export function parseBonds(value) {

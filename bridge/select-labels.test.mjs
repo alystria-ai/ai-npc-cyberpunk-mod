@@ -24,9 +24,9 @@ const budget = boxUnits - 2 * keyHintUnits;
 // Every English text that reaches a select row through ui.t, as it is built in mod/manager-ui.lua and mod/manager.lua.
 const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality'];
 const STATIC_OPTIONS = [
-  '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai API key', 'Convai free tier',
-  'Custom (OpenAI-compatible)', 'Default', 'Eyes only', 'Gentle (default)', 'Google Gemini (free plan)', 'Local AI', 'Mistral', 'Mistral (your key)', 'No model installed', 'Service not running', 'Service starting',
-  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often', 'Pocket · On your PC',
+  'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai API key', 'Convai free tier',
+  'Custom (OpenAI-compatible)', 'Google Gemini (free plan)', 'Local AI', 'Mistral', 'Mistral (your key)', 'No model installed', 'Service not running', 'Service starting',
+  'Off', 'Ordinary', 'Romantic', 'On', 'Typed lines', 'Typed and spoken lines', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often', 'Pocket · On your PC',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
   'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',

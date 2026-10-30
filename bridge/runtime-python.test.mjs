@@ -88,6 +88,19 @@ test('a missing site-package, a missing top-level file and an empty Lib are each
     await rm(join(app, 'python/Lib/pathlib.pyc'));
     assert.deepEqual((await checkPythonFiles({project: app})).missing, ['pathlib', 'torch']);
   } finally { await cleanup(app); }
+  // The voice clip builder's imports (docs/VOICE_EXTRACTION.md): scipy.signal, and torch.nn for torch.nn.functional.
+  app = await runtime();
+  try {
+    await rm(join(app, 'python/Lib/site-packages/scipy'), {recursive: true});
+    assert.deepEqual((await checkPythonFiles({project: app})).missing, ['scipy']);
+  } finally { await cleanup(app); }
+  app = await runtime();
+  try {
+    await rm(join(app, 'python/Lib/site-packages/scipy/signal'), {recursive: true});
+    await rm(join(app, 'python/Lib/site-packages/torch/nn'), {recursive: true});
+    const found = await checkPythonFiles({project: app});
+    assert.equal(found.state, 'problem'); assert.deepEqual(found.missing, ['torch.nn', 'scipy.signal']);
+  } finally { await cleanup(app); }
   app = await runtime();
   try {
     // The shape of an install whose _pth was replaced (the Lib layout) while the Lib folder was not: nothing of the standard library there.

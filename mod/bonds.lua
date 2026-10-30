@@ -1,4 +1,4 @@
--- Character bonds and their story packs (docs/RELATIONSHIPS_AND_QUESTS.md, bridge/bonds.mjs). Settings > Gameplay > Character bonds and Story packs, Off by default.
+-- Character bonds and their story packs (docs/RELATIONSHIPS_AND_QUESTS.md, bridge/bonds.mjs). Settings > Companions > Character bonds and Story packs, Off by default.
 --
 -- The game half is small: the bridge keeps the bond and the packs and words them for the character; the game says what is on, how V stands with the
 -- character, shows one notice when a level changes, and carries out the few things a pack stage can make the game do (section 7.4 of the doc).

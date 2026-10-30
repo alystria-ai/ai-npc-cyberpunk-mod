@@ -159,6 +159,18 @@ function M.failureCode(now)
     return type(code) == 'string' and code:match('^[%w%-_]+$') and code:sub(1, 60) or nil
 end
 
+-- The reason word the supervisor gave with a failure ('mo2-hidden-file': Mod Organizer 2 does not show a file of the Runtime to the program, bridge/runtime-files.mjs),
+-- for the one line the game says in the player's words; only that fixed word is passed on, nil otherwise. Reads the same cached file.
+function M.failureReason(now)
+    now = now or os.time()
+    local down = M.unavailable(now)
+    if not down or down.kind ~= 'failed' then return nil end
+    local service = supervisor(now)
+    if type(service) ~= 'table' or service.source == 'launcher' then return nil end
+    if service.reason == 'mo2-hidden-file' then return service.reason end
+    return nil
+end
+
 -- The Windows error number the launcher wrote with a failed start (CreateProcess refused: 5 access denied, 1260 blocked by a policy, 225 a security
 -- program, 740 needs administrator rights ...), or nil. Only a whole number from the status of this session's launcher; nothing else is read from it.
 function M.failureError(now)

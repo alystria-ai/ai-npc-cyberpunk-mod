@@ -2,7 +2,7 @@
 
 Branch `feat/side-romance` (from `release/quests`, which holds the bond system and the story packs). A player asked on Nexus to pursue Takemura. Until now only the game's own romances registered (Judy, Panam, River, Kerry and Meredith's fling, `bridge/relationship-routing.mjs`). Now V's bond with any character can grow into a romance through talk, and V can end it.
 
-Needs Settings > Gameplay > Character bonds. Nothing changes while it is off.
+Needs Settings > Companions > Character bonds. Nothing changes while it is off.
 
 ## How it works
 

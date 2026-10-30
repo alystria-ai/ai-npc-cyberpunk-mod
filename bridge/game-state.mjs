@@ -29,7 +29,7 @@ import {dirname, join} from 'node:path';
 // used to keep next to init.lua and now keeps beside the other state.
 export const GAME_STATE_FILES = Object.freeze(['settings.json', 'settings.json.previous', 'phone-history.json', 'phone-history.json.previous',
   'memory-chat-resets.json', 'witness-receipts.json', 'decision-ledger.json', 'addon-settings.json', 'npc-names.json', 'immersive-invitations.json',
-  'housemate-learned.json', 'housemates.json', 'favorites.json', 'eddies-ledger.json', 'ambush-state.json', 'saved-parties.json']);
+  'housemate-learned.json', 'housemates.json', 'favorites.json', 'eddies-ledger.json', 'ambush-state.json', 'saved-parties.json', 'outfit-rotation.json']);
 export const GAME_STATE_FOLDER = 'game-state';
 export const OLDER_FOLDER = 'older';
 export const RESTORE_SIGNAL = 'state-restore.json';

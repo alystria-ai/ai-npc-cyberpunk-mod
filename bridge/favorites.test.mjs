@@ -119,7 +119,7 @@ const nsHarness = (options = {}) => nsuiHarness({modules: everything, ...options
 `;
 
 test('Native Settings UI: a character not invited has one Invite row; once she is in the party the row is Add to favorites with Add copy right under it', () => run(`${nsHarness()}
-  press('Characters to invite')
+  press('Main characters to invite')
   assert(not button('Add to favorites') and not ns.find('Favorites'), 'nothing to favorite before an invitation: ' .. outline())
   assert(section('characters'):find('Person 05 = Invite | Person 06 = Invite', 1, true), section('characters'))
   press('Person 05', 'Invite')
@@ -130,7 +130,7 @@ test('Native Settings UI: a character not invited has one Invite row; once she i
 `));
 
 test('Native Settings UI: Add to favorites moves her to the Favorites block at the top, her list row keeps Add copy, and Remove from favorites puts it back', () => run(`${nsHarness()}
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Person 05', 'Invite')
   press('Person 05', 'Add to favorites')
   assert(outline():find('is now a favorite', 1, true), outline())
@@ -153,7 +153,7 @@ test('Native Settings UI: a favorite that is not invited has Invite in the block
   files['runtime/favorites.json'] = 'seed'
   jsonFixtures['seed'] = {version = 1, characters = {['person-20'] = true, ['person-3'] = true}, models = {}}
   convaiFavorites.reset(); core.refresh(); frames(6)
-  press('Characters to invite')
+  press('Main characters to invite')
   local block = section(ns.sections()[2].id)
   assert(ns.sections()[2].label == 'Favorites' and block:find('Remove from favorites = Remove', 1, true), outline())
   assert(block:find('Person 03 = Invite | Remove from favorites = Remove', 1, true), block)
@@ -166,7 +166,7 @@ test('Native Settings UI: a favorite that is not invited has Invite in the block
 `));
 
 test('Native Settings UI: favorites come back in a new session, and a favorite that cannot be saved still works until the game closes', () => run(`${nsHarness()}
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Person 09', 'Invite'); press('Person 09', 'Add to favorites')
   assert(saved().characters['person-9'] == true)
   -- The session ends; the file is all that is left.
@@ -239,13 +239,13 @@ const mcmHarness = () => nsuiHarness({modules: everything, mcm: {version: '0.10.
 `;
 
 test('Mod Configuration Menu: the same rows, no favorite button in the footer, and the page buttons tell which page they go to', () => run(`${mcmHarness()}
-  press('Characters to invite')
+  press('Main characters to invite')
   assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
   press('invite:person-5')
   local text = rowsText()
   assert(text:find('favorite:add:person-5 = Add to favorites | invite:person-5 = Add copy (1)', 1, true), text)
   press('favorite:add:person-5')
-  assert(categoryNames():find('^Companion Manager | Favorites | Characters to invite'), categoryNames())
+  assert(categoryNames():find('^Companion Manager | Favorites | Main characters to invite'), categoryNames())
   text = rowsText()
   assert(text:find('invite:favorite:person-5 = Add copy (1) | favorite:remove:person-5 = Remove', 1, true), text)
   assert(saved().characters['person-5'] == true)
@@ -264,7 +264,7 @@ test('without mod/favorites.lua the two pages have no favorite rows and nothing 
   os.clock = function() return clock end
   local function frames(count) for _ = 1, count or 6 do clock = clock + 0.1; managerUi.update(player, true) end end
   frames(3)
-  ns.interact.press(ns.find('Characters to invite')); frames(4)
+  ns.interact.press(ns.find('Main characters to invite')); frames(4)
   assert(not ns.find('Add to favorites') and ns.find('Back to Companion Manager') and ns.find('Person 01'), table.concat(ns.outline(), ' | '))
   ns.interact.press(ns.find('Person 05')); frames(4)
   assert(not ns.find('Add to favorites'), 'even in the party: ' .. table.concat(ns.outline(), ' | '))

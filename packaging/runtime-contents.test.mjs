@@ -35,8 +35,14 @@ test('the required files come from the repository: the V manifest and the OmniVo
 
 test('a Runtime ships no double-click support report tool: the report is made in the game (Settings > Help) or sent automatically', async () => {
   const config = JSON.parse(await read('packaging/release.config.json'));
-  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists", "Runtime's sign-in settings", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
+  assert.deepEqual(Object.keys(required), ["V's voice clips", 'stand-in voices (Pocket clips)', "Runtime's OmniVoice lists", "Runtime's sign-in settings", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
   assert(!allNames.some(name => name.endsWith('.bat')));
+});
+
+test('the two stand-in voices are required in the Runtime: a character speaks with one for a line it needs before its own clips are built', async () => {
+  assert.deepEqual([...required['stand-in voices (Pocket clips)']].sort(), ['resident-female', 'resident-male'].map(key => `${PLUGIN}/voices/archetypes/pocket/${key}.wav`));
+  const without = allNames.filter(name => !name.endsWith('/resident-female.wav'));
+  assert.deepEqual(missingRuntimeFiles(new Set(without), required), {'stand-in voices (Pocket clips)': [`${PLUGIN}/voices/archetypes/pocket/resident-female.wav`]});
 });
 
 test('vgmstream (the decoder of a V voice mod) is required: the 11 files in app/vgmstream/ and the licence texts in app/licenses/vgmstream/', async () => {

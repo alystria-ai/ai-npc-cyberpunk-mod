@@ -140,6 +140,7 @@ const pageHarness = (romances) => nsuiHarness({modules: everything}) + `
 test('Settings > Romantic relationships: a romance from talk is one more row below the five, and a native character is not listed twice', () => runManager(`${pageHarness(`{
     {profileKey = 'takemura', name = 'Goro Takemura'}, {profileKey = 'judy-alvarez', name = 'Judy Alvarez'}, {profileKey = 'rogue-amendiares', name = 'Rogue Amendiares'}}`)}
   press('Settings')
+  press('Conversations')
   press('Romantic relationships')
   assert(ns.sections()[2].label == 'Romantic relationships')
   assert(ns.find('Judy Alvarez') and ns.find('Panam Palmer') and ns.find('Goro Takemura') and ns.find('Rogue Amendiares'))
@@ -152,6 +153,7 @@ test('Settings > Romantic relationships: a romance from talk is one more row bel
 
 test('Settings > Romantic relationships: with no romance from talk the page is the five of the game, as before', () => runManager(`${pageHarness('{}')}
   press('Settings')
+  press('Conversations')
   press('Romantic relationships')
   assert(ns.find('Judy Alvarez') and not ns.find('Goro Takemura'))
   press('Back to settings')

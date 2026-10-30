@@ -777,6 +777,8 @@ do
             onChange = function() if convaiOutfits and convaiOutfits.nudge then convaiOutfits.nudge() end end})
         if created and type(service) == 'table' then
             convaiCharacterOptions = service
+            -- A character the player switched off in the editor is never a talk target or listener (manager.profileEnabled, one table lookup).
+            manager.switchedOff = service.off
             pcall(service.refresh)
         else print('[CyberpunkConvai] character-options.lua failed: ' .. tostring(service)) end
     else print('[CyberpunkConvai] character-options.lua unavailable: ' .. tostring(module)) end
@@ -1343,7 +1345,9 @@ convaiSpawnedPeople = {
         local seen = {}
         for _, row in ipairs(found) do
             local named, key, name, body, archetype = pcall(profileIdentity, row.npc)
-            if not named or not key then
+            if convaiTalkExcluded ~= nil and convaiTalkExcluded(row.npc) then
+                stats.left[#stats.left + 1] = {who = key or ('entity ' .. tostring(row.entity)), reason = 'excluded', distance = row.distance}
+            elseif not named or not key then
                 stats.noProfile = stats.noProfile + 1
                 stats.left[#stats.left + 1] = {who = 'entity ' .. tostring(row.entity), reason = 'noProfile', distance = row.distance}
             elseif not supportedProfiles[key] then
@@ -2274,7 +2278,7 @@ do
             local component = TS_TargetPartInfo.GetComponent(part)
             local entity = component and component:GetEntity()
             if entity and entity:IsNPC() and entity:IsAttached() and not entity:IsDeadNoStatPool()
-                and not companions.owns(entity) and not (adoption and adoption.hidden(entity)) then
+                and not companions.owns(entity) and not (adoption and adoption.hidden(entity)) and not (convaiTalkExcluded ~= nil and convaiTalkExcluded(entity)) then
                 local id = tostring(entity:GetEntityID().hash)
                 if not seen[id] then
                     seen[id] = true
@@ -2521,6 +2525,67 @@ do
     convaiGestureOptions = options
 end
 
+-- Who is never a talk target, a nearby listener or a group member (mod/talk-exclusion.lua, docs/CHARACTER_EDITOR.md "Switching someone off"): a character
+-- nobody can see, one that rides or drives a remote controlled toy (the toy AV in V's flat answered as an NPC), and the ordinary people the player switched
+-- off in the character editor. Asked when a target is chosen, never per frame: the game's signals are read once per entity and cached for 30 s. Optional:
+-- without the module nobody is left out. A global function, so no function here gains an upvalue.
+do
+    local function recordOf(npc)
+        local ok, text = pcall(function() return TDBID.ToStringDEBUG(npc:GetRecordID()) end)
+        if not ok or type(text) ~= 'string' or text == '' then return nil end
+        return characterCatalog.originalRecordName(text) or text
+    end
+    local loaded, module = pcall(dofile, 'talk-exclusion.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local created, service = pcall(module.new, {
+            id = function(npc) return tostring(npc:GetEntityID().hash) end,
+            record = recordOf,
+            appearance = function(npc) return nameString(npc:GetCurrentAppearanceName()) end,
+            -- What the character is mounted to or attached to (the toy vehicle it drives): the parent's record, and whether the parent is a device.
+            parentRecord = function(npc)
+                local info = Game.GetMountingFacility():GetMountingInfoSingleWithObjects(npc)
+                local parent = info and info.parentId
+                if not parent or parent.hash == nil or tostring(parent.hash):match('^0+[uUlL]*$') ~= nil then return nil end
+                local entity = Game.FindEntityByID(parent)
+                if not entity then return nil end
+                local name = recordOf(entity)
+                local device = false
+                pcall(function() device = entity:IsA('Device') == true end)
+                return {record = name, device = device}
+            end,
+            -- The mesh components of the character and how many are shown: a puppet with no mesh drawn is not somebody V can see.
+            meshes = function(npc)
+                local list = npc:GetComponents()
+                if type(list) ~= 'table' then return nil end
+                local total, meshes, shown = 0, 0, 0
+                for _, component in ipairs(list) do
+                    total = total + 1
+                    local isMesh = false
+                    pcall(function() isMesh = component:IsA('entMeshComponent') or component:IsA('entSkinnedMeshComponent') end)
+                    if isMesh then
+                        meshes = meshes + 1
+                        local on, enabled = pcall(function() return component:IsEnabled() end)
+                        if not on or enabled ~= false then shown = shown + 1 end
+                    end
+                end
+                return {total = total, meshes = meshes, shown = shown}
+            end,
+            offRecord = function(record) local chosen = convaiCharacterOptions; return chosen ~= nil and chosen.offRecord(record) end,
+            log = function(line) log(line) end})
+        if created and type(service) == 'table' then convaiTalkExclusion = service
+        else print('[CyberpunkConvai] talk-exclusion.lua failed: ' .. tostring(service)) end
+    else print('[CyberpunkConvai] talk-exclusion.lua unavailable: ' .. tostring(module)) end
+end
+-- True when this character is never a talk target or listener (see above). Guarded: a failed read leaves the character in.
+function convaiTalkExcluded(npc)
+    local service = convaiTalkExclusion
+    if service == nil then return false end
+    -- A copy of ours is never a puppet (a party member out of sight in a car is still the player's companion).
+    local mine, owned = pcall(companions.owns, npc)
+    if mine and owned == true then return false end
+    local ok, why = pcall(service.reason, npc)
+    return ok and why ~= nil
+end
 -- The entity id of an NPC as a string (a global function: no closure per candidate).
 convaiEntityKey = function(npc) return tostring(npc:GetEntityID().hash) end
 -- The Head slot point of an NPC, or nil (a global function: no closure per candidate).
@@ -2619,6 +2684,7 @@ local function targetAtCrosshair(gathered)
         local valid, row = pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
             if adoption and adoption.hidden(npc) then return nil end
+            if convaiTalkExcluded ~= nil and convaiTalkExcluded(npc) then return nil end
             local id = tostring(npc:GetEntityID().hash)
             if measured[id] then return nil end
             measured[id] = true
@@ -3038,6 +3104,7 @@ function convaiTalkNearbyPeople(player, taken, limit, radius)
         pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return end
             if adoption and adoption.hidden(npc) then return end
+            if convaiTalkExcluded ~= nil and convaiTalkExcluded(npc) then return end
             local id = tostring(npc:GetEntityID().hash)
             if seen[id] or taken[id] then return end
             seen[id] = true
@@ -5983,20 +6050,20 @@ local function keyReplyNotice(reply)
     end
     -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
     if reply.keyNotice == 'vision-border' then
-        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companions can see to stop it.')
+        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companion vision to stop it.')
     end
     -- Companions can see is on and the Local AI model cannot take pictures (no vision file beside it, or none that fits the graphics card): said once per model, with the next reply.
     if reply.keyNotice == 'vision-local-no-model' then
-        return 'vision-local-no-model', ui.t('This Local AI model cannot see pictures, so replies use only your words.')
+        return 'vision-local-no-model', ui.t('This Local AI model has no vision, so replies use only your words.')
     end
     -- Companions can see is on and the Local AI model can see with its vision file, which is not installed (a separate download, the vision folder of local-ai or mature on Hugging Face): said once per model, with the next reply.
     if reply.keyNotice == 'vision-local-no-file' then
         local folder = reply.keyNoticeFolder == 'mature' and 'mature' or 'local-ai'
-        return 'vision-local-no-file', ui.t('This model can see pictures with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
+        return 'vision-local-no-file', ui.t('This model has vision with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
     end
     -- Companions can see is on and the Custom endpoint refused a picture (a model with no vision): none is sent to it again this session, said once.
     if reply.keyNotice == 'vision-custom-no-images' then
-        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept pictures, so replies use only your words.')
+        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept vision, so replies use only your words.')
     end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
@@ -6800,6 +6867,20 @@ function convaiOutfitModule()
             return seconds and seconds / 3600 or nil
         end,
         place = function() local where = currentDistrict(); return where and (where.area or where.district) or nil end,
+        -- The last look each character put on in each situation (runtime/outfit-rotation.json): read once, written when a pick changes (a few times per game day).
+        load = function()
+            local file = io.open('runtime/outfit-rotation.json', 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, decoded = pcall(json.decode, raw)
+            return ok and type(decoded) == 'table' and decoded.picks or nil
+        end,
+        save = function(picks)
+            local ok, encoded = pcall(json.encode, {version = 1, picks = picks})
+            if not ok then return end
+            local file = io.open('runtime/outfit-rotation.json', 'wb')
+            if file then file:write(encoded); file:close() end
+        end,
         -- Ordinary gameplay: no fight, scene, call, vehicle or V as a replacer (battle-observer's read, once per check that has a change to make).
         world = function()
             local sample = battleObserver.sample(convaiPlayer())
@@ -6912,7 +6993,7 @@ do
             built, value = pcall(module.new, {
                 enabled = function() return manager.characterBonds() end,
                 storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
-                -- Settings > Gameplay > Characters text first (off by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
+                -- Settings > Companions > Characters text first (off by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
                 reach = function() return type(manager.reachOuts) == 'function' and manager.reachOuts() end,
                 invitations = function() return manager.immersive().enabled == true end,
                 eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,
