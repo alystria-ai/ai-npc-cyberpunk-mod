@@ -766,6 +766,39 @@ test('the Mistral preset (2026-10-30: Mistral left the provider list): Add saves
   assert.deepEqual(removed, ['mistral']);
 });
 
+test('the Google Gemini page has no Test connection; Add tries the key once in the background and the status carries the answer as `check`', async () => {
+  let calls = 0, release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const c = await control({presets: ['gemini'], route: 'gemini', test: async () => { calls++; await gate; return {state: 'failed', code: 'key', status: 400, detail: 'API key not valid', ms: 5}; }});
+  c.clipboard(async () => 'AIza' + 'SyB-1234567890abcdefghijklmnopqrstu');
+  // A stale Test command (an older page) runs nothing on this page.
+  let status = await c.send('test');
+  assert.equal(calls, 0);
+  assert.equal(status.test, undefined);
+  status = await c.send('preset-gemini');
+  assert.equal(status.result.state, 'saved');
+  assert.deepEqual(status.check, {id: 's:cust:2', state: 'checking'}, 'the check runs in the background: the press does not wait for Google');
+  release();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  const last = c.published.at(-1);
+  assert.equal(calls, 1);
+  assert.deepEqual(last.check, {id: 's:cust:2', state: 'failed', code: 'key', status: 400}, 'a code and a status only: never Google\'s words or the key');
+  assert.ok(!JSON.stringify(last).includes('SyB-1234567890'));
+  // Remove forgets the check; a later Add checks again, and only the answer to the latest Add counts.
+  status = await c.send('clear-preset-gemini');
+  assert.equal(status.check, undefined);
+  const ok = await control({presets: ['gemini'], route: 'gemini', test: async () => ({state: 'ok', ms: 5})});
+  ok.clipboard(async () => 'AIza' + 'SyB-1234567890abcdefghijklmnopqrstu');
+  await ok.send('preset-gemini');
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(ok.published.at(-1).check, {id: 's:cust:1', state: 'ok'});
+  // The Custom page's Mistral preset is not checked.
+  const mistral = await control({presets: ['mistral'], test: async () => { throw Error('no check on the Custom page'); }});
+  mistral.clipboard(async () => 'mk' + 'a1B2c3D4e5'.repeat(3));
+  const saved = await mistral.send('preset-mistral');
+  assert.equal(saved.result.state, 'saved'); assert.equal(saved.check, undefined);
+});
+
 test('the Google Gemini page: its control answers only the Gemini preset, reports its limits on the gemini route, and a 400 API_KEY_INVALID reads as a key it did not accept', async () => {
   const c = await control({presets: ['gemini'], route: 'gemini'});
   c.provider.applied = 'gemini'; c.provider.limit = {kind: 'invalid', at: 1};

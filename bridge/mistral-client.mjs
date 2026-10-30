@@ -75,7 +75,9 @@ export class MistralError extends Error {
 const STUBBORN_THINKING = /even when asked not to think/;
 const SERVER_CONTEXT = /the model server's context is too small/;
 
-export const MISTRAL_MARKER = /\[(?:mistral|local|custom):(key|limit|model|network|empty|request|credits|daily|reasoning)\]/;
+export const MISTRAL_MARKER = /\[(?:mistral|local|custom):(key|limit|model|network|empty|request|credits|daily|reasoning|region)\]/;
+// The second marker the Google Gemini route adds to its errors (tagGemini): the code of the Gemini notice, which says what to do in Google's own terms.
+const GEMINI_MARKER = /\[gemini:(key|daily|limit|region|server|unreachable|model)\]/;
 
 /** The failure kind in an error's text ('key', 'limit', 'model', ...) or null. */
 export function failureKind(error) {
@@ -89,6 +91,10 @@ export function errorCodeFor(error) {
   const kind = failureKind(error);
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
   const provider = /\[(mistral|local|custom):/.exec(text)?.[1] ?? 'mistral';
+  // Google Gemini is the custom client on its own endpoint. Its failures carry a second marker and have their own notices
+  // (gemini-key, gemini-daily, gemini-limit, gemini-region, gemini-server, gemini-unreachable, gemini-model).
+  const gemini = GEMINI_MARKER.exec(text);
+  if (gemini) return `gemini-${gemini[1]}`;
   // The local AI has no key or limit of its own. A server that could not be started has its own code in the bridge (local-fallback);
   // any other failure of a turn (a refused prompt, no answer, a server that went away) is 'local-failed'.
   // Two of them are about the player's own model server (a server added through manifest.custom.json) and name what to change there: a model that only thinks
@@ -234,6 +240,53 @@ export function resetClock(at, now = Date.now()) {
 const KEY_REFUSAL = /api_key_invalid|api[ _-]?key (?:is |was )?(?:not valid|invalid|incorrect|missing|expired|required|not found)|(?:invalid|incorrect|missing|expired|no) api[ _-]?key|please pass a valid api key|invalid auth key/;
 const safeJson = value => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };
 
+// ---- Google Gemini's answers (docs/GEMINI.md, "Failures") ----------------------------------------------------------------------
+// Google's OpenAI-compatible endpoint answers an error as a list of one object: {error: {code, message, status, details: [...]}}. A 429 has status RESOURCE_EXHAUSTED and a
+// QuotaFailure detail whose violations name the quota (quotaId "GenerateRequestsPerDayPerProjectPerModel-FreeTier" for the daily allowance, "...PerMinute..." for the per-minute
+// ones) and a RetryInfo detail with retryDelay ("21s"). Its message "You exceeded your current quota, please check your plan and billing details" is NOT about credit on the free plan.
+// A free plan that is not offered in the player's country answers 400 FAILED_PRECONDITION ("User location is not supported for the API use").
+const detailsOf = first => (Array.isArray(first?.error?.details) ? first.error.details : []).filter(item => item && typeof item === 'object');
+const GOOGLE_REGION = /user location is not supported|location is not supported|not available in your (?:country|region)|not supported in your (?:country|region)/;
+
+/** For a 429 that comes from Google: {daily, retryMs?} (retryMs is the RetryInfo wait, or "Please retry in 21.1s" in the message). Null for any other answer. */
+export function googleQuota(first, lower = '') {
+  const details = detailsOf(first);
+  const quota = details.find(item => /QuotaFailure/.test(String(item['@type'] ?? '')));
+  const google = first?.error?.status === 'RESOURCE_EXHAUSTED' || !!quota || /generativelanguage\.googleapis\.com/.test(lower);
+  if (!google) return null;
+  const ids = (Array.isArray(quota?.violations) ? quota.violations : []).map(item => `${item?.quotaId ?? ''} ${item?.quotaMetric ?? ''}`).join(' ').toLowerCase();
+  const daily = /perday|per_day|per day/.test(ids) || (!ids && DAILY_WORDS.test(lower));
+  const info = details.find(item => /RetryInfo/.test(String(item['@type'] ?? '')));
+  const given = typeof info?.retryDelay === 'string' ? /^(\d+(?:\.\d+)?)s$/.exec(info.retryDelay.trim())?.[1] : /retry in (\d+(?:\.\d+)?)\s*s/.exec(lower)?.[1];
+  const seconds = given === undefined ? NaN : Number(given);
+  return {daily, ...(Number.isFinite(seconds) && seconds >= 0 ? {retryMs: Math.min(seconds, 3600) * 1000} : {})};
+}
+
+/** When Google's daily allowance comes back: the next midnight on the US Pacific clock (ai.google.dev/gemini-api/docs/rate-limits), as epoch ms; undefined if the clock cannot be read. */
+export function nextPacificMidnight(now = Date.now()) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {timeZone: 'America/Los_Angeles', hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit'}).formatToParts(new Date(now));
+    const part = type => Number(parts.find(item => item.type === type)?.value);
+    const [hour, minute, second] = [part('hour'), part('minute'), part('second')];
+    if (![hour, minute, second].every(Number.isFinite)) return undefined;
+    return now + ((24 - hour) * 3600 - minute * 60 - second) * 1000;
+  } catch { return undefined; }
+}
+
+/**
+ * Marks an error of the Google Gemini route with the code of its own notice: a second marker "[gemini:key]" in the message (errorCodeFor reads it from the text alone, like every marker), and
+ * `geminiCode`. The kind and the first marker stay as they were, so everything that reads them is unchanged. A server fault or a stalled answer is "server", a connection that could not be
+ * made is "unreachable". Returns the error.
+ */
+export function tagGemini(error) {
+  if (!(error instanceof MistralError) || error.provider !== 'custom' || GEMINI_MARKER.test(error.message)) return error;
+  const kind = error.kind;
+  const code = kind === 'key' || kind === 'daily' || kind === 'limit' || kind === 'region' || kind === 'model' ? kind
+    : kind === 'network' ? (/could not be reached/.test(error.message) ? 'unreachable' : 'server') : null;
+  if (code) { error.message = `${error.message} [gemini:${code}]`; error.geminiCode = code; }
+  return error;
+}
+
 /** Maps what the custom provider answered: the same few kinds, plus 402 (no credit), a daily limit, and a refused request field. */
 function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
   // Google's OpenAI-compatible endpoint answers an error as a list of one error object.
@@ -251,6 +304,18 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
   if (status === 401 || status === 403) return make('key', 'did not accept the API key');
   // Google's OpenAI-compatible endpoint answers a missing or wrong key with a 400 (status INVALID_ARGUMENT, reason API_KEY_INVALID, "API key not valid. Please pass a valid API key."), not a 401.
   if (status === 400 && KEY_REFUSAL.test(`${lower} ${safeJson(first).toLowerCase()}`)) return make('key', 'did not accept the API key');
+  // Google Gemini's free plan is not offered in every country: a 400 that says so (FAILED_PRECONDITION, "User location is not supported for the API use").
+  if (status === 400 && GOOGLE_REGION.test(`${lower} ${safeJson(first).toLowerCase()}`)) return make('region', 'is not available in this country');
+  // Google's 429 is about its free allowance, never about credit, whatever "exceeded your current quota" suggests: the daily allowance (until midnight Pacific) or a per-minute one (RetryInfo says how long).
+  const google = status === 429 ? googleQuota(first, lower) : null;
+  if (google) {
+    if (google.daily) {
+      const error = make('daily', 'reached its daily limit', {resetAt: nextPacificMidnight(now)});
+      error.daily = true;
+      return error;
+    }
+    return make('limit', 'is rate limiting requests', options.retryAfterMs === undefined && google.retryMs !== undefined ? {retryAfterMs: google.retryMs} : {});
+  }
   // Some providers answer an account that has spent its credit with 429 ("insufficient_quota") instead of 402.
   const freeDaily = status === 429 && FREE_DAILY.test(lower);
   if (status === 402 || (status === 429 && !freeDaily && CREDIT_WORDS.test(lower))) {

@@ -1020,7 +1020,7 @@ const phoneFailures = new PhoneFailureLog({
   provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom|gemini)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
   contacts: phoneContacts, ids, custom: key => customCharacters.has(key),
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
