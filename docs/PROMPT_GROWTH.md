@@ -131,6 +131,27 @@ The same rule holds for all of them: the text up to the first difference is reus
   dropped and is asked again, as for every optional field, so the only cost is one retry on such an endpoint.
 - `scripts/Study-PromptGrowth.mjs`, and tests in `bridge/prompt-usage.test.mjs`.
 
+## Measured on a local llama-server (2026-10-31, RTX 4080 Laptop, Balanced power plan, game closed)
+
+The study with `--serve`: the real llama-server b11782 with the mod's flags (Gemma with `--swa-full`, Bonsai without), Judy only, 100 turns, the stood-in world blocks described above, summaries
+written by the model itself. No prompt layout changed in this branch, so this is the "before" and the "after" at once. Other agents were running small unit tests at times, so single turns are noisy.
+
+Gemma 4 E4B (standard), time to the first word and prompt tokens read new on chosen turns:
+
+| Turn | New tokens | Cached | First word | What changed first |
+|---|---|---|---|---|
+| 1 | 5,091 | 0 | 1,010 ms | first turn |
+| 10 | 372 | 5,391 | 139 ms | new exchange |
+| 30 | 1,979 | 3,950 | 448 ms | world blocks |
+| 60 | 68 | 5,960 | 106 ms | world blocks |
+| 100 | 1,572 | 4,517 | 397 ms | knowledge block |
+
+Means: turns 2 to 10 173 ms, 11 to 30 327 ms, 31 to 60 347 ms, 61 to 100 333 ms. Bonsai 2 4B (lite): turn 1 1,134 ms, turn 10 197 ms, turn 30 159 ms, turn 60 160 ms, turn 100 166 ms,
+means 523 / 359 / 474 / 486 ms for the four ranges (it read more new tokens in the early range because it has no `--swa-full` and resumes only from a checkpoint).
+
+So the time to the first word at turn 100 is the same as at turns 11 to 60, and 3 times faster than the first turn of a talk. It does not grow with the session. What decides a single
+turn is whether a game block changed that turn (a turn that reads 1,500 to 2,000 new tokens takes 400 ms, one that reads 70 to 370 takes about 110 to 140 ms).
+
 ## Measured against Gemini
 
 Not done: the free key's daily quota was already spent (the first call of the run was answered 429, "daily", reset at about 12:30 IST), so no cached-token count from Gemini exists yet. The

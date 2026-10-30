@@ -133,10 +133,10 @@ const provider_ = ENDPOINT ? {endpoint: ENDPOINT, close: async () => {}} : await
 
 const logs = [];
 let provider, route;
-if (GEMINI) {
+if (GEMINI || ENDPOINT) {
   // The requests are recorded as they leave (the fake server does that for the other modes).
   const realFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => { if (String(url).includes('generativelanguage') && typeof init?.body === 'string') { try { captured.push(JSON.parse(init.body)); } catch { /* not JSON */ } } return realFetch(url, init); };
+  globalThis.fetch = async (url, init) => { if ((String(url).includes('generativelanguage') || (ENDPOINT && String(url) === ENDPOINT)) && typeof init?.body === 'string') { try { captured.push(JSON.parse(init.body)); } catch { /* not JSON */ } } return realFetch(url, init); };
 }
 if (GEMINI) {
   const text = await readFile('C:/Users/akshi/Desktop/Code Palace/Commonly used Keys.txt', 'utf8');
