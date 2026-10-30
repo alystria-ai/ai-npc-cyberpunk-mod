@@ -200,9 +200,39 @@ Tests: `bridge/character-options.test.mjs` (the store, the checks, the game's co
 - **Clothing items** (a hat, glasses, a jacket) through the transaction system on a copy: possible on our own copies, but it overlaps the appearance system and fights with the face rig rebuild. Large and risky.
 - **Gesture groups by stance** (arms crossed, hands on hips, hands behind the back) as a pick of the idle stance: the catalog has the groups (`catalog.idleGroups`); a pick needs the pool per character on the page, so the bridge would have to know the catalogue. About a day.
 
+## Switching someone off (2026-10-30, branch `fix/toy-av-and-npc-off`)
+
+A player asked for a way to turn one NPC off. A talk target, a nearby listener and a group member are never chosen from the people switched off, and never from the game's puppets either (see "Puppets" below).
+
+### The switch
+
+- **A named or own character:** the page shows a box "Don’t talk to this character" under the character's name. It is the `off` choice of `character-options.json` (`bridge/character-options.mjs`, value `true` only), saved at once and applied by key. The Reset to default button of Look and moves leaves it alone. The game reads it through `manager.profileEnabled(key)` (`manager.switchedOff`, set from `mod/character-options.lua`), so every place that already asks whether a profile may talk is covered: the talk keys, the group list, auto-connect, phone chat, battle and loot remarks.
+- **An ordinary person:** the picker's "In front of you" section shows the person V faced when the editor was opened, when they are not one of the listed characters, with "Don’t talk to this person". This switches off the game record they are built from (`records` in the same file, a list of record names with an optional name for the list). That also switches off everyone the game builds from the same record, and the page says so. The game compares the record case-insensitively and without the `Character.` prefix.
+- **List and undo:** a "Switched off" section at the top of the picker lists every character and person switched off, each with "Switch back on". `GET /api/off` and `POST /api/off` (`{record, name, off}`) serve the people, the options route serves the characters.
+- **Storage:** per player in the service's data folder (`character-options.json`, `records` only when something is switched off), 200 people at most. The game's copy is `runtime/character-options.json` (`records` is a list of names). The game re-reads it every few seconds for two hours after the editor was opened.
+
+### Puppets (`mod/talk-exclusion.lua`)
+
+The game drives the toy AV in V's flat with a hidden character who walks a loop with the toy at his feet, so talking near the toy got an answer from "the toy" (player report, 2026-10-30). The filter leaves out, when a target is chosen:
+
+- a character with a hidden look (an appearance named invisible, hidden or no mesh),
+- a character with no mesh component, or none that is enabled,
+- a character mounted to or attached to a toy vehicle (`Vehicle.trauma_team_av_model_toy`, `Vehicle.mq001_little_bombus` or a record named with the whole word toy, remote or rc) or to a device,
+- a record of the small deny list `PUPPET_RECORDS` or a record named with the word toy or puppet,
+- an ordinary person switched off by record.
+
+Our own copies are never filtered. An unreadable signal never excludes anybody. The verdict of the game's signals is cached per entity for 30 seconds, so a scan adds no native read after the first and nothing runs per frame. The first time a character is left out the log says `Talk exclusion: <reason> entity=<id> record=<record>`, so the record of a puppet that slipped through can be added to the deny list. Applied in `scanNearbyCharacters`, `targetAtCrosshair`, `convaiTalkNearbyPeople` and `convaiSpawnedPeople.nearby` (`mod/init.lua`, through the global `convaiTalkExcluded`).
+
+The toy's own character record was not in the game's tweak sources the repo reads (the toy is the vehicle `trauma_team_av_model_toy` of the minor quest mws_wat_08), so the hidden look, mesh and mount signals do the work, and the log line names the record for the deny list.
+
+### Tests
+
+`bridge/talk-exclusion.test.mjs` (the filter, the options file, the manager hook and the three selection functions cut out of `mod/init.lua`) and `bridge/character-switch-off.test.mjs` (the store, the editor, the routes and the sentences).
+
 ## Files
 
 - `bridge/character-options.mjs`, `bridge/outfit-choices.mjs`, `mod/character-options.lua`: the Look and moves choices (above).
+- `mod/talk-exclusion.lua`, `bridge/character-options.mjs` (`off`, `records`), `bridge/character-editor.mjs` (`offForPage`, `setPersonOff`): switching someone off (above).
 - `bridge/prompting-editor.mjs`: the Prompting part (the checked layer over the prompt profile store).
 - Look and moves, changed: `bridge/character-editor.mjs` (`saveOptions`, `resetOptions`, `details().options`), `character-editor-server.mjs` (`PUT /api/character/<key>/options`, `POST .../options/reset`), `character-editor-page.mjs` (the tab and the section), `mistral-prompt.mjs` (`PersonaBook` `options`: the reply length), `convai-bridge.mjs`; game side `mod/companion-outfits.lua`, `companion-gestures.lua`, `gesture-selection.lua`, `companion-seating.lua`, `init.lua`, `manager-ui.lua` (the `watch` call).
 - `bridge/character-overrides.mjs`: limits, validation, storage, merge.
