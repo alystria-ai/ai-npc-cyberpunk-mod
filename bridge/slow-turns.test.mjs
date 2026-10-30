@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {SLOW_TURNS, SlowTurnWatch} from './slow-turns.mjs';
+import {KNOWLEDGE_PARTS_MS, KNOWLEDGE_PART_NAMES, SLOW_TURNS, SlowTurnWatch, knowledgeParts} from './slow-turns.mjs';
 import {TurnClock} from './turn-clock.mjs';
 import {ErrorEvents, cleanSlow, queueRecord, readQueue} from './error-events.mjs';
 import {ErrorReporter, buildErrorPayload} from './error-reports.mjs';
@@ -260,4 +260,45 @@ test('the local model watch (localFacts) rides in the report as numbers and flag
   const none = watchWith({reportContext: () => ({local: {}})});
   for (const ms of [18_000, 25_000, 61_000]) none.watch.observe(turn(ms));
   assert.equal(none.sent[0].local, undefined, 'nothing known: no group');
+});
+
+// Triage 2026-10-30 (installs fe801d, dde45e): a knowledge stage of 3.3 to 3.8 s on every turn. Over a second the turn's record also holds the time of each part.
+test('knowledgeParts gives whole milliseconds under fixed names only when the stage is over a second, and nothing else rides along', () => {
+  assert.equal(KNOWLEDGE_PARTS_MS, 1000);
+  const parts = {totalMs: 3340.6, cancelMicrophoneMs: 2.4, beforePrepareMs: 6.1, prepareMs: 3331.9, setupMs: 1.2, liveMs: 0.3, ledgerMs: 3320.2, receiptsMs: 4.4, resolveMs: 5.5, attachMs: 0.4,
+    text: 'what the player said', 'ledger path C:\\Users\\Someone': 9, bad: -5, weird: NaN};
+  assert.deepEqual(knowledgeParts(parts), {totalMs: 3341, cancelMicrophoneMs: 2, beforePrepareMs: 6, prepareMs: 3332, setupMs: 1, liveMs: 0, ledgerMs: 3320, receiptsMs: 4, resolveMs: 6, attachMs: 0});
+  assert.deepEqual(Object.keys(knowledgeParts(parts)), KNOWLEDGE_PART_NAMES.filter(name => name in parts));
+  assert.equal(knowledgeParts({...parts, totalMs: 999}), undefined, 'a fast stage is not described');
+  assert.equal(knowledgeParts({...parts, totalMs: 1000}), undefined, 'the limit itself is not over it');
+  assert.equal(knowledgeParts({totalMs: 1500, ledgerMs: -1, liveMs: NaN}).ledgerMs, undefined);
+  for (const nothing of [undefined, null, 'x', 5, {}, {ledgerMs: 5000}]) assert.equal(knowledgeParts(nothing), undefined);
+});
+
+test('a slow turn keeps the parts of its knowledge stage in the report, and a turn without them has no such field', async () => {
+  const {watch, sent} = watchWith();
+  const knowledgeParts_ = {totalMs: 3340, cancelMicrophoneMs: 2, beforePrepareMs: 6, prepareMs: 3332, ledgerMs: 3320, text: 'secret words', 'x y': 4};
+  for (const ms of [12_000, 14_000, 16_000]) watch.observe(turn(ms, {provider: 'local', knowledgeParts: knowledgeParts_}));
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].slow[0].knowledgeParts, {totalMs: 3340, cancelMicrophoneMs: 2, beforePrepareMs: 6, prepareMs: 3332, ledgerMs: 3320});
+  assert.ok(!JSON.stringify(sent[0]).includes('secret words'));
+  const clean = cleanSlow(sent[0]);
+  assert.deepEqual(clean.slow[0].knowledgeParts, {totalMs: 3340, cancelMicrophoneMs: 2, beforePrepareMs: 6, prepareMs: 3332, ledgerMs: 3320});
+  assert.ok(!JSON.stringify(clean).includes('secret words'));
+  // Hostile input is rebuilt: other names, text and non-numbers are dropped, numbers are bounded.
+  const hostile = cleanSlow({...sent[0], slow: [{...sent[0].slow[0], knowledgeParts: {ledgerMs: 'a sentence', liveMs: 1e12, text: 'secret words', totalMs: 5}}]});
+  assert.deepEqual(hostile.slow[0].knowledgeParts, {totalMs: 5, liveMs: 1e7});
+  assert.ok(!JSON.stringify(hostile).includes('secret words'));
+  const plain = watchWith();
+  for (const ms of [12_000, 14_000, 16_000]) plain.watch.observe(turn(ms, {provider: 'local'}));
+  assert.equal('knowledgeParts' in plain.sent[0].slow[0], false);
+  assert.equal(cleanSlow(plain.sent[0]).slow[0].knowledgeParts, undefined);
+});
+
+test('the bridge records the parts only past the limit, from numbers it already measured', async () => {
+  const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{KNOWLEDGE_PARTS_MS, SlowTurnWatch, knowledgeParts\} from '\.\/slow-turns\.mjs';/);
+  assert.match(bridge, /if \(stages\.knowledgePreparedMs > KNOWLEDGE_PARTS_MS\) \{\s*try \{\s*clock\.annotate\(\{knowledgeParts: knowledgeParts\(\{\.\.\.knowledgeTurn\.timings,/);
+  const knowledge = await readFile(new URL('./player-knowledge.mjs', import.meta.url), 'utf8');
+  assert.match(knowledge, /finishedAt - startedAt > KNOWLEDGE_PARTS_MS\s*\? \{prepareMs:/, 'the parts are put together only for a slow call');
 });

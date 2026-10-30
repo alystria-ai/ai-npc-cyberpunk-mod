@@ -24,7 +24,8 @@ import {parseKeyFileText} from './convai-key.mjs';
 import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
 import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {NO_BROWSER_MESSAGE, browserLookupSummary, systemBrowserAvailable} from './system-browser.mjs';
-import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
+import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog,
+  USVFS_COMPAT_FILE, USVFS_FILE_REASON, usvfsFileMessage} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
 export {RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
 
@@ -536,10 +537,13 @@ export class BridgeSupervisor {
     const errorText = typeof exit?.code === 'number' && exit.code !== 0 ? this.bridgeErrorText() : '';
     const missingModule = errorText ? missingModuleInLog(errorText, this.project) : null;
     if (missingModule) {
-      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped at once. ${versionMismatchInLog(errorText) ? mismatchMessage(missingModule) : incompleteMessage(missingModule)}`);
+      // The stat fallbacks of Mod Organizer 2 (the bridge's own `--import`) that Node cannot see although they are there: not an incomplete extraction (runtime-files.mjs, usvfsFileMessage).
+      // The name is the one under the Runtime, or only the file name when the copy in the data folder is the one that could not be seen.
+      const hidden = (missingModule === USVFS_COMPAT_FILE || missingModule === 'usvfs-compat.mjs') && usvfsCompatImport(this.bridgeEnvironment()) !== null;
+      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped at once. ${hidden ? usvfsFileMessage() : versionMismatchInLog(errorText) ? mismatchMessage(missingModule) : incompleteMessage(missingModule)}`);
       this.missingFiles = [missingModule];
       this.retrySetup = false;
-      return this.fail('install-incomplete');
+      return this.fail('install-incomplete', hidden ? USVFS_FILE_REASON : undefined);
     }
     const now = this.now();
     this.crashes = this.crashes.filter(at => now - at < this.timings.crashWindowMs);
@@ -563,11 +567,11 @@ export class BridgeSupervisor {
     return this.setStatus('restarting', 'bridge-exited');
   }
 
-  async fail(code) {
+  async fail(code, reason) {
     this.mode = 'failed'; this.failedAt = this.now();
-    this.log(`The conversation service cannot run: ${code}.`);
+    this.log(`The conversation service cannot run: ${code}${reason ? ` (${reason})` : ''}.`);
     this.reportEvent({kind: 'service-failed', message: code, frame: 'supervisor'});
-    return this.setStatus('failed', code);
+    return this.setStatus('failed', code, reason);
   }
 
   async readControl() { return readFile(this.paths.control, 'utf8').catch(() => ''); }

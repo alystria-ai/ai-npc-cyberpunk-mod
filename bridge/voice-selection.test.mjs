@@ -905,6 +905,28 @@ test('an Omni worker with no CUDA is never tried again, says so once, is reporte
   await h.voice.close(); assert.equal(h.live(), 0, 'the failed worker is released');
 });
 
+// Triage 2026-10-30 (signature 600c87b4, three installs): OmniVoice without CUDA on a PC with an AMD card is the expected case ("OmniVoice for AMD" is in the settings), so the failure says so and the bridge files no row.
+test('a no-CUDA failure names an AMD card for the report, also while an own Python is being tested, and never for another card or a failing source', async () => {
+  const cases = [
+    ['an AMD card', {gpuVendors: () => ['amd'], gpuAmdRoute: () => true}, true],
+    ['an AMD card with an own Python still under test', {gpuVendors: () => ['amd'], gpuAmdRoute: () => true, omniOwnPython: () => ({configured: true, used: false, pending: true})}, true],
+    ['an AMD card whose own Python was refused', {gpuVendors: () => ['amd'], gpuAmdRoute: () => true, omniOwnPython: () => ({configured: true, used: false, reason: 'no-gpu'})}, true],
+    ['Intel graphics only', {gpuVendors: () => ['intel'], gpuAmdRoute: () => false}, false],
+    ['an AMD integrated part (no AMD route)', {gpuVendors: () => ['amd'], gpuAmdRoute: () => false}, false],
+    ['a source that fails', {gpuVendors: () => ['amd'], gpuAmdRoute: () => { throw Error('x'); }}, false],
+    ['no source at all', {gpuVendors: () => ['amd']}, false],
+  ];
+  for (const [name, options, expected] of cases) {
+    const h = retryFixture({omni: ['nocuda', 'ok'], options});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+    h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+    assert.equal(h.failures.length, 1, name);
+    assert.equal(h.failures[0].cause, 'no-cuda', name);
+    assert.equal(h.failures[0].amdCard === true, expected, name);
+    await h.voice.close();
+  }
+});
+
 test('the menu fact omniAmdRoute follows the AMD-route source, steps aside for an own Python, and never throws', async () => {
   let amd = false;
   const h = retryFixture({options: {gpuVendors: () => ['amd'], gpuAmdRoute: () => amd}});

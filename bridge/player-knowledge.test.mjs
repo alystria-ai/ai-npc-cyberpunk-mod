@@ -507,3 +507,22 @@ test('ambient routes are marked session-only for provider memory; named characte
   const named = await f.router.prepare(f.input);
   assert.equal(named.sendAllowed, true); assert.equal(named.providerMemory, undefined);
 });
+
+// Triage 2026-10-30: the knowledge stage took 3.3 to 3.8 s on every turn of two installs (fe801d, dde45e) and nothing said which part. A call over a second now carries the time of each part, a fast one nothing.
+test('a prepare call over a second carries the time of each part under fixed names, and a fast one has nothing added', async () => {
+  const f = fixture();
+  const fast = await f.router.prepare(f.input);
+  assert.equal(fast.timings, undefined, 'a fast turn gets no timings');
+  assert.equal('timings' in fast, false);
+  // A state file that blocks (an antivirus scan of the decision ledger): the stall shows in its own part.
+  const block = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  f.router.decisionLedger = () => { block(1100); return null; };
+  const slow = await f.router.prepare(f.input);
+  assert.deepEqual(Object.keys(slow.timings).sort(), ['attachMs', 'ledgerMs', 'liveMs', 'prepareMs', 'receiptsMs', 'resolveMs', 'setupMs']);
+  assert.ok(Object.values(slow.timings).every(value => Number.isFinite(value) && value >= 0));
+  assert.ok(slow.timings.ledgerMs >= 1000, `the ledger read is the slow part: ${slow.timings.ledgerMs}`);
+  assert.ok(slow.timings.prepareMs >= slow.timings.ledgerMs);
+  assert.ok(slow.timings.setupMs < 1000 && slow.timings.resolveMs < 1000 && slow.timings.receiptsMs < 1000);
+  assert.equal(Object.isFrozen(slow.timings), true);
+  assert.equal(slow.status, 'ready', 'the result is the same as before');
+});

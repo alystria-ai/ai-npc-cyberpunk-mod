@@ -790,7 +790,9 @@ export class VoiceSelection {
     // A worker that Windows ended from outside because the game closed or the session ended is no failure of the voice (reports 24332da7 and 8df15641 fell on the second the game ended).
     if(endedFromOutsideFailed(reason))return;
     try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{}),cause:voiceFailureCause(reason),
-      requested:this.requestedProvider,active:this.provider,fellBackTo:engine==='v-helper'?'silent':this.resolvedProvider,silent:this.silent,tail:tailLines(tail)});}catch{}
+      requested:this.requestedProvider,active:this.provider,fellBackTo:engine==='v-helper'?'silent':this.resolvedProvider,silent:this.silent,tail:tailLines(tail),
+      // OmniVoice without CUDA on a PC whose card is AMD is the expected case: the settings offer "OmniVoice for AMD" and Pocket speaks, so the bridge files no row for it (bridge/error-events.mjs voiceFailed).
+      ...(engine==='omni'&&noCudaFailed(reason)&&this.omniAmdCard?{amdCard:true}:{})});}catch{}
   }
   /**
    * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
@@ -907,6 +909,8 @@ export class VoiceSelection {
   get omniNoNvidia(){if(this.remoteWanted)return false;const own=this.omniOwnPython;return this.omniNoCuda||(lacksNvidia(this.graphicsVendors)&&!own?.used&&!own?.pending);}
   // True when the PC has a discrete AMD Radeon card and no NVIDIA one (bridge/gpu-vendors.mjs amdRoute) and no own Python is working or still being tested: the menu and
   // the Help page then point to the experimental AMD route (docs/OMNIVOICE_AMD.md) instead of "needs NVIDIA". Nothing is downloaded or started for it.
+  // The card alone: a discrete AMD Radeon and no NVIDIA card (the AMD route applies to the PC), whether or not an own Python is in use or still being tested.
+  get omniAmdCard(){if(this.remoteWanted)return false;try{return this.gpuAmdRouteSource(this.omniWanted)===true;}catch{return false;}}
   get omniAmdRoute(){if(this.remoteWanted)return false;const own=this.omniOwnPython;try{return this.gpuAmdRouteSource(this.omniWanted)===true&&!own?.used&&!own?.pending;}catch{return false;}}
   // The player's own Python for OmniVoice (bridge/omni-own-python.mjs resolveOwnPython), or null: without the file, and until its self-test has run.
   get omniOwnPython(){try{const found=this.options.omniOwnPython?.();return found?.configured?found:null;}catch{return null;}}

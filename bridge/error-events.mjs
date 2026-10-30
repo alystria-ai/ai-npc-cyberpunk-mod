@@ -17,6 +17,7 @@ import {createHash} from 'node:crypto';
 import {mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {basename, join} from 'node:path';
+import {KNOWLEDGE_PART_NAMES} from './slow-turns.mjs';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
@@ -163,6 +164,13 @@ const slowNumber = (value, max = 1e7) => Number.isFinite(value) ? Math.max(0, Ma
 const slowWord = value => typeof value === 'string' && SLOW_WORD.test(value) ? value : undefined;
 const without = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
 
+// The parts of a slow knowledge stage (bridge/slow-turns.mjs knowledgeParts): the fixed names only, each a bounded number.
+function slowParts(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const parts = without(Object.fromEntries(KNOWLEDGE_PART_NAMES.map(name => [name, slowNumber(value[name])])));
+  return Object.keys(parts).length ? parts : undefined;
+}
+
 function slowTurn(row) {
   if (!row || typeof row !== 'object') return null;
   const marks = {};
@@ -173,7 +181,7 @@ function slowTurn(row) {
   const stalls = row.stalls && typeof row.stalls === 'object' ? without({count: slowNumber(row.stalls.count, 1000), maxMs: slowNumber(row.stalls.maxMs)}) : undefined;
   return without({n: slowNumber(row.n, 1e6), atMin: slowNumber(row.atMin, 1e6), soundMs: slowNumber(row.soundMs), provider: slowWord(row.provider),
     model: slowWord(row.model), voice: slowWord(row.voice), promptTokens: slowNumber(row.promptTokens), cachedTokens: slowNumber(row.cachedTokens),
-    cold: row.cold === true ? true : undefined, stalls: stalls && Object.keys(stalls).length ? stalls : undefined,
+    cold: row.cold === true ? true : undefined, knowledgeParts: slowParts(row.knowledgeParts), stalls: stalls && Object.keys(stalls).length ? stalls : undefined,
     marks: Object.keys(marks).length ? marks : undefined});
 }
 
@@ -551,21 +559,27 @@ export class ErrorEvents {
    * no other way to tell us (a 2026-10-19 report held the Pocket failure only as log lines of an unrelated setup problem). At most once per
    * distinct reason per bridge run, like every record; a retry that fails the same way adds nothing.
    */
-  voiceFailed({engine, reason, gpu, cause, requested, active, fellBackTo, silent, tail} = {}) {
+  voiceFailed({engine, reason, gpu, cause, requested, active, fellBackTo, silent, tail, amdCard} = {}) {
     const name = typeof engine === 'string' && /^[a-z0-9-]{1,20}$/.test(engine) ? engine : 'voice';
     const why = clip(String(reason ?? '').split(/\r?\n/)[0], 200).trim() || 'unknown';
     // A render that ran out of time carries its worker's graphics memory (numbers only), so the report says whether the card was over-committed.
     const memory = Number.isFinite(gpu?.dedicatedMiB) && Number.isFinite(gpu?.sharedMiB)
       ? {gpuDedicatedMiB: Math.max(0, Math.round(gpu.dedicatedMiB)), gpuSharedMiB: Math.max(0, Math.round(gpu.sharedMiB))} : {};
+    // OmniVoice needs CUDA and this PC's card is AMD: it falls back to text (or Pocket), and the game already points to "OmniVoice for AMD" in the settings. Expected, so no row (reports 600c87b4 of three
+    // installs on 30 Oct 2026). The replies of the run are text because of it all the same, which a "voice never played" row after it would only repeat (voiceSilent).
+    if (cause === 'no-cuda' && amdCard === true) { if (fellBackTo === 'text') this.#voiceFellBackToText = true; return; }
     const send = hardware => {
       const known = this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory},
         voice: {requested, active, fellBackTo, silent, cause, tail, ...hardware}});
       // The replies of this run are now text because of a failure that has its report: a "voice never played" report after it would only repeat it (voiceSilent).
       if (known && fellBackTo === 'text') this.#voiceFellBackToText = true;
+      // The hidden browser that plays the voice would not start, and that failure has its report: the "voice never played" row of the same run would name the same browser (voiceSilent), whatever the voice fell back to.
+      if (known && cause === 'browser-failed') this.#browserFailureReported = true;
     };
     this.#withHardware(send);
   }
   #voiceFellBackToText = false;
+  #browserFailureReported = false;
   // The card and its free memory are read when the failure is noted, not on a turn's path (one short query, only for a failed voice); a failed read sends the rest.
   #withHardware(send) {
     if (typeof this.voiceHardware !== 'function') { send({}); return; }
@@ -585,6 +599,9 @@ export class ErrorEvents {
       // for one fault (4 of the 9 reports of 28 to 30 Oct 2026). Read here, when the report is made, so a failure noted while the hardware was being read counts. A silent voice with no
       // failure behind it, or one that did not end as text, is still reported.
       if (this.#voiceFellBackToText && (data?.active === 'text' || data?.fellBackTo === 'text')) return;
+      // The same for a browser that would not start: the failure was reported already (install 0d0750, 30 Oct 2026: signatures 144971a2 and 5acea2ab were filed in the same second, the fallback was 'silent' and not text).
+      // Only while the silence still carries a browser failure: a voice that is silent for another reason once the browser runs is reported.
+      if (browser && this.#browserFailureReported) return;
       this.record({kind: 'voice-failed', message: browser ? 'voice never played this session: the hidden browser would not start' : 'voice never played this session',
         frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
         voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: browser ? 'browser-failed' : 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
