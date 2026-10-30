@@ -197,10 +197,10 @@ Update for older game 2.31, for manual installs only: extract it into the game f
 ## 3. Short summary (brief overview field)
 
 ```text
-Talk to 700+ Cyberpunk 2077 characters by voice or text, and invite them along as companions who answer in their own voices, remember you and build a bond with V. Run it free on your own PC with Local AI, no account needed, or use a free Google Gemini key or Convai. Works with Vortex and Mod Organizer 2.
+Talk to anyone in Night City by voice or text, in your own language, with local or free cloud AI (Convai, Gemini). 700+ characters keep their lore, memories and voices, with lip sync, emotions and gestures. Companions fight, drive, text and holocall. Build bonds and romance anyone. Every pedestrian has a name and personality, and reacts to you.
 ```
 
-Character count of the summary (including spaces and punctuation): 305
+Character count of the summary (including spaces and punctuation): 346
 
 ## 4. Screenshot captions (suggested)
 
