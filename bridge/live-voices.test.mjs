@@ -651,7 +651,7 @@ test('one click is answered by one service: a service with another data folder l
 test('the bridge gives the store, the voice workers and the cloud voices one state folder, and tells the voices about every change', async () => {
   const source = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /PlayerVoices\.open\(\{dir: stateDirectory,/);
-  assert.equal((source.match(/playerRoot: playerVoices\.folder/g) ?? []).length, 1, 'Voxtral reads the clips from the store\'s folder');
+  assert.equal((source.match(/playerRoot: playerVoices\.folder/g) ?? []).length, 2, 'Voxtral and Inworld read the clips from the store\'s folder');
   assert.match(source, /playerVoiceDirectory: playerVoices\.folder/);
   assert.match(source, /onChanged: key =>/);
   assert.match(source, /localVoice\.setVoices\(update\)/);
