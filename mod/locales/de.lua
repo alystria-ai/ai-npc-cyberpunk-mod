@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Story",
     ["Story character"] = "Story-Charakter",
     ["Unsaved changes"] = "Nicht gespeicherte Änderungen",
+    ["Together"] = "Zusammen",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Du und {name} seid zusammen. Das ist aus Gesprächen entstanden und wird in diesem Spielstand gespeichert. Um es zu beenden, sag es der Person.",
 }

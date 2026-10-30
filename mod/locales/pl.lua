@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Fabuła",
     ["Story character"] = "Postać fabularna",
     ["Unsaved changes"] = "Niezapisane zmiany",
+    ["Together"] = "Razem",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Ty i {name} jesteście razem. To wyrosło z rozmów i jest zapisane w tej grze. Aby to zakończyć, powiedz im.",
 }

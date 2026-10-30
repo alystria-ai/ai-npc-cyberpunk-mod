@@ -151,7 +151,7 @@ export class PlayerKnowledge {
     try { return !!guard && this.playerMemory.isCurrent(guard) === true; } catch { return false; }
   }
 
-  // `turn`: {text, reaction} of the message being admitted, so the bridge can pick the character that answers in its language; a warm request has none.
+  // `turn`: {text, reaction, bonds?} of the message being admitted, so the bridge can pick the character that answers in its language; a warm request has none.
   #selectedRoute(route, binding, turn) {
     if (!this.selectProfile) return {route};
     try {
@@ -235,7 +235,9 @@ export class PlayerKnowledge {
     const snapshot = parseWorldSnapshot(frozen.worldKnowledge);
     const binding = this.#binding(settings, snapshot);
     // An appointment event's text is the mod's trigger, not V's words: it selects the profile like an automatic reaction does.
-    const selected = this.#selectedRoute(route, binding, {text: frozen.text, reaction: frozen.reaction ?? (frozen.event ? frozen.event : undefined)});
+    const selected = this.#selectedRoute(route, binding, {text: frozen.text, reaction: frozen.reaction ?? (frozen.event ? frozen.event : undefined),
+      // The romance the save holds with this character (bridge/romance-bond.mjs), when the turn carried a bond block: the selection reads it, the block is the save's word.
+      ...(frozen.bonds ? {bonds: {romance: frozen.bonds.romance ?? null}} : {})});
     route = selected.route;
     frozen.channel = route.channel;
     frozen.worldKnowledge = snapshot;

@@ -575,7 +575,7 @@ test('the bridge sends the admitted turn\'s selected provider key and relationsh
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /relationshipContext\(prepared\.relationship, prepared\.route\.channel,\s*\{group: prepared\.input\.group, audience: prepared\.route\.audience,\s*worldToken: prepared\.worldToken, generation: prepared\.generation\}\)/);
   assert.equal([...source.matchAll(/profileKey: prepared\.route\.providerProfileKey \?\? prepared\.route\.profileKey/g)].length >= 3, true);
-  assert.match(source, /selectProfile: \(profile, boundary, turn\) => relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\)\}\)/);
+  assert.match(source, /selectProfile: \(profile, boundary, turn\) => \{[^}]*relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\), romance: romanceBond\.stateFor\(profile, boundary\)\}\)/);
   assert.match(source, /characterId: routeFor\(input\)\?\.guard\?\.characterId/);
   // Inviting a companion on a non-Convai text provider takes the local-only preparation: no Convai REST call.
   // It follows the CHOSEN provider (a switch waits for an idle boundary, such as the end of a phone call), not the one in use.

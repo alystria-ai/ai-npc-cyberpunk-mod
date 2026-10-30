@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Příběh",
     ["Story character"] = "Postava z příběhu",
     ["Unsaved changes"] = "Neuložené změny",
+    ["Together"] = "Spolu",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Ty a {name} jste spolu. Toto vyrostlo z rozhovorů a je uloženo v tomto savegame. Chceš-li to ukončit, řekni to jemu.",
 }

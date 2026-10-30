@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "스토리",
     ["Story character"] = "스토리 캐릭터",
     ["Unsaved changes"] = "저장되지 않은 변경 사항",
+    ["Together"] = "함께",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "당신과 {name}은(는) 함께입니다. 이것은 대화에서 비롯되었으며 이 저장에 보관됩니다. 끝내려면 말해주세요.",
 }

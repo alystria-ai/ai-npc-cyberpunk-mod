@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Сюжет",
     ["Story character"] = "Персонаж сюжету",
     ["Unsaved changes"] = "Незбережені зміни",
+    ["Together"] = "Разом",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Ви та {name} разом. Це виросло з розмов і зберігається в цьому збереженні. Щоб закінчити, скажіть про це персонажу.",
 }

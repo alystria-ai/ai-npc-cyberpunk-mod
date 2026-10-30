@@ -369,7 +369,7 @@
   ],
   "appData": [
     "characters/roster.json", "characters/archetype-roster.json", "characters/world-knowledge.json",
-    "characters/phone-contacts.json", "characters/gift-tables.json", "characters/bond-packs/jackie-come-home.json",
+    "characters/phone-contacts.json", "characters/gift-tables.json", "characters/romance-traits.json", "characters/bond-packs/jackie-come-home.json",
     "characters/bond-packs/jackie-drink.json", "characters/bond-packs/jackie-hangout-constellations-of-northside.json", "characters/bond-packs/jackie-hangout-gone-fishing.json",
     "characters/bond-packs/jackie-hangout-grease-monkeys.json", "characters/bond-packs/jackie-hangout-salsa-for-beginners.json", "characters/bond-packs/jackie-hangout-slowest-wins.json",
     "characters/bond-packs/jackie-sopa-test.json", "characters/bond-packs/jackie-sticky-fingers.json", "characters/bond-packs/jackie-the-bottle.json",

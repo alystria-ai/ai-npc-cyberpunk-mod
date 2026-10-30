@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "История",
     ["Story character"] = "Персонаж истории",
     ["Unsaved changes"] = "Несохранённые изменения",
+    ["Together"] = "Вместе",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Вы и {name} вместе. Это выросло из разговоров и сохранено в этой игре. Чтобы это закончить, скажите об этом персонажу.",
 }

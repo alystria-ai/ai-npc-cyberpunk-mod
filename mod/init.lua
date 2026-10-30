@@ -6933,6 +6933,13 @@ do
                 log = function(line) log(line) end,
                 -- The bridge changed the bond quests' play file (mod/quest-play.lua).
                 onPlayRevision = function() if convaiQuestPlayRevision then convaiQuestPlayRevision() end end,
+                -- Romances V started or ended through talk live in the save as one quest fact per character (mod/romance-registry.lua, docs/SIDE_ROMANCE.md).
+                romance = (function()
+                    local registryLoaded, registry = pcall(dofile, 'romance-registry.lua')
+                    if not registryLoaded or type(registry) ~= 'table' then return nil end
+                    local store = registry.factStore()
+                    return {get = function(key) return registry.read(store, key) end, set = function(key, state) return registry.write(store, key, state) end}
+                end)(),
             })
         end
         if not built then
@@ -6980,6 +6987,14 @@ do
         local bonds = service()
         if not bonds then return nil end
         local ok, list = pcall(bonds.characters)
+        return ok and list or nil
+    end
+    -- The Romantic relationships page: the characters V is together with through talk, or nil (Off, or no usable file). Asked when the page is built (kept 5 s).
+    function convaiBondsRomances()
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return nil end
+        local bonds = service()
+        if not bonds then return nil end
+        local ok, list = pcall(bonds.romances)
         return ok and list or nil
     end
     -- From the 0.1 s tick: nothing unless a level notice is awaited (at most 30 s after a turn).

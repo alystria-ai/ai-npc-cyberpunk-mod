@@ -13,6 +13,9 @@
 --   outfitState / anyOutfit / outfitDone  for mod/companion-outfits.lua, which puts a party copy in another look of the character (and back).
 --   view(profileKey) for the Characters page: the bond level and the active story, from the status file, read at most every 5 s.
 --   characters() for the Relationships page (Companion Manager home): the characters V has talked to, with their bond details, from the same cached read.
+--   romance          (docs/SIDE_ROMANCE.md) a romance V started or ended with a character through talk lives in the save as one quest fact (mod/romance-registry.lua).
+--                    attach puts the saved state of the character into the block (`romance` = 'together' | 'ended'), update writes a change the bridge announces in the status
+--                    (`romance.changes`, newer than the last one seen), and romances() lists the characters V is together with for the Romantic relationships page.
 -- Effects belong to the save: an entry stamped with a game clock later than the loaded save's (plus a slack) belongs to a save that was loaded away
 -- from and is ignored. Only the mod's own copies are ever dressed or driven; a game-placed character gets talk, face and audio only.
 -- No per-frame work: Off, attach returns at the first check and update at a nil check. The game writes only runtime/bond-effects-done.json, and only
@@ -29,11 +32,14 @@ local COPIES = {party = true, visitor = true, housemate = true}
 -- game call or vehicle chase); ownCopy(entity, profileKey) -> 'party' | 'visitor' | 'housemate' | nil; clock() -> seconds (os.clock);
 -- gameTime() -> V's game clock in seconds or nil; read(path) -> text | nil; write(path, text) -> bool; encode / decode (json); player() -> V;
 -- give(player, record, quantity), remove(player, record, quantity), quantity(player, record) (the game's transaction calls by default);
+-- romance = {get(profileKey) -> 'together' | 'ended' | nil, set(profileKey, state) -> bool} (the saved facts, mod/romance-registry.lua; nil: no romances),
 -- notice(player, text), t(text, vars) (mod/ui-locale.lua), log(line), onPlayRevision() (the status file's optional `playRevision` changed: the bond quests' play file did, mod/quest-play.lua).
 function M.new(options)
     options = options or {}
     local P = {}
     local watchUntil, pollAt, seen, lastRaw = nil, 0, nil, nil
+    local romanceSeen                  -- the newest romance change acted on (nil: none yet this session)
+    local romancesAt, romancesValue    -- the list the Romantic relationships page asked for last, and when
     local effectsRev                   -- the last effectsRevision acted on (nil: none yet this session)
     local playRev                      -- the last playRevision acted on (nil: none yet this session, the field is optional)
     local outfits, restore = nil, {}   -- the outfit entries of the effects file (nil until read), and the profiles to put back: key -> clock to give up at
@@ -284,6 +290,34 @@ function M.new(options)
         return acted
     end
 
+    -- ---- romances ---------------------------------------------------------------------------------------------------------------------
+    -- 'together', 'ended' or nil for one character, from the save (a failing read is none).
+    function P.romanceOf(profileKey)
+        local store = options.romance
+        if type(store) ~= 'table' or not keyOf(profileKey) then return nil end
+        local ok, state = call(store.get, profileKey)
+        return ok and (state == 'together' or state == 'ended') and state or nil
+    end
+    -- The bridge's announcements of a romance that started or ended, newer than the last seen: each written into the save once.
+    local function applyRomance(value)
+        local block = type(value) == 'table' and type(value.romance) == 'table' and value.romance or nil
+        local store = options.romance
+        if not block or type(store) ~= 'table' or type(block.changes) ~= 'table' then return end
+        local newest = romanceSeen or 0
+        for _, change in ipairs(block.changes) do
+            if type(change) == 'table' and whole(change.id, 1, 1e15) and change.id > (romanceSeen or 0) then
+                if change.id > newest then newest = change.id end
+                local state = change.state == 'together' and 'together' or change.state == 'ended' and 'ended' or nil
+                if state and keyOf(change.profileKey) then
+                    local ok, done = call(store.set, change.profileKey, state)
+                    log('person=' .. change.profileKey .. ' romance=' .. state .. (ok and done ~= false and ' saved' or ' not saved'))
+                end
+            end
+        end
+        romanceSeen = newest
+        romancesAt = nil
+    end
+
     -- ---- the turn and the watch -------------------------------------------------------------------------------------------------------
     -- A private turn V sends to a named character (typed, spoken, on a holocall, in a group round or in Phone Chat): its block, while the setting is On.
     function P.attach(context)
@@ -299,12 +333,16 @@ function M.new(options)
         if flag(options.eddies) then block.eddies = true end
         if flag(options.reach) then block.reach = true end   -- Characters text first is on (bridge/bonds.mjs parseBonds reads it; the bridge also needs packs)
         if flag(options.busy) then block.busy = true end
+        -- The save's word on this character: one fact read, at the turn (never per frame).
+        local state = P.romanceOf(context.profileKey)
+        if state then block.romance = state end
         context.bonds = block
         -- The first turn of a session learns where the level changes stand, so a change from before it is not shown again. (The effects are not
         -- skipped: the first poll reads them once, and the list of items done keeps an item from being moved twice.)
-        if seen == nil then
+        if seen == nil or romanceSeen == nil then
             local value = status()
-            seen = value and value.revision or 0
+            if seen == nil then seen = value and value.revision or 0 end
+            if romanceSeen == nil then romanceSeen = value and type(value.romance) == 'table' and whole(value.romance.revision, 0, 1e15) and value.romance.revision or 0 end
         end
         watchUntil, pollAt = clock() + WATCH_SECONDS, 0
         return block
@@ -340,6 +378,7 @@ function M.new(options)
                 if not ok then log('play revision failed: ' .. tostring(problem):sub(1, 120)) end
             end
         end
+        applyRomance(value)
         local shown = false
         if type(value.changes) == 'table' then
             local newest = seen or 0
@@ -422,6 +461,20 @@ function M.new(options)
                 out[#out + 1] = item
             end
         end
+        return out
+    end
+
+    -- The Romantic relationships page: the characters V is together with through the bond system, from the characters V has talked to (the facts are asked once each, when the
+    -- page is built). {profileKey, name} rows, or an empty list.
+    -- Kept for VIEW_SECONDS (the settings page is built often); a romance written meanwhile drops it.
+    function P.romances()
+        local now = clock()
+        if romancesAt ~= nil and now >= romancesAt and now - romancesAt < VIEW_SECONDS then return romancesValue end
+        local out = {}
+        for _, row in ipairs(P.characters() or {}) do
+            if row.profileKey and P.romanceOf(row.profileKey) == 'together' then out[#out + 1] = {profileKey = row.profileKey, name = row.name} end
+        end
+        romancesAt, romancesValue = now, out
         return out
     end
 

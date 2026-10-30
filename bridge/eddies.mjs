@@ -518,6 +518,9 @@ export class EddiesDecisions {
 
 /** A provider's romance reading of a turn's relationship selection (bridge/relationship-routing.mjs): 'partner', 'casual' or null. */
 export function romanceOf(selection, profiles) {
+  // A romance V started through the bond system (bridge/romance-bond.mjs) counts for any character; one V ended is none, whatever the game's own receipt says.
+  if (selection?.status === 'ready' && selection.bondRomance?.state === 'together' && selection.style === 'romantic') return 'partner';
+  if (selection?.status === 'ready' && selection.bondRomance?.state === 'ended' && selection.style !== 'romantic') return null;
   if (selection?.status !== 'ready' || !profiles || !Object.hasOwn(profiles, selection.profileKey)) return null;
   const rule = profiles[selection.profileKey], confirmed = selection.saveRelationship?.status === 'confirmed';
   if (rule.kind === 'casual-intimacy') return confirmed ? 'casual' : null;

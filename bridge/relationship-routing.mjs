@@ -5,6 +5,7 @@
 // decides whether bridge/romance-context.mjs adds its block to the turn's dynamic context. It never changes the provider ID.
 import {parseGroup} from './group-context.mjs';
 import {MULTILINGUAL_SUFFIX, twinMarkerKey, twinProviderKey} from './multilingual.mjs';
+import {traitOf, shippedTraits} from './romance-traits.mjs';
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -129,8 +130,16 @@ function confirmed(profile, snapshot) {
 const fresh = (snapshot, boundary, now) => snapshot?.status === 'ready' && sameWorld(snapshot, boundary)
   && now - snapshot.capturedAt >= -1000 && now - snapshot.capturedAt <= 5000;
 
+/** The rule id of a romance V started through the bond system (bridge/romance-bond.mjs), which the save holds as a fact: not one of the eleven native receipts. */
+export const BOND_ROMANCE_RULE = 'bond.romance';
+
+/**
+ * `bondRomance`: {state: 'together' | 'ended', style} for a romance the bridge started with this character (the game's saved fact, on the turn's bonds block), or null.
+ * It works for any character, with or without a native rule. Auto follows it ('together' is the affectionate delivery, 'ended' ends a native one too); On and Off
+ * (only the five native characters have them) are the player's word and win.
+ */
 export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, boundary, now = Date.now(), registry,
-  multilingual = false, packTwin = null} = {}) {
+  multilingual = false, packTwin = null, bondRomance = null} = {}) {
   if (!key(profileKey) || !MODES.has(mode) || !registry || !Object.hasOwn(registry.providerIds, profileKey)
       || !Number.isSafeInteger(now)) fail('INVALID_SELECTION');
   const rule = RELATIONSHIP_PROFILES[profileKey];
@@ -140,7 +149,10 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   // The style is the whole decision: it never changes the provider ID. On is affectionate delivery; Off is ordinary delivery;
   // Auto is affectionate only when a fresh capture of this world confirms the relationship. Without a fresh capture Auto is
   // ordinary for this turn (the conversation is never blocked on it), and the next turn follows the capture once it arrives.
-  const romantic = !!rule && (mode === 'on' || mode === 'auto' && current && confirmed(profileKey, observed));
+  const bond = bondRomance && (bondRomance.state === 'together' || bondRomance.state === 'ended') ? bondRomance : null;
+  let romantic = !!rule && (mode === 'on' || mode === 'auto' && current && confirmed(profileKey, observed));
+  if (mode === 'auto' && bond) romantic = bond.state === 'together';
+  const viaBond = romantic && mode === 'auto' && bond?.state === 'together';
   // A turn in another language: the twin of the profile. A profile without a usable twin keeps its original (English-only) profile.
   const twinKey = multilingual === true ? registry.multilingual?.[profileKey] : undefined;
   // A content pack's twin (English only): used when the pack is on and the turn does not go to the multilingual twin, which answers in the player's language.
@@ -148,13 +160,14 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   const providerProfileKey = twinKey ?? packKey ?? profileKey;
   // Style and history are separate. On is never evidence, and Off does not erase a real event. Capture only this speaker's
   // current-save receipt with the admitted selection; group prompts never receive other partners' facts.
-  const saveRelationship = current && confirmed(profileKey, observed)
-    ? {status: 'confirmed', evidenceRule: rule.rule} : null;
+  const saveRelationship = viaBond ? {status: 'confirmed', evidenceRule: BOND_ROMANCE_RULE}
+    : current && confirmed(profileKey, observed) && !(bond?.state === 'ended' && mode === 'auto') ? {status: 'confirmed', evidenceRule: rule.rule} : null;
   return freeze({status: 'ready', profileKey, providerProfileKey, characterId: registry.providerIds[providerProfileKey],
-    style: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey, ...(packKey ? {pack: true} : {}),
-    reason: !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
+    style: romantic ? 'romantic' : 'ordinary', kind: viaBond ? 'relationship' : rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey, ...(packKey ? {pack: true} : {}),
+    reason: viaBond ? 'bond-romance' : bond?.state === 'ended' && mode === 'auto' ? 'bond-romance-ended' : !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
       : romantic ? 'verified-current-save' : current ? 'auto-unconfirmed' : 'relationship-state-unavailable',
-    ...(romantic && mode === 'auto' ? {evidenceRule: rule.rule} : {}),
+    ...(romantic && mode === 'auto' ? {evidenceRule: viaBond ? BOND_ROMANCE_RULE : rule.rule} : {}),
+    ...(bond ? {bondRomance: {state: bond.state, style: typeof bond.style === 'string' ? bond.style : ''}} : {}),
     ...(saveRelationship ? {saveRelationship} : {}),
     ...(binding(boundary) ? {worldToken: boundary.worldToken, generation: boundary.generation} : {})});
 }
@@ -162,7 +175,8 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
 /** Settings and native updates commit only at an idle turn boundary. A prepared
  * turn owns its frozen selection; a settings change never alters its style or redirects its send. */
 export class RelationshipRouting {
-  constructor({ordinaryIds, multilingual, packTwins = [], packTwinFor = null, now = Date.now} = {}) {
+  constructor({ordinaryIds, multilingual, packTwins = [], packTwinFor = null, now = Date.now, traits = shippedTraits()} = {}) {
+    this.traits = traits;
     this.registry = relationshipRegistry(ordinaryIds, multilingual, packTwins);
     this.packTwinFor = typeof packTwinFor === 'function' ? packTwinFor : null;   // profileKey => the provider key of the content pack twin to use now, or null (a map lookup)
     this.providerIds = this.registry.providerIds; this.providerFamilies = this.registry.providerFamilies;
@@ -193,8 +207,9 @@ export class RelationshipRouting {
     if (changed) this.revision++;
     return changed;
   }
-  /** `multilingual`: this turn goes to the character's multilingual twin (when it has a usable one). It is decided per turn, from the message (bridge/multilingual.mjs wantsTwin), so no connection is retired when the language changes. */
-  select(profileKey, boundary, {multilingual = false} = {}) {
+  /** `romance`: 'together' | 'ended' when the save holds a romance with V that the bridge started (bridge/romance-bond.mjs): the affectionate delivery follows it for any character.
+   * `multilingual`: this turn goes to the character's multilingual twin (when it has a usable one). It is decided per turn, from the message (bridge/multilingual.mjs wantsTwin), so no connection is retired when the language changes. */
+  select(profileKey, boundary, {multilingual = false, romance = null} = {}) {
     // Fresh heartbeats during a long voice/microphone/group turn keep its
     // already committed choice usable. New decisions/modes remain pending;
     // a different world can never extend the old evidence's lease.
@@ -202,7 +217,8 @@ export class RelationshipRouting {
       && fresh(this.pending.snapshot, boundary, this.now())
       ? {...this.snapshot, capturedAt: this.pending.snapshot.capturedAt} : this.snapshot;
     return selectRelationshipProfile({profileKey, mode: this.modes[profileKey] ?? 'auto', snapshot: retained,
-      boundary, now: this.now(), registry: this.registry, multilingual: multilingual === true, packTwin: this.#packTwin(profileKey)});
+      boundary, now: this.now(), registry: this.registry, multilingual: multilingual === true, packTwin: this.#packTwin(profileKey),
+      bondRomance: romance === 'together' || romance === 'ended' ? {state: romance, style: traitOf(profileKey, this.traits).style} : null});
   }
   #packTwin(profileKey) {
     try { return this.packTwinFor?.(profileKey) ?? null; } catch { return null; }
