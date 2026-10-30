@@ -19,6 +19,15 @@ export class EditorError extends Error {
 }
 const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const GROUP_ORDER = {custom: 0, v: 1, story: 2, everyday: 3};
+// What the picker calls a character (its filter chips and badges). Only the named characters have a role besides "side": the four people V can romance in the game
+// (the same keys as bridge/relationship-routing.mjs where a save shows a relationship), and the hand-reviewed tier-1 characters (mod/auto-connect.lua M.TIER1), the
+// companions. Tests pin both lists to those sources. Any other named character is a story character, an everyday person a side character.
+export const ROMANCE_KEYS = Object.freeze(['judy-alvarez', 'kerry-eurodyne', 'panam-palmer', 'river-ward']);
+export const COMPANION_KEYS = Object.freeze(['alex', 'alt-cunningham', 'claire-russell', 'evelyn-parker', 'jackie-welles', 'johnny-silverhand',
+  'judy-alvarez', 'kerry-eurodyne', 'lizzy-wizzy', 'lucy-kushinada', 'mama-welles', 'meredith-stout', 'misty-olszewski',
+  'mr-hands', 'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'rita-wheeler', 'river-ward',
+  'rogue-amendiares', 'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
+const roleOfRow = row => row.kind !== 'named' ? 'side' : ROMANCE_KEYS.includes(row.key) ? 'romance' : COMPANION_KEYS.includes(row.key) ? 'companion' : 'story';
 // V's typed lines are spoken with these two voice keys (bridge/v-voice.mjs V_VOICE_KEYS, tested to match). The editor lists them as two voice-only
 // rows in the group 'v': no bio, style, rules or memories, no delete, no gender; just the clip, which every engine reads from the same key.
 export const V_EDITOR_KEYS = Object.freeze(['v-male', 'v-female']);
@@ -83,7 +92,7 @@ export class CharacterEditor {
   /** Every character the editor offers: the player's own first, then V's two voices (only with a clip store), then the named ones, then the everyday people, each group by name. A story, own or V row says whether it has a voice clip. */
   catalog() {
     const rows = [...this.personas.rows.values()].filter(row => ['named', 'ambient', 'archetype'].includes(row.kind));
-    const shipped = rows.map(row => ({key: row.key, name: String(row.name || row.key), group: row.kind === 'named' ? 'story' : 'everyday', edited: !!this.overrides.get(row.key),
+    const shipped = rows.map(row => ({key: row.key, name: String(row.name || row.key), group: row.kind === 'named' ? 'story' : 'everyday', role: roleOfRow(row), edited: !!this.overrides.get(row.key),
       ...(row.kind === 'named' ? {voice: !!this.voices?.has(row.key)} : {})}));
     const own = (this.custom?.summaries() ?? []).map(item => ({...item, voice: !!this.voices?.has(item.key)}));
     const v = this.voices ? V_EDITOR_KEYS.map(key => ({key, name: V_NAMES[key], group: 'v', edited: false, voiceOnly: true, voice: this.voices.has(key)})) : [];
