@@ -90,6 +90,9 @@ local currentBack, pageSeen
 -- The Model browser's search (followSearch): the text of MCM's Search settings box as MCM last published it, the page the box was last
 -- followed on, and whether this MCM takes the provider search mode (false once it refused it).
 local contextSearch, searchView, searchProvider = '', nil, true
+-- Until when (os.clock) the box's text is not followed after the Clear search button emptied it: MCM takes the new text a few frames later, and
+-- the old text in its context must not bring the search back meanwhile. 0 = not waiting.
+local clearBoxUntil = 0
 -- The page controls of the page last loaded: the page of its long list and how many there are, the letter group and how many.
 -- `status` holds the status lines of the category being converted ({text, help}), which the heading says (see STATUS_ROWS).
 local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil, status = {}}
@@ -403,7 +406,19 @@ local function followSearch()
             contextSearch = ''
         end
     end
+    if clearBoxUntil > 0 then
+        if contextSearch ~= '' and os.clock() < clearBoxUntil then return end
+        clearBoxUntil = 0
+    end
     if (view == 'models' or view == 'characters' or view == 'side' or view == 'party') and searchProvider then core.setSearch(contextSearch) end
+end
+
+-- The Clear search button of the two character lists (manager-ui.lua M.clearSearch): empties MCM's Search box with its public setSearch.
+local function clearSearchBox()
+    if not api then return false end
+    local called, request = pcall(api.ui.setSearch, MOD_KEY, '')
+    contextSearch, clearBoxUntil = '', os.clock() + 1
+    return called and request ~= nil
 end
 
 -- A button of a long list's page control: the list moves to another page, or to the next letter group.
@@ -648,7 +663,7 @@ local function connect()
     localeRevision = ui.revision()
     pcall(api.refreshProvider, PROVIDER)
     applyPresentation()
-    core.offerSearch(searchProvider)
+    core.offerSearch(searchProvider, clearSearchBox)
     log('Companion Manager registered with Mod Configuration Menu ' .. version)
     return true
 end
