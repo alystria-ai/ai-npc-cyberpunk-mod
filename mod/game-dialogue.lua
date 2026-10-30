@@ -13,7 +13,8 @@ local DUPLICATE_WINDOW, PRESENT_RADIUS = 6, 15
 local OWN_LINE_BASE = 0x436F6E760000
 -- Native scnDialogLineType names, and what each means here. Lines whose type
 -- is not listed (TV, radio broadcasts, scene comments, narrator, invisible,
--- speakerless cinematic text) are never recorded.
+-- speakerless cinematic text) are never recorded. TV and radio-broadcast lines have a ring of their
+-- own (Instance:noteHeard, Settings > Dynamic info > Music and TV) that nothing below ever reads.
 M.TYPES = {'Regular', 'Holocall', 'SceneComment', 'OverHead', 'Radio', 'GlobalTV', 'Invisible',
     'OverHeadAlwaysVisible', 'OwnerlessRegular', 'AlwaysCinematicNoSpeaker', 'GlobalTVAlwaysVisible', 'Narrator'}
 local POLICY = {Regular = 'scene', OwnerlessRegular = 'scene', Holocall = 'phone',
@@ -131,6 +132,39 @@ local function nativeAdapter()
         end
         return {id = isTv and speaker:GetEntityID() or nil, class = class}
     end
+    -- Whether a line of type Radio is a BROADCAST V can hear right now (a DJ or host on a receiver that is on), for Music and TV only (noteRadio).
+    -- Returns 'car' or 'pocket' and whether the speaker is V, or nil and the reason it was refused. The rule, in full:
+    --   in a car   the speaker must be the very vehicle V is mounted in, its receiver must be on (IsRadioReceiverActive), and it must not be a
+    --              Delamain cab (the cab's own voice also comes as a Radio line from the vehicle, and the cab's receiver may be on)
+    --   on foot    the pocket radio must be on (IsActive), and the line must have no speaker or V as its speaker (the pocket radio plays at V);
+    --              a line from anyone or anything else is not the pocket radio
+    -- Anything else (another car's radio, an NPC's voice, a device, a receiver that is off, a read that fails) is refused: when it cannot be
+    -- told, it is skipped. Instance:noteRadio adds the call check and the check that the speaker is no known character.
+    local DELAMAIN_CABS = {'Vehicle.v_standard2_villefort_cortes_delamain_player', 'Vehicle.v_delamain_taxi'}
+    function N.radioSource(line)
+        local player = convaiPlayer()
+        if player == nil then return nil, 'no-player' end
+        local speaker = line.speaker
+        local vehicle = player:GetMountedVehicle()
+        if vehicle ~= nil then
+            if speaker == nil or speaker:IsVehicle() ~= true then return nil, 'car:speaker-not-vehicle' end
+            if tostring(speaker:GetEntityID().hash) ~= tostring(vehicle:GetEntityID().hash) then return nil, 'car:other-vehicle' end
+            if vehicle:IsRadioReceiverActive() ~= true then return nil, 'car:receiver-off' end
+            local record = vehicle:GetRecordID()
+            for _, name in ipairs(DELAMAIN_CABS) do
+                if record == TweakDBID.new(name) then return nil, 'car:delamain' end
+            end
+            return 'car', false
+        end
+        local byV = false
+        if speaker ~= nil then
+            if tostring(speaker:GetEntityID().hash) ~= tostring(player:GetEntityID().hash) then return nil, 'foot:other-speaker' end
+            byV = true
+        end
+        local radio = player:GetPocketRadio()
+        if radio == nil or radio:IsActive() ~= true then return nil, 'foot:pocket-off' end
+        return 'pocket', byV
+    end
     function N.lineNumber(line)
         local ok, value = pcall(function() return line.id.hash end)
         local digits = tostring(ok and value ~= nil and value or line.id):match('(%d+)')
@@ -216,9 +250,10 @@ function Instance:reset(reason)
     self.lines, self.seen, self.hubs, self.serial = {}, {}, {}, self.serial or 0
     self.noted, self.notedCount = {}, 0
     self.presentAt, self.presentKeys = nil, nil
-    -- The TV lines (Music and TV, noteHeard) are not game dialogue and survive the context being switched off; anything else clears them.
+    -- The TV and radio-broadcast lines (Music and TV, noteHeard) are not game dialogue and survive the context being switched off; anything else clears them.
     if reason ~= 'disabled' or self.heard == nil then
         self.heard, self.heardIds, self.heardCount, self.heardTvSource, self.heardSpeaker = {}, {}, 0, nil, nil
+        self.heardRadio = {}
     end
     self.resetReason = reason
 end
@@ -307,13 +342,14 @@ function Instance:noteLine(line)
     return true
 end
 
--- What a TV nearby has said (Settings > Dynamic info > Music and TV, mod/media-context.lua): the last HEARD_KEEP lines of type GlobalTV or
--- GlobalTVAlwaysVisible, each capped at HEARD_TEXT characters, with the time they were heard. Fed by the same subtitle callbacks as everything
--- above (no hook of its own), only while options.heardWanted() is true (the Music and TV switch; one boolean read per line otherwise), and kept
--- apart from the recorded game dialogue: it is not part of capture(), the policy table, the buffer or what Johnny's remarks and the add-ons hear.
--- A car radio's DJ is a line of type Radio from a vehicle: the policy table skips those and so does this.
+-- What a TV nearby or the radio has said (Settings > Dynamic info > Music and TV, mod/media-context.lua). TV: the last HEARD_KEEP lines of type
+-- GlobalTV or GlobalTVAlwaysVisible. Radio: the last HEARD_KEEP lines of type Radio that are a BROADCAST (a DJ or host on the car radio or V's
+-- pocket radio, noteRadio), in a ring of their own. Each line is capped at HEARD_TEXT characters and kept with the time it was heard. Fed by the same
+-- subtitle callbacks as everything above (no hook of its own), only while options.heardWanted() is true (the Music and TV switch; one boolean read per
+-- line otherwise), and kept apart from the recorded game dialogue: nothing here is part of capture(), the policy table, the buffer or what Johnny's
+-- remarks and the add-ons hear. The policy table still skips every Radio line unless a call is on, so the Delamain cab's voice works as before.
 M.HEARD_KEEP, M.HEARD_TEXT, M.HEARD_IDS = 3, 160, 8
-local HEARD_TYPES = {GlobalTV = true, GlobalTVAlwaysVisible = true}
+local HEARD_TYPES = {GlobalTV = true, GlobalTVAlwaysVisible = true, Radio = true}
 function Instance:noteHeard(line)
     local wanted = self.options.heardWanted
     if type(wanted) ~= 'function' or call(wanted) ~= true then return false end
@@ -325,6 +361,7 @@ function Instance:noteHeard(line)
     -- The two subtitle hooks show the same line: remembered by its id for a few lines only.
     if self.heardCount >= M.HEARD_IDS then self.heardIds, self.heardCount = {}, 0 end
     self.heardIds[id], self.heardCount = true, self.heardCount + 1
+    if kind == 'Radio' then return self:noteRadio(line) end
     -- Which TV said it, so mod/media-context.lua can find that TV by its ID (the targeting query does not list TVs). A few reads per TV line.
     local source = call(N.tvSource, line)
     self.heardSpeaker = {class = type(source) == 'table' and source.class or 'none', at = self:now()}
@@ -337,6 +374,70 @@ function Instance:noteHeard(line)
     self.heard[#self.heard + 1] = {text = text, at = now}
     while #self.heard > M.HEARD_KEEP do table.remove(self.heard, 1) end
     return true
+end
+
+-- A line of type Radio: is it a DJ or host V can hear, or something else that is played as a Radio line? Both exist: the Delamain cab's own voice
+-- and quest voices come as Radio lines too (the policy table keeps those only during a call), so the type alone says nothing. Kept only when ALL hold:
+--   1. no phone call is on (a call's Radio-styled voice is the caller, the cab's welcome and goodbye included);
+--   2. N.radioSource accepts it: V's own car receiver is on and the vehicle itself speaks (and it is no Delamain cab), or V is on foot with the
+--      pocket radio on and the line has no speaker or V as its speaker (see the adapter above);
+--   3. the speaker is no character the mod knows (options.resolve, then options.resolveName on the shown name): a named character speaking over a
+--      receiver is a quest voice or a person, not a broadcast. Not asked when V is the speaker (the pocket radio plays at V).
+-- When anything is unknown or cannot be read, the line is dropped: a missed DJ line costs a sentence, a cab or quest line passed off as the radio
+-- would put wrong words in a companion's mouth. The first few decisions are logged (kind, never the words) so a live pass can tell what the game sends.
+local RADIO_LOGS = 12
+function Instance:noteRadio(line)
+    local N, options = self.native, self.options
+    local function decide(kept, why, source)
+        self.radioLogs = (self.radioLogs or 0) + 1
+        if self.radioLogs <= RADIO_LOGS and type(options.log) == 'function' then
+            local class = call(function() return tostring(line.speaker:GetClassName()) end)
+            local speaker = class and ('speaker=' .. (class:gsub('%c', ' ')):sub(1, 40)) or 'speaker=none'
+            pcall(options.log, 'Game dialogue: Radio line ' .. (kept and ('heard (' .. tostring(source) .. ')') or ('not kept (' .. tostring(why) .. ')'))
+                .. ' ' .. speaker)
+        end
+        return kept
+    end
+    if call(N.call) then return decide(false, 'call') end
+    local source, extra = call(N.radioSource, line)
+    if source ~= 'car' and source ~= 'pocket' then return decide(false, extra or 'unknown') end
+    if extra ~= true then
+        local speaker = line.speaker
+        if speaker and call(options.resolve, speaker) then return decide(false, 'known-character') end
+        local shown = clean(call(N.speakerName, line), 120)
+        if shown and call(options.resolveName, shown) then return decide(false, 'known-name') end
+    end
+    local text = clean(call(N.text, line), M.HEARD_TEXT)
+    if not text then return decide(false, 'empty') end
+    local now = self:now()
+    local ring = self.heardRadio
+    local last = ring[#ring]
+    if last and last.text == text and now - last.at <= DUPLICATE_WINDOW then last.at = now; return false end
+    ring[#ring + 1] = {text = text, at = now, source = source}
+    while #ring > M.HEARD_KEEP do table.remove(ring, 1) end
+    return decide(true, nil, source)
+end
+
+-- What the radio host said at most maxAge seconds ago on this source ('car' or 'pocket'): the last two lines, oldest first, joined by a space, and the
+-- age of the newest; nil when there is none. When the two together are longer than RADIO_SAID_MAX, only the newest is given.
+local RADIO_SAID_LINES, RADIO_SAID_MAX = 2, 200
+function Instance:heardRadioLines(maxAge, source)
+    local now, limit = self:now(), tonumber(maxAge) or 60
+    local picked = {}
+    for index = #self.heardRadio, 1, -1 do
+        local row = self.heardRadio[index]
+        if now - row.at <= limit and (source == nil or row.source == source) then
+            table.insert(picked, 1, row)
+            if #picked >= RADIO_SAID_LINES then break end
+        end
+    end
+    if #picked == 0 then return nil end
+    local newest = picked[#picked]
+    local texts = {}
+    for _, row in ipairs(picked) do texts[#texts + 1] = row.text end
+    local joined = table.concat(texts, ' ')
+    if #joined > RADIO_SAID_MAX then joined = newest.text end
+    return joined, math.max(0, now - newest.at)
 end
 
 -- The newest TV line heard at most maxAge seconds ago: its text and its age in seconds, or nil.
@@ -486,7 +587,7 @@ function Instance:line(line, source)
     local callInfo = call(N.call)
     local speaker = line.speaker
     if policy == 'call-only' then
-        -- Radio-styled lines count only during a call, and never from a car radio.
+        -- Radio-styled lines count only during a call, and never from a car radio. (A broadcast DJ is kept elsewhere, in the Music and TV ring: noteHeard.)
         if not callInfo or (speaker and call(N.isVehicle, speaker)) then self.seen[id] = now; return self:skip('radio') end
         policy = 'phone'
     end

@@ -17,7 +17,7 @@
 //   quest      the tracked quest and objective, the jobs V has open, the journal history   the journal, jobs and history blocks
 //   dialogue   the last lines of game dialogue and V's chosen replies                    the game dialogue block
 //   lastTalk   how long since V last talked to this character (game and real time)      the turn context's background line
-//   media      the song on the car or pocket radio, what a TV near V shows               the turn context
+//   media      the song on the car or pocket radio and what its host said, what a TV shows  the turn context
 //   mods       V's state according to other mods (Dark Future, Flesh and Chrome, Injuries) the turn context
 // What each character knows about the story (the world facts, the recent shared events) is the character's own knowledge, not live info: it stays.
 // V's gender for V's own voice and the dialogue volume are no part of the words the model reads: they are kept.
