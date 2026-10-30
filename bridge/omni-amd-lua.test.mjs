@@ -6,7 +6,7 @@ import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {nsuiHarness} from './manager-fixture.mjs';
 
 // The game side of OmniVoice for AMD (docs/OMNIVOICE_AMD.md): mod/omni-amd.lua on its own (state cleaning, the setup and remove rows, the commands, the sentences) and
-// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the row on the Voice and microphone page, the page with its rows and the MIOpen choice, the saved setting).
+// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the row on the Voice AI and microphone page, the page with its rows and the MIOpen choice, the saved setting).
 // The conversation service is played by the test: it writes the state file the bridge would.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
@@ -283,7 +283,7 @@ const stateFixture = `
   end
 `;
 
-test('the OmniVoice for AMD row shows only when the service says AMD is offered (or installed), last on the Voice and microphone page', () => run(`${pageFixture()}${stateFixture}
+test('the OmniVoice for AMD row shows only when the service says AMD is offered (or installed), last on the Voice AI and microphone page', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
   assert(row('omni-amd') == nil and not voiceIds():find('omni-amd', 1, true), voiceIds())
   service('none', {version = 1, offered = false, installed = false})
@@ -301,7 +301,7 @@ test('the OmniVoice for AMD row shows only when the service says AMD is offered 
   end
 `));
 
-test('with Remote OmniVoice present, Custom voices comes first and OmniVoice for AMD is the last row of the Voice and microphone page', () => run(`${nsuiHarness({modules: {'omni-amd.lua': amdSource, 'remote-omni.lua': read('remote-omni.lua')}})}${stateFixture}
+test('with Remote OmniVoice present, Custom voices comes first and OmniVoice for AMD is the last row of the Voice AI and microphone page', () => run(`${nsuiHarness({modules: {'omni-amd.lua': amdSource, 'remote-omni.lua': read('remote-omni.lua')}})}${stateFixture}
   service('offered', offered)
   assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
   assert(voiceIds():find('audioDelay,custom%-voices,omni%-amd$'), voiceIds())
@@ -343,7 +343,7 @@ test('the page: the setup row, the MIOpen choice and a way back; the redraw foll
   assert(invoke('omni-amd:back').ok and managerUi.inspect().view == 'settings-voice')
 `));
 
-test('without the module (or with one that fails) the Voice and microphone page is unchanged and the page is not offered', () => {
+test('without the module (or with one that fails) the Voice AI and microphone page is unchanged and the page is not offered', () => {
   run(`${pageFixture(false)}${stateFixture}
     service('offered', offered)
     assert(invoke('tab:settings').ok and invoke('settings:voice').ok)

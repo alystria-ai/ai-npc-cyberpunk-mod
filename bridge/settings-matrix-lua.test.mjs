@@ -97,7 +97,7 @@ test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leave
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
-  press('Settings'); frames(20); page('Voice and microphone')
+  press('Settings'); frames(20); page('Voice AI and microphone')
   assert(manager.applySettings(player, {voiceProvider = 'omni', vVoice = true, vVoiceEngine = 'omni'}))
   frames(8)
   assert(ns.find('V’s voice engine').selectedElementIndex == 3 and ns.find('V’s voice').selectedElementIndex == 2)
@@ -107,7 +107,7 @@ test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leave
   assert(saved.matureContent == true and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni' and saved.vVoice == true)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.vVoiceEngine == 'omni')
-  page('Voice and microphone')
+  page('Voice AI and microphone')
   -- The pack goes away: the row reads Pocket, its label says why, the file keeps 'omni'.
   clock = clock + 20
   jsonFixtures['voice-state-gone'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = os.time() * 1000.0}
@@ -212,7 +212,7 @@ test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without th
 test('D8: Natural speech is blocked only by the Convai cloud voice on a Convai provider; Mistral, Local AI and Custom keep it with that voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   voices(true)
-  press('Settings'); frames(20); page('Voice and microphone')
+  press('Settings'); frames(20); page('Voice AI and microphone')
   for _, provider in ipairs({'mistral', 'local', 'custom'}) do
     assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = 'convai', naturalSpeech = true}))
     assert(settings().naturalSpeech == true and settings().voiceProvider == 'convai', provider)

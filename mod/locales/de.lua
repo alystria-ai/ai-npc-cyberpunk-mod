@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "Dieses Modell hat Sicht mit seiner Sichtdatei, von {folder}/vision auf Hugging Face.",
     ["Typed and spoken lines"] = "Getippt und gesprochen",
     ["Typed lines"] = "Getippte Zeilen",
-    ["Voice and microphone"] = "Stimme und Mikrofon",
+    ["Voice AI and microphone"] = "Sprach-KI und Mikrofon",
     ["V’s voice engine"] = "Vs Sprach-Engine",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Wo V ist: das Viertel sowie Vs Wohnung oder der genannte Ort, wenn das Spiel es angibt.\n\nAus: Die Charaktere erfahren nicht, wo du bist, und der Mod liest es nicht mehr aus dem Spiel aus. Die Sicht, die Convai davon bekommt, was V sieht, und der eigene Text eines Add-ons bleiben unberührt.",
     ["Who writes the replies."] = "Wer die Antworten schreibt.",
     ["Who you can talk to and what they know."] = "Mit wem du sprechen kannst und was sie wissen.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Deine AMD Radeon-Karte kann OmniVoice ausführen. Richte es in Einstellungen > Stimme und Mikrofon > OmniVoice für AMD ein: ein Download, danach startet es von selbst. Bis dahin spricht Pocket.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Deine AMD Radeon-Karte kann OmniVoice ausführen. Richte es in Einstellungen > Sprach-KI und Mikrofon > OmniVoice für AMD ein: ein Download, danach startet es von selbst. Bis dahin spricht Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Dein Custom-Endpunkt akzeptiert keine Sicht, daher enthalten Antworten nur deine Worte.",
 }

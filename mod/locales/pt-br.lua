@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "Com o arquivo vision de {folder}/vision no Hugging Face, este modelo enxerga imagens.",
     ["Typed and spoken lines"] = "Falas digitadas e faladas",
     ["Typed lines"] = "Falas digitadas",
-    ["Voice and microphone"] = "Voz e microfone",
+    ["Voice AI and microphone"] = "IA de voz e microfone",
     ["V’s voice engine"] = "Mecanismo de voz do V",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Onde V está: o distrito e o apartamento de V ou o lugar nomeado quando o jogo indica.\n\nDesligado: os personagens não são informados de onde você está, e o mod para de ler isso do jogo. A visão que a Convai recebe do que V vê, e o texto próprio de um complemento, não são afetados.",
     ["Who writes the replies."] = "Quem escreve as respostas.",
     ["Who you can talk to and what they know."] = "Com quem você pode falar e o que sabem.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Sua placa AMD Radeon pode rodar o OmniVoice. Configure em Configurações > Voz e microfone > OmniVoice para AMD: um download e depois ele inicia sozinho. Até lá, o Pocket fala.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Sua placa AMD Radeon pode rodar o OmniVoice. Configure em Configurações > IA de voz e microfone > OmniVoice para AMD: um download e depois ele inicia sozinho. Até lá, o Pocket fala.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Seu endpoint Custom não aceita visão, então usa apenas suas palavras.",
 }

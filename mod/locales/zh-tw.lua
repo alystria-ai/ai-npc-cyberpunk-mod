@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "安裝 Hugging Face 上 {folder}/vision 的視覺檔案後，此模型即具備視覺。",
     ["Typed and spoken lines"] = "輸入與口說台詞",
     ["Typed lines"] = "輸入台詞",
-    ["Voice and microphone"] = "語音與麥克風",
+    ["Voice AI and microphone"] = "語音 AI 與麥克風",
     ["V’s voice engine"] = "V 的語音引擎",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "V 所在的位置：所在街區，以及 V 的公寓，或遊戲指明時的具名地點。\n\n關閉：不會告知角色你在哪裡，模組也會停止從遊戲中讀取位置。Convai 取得的 V 所見視覺，以及附加模組自身的文字，不受影響。",
     ["Who writes the replies."] = "由誰撰寫回覆。",
     ["Who you can talk to and what they know."] = "你可以和誰對話，以及他們知道什麼。",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "你的 AMD Radeon 顯示卡可以執行 OmniVoice。請在 設定 > 語音與麥克風 > AMD 版 OmniVoice 中配置：下載一次，之後它會自動啟動。在此之前由 Pocket 發聲。",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "你的 AMD Radeon 顯示卡可以執行 OmniVoice。請在 設定 > 語音 AI 與麥克風 > AMD 版 OmniVoice 中配置：下載一次，之後它會自動啟動。在此之前由 Pocket 發聲。",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "你的 Custom 端點不接受視覺，因此回覆只使用你的文字。",
 }

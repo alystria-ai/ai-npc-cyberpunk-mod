@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "Este modelo tiene visión con su archivo de visión, de {folder}/vision en Hugging Face.",
     ["Typed and spoken lines"] = "Líneas escritas y habladas",
     ["Typed lines"] = "Líneas escritas",
-    ["Voice and microphone"] = "Voz y micrófono",
+    ["Voice AI and microphone"] = "IA de voz y micrófono",
     ["V’s voice engine"] = "Motor de la voz de V",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Dónde está V: el distrito, y el apartamento de V o el lugar con nombre cuando el juego lo indica.\n\nDesactivado: a los personajes no se les dice dónde estás, y el mod deja de leerlo del juego. La visión que Convai recibe de lo que ve V, y el texto propio de un complemento, no se ven afectados.",
     ["Who writes the replies."] = "Quién escribe las respuestas.",
     ["Who you can talk to and what they know."] = "Con quién puedes hablar y qué saben.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Tu tarjeta AMD Radeon puede ejecutar OmniVoice. Configúralo en Ajustes > Voz y micrófono > OmniVoice para AMD: una descarga y luego arranca solo. Hasta entonces habla Pocket.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Tu tarjeta AMD Radeon puede ejecutar OmniVoice. Configúralo en Ajustes > IA de voz y micrófono > OmniVoice para AMD: una descarga y luego arranca solo. Hasta entonces habla Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Tu endpoint Custom no acepta visión, así que solo usa tus palabras.",
 }

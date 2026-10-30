@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "Questo modello ha visione con il suo file vision, da {folder}/vision su Hugging Face.",
     ["Typed and spoken lines"] = "Battute scritte e parlate",
     ["Typed lines"] = "Battute scritte",
-    ["Voice and microphone"] = "Voce e microfono",
+    ["Voice AI and microphone"] = "IA vocale e microfono",
     ["V’s voice engine"] = "Motore vocale di V",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Dove si trova V: il distretto e l'appartamento di V o il luogo con nome, quando il gioco lo indica.\n\nDisattivato: ai personaggi non viene detto dove ti trovi, e il mod smette di leggerlo dal gioco. La visione che Convai riceve di quello che vede V, e il testo proprio di un add-on, restano invariati.",
     ["Who writes the replies."] = "Chi scrive le risposte.",
     ["Who you can talk to and what they know."] = "Con chi puoi parlare e cosa sanno.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "La tua scheda AMD Radeon può far girare OmniVoice. Configuralo in Impostazioni > Voce e microfono > OmniVoice per AMD: un download, poi parte da solo. Fino ad allora parla Pocket.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "La tua scheda AMD Radeon può far girare OmniVoice. Configuralo in Impostazioni > IA vocale e microfono > OmniVoice per AMD: un download, poi parte da solo. Fino ad allora parla Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Il tuo endpoint Custom non accetta visione, quindi le risposte usano solo le tue parole.",
 }

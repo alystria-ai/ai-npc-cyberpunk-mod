@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "Ця модель має видіння з vision-файлом із {folder}/vision на Hugging Face.",
     ["Typed and spoken lines"] = "Набрані та вимовлені рядки",
     ["Typed lines"] = "Набрані рядки",
-    ["Voice and microphone"] = "Голос та мікрофон",
+    ["Voice AI and microphone"] = "Голосовий ШІ та мікрофон",
     ["V’s voice engine"] = "Голосовий двигун V",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Де V: район та квартира V, або назване місце, коли гра про це повідомляє.\n\nВимкнено: персонажи не дізнаються, де ти, і мод перестає зчитувати це з гри. Видіння, яке Convai отримує про те, що бачить V, та текст самого доповнення не змінюються.",
     ["Who writes the replies."] = "Хто пише відповіді.",
     ["Who you can talk to and what they know."] = "З кимти можеш розмовляти та що вони знають.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Твоя відеокарта AMD Radeon може запускати OmniVoice. Налаштуй його в Налаштування > Голос та мікрофон > OmniVoice для AMD: одне завантаження, далі він запуститься сам. Доти говорить Pocket.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Твоя відеокарта AMD Radeon може запускати OmniVoice. Налаштуй його в Налаштування > Голосовий ШІ та мікрофон > OmniVoice для AMD: одне завантаження, далі він запуститься сам. Доти говорить Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Твій Custom-ендпоінт не приймає видіння, тому відповіді враховують лише твої слова.",
 }

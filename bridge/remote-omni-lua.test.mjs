@@ -6,7 +6,7 @@ import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {nsuiHarness} from './manager-fixture.mjs';
 
 // The game side of Remote OmniVoice (docs/REMOTE_OMNIVOICE.md): mod/remote-omni.lua on its own (state cleaning, the two rows, the commands, the test sentences) and
-// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the Custom voices button on the Voice and microphone page, the page with its switch, status,
+// inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the Custom voices button on the Voice AI and microphone page, the page with its switch, status,
 // address and test, the saved setting, the pack rule and the notice). The conversation service is played by the test: it writes the state files the bridge would.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
@@ -175,7 +175,7 @@ const stateFixture = `
   end
 `;
 
-test('a Custom voices button is the last row of the Voice and microphone page; the page has the switch, the status, the address and the test, and a way back', () => run(`${pageFixture()}${stateFixture}
+test('a Custom voices button is the last row of the Voice AI and microphone page; the page has the switch, the status, the address and the test, and a way back', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
   local ids = voiceIds()
   assert(ids:find('audioDelay,custom%-voices$'), ids)
@@ -196,7 +196,7 @@ test('a Custom voices button is the last row of the Voice and microphone page; t
   assert(invoke('custom-voices:back').ok and managerUi.inspect().view == 'settings-voice' and row('custom-voices') and not row('remote-address'))
 `));
 
-test('without the module (or with one that fails) the Voice and microphone page is unchanged and the page is not offered', () => {
+test('without the module (or with one that fails) the Voice AI and microphone page is unchanged and the page is not offered', () => {
   run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok and invoke('settings:voice').ok)
     assert(row('custom-voices') == nil and not invoke('custom-voices').ok)

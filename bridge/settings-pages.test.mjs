@@ -1,4 +1,4 @@
-// Settings is a short list of category pages (2026-10-30, docs/MANAGER_UI.md): AI provider, Voice and microphone, Conversations, Companions, Night City, Interface,
+// Settings is a short list of category pages (2026-10-30, docs/MANAGER_UI.md): AI provider, Voice AI and microphone, Conversations, Companions, Night City, Interface,
 // Content packs (only with add-ons) and Privacy and help. These tests pin the pages and their rows, where Back goes, the one-time migrations of the settings file that
 // came with the reorganisation and the "vision" wording of the Companion vision row. Rows keep their stored keys, so the older tests find them by id.
 import {test} from 'node:test';
@@ -17,7 +17,7 @@ test('Settings lists the category pages in order, each with an Open button and a
         for _, item in ipairs(section.settings) do rows[#rows + 1] = item end
       end
     end
-    local names = {'AI provider', 'Voice and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}
+    local names = {'AI provider', 'Voice AI and microphone', 'Conversations', 'Companions', 'Night City', 'Interface', 'Privacy and help'}
     local ids = {'settings:provider', 'settings:voice', 'settings:conversations', 'settings:companions', 'settings:night-city', 'settings:interface', 'settings:privacy'}
     assert(#rows == #names, 'the list has ' .. #rows .. ' rows (Content packs only shows with add-ons)')
     for index, item in ipairs(rows) do

@@ -1815,11 +1815,11 @@ return {
     ["This model has vision with its vision file, from {folder}/vision on Hugging Face."] = "У этой модели есть зрение с её vision-файлом из {folder}/vision на Hugging Face.",
     ["Typed and spoken lines"] = "Набранные и сказанные",
     ["Typed lines"] = "Набранные реплики",
-    ["Voice and microphone"] = "Голос и микрофон",
+    ["Voice AI and microphone"] = "Голосовой ИИ и микрофон",
     ["V’s voice engine"] = "Движок голоса V",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected."] = "Где находится V: район, квартира V или названное место, если игра его указывает.\n\nВыключено: персонажи не узнают, где вы, а мод перестаёт считывать это из игры. Зрение, которое Convai имеет о том, что видит V, и текст самого дополнения не меняются.",
     ["Who writes the replies."] = "Кто пишет ответы.",
     ["Who you can talk to and what they know."] = "С кем можно говорить и что они знают.",
-    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Ваша видеокарта AMD Radeon может запускать OmniVoice. Настройте его в Настройки > Голос и микрофон > OmniVoice для AMD: одна загрузка, потом он запустится сам. До тех пор говорит Pocket.",
+    ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Ваша видеокарта AMD Radeon может запускать OmniVoice. Настройте его в Настройки > Голосовой ИИ и микрофон > OmniVoice для AMD: одна загрузка, потом он запустится сам. До тех пор говорит Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Ваш Custom-эндпоинт не поддерживает зрение, поэтому учитываются только ваши слова.",
 }
