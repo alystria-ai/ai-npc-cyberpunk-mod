@@ -231,7 +231,7 @@ public final func ConvaiPhoneChatContact() -> String {
 }
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatTyping() -> Bool {
-    return IsDefined(this.m_convaiChatView) && this.m_convaiChatView.ConvaiChatTyping();
+    return (IsDefined(this.m_convaiChatView) && this.m_convaiChatView.ConvaiChatTyping()) || this.ConvaiPhoneChatSearchTyping();
 }
 // One line per step of opening a chat (the press, the page, the focus), for the probe log: mod/phone-chat.lua takes them on its 10 Hz tick and
 // logs them. Bounded, written only when a chat is opened or closed, never per frame.

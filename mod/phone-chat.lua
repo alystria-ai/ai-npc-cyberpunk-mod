@@ -460,6 +460,7 @@ end
 -- Rebuilt on demand (load, a custom character saved), never per frame; the next 10 Hz tick registers the new list with the game.
 local function rebuildContacts()
     for contact in pairs(M.names) do M.catalog[contact], M.names[contact] = nil, nil end
+    M.keyNames, M.searchWordsById = {}, nil
     local mapped = {}
     for _, key in pairs(M.catalog) do mapped[key] = true end
     local ids = {}
@@ -472,6 +473,7 @@ local function rebuildContacts()
     end
     table.sort(ids, function(a, b) return a.key < b.key end)
     for _, row in ipairs(ids) do
+        M.keyNames[row.key] = row.name
         if not mapped[row.key] and not M.catalog[row.key] then
             mapped[row.key], M.catalog[row.key], M.names[row.key] = true, row.key, row.name
             if M.store and type(M.store.contactProfiles) == 'table' and not M.resetStoreFault then M.store.contactProfiles[row.key] = row.key end
@@ -690,6 +692,96 @@ function M.pushParty(player, phoneOpen, elapsed)
     if sent then M.partySeen = signature else M.partyMissing = true end
 end
 
+-- Search on the Chat list (r6/scripts/CyberpunkConvai/PhoneChatSearch.reds, docs/PHONE_CHAT.md "Search on the Chat list"). The list asks when the player's text changes;
+-- this answers on the 10 Hz tick, and only while the phone is open, with the contact ids whose name has a word that starts with each word of the text. Case and accents are
+-- ignored on both sides (an accented letter counts as its plain letter). The words of every name are worked out once per registration of the contacts, not per question.
+function M.buildFoldMap()
+    local groups = {
+        a = 'àáâãäåāăąÀÁÂÃÄÅĀĂĄ', c = 'çćĉċčÇĆĈĊČ', d = 'ďđĎĐ', e = 'èéêëēĕėęěÈÉÊËĒĔĖĘĚ', g = 'ĝğġģĜĞĠĢ', h = 'ĥħĤĦ',
+        i = 'ìíîïĩīĭįıÌÍÎÏĨĪĬĮİ', j = 'ĵĴ', k = 'ķĶ', l = 'ĺļľŀłĹĻĽĿŁ', n = 'ñńņňÑŃŅŇ', o = 'òóôõöøōŏőÒÓÔÕÖØŌŎŐ',
+        r = 'ŕŗřŔŖŘ', s = 'śŝşšŚŜŞŠ', t = 'ţťŧŢŤŦ', u = 'ùúûüũūŭůűųÙÚÛÜŨŪŬŮŰŲ', w = 'ŵŴ', y = 'ýÿŷÝŸŶ', z = 'źżžŹŻŽ',
+    }
+    local map = {['ß'] = 'ss', ['æ'] = 'ae', ['Æ'] = 'ae', ['œ'] = 'oe', ['Œ'] = 'oe', ['ð'] = 'd', ['Ð'] = 'd', ['þ'] = 'th', ['Þ'] = 'th'}
+    for base, chars in pairs(groups) do
+        for ch in chars:gmatch('[\1-\127\194-\244][\128-\191]*') do map[ch] = base end
+    end
+    M.foldMap = map
+    return map
+end
+-- The text in lower case with accented Latin letters as their plain letters. Other scripts are kept as they are.
+function M.foldText(text)
+    if type(text) ~= 'string' then return '' end
+    if not text:find('[\128-\255]') then return text:lower() end
+    local map = M.foldMap or M.buildFoldMap()
+    local out = {}
+    for ch in text:gmatch('[\1-\127\194-\244][\128-\191]*') do
+        out[#out + 1] = #ch == 1 and ch:lower() or map[ch] or ch
+    end
+    return table.concat(out)
+end
+-- The words of a text (a run of anything but spaces and punctuation), folded.
+function M.searchWords(text)
+    local words = {}
+    for word in M.foldText(text):gmatch('[^%s%p]+') do words[#words + 1] = word end
+    return words
+end
+-- id -> the words of its name (the profile's name, else the key), made once after the contacts are registered.
+function M.searchIndex()
+    local index = M.searchWordsById
+    if index then return index end
+    index = {}
+    local names = M.keyNames or {}
+    for id, key in pairs(M.catalog) do index[id] = M.searchWords(M.names[id] or names[key] or key) end
+    M.searchWordsById = index
+    return index
+end
+-- The names the journal gives its contacts ("id", a tab, "name", a line each) as id -> words: a journal name can differ from the profile's (Coach Fred).
+function M.searchJournal(text)
+    if type(text) ~= 'string' or text == '' then return {} end
+    if M.searchJournalText == text then return M.searchJournalWords end
+    local out = {}
+    for id, name in text:sub(1, 60000):gmatch('([^\t\n]+)\t([^\n]*)') do out[id] = M.searchWords(name) end
+    M.searchJournalText, M.searchJournalWords = text, out
+    return out
+end
+-- The ids (sorted) whose name has, for every word of the query, a word that starts with it. A query with no words matches every contact.
+function M.searchIds(query, journal)
+    local wanted = M.searchWords(tostring(query or ''):sub(1, 200))
+    local index, extra, ids = M.searchIndex(), M.searchJournal(journal), {}
+    for id, words in pairs(index) do
+        local all = true
+        for _, want in ipairs(wanted) do
+            local found = false
+            for _, word in ipairs(words) do
+                if word:sub(1, #want) == want then found = true; break end
+            end
+            if not found and extra[id] then
+                for _, word in ipairs(extra[id]) do
+                    if word:sub(1, #want) == want then found = true; break end
+                end
+            end
+            if not found then all = false; break end
+        end
+        if all then ids[#ids + 1] = id end
+    end
+    table.sort(ids)
+    return ids
+end
+-- The list asked a new question (a number that only grows): answered once, with the number back. Older scripts without the methods are asked once.
+function M.takeSearch(player)
+    if M.searchMissing then return end
+    local ok, seq = pcall(function() return player:ConvaiPhoneChatSearchSeq() end)
+    if not ok then M.searchMissing = true; return end
+    if type(seq) ~= 'number' or seq <= 0 or seq == M.searchSeen then return end
+    M.searchSeen = seq
+    local okQuery, query = pcall(function() return player:ConvaiPhoneChatSearchQuery() end)
+    local okJournal, journal = pcall(function() return player:ConvaiPhoneChatSearchJournal() end)
+    if not okQuery then M.searchMissing = true; return end
+    local ids = M.searchIds(query, okJournal and journal or '')
+    local sent = pcall(function() player:ConvaiPhoneChatSearchResult(seq, table.concat(ids, '\n')) end)
+    if not sent then M.searchMissing = true end
+end
+
 function M.update(player, delta, phoneOpen)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
@@ -767,6 +859,7 @@ function M.update(player, delta, phoneOpen)
     M.takeFavoriteRequests(player)
     M.pushFavorites(player)
     M.pushParty(player, phoneOpen, elapsed)
+    if phoneOpen == true then M.takeSearch(player) end
     contact = tostring(contact or '')
     -- One evidence hook per typing session, on its rising edge. The native read is
     -- made only while a phone chat is open, on this 10 Hz tick.

@@ -94,6 +94,34 @@ key and the label. The star is the game's own favorite star of the Ripperdoc (`b
 `fav_star_small` and `fav_heart`): gold (the phone's own quest gold) for a favorite and the hints' blue for the others. On a pad (last used device) none of this changes: Cross, Triangle, the
 game's key boxes, no favorite hint. The V key no longer calls on a keyboard in the Chat list (the `call` action is read only on a pad); inside an open conversation V still calls.
 
+## Search on the Chat list (2026-10-31, branch `feat/phone-chat-search`; redscript, GAME RESTART; not yet seen in the game)
+
+With 700 or more people on the Chat list (the side characters included) the arrow keys, Page Down and the wheel are no way to reach "Panam Palmer". On a keyboard the Chat list has a search.
+
+**Keys.** **O** (or **/**) opens a one-line box. It takes the place of the phone's tab strip (CHAT, MESSAGES, CONTACTS) while it is open, and the bottom bar shows the key as "O Search" next to the favorite hint. The box has the keyboard at once. Typing filters the list live; the first match is selected.
+
+| In the box | Does |
+|---|---|
+| a letter or a digit | filters the list (T, H, F, J, L, R, V, A and D are letters here, not the list's keys) |
+| Up, Down | moves the selection through the matches (the list wraps) |
+| Enter | opens the chat of the selected match, as T does |
+| Esc | clears the text, closes the box, and the whole list is back around the selected person. The Esc does not also close the phone: a second Esc is the game's as before |
+| click on a row | opens that chat (the wheel scrolls the matches) |
+
+After a chat is closed again the search is still there (box open, not focused): T, H, F, Enter and a click work on the matches as on any list, **O** puts the keyboard back in the box, and Esc (or C) clears the search first. Changing tab, closing the phone or loading a save also ends it. On a pad there is no search key and no hint, as for T, H and F; the list is unchanged.
+
+**Matching** (`mod/phone-chat.lua` `searchIds`, the same rule as the Companion Manager's name search plus word starts): case and accents are ignored on both sides (an accented Latin letter counts as its plain letter, `ß` as `ss`), a name is split into words at spaces, hyphens and punctuation, and every typed word has to be the start of some word of the name. "pan" and "palm" both find Panam Palmer, "palm pan" does too, "amer" finds nobody. The names searched are the profile names (the roster, the player's own characters, content packs) plus the names the game's journal gives its own contacts (the list sends those along, so "fred" finds Coach Fred). Favorites stay first among the matches, then by name, because the list's own sort is used.
+
+**How it runs.** Nothing runs while the box is closed. A change of the text makes the list ask Lua (`PlayerPuppet.ConvaiPhoneChatSearchAsk`, a number that only grows); Lua answers on its 10 Hz tick while the phone is open, with the matching ids (`takeSearch`, `ConvaiPhoneChatSearchResult`), so a filter shows within about a tenth of a second. An answer for older text is dropped, and Enter pressed before the answer opens the first match of it. The words of the names are made once when the contacts are registered. The list is filled again from the rows it already built (`PhoneChatSearch.reds` keeps them), so a keystroke does not read the journal. An empty text is the whole list at once, with no question.
+
+**Typing is shut off from the game.** While the box has the keyboard, `PlayerPuppet.ConvaiPhoneChatTyping` is true (it also is for 0.4 s after the Esc that closed it): `mod/phone-input.lua` then keeps the game's menu keys (Esc, J) shut as it does for the conversation box, the list's key callbacks (T, H, F, J, L, O) stand down, and the phone's own actions that open or call (F, R, V, A and D for the tabs) are swallowed. The scroll wheel and key releases other than those pass.
+
+**Text.** The only new word is **Search** (the bottom bar's hint, made in English by `PhoneChatSearch.reds` and put in the interface language by `mod/phone-chat-style.lua`); it is in the catalogue and in the 15 other interface languages. The box has no placeholder. With no match the game's own empty-list line shows.
+
+**Why O.** The phone keeps the game's gameplay keys alive: movement keys, I, K, M and P (menus) and J are live while it is open, and the Chat list already uses T, H, F, J, L, R and C. O has no binding in the game's input mappings outside debug contexts, and `/` has none at all.
+
+Live check (to do, one game restart for the redscript): see TODO.md captain's log, 2026-10-31.
+
 ## History and memory
 
 History and per-contact drafts persist across game launches, save loads, bridge

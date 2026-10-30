@@ -183,6 +183,8 @@ private cb func OnConvaiPhoneKey(evt: ref<KeyInputEvent>) -> Void {
         || evt.IsControlDown() || evt.IsAltDown() || !IsDefined(this.m_contactListLogicController) {
         return;
     };
+    // Typing in the Chat list's search box: a J or L is a letter there too.
+    if this.ConvaiSearchTyping() { return; };
     // A Chat conversation (or its opening) owns the keyboard: a J or L typed there is a letter.
     if Equals(this.m_convaiChatState, ConvaiPhoneChatState.Opening) || Equals(this.m_convaiChatState, ConvaiPhoneChatState.Conversation) {
         return;

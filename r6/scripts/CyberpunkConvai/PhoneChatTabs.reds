@@ -227,6 +227,7 @@ private final func ConvaiSelectPhoneTab(index: Int32) -> Void {
     if index == this.ConvaiPhoneTabIndex() && !this.m_threadsVisible { return; };
     this.m_convaiChatGeneration += 1u;
     this.m_convaiChatState = ConvaiPhoneChatState.Off;
+    this.ConvaiSearchClose(false);
     this.m_messageToOpenHash = 0;
     if this.m_threadsVisible {
         this.m_threadsVisible = false;
@@ -294,10 +295,12 @@ private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
     this.m_screenType = PhoneScreenType.Contacts;
     this.m_convaiChatState = ConvaiPhoneChatState.List;
     this.m_contactListLogicController.SetSortMethod(ContactsSortMethod.ByName);
-    this.m_contactListLogicController.PopulateListData(contacts);
+    // With a search open (PhoneChatSearch.reds) only its matches are listed; the whole list is kept for the next change of the text.
+    let shown = this.ConvaiSearchRowsBuilt(contacts);
+    this.m_contactListLogicController.PopulateListData(shown);
     // A list built again for one contact (her favorite changed) keeps the selection on her, wherever the new order puts her.
     if StrLen(selectId) > 0 { this.m_contactListLogicController.ConvaiSelectChatContact(selectId); };
-    this.m_contactListLogicController.ConvaiShowChatTab(ArraySize(contacts) == 0);
+    this.m_contactListLogicController.ConvaiShowChatTab(ArraySize(shown) == 0);
 }
 
 @addMethod(NewHudPhoneGameController)
@@ -309,6 +312,11 @@ private cb func OnConvaiPhoneTab(evt: ref<ConvaiPhoneTabEvent>) -> Bool {
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnContactListAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
     let name = ListenerAction.GetName(action);
+    // Typing in the search box: the keys are letters, not the list's tab, open and call keys (PhoneChatSearch.reds).
+    if this.ConvaiSearchSwallows(action) {
+        ListenerActionConsumer.Consume(consumer);
+        return false;
+    };
     if Equals(ListenerAction.GetType(action), gameinputActionType.BUTTON_PRESSED) {
         let left = Equals(name, n"popup_moveLeft") || Equals(name, n"popup_prior");
         let right = Equals(name, n"popup_moveRight") || Equals(name, n"popup_next");
@@ -360,6 +368,7 @@ public func DisableContactsInput() -> Void {
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnUninitialize() -> Bool {
     this.ConvaiChatListKeysStop();
+    this.ConvaiSearchClose(false);
     return wrappedMethod();
 }
 
@@ -383,7 +392,11 @@ private final func ConvaiChatListKeysStart() -> Void {
     this.m_convaiChatListKeys = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatListKey")
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Press))
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_H, EInputAction.IACT_Press))
-        .AddTarget(ConvaiKeyTarget(EInputKey.IK_F, EInputAction.IACT_Press));
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_F, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_O, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Slash, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Up, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Down, EInputAction.IACT_Press));
     // A key target of the game 2.31 filters by the action, so the releases (which end a hold, see OnConvaiChatListKey) need targets of their own.
     if ConvaiKeyTargetsByAction() {
         this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Release));
@@ -435,6 +448,9 @@ private cb func OnConvaiChatListKey(evt: ref<KeyInputEvent>) -> Void {
     if !IsDefined(this.m_player) || !IsDefined(this.m_contactListLogicController) || evt.IsShiftDown() || evt.IsControlDown() || evt.IsAltDown() { return; };
     // Only the Chat list: a conversation (or its opening) owns the keyboard, and the other tabs are the game's.
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
+    // The search (PhoneChatSearch.reds): O or / opens it, and while the player types in its box every key is the box's (T, H and F are letters then).
+    if this.ConvaiSearchKey(key) { return; };
+    if Equals(key, EInputKey.IK_Up) || Equals(key, EInputKey.IK_Down) { return; };
     let selected = this.m_contactListLogicController.GetSelectedContactData();
     if !IsDefined(selected) || !selected.convaiChat { return; };
     if Equals(key, EInputKey.IK_T) {
@@ -481,6 +497,7 @@ public func SelectOtherTab() -> Void {
 @wrapMethod(NewHudPhoneGameController)
 public func SetScreenType(type: PhoneScreenType) -> Void {
     this.m_convaiChatState = ConvaiPhoneChatState.Off;
+    this.ConvaiSearchClose(false);
     this.m_convaiChatGeneration += 1u;
     wrappedMethod(type);
 }
@@ -631,6 +648,7 @@ protected cb func OnSmsMessageLostFocus(evt: ref<UnfocusSmsMessagerEvent>) -> Bo
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnContactListClosed() -> Bool {
     this.m_convaiChatState = ConvaiPhoneChatState.Off;
+    this.ConvaiSearchClose(false);
     this.m_convaiChatGeneration += 1u;
     return wrappedMethod();
 }
@@ -738,6 +756,7 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
             ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_showAllButtonWidget), n"kb_f");
             this.ConvaiFavoriteStarShow(contactData.convaiFavorite);
             inkWidgetRef.SetVisible(this.m_showAllButtonWidget, true);
+            this.ConvaiSearchHintShow(true);
             this.m_convaiKeyGlyphs = true;
         } else {
             this.ConvaiKeyGlyphsRestore();
@@ -760,6 +779,7 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
 // The three bottom hints as the game draws them (key boxes, the Show all label, no star).
 @addMethod(PhoneDialerLogicController)
 private final func ConvaiKeyGlyphsRestore() -> Void {
+    this.ConvaiSearchHintShow(false);
     if !this.m_convaiKeyGlyphs { return; };
     this.m_convaiKeyGlyphs = false;
     ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_acceptButtonWidget));

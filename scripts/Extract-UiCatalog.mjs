@@ -19,6 +19,7 @@ const files = [
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',
   'r6/scripts/CyberpunkConvai/PhoneChatTabs.reds',
+  'r6/scripts/CyberpunkConvai/PhoneChatSearch.reds',
   'r6/scripts/CyberpunkConvai/Manager.reds',
 ];
 
@@ -398,7 +399,7 @@ const reserved = {
 const nativeHandling = [
   { surface: 'world.composer', files: ['r6/scripts/CyberpunkConvai/Composer.reds', 'mod/composer-input.lua'],
     note: 'The title prefix TALK TO and exact English message currently identify this mod’s composer. Replace that ownership test with a language-independent marker before translating either. Do not identify every generic input by its translated text.' },
-  { surface: 'phone.chat', files: ['r6/scripts/CyberpunkConvai/PhoneChat.reds', 'r6/scripts/CyberpunkConvai/PhoneChatTabs.reds', 'mod/phone-chat-style.lua'],
+  { surface: 'phone.chat', files: ['r6/scripts/CyberpunkConvai/PhoneChat.reds', 'r6/scripts/CyberpunkConvai/PhoneChatTabs.reds', 'r6/scripts/CyberpunkConvai/PhoneChatSearch.reds', 'mod/phone-chat-style.lua'],
     note: 'Native creation sets CHAT/Chat and fallback Enter/Esc hints. Refresh existing widgets on locale change, and translate only mod-owned Chat widgets. The current ^ENTER status filter is English-specific. Native Messages/Contacts and game SMS stay game-localized.' },
   { surface: 'phone.contacts', files: ['r6/scripts/CyberpunkConvai/PhoneContacts.reds'],
     note: 'Immediate queued/unavailable feedback is created in redscript before Lua replies. It needs the same dictionary through a native bridge or a scoped Lua hook. J/L key textures and button codes are not translation strings.' },
