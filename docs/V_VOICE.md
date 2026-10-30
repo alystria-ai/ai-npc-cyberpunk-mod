@@ -42,7 +42,7 @@ said it yourself"). The player who turns it on has chosen the echo.
 waited for it and a line still going when the reply was ready was cut short (branch `feat/v-voice-mic`). That was reversed (branch `fix/v-mic-like-typed`): the
 spoken line is a normal `VLine`, spoken in full, and the reply follows it with the same ordering as a typed line ("What you hear, and in which order": V's first audio
 is waited for, 30 s at most; the reply's audio is held, published shortly before V's end and started when V has ended). Same engine choice (Pocket, Voxtral or
-OmniVoice), volume (the game's Dialogue volume and Voice volume), V's gender and reference, language rules (a language the engine cannot speak is skipped) and gates (no
+OmniVoice), volume (the game's Dialogue volume and V's voice volume, its own setting, not the companions' Voice volume), V's gender and reference, language rules (a language the engine cannot speak is skipped) and gates (no
 reaction, no phone Chat, only the first speaker of a group round). The subtitle is the live caption the microphone already shows. An empty recording (no speech), a
 cancelled turn and a transcript with nothing to say start no line. On OmniVoice the reply waits behind V's render and playback, as for a typed line.
 
