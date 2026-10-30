@@ -1335,8 +1335,12 @@ local function invitableProfiles()
     return invitableCache
 end
 
+-- M.switchedOff(key) -> true: the player switched this character off in the character editor (set by init.lua from mod/character-options.lua; a table lookup).
+-- Such a character is never a talk target or a listener, whatever the chat switch below says.
 function M.profileEnabled(key)
     loadSettings()
+    local off = M.switchedOff
+    if key ~= nil and off ~= nil and off(key) == true then return false end
     if key ~= nil and customKeyOf(key) == true then return true end
     if key ~= nil and archetypeKeys[key] and byKey[key] == nil then return settings.archetypeConversations ~= false end
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
