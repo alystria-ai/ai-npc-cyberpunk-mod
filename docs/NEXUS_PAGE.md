@@ -23,13 +23,13 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak and let go to send, or type. They answer out loud with subtitles, and now and then ask you something back. The microphone opens the instant you press, so your first words are not lost. Voice activation (Settings > Voice and microphone, off by default) is hands-free.
 [*][b]Key bindings and controller.[/b] Companion Manager > Key bindings gives each action a keyboard key, a combination such as Shift+F5, or a controller button, with no restart. Defaults: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat, F4 the Companion Manager.
 [*][b]Say a dialogue choice (off by default).[/b] Settings > Voice and microphone > Speak dialogue choices: say its words or its number to pick it.
-[*][b]The game's named cast and the whole city.[/b] 126 named characters, from Panam, Johnny, Judy, Takemura, Kerry, River and Alt Cunningham on, each with a personality researched from the game's lore. Everyone else you can aim at (gangers, NCPD, guards, ripperdocs, vendors, bartenders, quest extras, passers-by) answers as their kind of person: 40 kinds with 80 personalities. Shopkeepers remember you, and each passer-by gets a fitting Night City name, shown on the scanner and in subtitles.
+[*][b]The game's cast and the whole city.[/b] 700+ game characters with their own personality and story, from Judy and Panam to side characters like Mateo, the Mox bartender at Lizzie's, each researched from the game's lore. Invite them from Main characters to invite or Side characters to invite. Everyone else you can aim at (gangers, NCPD, guards, ripperdocs, vendors, bartenders, quest extras, passers-by) answers as their kind of person: 40 kinds with 80 personalities. Shopkeepers remember you, and each passer-by gets a fitting Night City name, shown on the scanner and in subtitles.
 [*][b]Talk has consequences.[/b] Threaten or insult an ordinary person and they react from who they are: civilians run or call the police, gangers and guards fight back. Settings > Night City > NPCs react to threats and commands (off by default) adds commands such as "get down" and fistfights.
 [*][b]Story characters where they stand.[/b] Settings > Conversations > Talk to story characters (off by default, reload your save): the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only.
 [*][b]Group chat.[/b] Two or three people at once, companions or anyone near you, taking turns. Nobody in front of you? Your party answers.
 [*][b]Phone Chat and holocalls.[/b] Text any character with a profile here, your own characters included, from the Chat tab on V's phone (on a contact: T text, H call, J invite, L dismiss, F favorite), or call them and watch them pick up on screen.
 [/list][b]Companions[/b][list]
-[*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. No party size limit. Favorites go first in the list and on the phone, and Companion Manager > Parties saves your party for one-press Spawn party.
+[*][b]Invite almost anyone[/b] from the two character lists, plus hundreds more character models from the Model browser. No party size limit. Favorites go first in the list and on the phone, and Companion Manager > Parties saves your party for one-press Spawn party.
 [*][b]Works with character spawning mods.[/b] Characters spawned by other mods, Night City Allies followers among them, talk too, as themselves when they have a profile here, and Lucy and Rita Wheeler have their own voices and memory.
 [*][b]They live alongside you.[/b] They follow through doors, lifts and fast travel, sit on couches and bar stools, ride in your car and fight with the game's own combat AI. At a calm moment they speak up, and two or more near chat among themselves (Settings > Conversations > Companions speak up). Ask one to drive ("can you drive us to the waypoint?") and they take the wheel.
 [*][b]Orders and reactions.[/b] Tag an enemy with your scanner (or look at them) and tell them to attack, or to leave (or use Dismiss in Current party). They comment on fights and loot (Settings > Companions > Companions react, on by default).
@@ -251,7 +251,7 @@ Character count of the summary (including spaces and punctuation): 265
 
 1. Text conversation with a character, opened with the talk-by-text key.
 2. Voice chat showing the "Listening" prompt.
-3. Companion Manager with the "Characters to invite" list.
+3. Companion Manager with the "Main characters to invite" list.
 4. Settings > AI provider, showing Local AI, Google Gemini and the Convai free tier.
 5. Group conversation with companions taking turns.
 6. Phone Chat with a holocall live on screen.
