@@ -402,12 +402,31 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
 runs both as a matrix job (`localai`) that uploads each zip to the `local-ai/` folder of the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs`, without a version in the file name (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
 `localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782, which ships in the Runtime (`app/llama-cpp/`, see "The engine is in the Runtime" below; since 0.2.9 the packs carry models only, `localAi.server.inPacks` is false, and need the Runtime of 0.2.7 or newer) (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
-DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
+DLLs are kept, no other command line tools), and one chat model (the Q8_0 granite embedding model of the memory search is in the Runtime, see "The embedding model is in the Runtime"): Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
 Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11782 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
 licence texts and `THIRD-PARTY-NOTICES.txt`; `prepare-state.mjs` points `CYBERPUNK_CONVAI_LOCAL_AI` there. With `--models local` the
 developer folder (`--local-ai-source`, default `CYBERPUNK_CONVAI_LOCAL_AI_DEV`) supplies the files, each still checked against its
 pinned hash. See `docs/PACKAGING.md`.
+
+### The embedding model is in the Runtime (2026-10-31, owner decision)
+
+The memory search (`bridge/local-embed.mjs`, `bridge/memory-store.mjs`) serves every text provider (Gemini, Custom, Mistral and Local AI), yet its embedding model, `granite-embedding-107m-multilingual` Q8_0
+(115 MiB, 384 dimensions), used to ride only in the Local AI and Mature packs, so a player without a pack had no memory search. It is now part of the **Runtime**: `app/models/embed/granite-embedding-107m-multilingual-Q8_0.gguf`
+(`localAi.embed.runtimeFolder`, `addRuntimeEmbed` in `packaging/build-release.mjs`, the Apache-2.0 text in `app/licenses/` and a line in the Runtime's notices). `localAi.embed.inPacks` is false, so the four packs carry no
+embedding model and their manifests and markers name no `embed`. The engine does not change: the Runtime's `app/llama-cpp/llama-server.exe` runs the model on the CPU (`--embedding --device none`, one thread), with or
+without a pack. Nothing was added for it: no second engine folder, no new notice, no new Help row.
+
+- **Lookup.** `detectLocalAiPack` prefers the Runtime's file (`CYBERPUNK_CONVAI_LOCAL_RUNTIME_EMBED`, which the service sets to the Runtime's real `app/models/embed/...`, else `<project>/models/embed/...`) and falls back to the
+  `embed` entry of a pack's manifest, so a pack of 0.2.9 to 0.4.x that still carries the model works as before on a Runtime without the model, and the Runtime's copy wins when both exist (the id is the same either way, so stored
+  memories stay valid). The developer layout keeps its own model. With no pack, `server` is the Runtime's engine and `embed` the Runtime's model, so `missing` is only `['model']`.
+- **Every combination.** (1) New Runtime and new pack: the Runtime's model, the Runtime's engine, nothing missing. (2) New Runtime and old pack: the Runtime's model is used, the pack's copy is dead weight. (3) Older Runtime and
+  new pack: no model anywhere, so `embed` is missing and memory behaves like the old last-8-plus-summary memory (the Scripts' `runtimeBase.required` should be raised in the release that ships this, so the setup check names a
+  Runtime that is too old). (4) Older Runtime and old pack: unchanged. (5) New Runtime, no pack, any provider: memory search works. (6) The Runtime's model removed by an antivirus tool: the pack's copy, else the old memory.
+- **Updates.** A Runtime update zip adds the model and the licence text (121 MB), removes nothing. Extracting the new packs over old ones leaves the old model file in `app/local-ai/models/` unused, and a player
+  may delete it (115 MiB). Nothing deletes it for them: `app/local-ai/` is protected from the removal list.
+- **Sizes.** The model is a GGUF the zip writer cannot shrink, so it costs its full size in a zip: the Runtime grows by 115.4 MiB (121 MB) on disk and in the zip, and each Local AI and Mature pack is 121 MB smaller to download and 115.4 MiB smaller on disk. Measured by a dry-run build of the lite pack: 1,333.1 MB (0.2.9 figure) to 1,212.1 MB.
+- **Tests:** `packaging/embed-in-runtime.test.mjs`.
 
 ### The engine is in the Runtime (2026-10-21)
 
@@ -1231,8 +1250,8 @@ provider logic read the status. A player with an own model file and a server of 
   and the turn's bracket says `no Local AI model is installed: add the Local AI pack or a model of your own` (it said `the Local AI pack is not installed`; the game shows the bracket as the bridge's
   own words after its translated sentence, like every other detail). A file of theirs but **no engine** (the Runtime older than 0.2.7 or its `llama-server.exe` gone) is `not-installed` with the
   detail `no-engine`: the log says `your own model cannot run: the Runtime has no Local AI engine ...: update or reinstall the Runtime` and the bracket says so.
-- **Memory still works without a pack.** The embedder needs the pack's embedding model (`pack.embed`), which a pack-less install does not have: memory falls back to the recent exchanges and the
-  summary, as it always did (this is documented above, "Memory"). Nothing was changed there.
+- **Memory works without a pack (2026-10-31).** The embedding model is in the Runtime ("The embedding model is in the Runtime"), so the memory search no longer needs a pack. Before that it needed the pack's
+  model (`pack.embed`) and fell back to the recent exchanges and the summary.
 - **Docs and text changed:** "Add your own model" here, `docs/NEXUS_PAGE.md` (the sentence "a Local AI or Mature pack must be installed" next to the own-file example) and
   `packaging/PLAYER_README.md` said a pack was needed. The Nexus text changed, so the owner pastes the new sentence.
 - **Tests:** `bridge/own-model-no-pack.test.mjs` (the helper, the real detection, the supervisor on the fake llama-server with a file, a pin, no engine, a failing file, an uncensored file, a server,
@@ -1506,7 +1525,7 @@ lasting records (facts, events, preferences, relationships, promises) with their
 and pinned bonuses, a threshold of 0.40, at most four records and 1,200 characters, injected into the last user message. Extraction
 and summaries run on the host's `gate` only: no combat for 30 s, nothing in flight, speaking or recording, and 20 s since the last turn;
 they are interrupted by the next turn. Forget (the Memory page) forgets per character or all, records and vectors included. If the
-embedding model is missing, memory behaves like the old last-8-plus-summary memory.
+embedding model is missing, memory behaves like the old last-8-plus-summary memory (the model is in the Runtime since 2026-10-31, "The embedding model is in the Runtime").
 
 Deviation from the brief: the brief asked for ONNX. The embedding model runs as a GGUF in `llama-server` instead, because the pack
 already ships that executable (no second runtime, no Python on the hot path) and it measured about 14 ms on one CPU core. Another backend
@@ -1604,14 +1623,14 @@ with Mature content on the default choice and the fallback prefer the largest on
   strings) are in the Runtime and Scripts packages.
 - The Mature packs carried the engine (2026-10-18 to 0.2.8; since 0.2.9 they carry models only and run on the Runtime's engine, see "The engine is in the Runtime"): so that a player who installs only a Mature pack has a working Local AI (before, they saw "No model
   installed"), each pack ships the same engine files as the Local AI packs, byte for byte and at the same paths: `app/local-ai/llama/` (llama-server and its
-  libraries, with the LLVM OpenMP licence), `models/granite-embedding-107m-multilingual-Q8_0.gguf`, `licenses/Apache-2.0.txt`, `licenses/llama.cpp-MIT.txt` and
+  libraries, with the LLVM OpenMP licence), `licenses/Apache-2.0.txt` (the embedding model was one of these files until it moved into the Runtime, 2026-10-31), `licenses/llama.cpp-MIT.txt` and
   `LICENSE.txt`. They come from the same pinned `localAi` inputs through one helper (`addEngine` in `packaging/build-release.mjs`), so installing a Local AI pack over a Mature pack, or
   the reverse, only overwrites identical files. The Mature marker names them like a Local AI manifest does: `{version: 1, pack: 'mature', server: 'llama/llama-server.exe', lite|good: {...}, embed: {file, dim, id}}`.
   `detectLocalAiPack` merges `server` and `embed` from the Mature markers (only when no Local AI manifest names them, and never a model entry, so a Mature `lite` is not the
   Local AI lite model); a Mature-only install counts as installed when the marker names a server whose file exists and a model file that exists. A marker of an older Mature pack
   has neither field, adds nothing, and works beside a Local AI pack as before (it alone is still no install). The root `THIRD-PARTY-NOTICES.txt` and the `local-ai-<tier>.json`
   receipts stay the Local AI packs'; each Mature pack lists llama.cpp, its OpenMP runtime and the IBM Granite embedding model in its own `mature/THIRD-PARTY-NOTICES-<tier>.txt`.
-  The packs are about 2.9 GB (lite: model 2.71 GB + embedding model 0.12 GB + llama-server) and about 5.5 GB (standard: model 5.34 GB + the same). The released Runtime's bridge needs
+  The packs are about 2.8 GB (lite: the model, 2.71 GB) and about 5.5 GB (standard: the model, 5.34 GB), without the embedding model since 2026-10-31 (it was 0.12 GB of each). The released Runtime's bridge needs
   `local-ai-pack.mjs`, `local-model-choice.mjs`, `local-llm-server.mjs`, `mistral-key.mjs`, `mature-pack.mjs` and `convai-bridge.mjs` patched for a Mature-only install to be detected; with the
   old bridge a Mature-only install still reads as no Local AI pack, and a Mature pack beside a Local AI pack works as it did.
 - Packaging of the pack: `maturePack` in `packaging/release.config.json` and `maturePackage` in `packaging/build-release.mjs`. It writes the

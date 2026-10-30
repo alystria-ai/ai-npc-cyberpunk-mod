@@ -4,6 +4,7 @@
 //   - V's voice: voices/v-voice/ holds the manifest and the clips assets/v-voice/v-voice.json names. The 0.2 and 0.2.1 Runtimes shipped
 //     without them, so V's typed lines had no voice to clone.
 //   - The llama.cpp engine in app/<localAi.server.runtimeFolder>/ (the server, llama-fit-params and the libraries they load).
+//   - The embedding model of the memory search in app/<localAi.embed.runtimeFolder>/ (every text provider's memory uses it; the engine above runs it on the CPU).
 //   - vgmstream in app/<toolchain.vgmstream.runtimeFolder>/ (vgmstream-cli.exe and the ten libraries it loads) with its licence texts: the decoder of a player's V voice
 //     mod (docs/PACKAGING.md, "vgmstream in the Runtime"). Without them a voice mod cannot be read.
 //   - The sign-in settings in app/defaults/convai-auth.json (packaging/lib/convai-auth.mjs): the Runtime ships no Convai key, and without this file the
@@ -40,6 +41,8 @@ export async function requiredRuntimeFiles(root, {signIn = true} = {}) {
     ...(signIn ? {"Runtime's sign-in settings": [`${app}/${AUTH_FILE}`]} : {}),
     // The llama.cpp engine of Local AI (docs/LOCAL_AI.md, "The engine is in the Runtime"): the update zips deliver engine fixes only if the Runtime carries it.
     'llama.cpp engine': config.localAi.server.require.map(name => `${app}/${config.localAi.server.runtimeFolder}/${name}`),
+    // The embedding model (docs/LOCAL_AI.md, "The embedding model is in the Runtime"): without it the memory search has nothing to search with unless an older pack carries the model.
+    'embedding model': [`${app}/${config.localAi.embed.runtimeFolder}/${config.localAi.embed.file}`],
     // vgmstream-cli and its libraries (the decoder of a player's V voice mod), and the licence texts that must travel with them.
     'vgmstream decoder': Object.keys(config.toolchain.vgmstream.files).map(name => `${app}/${config.toolchain.vgmstream.runtimeFolder}/${name}`),
     'vgmstream licences': Object.keys(config.toolchain.vgmstream.licences).map(name => `${app}/${config.toolchain.vgmstream.licenceFolder}/${name}`),

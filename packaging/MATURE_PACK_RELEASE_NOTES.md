@@ -1,10 +1,10 @@
 # Hugging Face page text: AI NPC Cyberpunk Mod: Mature packs (18+)
 
-Where it goes: only as optional files on this project's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in its `mature` folder), beside the Local AI packs in `local-ai`. There are two packs, Mature lite (`mature/Mature-Lite-Qwen3.5-4B.zip`) and Mature standard (`mature/Mature-Standard-Gemma-4-E4B.zip`), each one zip with no parts (each holds the memory model too and runs on the Runtime's engine, so it works alone; it needs the Runtime of version 0.2.7 or newer), uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds each pack from the private bucket's mirror in its own job, uploads it to the `mature` folder without a version in the name (the version goes in the commit message), and never runs on a tag push) or by hand (`python packaging/upload-packs.py --version <version> --pack mature-lite --packages <folder>`). Never on Nexus Mods and not on the GitHub release.
+Where it goes: only as optional files on this project's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in its `mature` folder), beside the Local AI packs in `local-ai`. There are two packs, Mature lite (`mature/Mature-Lite-Qwen3.5-4B.zip`) and Mature standard (`mature/Mature-Standard-Gemma-4-E4B.zip`), each one zip with no parts (each holds only its chat model, the memory model and the engine are in the Runtime, so it works alone, and it needs the Runtime of version 0.2.7 or newer), uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds each pack from the private bucket's mirror in its own job, uploads it to the `mature` folder without a version in the name (the version goes in the commit message), and never runs on a tag push) or by hand (`python packaging/upload-packs.py --version <version> --pack mature-lite --packages <folder>`). Never on Nexus Mods and not on the GitHub release.
 
 ## Short description
 
-Optional 18+ models for AI NPC Cyberpunk Mod, in two packs (Mature lite and Mature standard). Each works alone: it includes the memory model and uses the Local AI engine of the Runtime (version 0.2.7 or newer), so no Local AI pack is needed. They replace the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
+Optional 18+ models for AI NPC Cyberpunk Mod, in two packs (Mature lite and Mature standard). Each works alone: it includes its chat model, and the memory model and the Local AI engine are both in the Runtime (version 0.2.7 or newer), so no Local AI pack is needed. They replace the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
 
 ## Description
 
@@ -14,7 +14,7 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 
 **What it adds**
 
-- Two packs, each one zip with one uncensored model for **Local AI**: **Mature lite** (about 2.8 GB) and **Mature standard** (about 5.5 GB), running on your own graphics card. Each includes the memory model, the same file as in the Local AI packs, and runs on the llama.cpp engine of the Runtime (version 0.2.7 or newer), so it works without a Local AI pack. Install either one, or both.
+- Two packs, each one zip with one uncensored model for **Local AI**: **Mature lite** (about 2.8 GB) and **Mature standard** (about 5.5 GB), running on your own graphics card. The memory model is in the Runtime, and each runs on the llama.cpp engine of the Runtime (version 0.2.7 or newer), so it works without a Local AI pack. Install either one, or both.
 - With Mature content on: strong language, graphic violence, drug and cyberware-abuse talk, dark and morally grey themes, crude humour, and flirting, romance and sexual content between consenting adults.
 
 **What does not change**
@@ -37,11 +37,11 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 3. Start the game, open the Companion Manager, then Settings > Conversation provider.
 4. Turn on Mature content and Apply (this also selects Local AI).
 
-To turn it off, switch the setting off. With a Mature pack alone, Local AI then waits until Mature content is on again (or a Local AI pack is installed). To remove a pack, delete its marker (`manifest.mature-lite.json` or `manifest.mature-standard.json`) from the Local AI folder (and the model file listed in `mature/THIRD-PARTY-NOTICES-lite.txt` or `-standard.txt`); the memory model is shared with the Local AI packs, so leave it if you use one. The setting stays, and the standard models are used.
+To turn it off, switch the setting off. With a Mature pack alone, Local AI then waits until Mature content is on again (or a Local AI pack is installed). To remove a pack, delete its marker (`manifest.mature-lite.json` or `manifest.mature-standard.json`) from the Local AI folder (and the model file listed in `mature/THIRD-PARTY-NOTICES-lite.txt` or `-standard.txt`). The memory model is in the Runtime and stays. The setting stays, and the standard models are used.
 
 **Credits and licences**
 
-The models are community fine-tunes of Apache-2.0 base models: Qwen3.5-4B-HauhauCS-Aggressive (lite; Qwen3.5, Alibaba Cloud) and Gemma-4-E4B-MiniFantasy (good; Gemma 4 E4B, Google). The memory model is the unmodified IBM Granite embedding model (Apache-2.0). The llama.cpp engine (MIT) is part of the Runtime. Licence texts are in the pack. Not made by or connected to CD Projekt Red.
+The models are community fine-tunes of Apache-2.0 base models: Qwen3.5-4B-HauhauCS-Aggressive (lite; Qwen3.5, Alibaba Cloud) and Gemma-4-E4B-MiniFantasy (good; Gemma 4 E4B, Google). The memory model is the unmodified IBM Granite embedding model (Apache-2.0), and it is in the main mod's Runtime. The llama.cpp engine (MIT) is part of the Runtime. Licence texts are in the pack. Not made by or connected to CD Projekt Red.
 
 **AI disclosure**
 
