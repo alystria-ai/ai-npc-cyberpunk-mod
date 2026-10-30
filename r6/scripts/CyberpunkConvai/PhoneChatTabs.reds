@@ -297,6 +297,8 @@ private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
     this.m_contactListLogicController.SetSortMethod(ContactsSortMethod.ByName);
     // With a search open (PhoneChatSearch.reds) only its matches are listed; the whole list is kept for the next change of the text.
     let shown = this.ConvaiSearchRowsBuilt(contacts);
+    // The search row is the first row of the Chat list on a keyboard (PhoneChatSearch.reds); it is there before the rows are, so its word is translated with them.
+    this.ConvaiSearchRowSync();
     this.m_contactListLogicController.PopulateListData(shown);
     // A list built again for one contact (her favorite changed) keeps the selection on her, wherever the new order puts her.
     if StrLen(selectId) > 0 { this.m_contactListLogicController.ConvaiSelectChatContact(selectId); };
@@ -314,6 +316,7 @@ protected cb func OnContactListAction(action: ListenerAction, consumer: Listener
     let name = ListenerAction.GetName(action);
     // Typing in the search box: the keys are letters, not the list's tab, open and call keys (PhoneChatSearch.reds).
     if this.ConvaiSearchSwallows(action) {
+        this.ConvaiSearchHoldsPause(action, consumer);
         ListenerActionConsumer.Consume(consumer);
         return false;
     };
@@ -368,7 +371,7 @@ public func DisableContactsInput() -> Void {
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnUninitialize() -> Bool {
     this.ConvaiChatListKeysStop();
-    this.ConvaiSearchClose(false);
+    this.ConvaiSearchUninitialize();
     return wrappedMethod();
 }
 
@@ -396,7 +399,8 @@ private final func ConvaiChatListKeysStart() -> Void {
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_O, EInputAction.IACT_Press))
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_Slash, EInputAction.IACT_Press))
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_Up, EInputAction.IACT_Press))
-        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Down, EInputAction.IACT_Press));
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Down, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Escape, EInputAction.IACT_Release));
     // A key target of the game 2.31 filters by the action, so the releases (which end a hold, see OnConvaiChatListKey) need targets of their own.
     if ConvaiKeyTargetsByAction() {
         this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Release));
@@ -436,6 +440,11 @@ private cb func OnConvaiChatListKey(evt: ref<KeyInputEvent>) -> Void {
     let key = evt.GetKey();
     let pressed = Equals(evt.GetAction(), EInputAction.IACT_Press);
     if !pressed && NotEquals(evt.GetAction(), EInputAction.IACT_Release) { return; };
+    // Esc: only its coming up matters here, to the search that the Esc has just left (PhoneChatSearch.reds). The press is the box's own.
+    if Equals(key, EInputKey.IK_Escape) {
+        if !pressed { this.ConvaiSearchEscapeReleased(); };
+        return;
+    };
     if !pressed {
         if Equals(key, EInputKey.IK_T) { this.m_convaiChatKeyDownT = false; };
         if Equals(key, EInputKey.IK_H) { this.m_convaiChatKeyDownH = false; };

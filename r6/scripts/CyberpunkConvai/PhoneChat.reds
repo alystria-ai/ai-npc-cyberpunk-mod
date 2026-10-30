@@ -251,6 +251,7 @@ public final func ConvaiPhoneChatTakeTrace() -> String {
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatTick() -> Void {
     if IsDefined(this.m_convaiChatView) { this.m_convaiChatView.ConvaiChatAdvanceGuard(); };
+    this.ConvaiPhoneChatSearchTick();
 }
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatDraft() -> ref<ConvaiPhoneChatDraft> {

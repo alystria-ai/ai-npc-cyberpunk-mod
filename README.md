@@ -663,7 +663,7 @@ The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the g
 | `Composer.reds` | the text-box controller (the game owns the box; Lua asks it to open and collects the result) and the movement-key tracker that stops V walking on after a popup closes |
 | `Manager.reds` | the old Companion Manager window (nothing opens it since the manager became a settings page) and, still in use, the voice and subtitle on/off switches that `speech.lua`, `subtitles.lua` and `init.lua` read and `manager.lua` sets |
 | `PhoneChat.reds`, `PhoneChatTabs.reds`, `PhoneContacts.reds` | the Chat tab of the phone: presentation rows that never become quest journal entries, the third-tab state and the contact artwork |
-| `PhoneChatSearch.reds` | the search of the Chat list (O or /, a box in the place of the tab strip; Lua does the matching, `mod/phone-chat.lua` `searchIds`) |
+| `PhoneChatSearch.reds` | the search of the Chat list (O or /, a click: the first row of the list; Lua does the matching, `mod/phone-chat.lua` `searchIds`) |
 | `Holocall.reds` | holocalls with the mod's characters (the game's own call path is not used) |
 | `Face.reds`, `FaceFeature.reds` | chooses the face graph at spawn (companion graph, gated crowd graph) and the generated animation feature carrying the lip-sync controls |
 | `Engagement.reds` | one civilian's temporary hold and look-at during a conversation, released together |

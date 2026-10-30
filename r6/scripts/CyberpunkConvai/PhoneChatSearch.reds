@@ -5,14 +5,19 @@ import Codeware.UI.*
 @if(ModuleExists("Codeware.UI.TextInput"))
 import Codeware.UI.TextInput.*
 
-// Search on the phone's Chat list (docs/PHONE_CHAT.md, "Search on the Chat list"). On a keyboard, O (or /) opens a one-line box in the place of the
-// phone's tab strip; typing filters the list to the people whose name has a word that starts with each typed word; Enter opens the selected match,
-// Esc clears the search and closes the box.
+// Search on the phone's Chat list (docs/PHONE_CHAT.md, "Search on the Chat list"). On a keyboard the Chat list has a search row as its first row (above the
+// people, the same width, the O key shown in it). O, / or a click on the row puts the keyboard in it. Typing filters the list to the people whose name has a
+// word that starts with each typed word. Enter opens the selected match, Esc clears the search and leaves the row.
 //
-// Lua owns the matching (mod/phone-chat.lua searchIds: case and accent insensitive, word starts). The list asks on a change of the text and Lua answers on
-// its 10 Hz tick with the ids that match (PlayerPuppet.ConvaiPhoneChatSearchResult), so nothing runs per frame and nothing runs at all while the box is
-// closed. The whole Chat list is kept as it was built (m_convaiSearchRows) and the filtered list is filled from it, so a keystroke does not read the journal again.
-// Without Codeware's text input these scripts still compile: the box is never built and the key does nothing.
+// The row is drawn from plain ink widgets and costs nothing while it rests. Codeware's text input (which runs a 60 Hz animation tick of its own) is made only
+// when the search starts and taken away again when it ends. Lua owns the matching (mod/phone-chat.lua searchIds: case and accent insensitive, word starts).
+// The list asks on a change of the text and Lua answers on its 10 Hz tick with the ids that match (PlayerPuppet.ConvaiPhoneChatSearchResult), so nothing runs
+// per frame. The whole Chat list is kept as it was built (m_convaiSearchRows) and the filtered list is filled from it, so a keystroke does not read the
+// journal again. Without Codeware's text input these scripts still compile: no row is built and the key does nothing.
+//
+// The typing flag (ConvaiSearchTyping, read by mod/phone-input.lua to keep the game's menu keys shut) is true only while the focus really is in a box the player
+// can see on the Chat list, or for the few ticks after the Esc that left it (until that Esc has come up). It is checked against the live widgets every time it is
+// asked, and the Lua tick (ConvaiSearchTick) lets go of everything if the phone, the list or the box is no longer there. It never outlives the box.
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The text box
@@ -34,11 +39,12 @@ public class ConvaiPhoneSearchInput extends HubTextInput {
         return input;
     }
 
+    // The size of a Chat row of the game's list (1000 by 100 in the phone's 4K layout), with the text set like the names in the rows.
     protected func CreateWidgets() -> Void {
         super.CreateWidgets();
-        this.m_text.SetFontSize(32);
-        this.m_root.SetHeight(64.0);
-        this.m_wrapper.SetMargin(new inkMargin(16.0, 14.0, 16.0, 0.0));
+        this.m_text.SetFontSize(42);
+        this.m_root.SetHeight(100.0);
+        this.m_wrapper.SetMargin(new inkMargin(40.0, 28.0, 40.0, 0.0));
     }
 
     // Enter opens the selected match and Escape clears the search: neither reaches the text. Everything else is the box's own (caret, selection, clipboard).
@@ -84,6 +90,15 @@ public class ConvaiPhoneSearchInput extends HubTextInput {
         this.SetText(value);
         this.SetCaretPosition(UTF8StrLen(value));
     }
+
+    // The box is going away: its animation tick (every frame, in Codeware's text input) stops here, so a rested search row costs nothing.
+    public final func Stop() -> Void {
+        ArrayClear(this.m_keys);
+        if IsDefined(this.m_holdTickProxy) {
+            this.m_holdTickProxy.Stop();
+            this.m_holdTickProxy = null;
+        };
+    }
 }
 
 @if(!ModuleExists("Codeware.UI.TextInput"))
@@ -91,6 +106,10 @@ public class ConvaiPhoneSearchInput extends IScriptable {
     public static func Create(owner: wref<NewHudPhoneGameController>) -> ref<ConvaiPhoneSearchInput> {
         return null;
     }
+}
+
+// A click on the resting row: handled by the phone (the row's own widgets are plain ink, the box does not exist yet).
+public class ConvaiSearchOpenEvent extends Event {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -125,6 +144,8 @@ public final func ConvaiPhoneChatSearchJournal() -> String { return this.m_conva
 public final func ConvaiPhoneChatSearchResult(seq: Int32, ids: String) -> Void {
     if IsDefined(this.m_convaiSearchView) { this.m_convaiSearchView.ConvaiSearchApply(seq, ids); };
 }
+// The list that owns the search. It is set when a search starts and stays set (a weak reference) until the phone's controller is taken down: the typing
+// flag must be answerable by the list for as long as the list can be typing, and for the Esc that leaves it, after the search itself is over.
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatSearchView(view: wref<NewHudPhoneGameController>) -> Void { this.m_convaiSearchView = view; }
 // True while the player types in the search box (or has just pressed Esc in it): phone-input.lua then keeps the game's menu keys shut.
@@ -132,13 +153,18 @@ public final func ConvaiPhoneChatSearchView(view: wref<NewHudPhoneGameController
 public final func ConvaiPhoneChatSearchTyping() -> Bool {
     return IsDefined(this.m_convaiSearchView) && this.m_convaiSearchView.ConvaiSearchTyping();
 }
+// Lua's 10 Hz tick (ConvaiPhoneChatTick): the search lets go of everything that outlived its box.
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatSearchTick() -> Void {
+    if IsDefined(this.m_convaiSearchView) { this.m_convaiSearchView.ConvaiSearchTick(); };
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The Chat list
 
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchBox: ref<ConvaiPhoneSearchInput>;
-// The box is open (shown in the place of the tab strip). A filter is in force once an answer has come for the text.
+// A search is going on: the box exists (made when it starts, taken away when it ends). A filter is in force once an answer has come for the text.
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchOpen: Bool;
 @addField(NewHudPhoneGameController)
@@ -153,14 +179,26 @@ private let m_convaiSearchIds: array<String>;
 private let m_convaiSearchRows: array<ref<IScriptable>>;
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchJournal: String;
-@addField(NewHudPhoneGameController)
-private let m_convaiSearchStrip: wref<inkWidget>;
 // Enter was pressed before the answer for the text came: the first row of the answer is opened.
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchOpenOnAnswer: Bool;
-// The engine time until which an Esc that closed the box is still the box's (its game action must not close the phone).
+// The Esc that left the box: true from its press until it has come up again (the release is seen by the list's key callback) and two Lua ticks more,
+// and never for more than six ticks. While it is true the game's Esc and Back are the search's (they must not close the phone or open the pause menu).
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchGuardUntil: Float;
+private let m_convaiSearchEsc: Bool;
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchEscTicks: Int32;
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchEscFrames: Int32;
+// The engine time of that Esc: the flag is also dropped when it is older than a second and a half, if no tick has come to end it.
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchEscAt: Float;
+// The box is to be taken away at the next tick (it was left from inside its own key callback, where it cannot be removed), and the ticks the box has been
+// without the focus and without text (a search nobody is using ends by itself).
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchDrop: Bool;
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchIdle: Int32;
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchMuted: Bool;
 
@@ -170,11 +208,32 @@ public final func ConvaiSearchNow() -> Float {
     return EngineTime.ToFloat(GameInstance.GetEngineTime(this.m_player.GetGame()));
 }
 
-// The player is typing in the box: it has the focus on the Chat list, or the Esc that closed it has only just been pressed.
+// The player is typing in the box: the focus is in it, on the Chat list, in a phone the player can see, or the Esc that left it has not come up yet.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchTyping() -> Bool {
-    if this.m_convaiSearchGuardUntil > 0.0 && this.ConvaiSearchNow() < this.m_convaiSearchGuardUntil { return true; };
-    return this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) && this.ConvaiSearchBoxFocused();
+    if this.m_convaiSearchEsc {
+        if this.ConvaiSearchNow() - this.m_convaiSearchEscAt < 1.5 { return true; };
+        this.m_convaiSearchEsc = false;
+    };
+    return this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) && this.ConvaiSearchBoxFocused() && this.ConvaiSearchOnScreen();
+}
+
+// The Chat list is up and on the screen: the phone is open, no menu has hidden it (the game hides the phone's window while a menu is open), the dialer is shown.
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchOnScreen() -> Bool {
+    if !IsDefined(this.m_player) || !IsDefined(this.m_contactListLogicController) || !this.m_player.ConvaiPhoneIsOpen() { return false; };
+    return this.m_contactListLogicController.ConvaiSearchOnScreen() && this.GetRootWidget().IsVisible();
+}
+
+@if(ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchAvailable() -> Bool {
+    return true;
+}
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchAvailable() -> Bool {
+    return false;
 }
 
 @if(ModuleExists("Codeware.UI.TextInput"))
@@ -188,32 +247,23 @@ private final func ConvaiSearchBoxFocused() -> Bool {
     return false;
 }
 
-// The box is made once, beside the phone's tab strip (same parent, same place), and shown in place of it while the search is open.
+// The box is made when the search starts, inside the search row (above the row's own look, below its word and key), and shown at once.
 @if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiSearchBoxMake() -> Bool {
     if IsDefined(this.m_convaiSearchBox) { return true; };
-    let strip = this.m_contactListLogicController.ConvaiSearchStrip();
-    let parent = IsDefined(strip) ? strip.GetParentWidget() as inkCompoundWidget : null;
-    if !IsDefined(parent) { return false; };
+    if !IsDefined(this.m_contactListLogicController) { return false; };
+    let row = this.m_contactListLogicController.ConvaiSearchRow();
+    if !IsDefined(row) { return false; };
     let box = ConvaiPhoneSearchInput.Create(this);
-    box.SetWidth(780.0);
+    box.SetWidth(1000.0);
     let root = box.GetRootWidget();
     root.SetName(n"convaiPhoneSearch");
-    root.SetMargin(strip.GetMargin());
     root.SetHAlign(inkEHorizontalAlign.Left);
-    root.SetVAlign(strip.GetVAlign());
-    root.SetAffectsLayoutWhenHidden(false);
-    root.SetVisible(false);
-    let at = parent.GetNumChildren();
-    let i = 0;
-    while i < parent.GetNumChildren() {
-        if parent.GetWidgetByIndex(i) == strip { at = i; };
-        i += 1;
-    };
-    box.Reparent(parent, at);
+    root.SetVAlign(inkEVerticalAlign.Top);
+    root.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    box.Reparent(row, 2);
     box.RegisterToCallback(n"OnInput", this, n"OnConvaiSearchInput");
-    this.m_convaiSearchStrip = strip;
     this.m_convaiSearchBox = box;
     return true;
 }
@@ -223,22 +273,41 @@ private final func ConvaiSearchBoxMake() -> Bool {
     return false;
 }
 
-// Shows the box (and hides the tab strip) or the other way round. With focus, the player types at once.
+// The box is taken away: its tick stops, it loses the focus and leaves the row. Not from inside its own key callback (ConvaiSearchTick does that one).
 @if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(NewHudPhoneGameController)
-private final func ConvaiSearchBoxShow(visible: Bool, focus: Bool) -> Void {
+private final func ConvaiSearchBoxDrop() -> Void {
+    this.m_convaiSearchDrop = false;
     if !IsDefined(this.m_convaiSearchBox) { return; };
-    this.m_convaiSearchBox.GetRootWidget().SetVisible(visible);
-    if IsDefined(this.m_convaiSearchStrip) { this.m_convaiSearchStrip.SetVisible(!visible); };
-    if visible && focus {
-        this.m_convaiSearchBox.Guard(0.3);
-        this.RequestSetFocus(this.m_convaiSearchBox.GetRootWidget());
-    };
-    if !visible && this.m_convaiSearchBox.IsFocused() { this.RequestSetFocus(null); };
+    let box = this.m_convaiSearchBox;
+    this.m_convaiSearchBox = null;
+    box.Stop();
+    if box.IsFocused() { this.RequestSetFocus(null); };
+    let root = box.GetRootWidget();
+    let row = IsDefined(this.m_contactListLogicController) ? this.m_contactListLogicController.ConvaiSearchRow() : null;
+    if IsDefined(row) && IsDefined(root) { row.RemoveChild(root); };
 }
 @if(!ModuleExists("Codeware.UI.TextInput"))
 @addMethod(NewHudPhoneGameController)
-private final func ConvaiSearchBoxShow(visible: Bool, focus: Bool) -> Void {
+private final func ConvaiSearchBoxDrop() -> Void {
+    this.m_convaiSearchDrop = false;
+}
+
+// Focus in the box now (the player types at once), or off it while it waits to be taken away.
+@if(ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchBoxFocus(focus: Bool) -> Void {
+    if !IsDefined(this.m_convaiSearchBox) { return; };
+    if focus {
+        this.m_convaiSearchBox.Guard(0.3);
+        this.RequestSetFocus(this.m_convaiSearchBox.GetRootWidget());
+    } else {
+        if this.m_convaiSearchBox.IsFocused() { this.RequestSetFocus(null); };
+    };
+}
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchBoxFocus(focus: Bool) -> Void {
 }
 
 @if(ModuleExists("Codeware.UI.TextInput"))
@@ -265,6 +334,22 @@ private final func ConvaiSearchBoxClear() -> Void {
 private final func ConvaiSearchBoxClear() -> Void {
 }
 
+// The search row of the Chat list, shown when the list is built for a keyboard (and only when Codeware's text input is there to type in).
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchRowSync() -> Void {
+    if !IsDefined(this.m_contactListLogicController) { return; };
+    let show = this.ConvaiSearchAvailable() && IsDefined(this.m_player) && this.m_player.PlayerLastUsedKBM();
+    this.m_contactListLogicController.ConvaiSearchRowShow(show);
+    if show { this.m_contactListLogicController.ConvaiSearchRowLook(this.m_convaiSearchOpen, StrLen(this.ConvaiSearchBoxText()) == 0); };
+}
+
+// A click on the resting row.
+@addMethod(NewHudPhoneGameController)
+private cb func OnConvaiSearchOpenEvent(evt: ref<ConvaiSearchOpenEvent>) -> Bool {
+    this.ConvaiSearchOpen();
+    return true;
+}
+
 // The key that opens the search (O or /), and Up and Down while the player types (the list's own keys do not reach a list whose focus is in the box).
 // Returns true when the key is the search's: opened or taken by the box.
 @if(ModuleExists("Codeware"))
@@ -282,12 +367,16 @@ private final func ConvaiSearchKey(key: EInputKey) -> Bool {
     return false;
 }
 
+// Starts the search (or puts the keyboard back in its box): the row is made if it is not there, the box is made inside it and takes the focus.
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiSearchOpen() -> Void {
     if !IsDefined(this.m_player) || !IsDefined(this.m_contactListLogicController) || NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
     // The key box of a keyboard: a pad has no such key and no hint for it.
-    if !this.m_player.PlayerLastUsedKBM() { return; };
+    if !this.m_player.PlayerLastUsedKBM() || !this.ConvaiSearchAvailable() { return; };
+    this.m_contactListLogicController.ConvaiSearchRowShow(true);
     if !this.ConvaiSearchBoxMake() { return; };
+    this.m_convaiSearchDrop = false;
+    this.m_convaiSearchIdle = 0;
     if !this.m_convaiSearchOpen {
         this.m_convaiSearchOpen = true;
         this.m_convaiSearchFilter = false;
@@ -297,7 +386,8 @@ private final func ConvaiSearchOpen() -> Void {
         this.m_player.ConvaiPhoneChatSearchView(this);
         this.m_player.ConvaiPhoneChatTrace("search: opened");
     };
-    this.ConvaiSearchBoxShow(true, true);
+    this.m_contactListLogicController.ConvaiSearchRowLook(true, StrLen(this.ConvaiSearchBoxText()) == 0);
+    this.ConvaiSearchBoxFocus(true);
 }
 
 // The text changed (the box's own OnInput): an empty text shows the whole list at once, any other text is asked of Lua.
@@ -305,6 +395,7 @@ private final func ConvaiSearchOpen() -> Void {
 private cb func OnConvaiSearchInput(widget: wref<inkWidget>) -> Bool {
     if !this.m_convaiSearchOpen || this.m_convaiSearchMuted || !IsDefined(this.m_player) { return false; };
     let text = this.ConvaiSearchBoxText();
+    this.m_contactListLogicController.ConvaiSearchRowLook(true, StrLen(text) == 0);
     if StrLen(text) == 0 {
         this.m_convaiSearchSeq = -1;
         this.m_convaiSearchFilter = false;
@@ -367,44 +458,105 @@ public final func ConvaiSearchEnter() -> Void {
     if IsDefined(selected) && selected.convaiChat { this.ConvaiOpenChat(selected, true); };
 }
 
-// Esc in the box: the search is cleared and the box closes; the Esc must not also close the phone (the guard keeps its game action and Back away for a moment).
+// Esc in the box: the search is cleared and the box is left (the whole list is back around the selected person). That Esc must not also close the phone or open the
+// pause menu: it is the search's until it has come up again (m_convaiSearchEsc, which the game's actions and phone-input.lua both honour through the typing flag).
+// The box itself is taken away at the next tick, not here: this runs inside its own key callback.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchEscape() -> Void {
     if !this.m_convaiSearchOpen { return; };
-    this.m_convaiSearchGuardUntil = this.ConvaiSearchNow() + 0.4;
-    this.ConvaiSearchClose(true);
+    this.m_convaiSearchEsc = true;
+    this.m_convaiSearchEscAt = this.ConvaiSearchNow();
+    this.m_convaiSearchEscTicks = 0;
+    this.m_convaiSearchEscFrames = 0;
+    this.ConvaiSearchEnd(true, true);
 }
 
-// Closes the search: the text is cleared, the whole list is back (built again around the selected contact when `rebuild`), and the tab strip is shown.
+// The Esc key came up (the list's key callback): two Lua ticks more and the Esc is the game's again.
 @addMethod(NewHudPhoneGameController)
-public final func ConvaiSearchClose(rebuild: Bool) -> Void {
-    if !this.m_convaiSearchOpen { return; };
+public final func ConvaiSearchEscapeReleased() -> Void {
+    if this.m_convaiSearchEsc && this.m_convaiSearchEscFrames == 0 { this.m_convaiSearchEscFrames = 2; };
+}
+
+// The search ends: the text is cleared, the box loses the focus (and is taken away now, or at the next tick when `later`), and the whole list is back
+// (built again around the selected contact when `rebuild`). The row stays, at rest.
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void {
+    if !this.m_convaiSearchOpen && !this.m_convaiSearchDrop && !IsDefined(this.m_convaiSearchBox) { return; };
     let selectId = "";
     if rebuild && IsDefined(this.m_contactListLogicController) {
         let selected = this.m_contactListLogicController.GetSelectedContactData();
         if IsDefined(selected) { selectId = selected.id; };
     };
+    let wasOpen = this.m_convaiSearchOpen;
     this.m_convaiSearchOpen = false;
     this.m_convaiSearchFilter = false;
     this.m_convaiSearchOpenOnAnswer = false;
     this.m_convaiSearchSeq = -1;
+    this.m_convaiSearchIdle = 0;
     ArrayClear(this.m_convaiSearchIds);
     this.ConvaiSearchBoxClear();
-    this.ConvaiSearchBoxShow(false, false);
-    if IsDefined(this.m_player) {
-        this.m_player.ConvaiPhoneChatSearchView(null);
-        this.m_player.ConvaiPhoneChatTrace("search: closed");
-    };
+    this.ConvaiSearchBoxFocus(false);
+    if later { this.m_convaiSearchDrop = true; } else { this.ConvaiSearchBoxDrop(); };
+    if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiSearchRowLook(false, true); };
+    if wasOpen && IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatTrace("search: closed"); };
     if rebuild && IsDefined(this.m_contactListLogicController) && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) { this.ConvaiShowChatContacts(selectId); };
 }
 
-// The game's Back (C, and Esc when it is not in the box): with the search open it closes the search first, as Esc in the box does.
+// Everything the search holds is let go, and the row goes away (a tab change, the phone closing, a load, anything that leaves the Chat list). Nothing is rebuilt.
+// Costs nothing when there is no search and no row.
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiSearchClose(rebuild: Bool) -> Void {
+    this.m_convaiSearchEsc = false;
+    this.m_convaiSearchEscTicks = 0;
+    this.m_convaiSearchEscFrames = 0;
+    this.ConvaiSearchEnd(rebuild, false);
+    if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiSearchRowShow(false); };
+}
+
+// The phone's controller is being taken down (a load, leaving the game): the search lets go of everything and the player forgets the list.
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiSearchUninitialize() -> Void {
+    this.ConvaiSearchClose(false);
+    if IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatSearchView(null); };
+}
+
+// Lua's 10 Hz tick. The failsafes live here: the Esc flag ends by itself, a box left from its own callback is taken away, a search nobody uses ends, and
+// a search whose phone or list is no longer on the screen is let go of whole, whatever closed it.
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiSearchTick() -> Void {
+    if this.m_convaiSearchEsc {
+        this.m_convaiSearchEscTicks += 1;
+        if this.m_convaiSearchEscFrames > 0 {
+            this.m_convaiSearchEscFrames -= 1;
+            if this.m_convaiSearchEscFrames == 0 { this.m_convaiSearchEsc = false; };
+        } else {
+            if this.m_convaiSearchEscTicks >= 6 { this.m_convaiSearchEsc = false; };
+        };
+    };
+    if !this.m_convaiSearchOpen && !this.m_convaiSearchDrop && !IsDefined(this.m_convaiSearchBox) { return; };
+    if !this.ConvaiSearchOnScreen() {
+        this.ConvaiSearchClose(false);
+        return;
+    };
+    if this.m_convaiSearchDrop {
+        this.ConvaiSearchBoxDrop();
+        return;
+    };
+    if this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
+        if !this.ConvaiSearchBoxFocused() && StrLen(this.ConvaiSearchBoxText()) == 0 {
+            this.m_convaiSearchIdle += 1;
+            if this.m_convaiSearchIdle >= 3 { this.ConvaiSearchEnd(false, false); };
+        } else { this.m_convaiSearchIdle = 0; };
+    };
+}
+
+// The game's Back (C, and Esc when it is not in the box): with a search in force it ends the search first, as Esc in the box does. The Esc that has just left the box
+// is not a Back.
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiSearchBackHandled() -> Bool {
-    if this.m_convaiSearchGuardUntil > 0.0 && this.ConvaiSearchNow() < this.m_convaiSearchGuardUntil { return true; };
+    if this.m_convaiSearchEsc { return true; };
     if this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
-        this.m_convaiSearchGuardUntil = this.ConvaiSearchNow() + 0.4;
-        this.ConvaiSearchClose(true);
+        this.ConvaiSearchEnd(true, false);
         return true;
     };
     return false;
@@ -429,12 +581,177 @@ private final func ConvaiSearchSwallows(action: ListenerAction) -> Bool {
         || Equals(name, n"secondaryAction") || Equals(name, n"showAll") || Equals(name, n"popup_goto") || Equals(name, n"popup_goto_messenger");
 }
 
+// The Esc that the search swallows must not come up as the game's: the phone itself marks the press of the pause action this way (its list input does
+// DontSendReleaseEvent on it), so no release reaches the pause menu, which opens on the release. A press the search swallows without this leaves a release behind that
+// opens the pause menu over the open phone (30 Oct live test: the pause menu opened and then ignored every click and key).
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchHoldsPause(action: ListenerAction, consumer: ListenerActionConsumer) -> Void {
+    if Equals(ListenerAction.GetName(action), n"OpenPauseMenu") && Equals(ListenerAction.GetType(action), gameinputActionType.BUTTON_PRESSED) {
+        ListenerActionConsumer.DontSendReleaseEvent(consumer);
+    };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The list of the phone
 
+// The look of the row. The word and the key are plain ink, the word is put in the interface language by mod/phone-chat-style.lua (convaiSearchPlaceholder).
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchRow: wref<inkCanvas>;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchPlaceholder: wref<inkText>;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchCap: wref<inkImage>;
+// The list's scroll area and scroll bar are moved down by the height of the row while the row shows, and put back when it goes.
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchArea: wref<inkWidget>;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchShifted: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchAreaMargin: inkMargin;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchAreaSize: Vector2;
+@addField(PhoneDialerLogicController)
+private let m_convaiSearchBarMargin: inkMargin;
+
+// The row, made once beside the list's scroll area (in the panel that holds it, in front of the gradient mask that fades the list so the row is not faded):
+// the dark bar and the thin line of a field, the word Search and the O key. It is 1000 by 100 like a Chat row, at the left of the scroll area's width.
 @addMethod(PhoneDialerLogicController)
-public final func ConvaiSearchStrip() -> wref<inkWidget> {
-    return IsDefined(this.m_menuSelectorCtrl) ? this.m_menuSelectorCtrl.GetRootWidget() : null;
+private final func ConvaiSearchRowMake() -> Bool {
+    if IsDefined(this.m_convaiSearchRow) { return true; };
+    let list = inkWidgetRef.Get(this.m_contactsList);
+    let area = IsDefined(list) ? list.GetParentWidget() : null;
+    let holder = IsDefined(area) ? area.GetParentWidget() as inkCompoundWidget : null;
+    if !IsDefined(holder) { return false; };
+    let row = new inkCanvas();
+    row.SetName(n"convaiPhoneSearchRow");
+    row.SetSize(new Vector2(1100.0, 100.0));
+    row.SetHAlign(inkEHorizontalAlign.Right);
+    row.SetVAlign(inkEVerticalAlign.Top);
+    row.SetMargin(new inkMargin(0.0, 0.0, area.GetMargin().right, 0.0));
+    row.SetInteractive(true);
+    row.SetAffectsLayoutWhenHidden(false);
+    row.SetVisible(false);
+    let bar = new inkRectangle();
+    bar.SetName(n"convaiSearchRowBar");
+    bar.SetSize(new Vector2(1000.0, 100.0));
+    bar.SetHAlign(inkEHorizontalAlign.Left);
+    bar.SetVAlign(inkEVerticalAlign.Top);
+    bar.SetInteractive(false);
+    bar.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+    bar.BindProperty(n"tintColor", n"MainColors.Fullscreen_PrimaryBackgroundDarkest");
+    bar.SetOpacity(0.55);
+    bar.Reparent(row);
+    let line = new inkRectangle();
+    line.SetName(n"convaiSearchRowLine");
+    line.SetSize(new Vector2(1000.0, 2.0));
+    line.SetHAlign(inkEHorizontalAlign.Left);
+    line.SetVAlign(inkEVerticalAlign.Bottom);
+    line.SetInteractive(false);
+    line.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+    line.BindProperty(n"tintColor", n"MainColors.Blue");
+    line.SetOpacity(0.45);
+    line.Reparent(row);
+    // The box goes in at index 2 (ConvaiSearchBoxMake), under the word and the key.
+    let word = new inkText();
+    word.SetName(n"convaiSearchPlaceholder");
+    word.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+    word.SetFontStyle(n"Medium");
+    word.SetFontSize(42);
+    word.SetFitToContent(true);
+    word.SetHAlign(inkEHorizontalAlign.Left);
+    word.SetVAlign(inkEVerticalAlign.Center);
+    word.SetMargin(new inkMargin(40.0, 0.0, 0.0, 0.0));
+    word.SetInteractive(false);
+    word.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+    word.BindProperty(n"tintColor", n"MainColors.Blue");
+    word.SetOpacity(0.8);
+    word.SetText("Search");
+    word.Reparent(row);
+    let cap = ConvaiFavoriteArt.KeyCap(n"kb_o");
+    cap.SetHAlign(inkEHorizontalAlign.Left);
+    cap.SetVAlign(inkEVerticalAlign.Top);
+    cap.SetMargin(new inkMargin(906.0, 18.0, 0.0, 0.0));
+    cap.Reparent(row);
+    row.Reparent(holder, 0);
+    row.RegisterToCallback(n"OnRelease", this, n"OnConvaiSearchRowClick");
+    this.m_convaiSearchRow = row;
+    this.m_convaiSearchPlaceholder = word;
+    this.m_convaiSearchCap = cap;
+    this.m_convaiSearchArea = area;
+    return true;
+}
+
+@addMethod(PhoneDialerLogicController)
+private cb func OnConvaiSearchRowClick(evt: ref<inkPointerEvent>) -> Bool {
+    if evt.IsAction(n"click") {
+        this.QueueEvent(new ConvaiSearchOpenEvent());
+        evt.Handle();
+    };
+    return true;
+}
+
+// Shows the row (made on first use) and moves the list down by its height, or hides it and puts the list back. Costs nothing when there is no row to hide.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSearchRowShow(visible: Bool) -> Void {
+    if !visible && !IsDefined(this.m_convaiSearchRow) { return; };
+    if visible && !this.ConvaiSearchRowMake() { return; };
+    this.m_convaiSearchRow.SetVisible(visible);
+    this.ConvaiSearchShift(visible);
+}
+
+@addMethod(PhoneDialerLogicController)
+private final func ConvaiSearchShift(on: Bool) -> Void {
+    if Equals(on, this.m_convaiSearchShifted) || !IsDefined(this.m_convaiSearchArea) { return; };
+    let bar = inkWidgetRef.Get(this.m_scrollBarWidget);
+    if on {
+        let margin = this.m_convaiSearchArea.GetMargin();
+        let size = this.m_convaiSearchArea.GetSize();
+        this.m_convaiSearchAreaMargin = margin;
+        this.m_convaiSearchAreaSize = size;
+        this.m_convaiSearchArea.SetMargin(new inkMargin(margin.left, margin.top + 100.0, margin.right, margin.bottom));
+        this.m_convaiSearchArea.SetSize(new Vector2(size.X, MaxF(200.0, size.Y - 100.0)));
+        if IsDefined(bar) {
+            let barMargin = bar.GetMargin();
+            this.m_convaiSearchBarMargin = barMargin;
+            bar.SetMargin(new inkMargin(barMargin.left, barMargin.top + 100.0, barMargin.right, barMargin.bottom));
+        };
+    } else {
+        this.m_convaiSearchArea.SetMargin(this.m_convaiSearchAreaMargin);
+        this.m_convaiSearchArea.SetSize(this.m_convaiSearchAreaSize);
+        if IsDefined(bar) { bar.SetMargin(this.m_convaiSearchBarMargin); };
+    };
+    this.m_convaiSearchShifted = on;
+}
+
+// The row at rest or in use: the word shows while there is no text (dim while the box has the keyboard), the O key while the row rests.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSearchRowLook(active: Bool, empty: Bool) -> Void {
+    if IsDefined(this.m_convaiSearchPlaceholder) {
+        this.m_convaiSearchPlaceholder.SetVisible(empty);
+        this.m_convaiSearchPlaceholder.SetOpacity(active ? 0.45 : 0.8);
+    };
+    if IsDefined(this.m_convaiSearchCap) { this.m_convaiSearchCap.SetVisible(!active); };
+}
+
+// The box is made inside this canvas.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSearchRow() -> wref<inkCompoundWidget> {
+    return this.m_convaiSearchRow;
+}
+
+// The row is on the screen: it and everything above it up to the top of the phone's window are shown (the dialer hides itself when the list closes,
+// and the game hides the phone's window while a menu is open).
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSearchOnScreen() -> Bool {
+    let widget: wref<inkWidget> = this.m_convaiSearchRow;
+    if !IsDefined(widget) { return false; };
+    let steps = 0;
+    while IsDefined(widget) && steps < 40 {
+        if !widget.IsVisible() { return false; };
+        widget = widget.GetParentWidget();
+        steps += 1;
+    };
+    return true;
 }
 
 // The Chat list filled again with these rows (already the matches, or all of them), the first row selected.

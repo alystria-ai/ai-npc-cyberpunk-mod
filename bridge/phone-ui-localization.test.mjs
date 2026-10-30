@@ -412,6 +412,11 @@ m.action(nested,{convaiChat=true},true);assert(label.text=='Favori')
 local search=widget('convaiSearchHintLabel');search:Reparent(hints);search.text='Search'
 m.action(nested,{convaiChat=true},true);assert(search.text=='Rechercher',search.text)
 search.text='Anything else';m.action(nested,{convaiChat=true},true);assert(search.text=='Anything else')
+-- The word of the search row (the first row of the Chat list) is translated the same way, wherever it sits in the window, and only while it holds the English word.
+local list=widget('contentPanel');list:Reparent(root);local contents=widget('contents');contents:Reparent(list)
+local rowWidget=widget('convaiPhoneSearchRow');rowWidget:Reparent(contents);local word=widget('convaiSearchPlaceholder');word:Reparent(rowWidget);word.text='Search'
+m.action(nested,{convaiChat=true},true);assert(word.text=='Rechercher',word.text)
+word.text='Typed';m.action(nested,{convaiChat=true},true);assert(word.text=='Typed')
 `));
 
 test('Chat action and breadcrumb translation are gated by native ownership and restore through the game', () => runLua(setup + `

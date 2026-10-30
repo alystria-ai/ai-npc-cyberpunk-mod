@@ -145,18 +145,63 @@ test('Lua: scripts without the methods are given up on once and break nothing', 
   assert(calls == 0, 'and never again')
 `));
 
-test('redscript: O or / opens the box on the Chat list, in the place of the tab strip, for a keyboard only', () => {
-  const open = /private final func ConvaiSearchOpen\(\) -> Void \{([^]*?)\n\}\n/.exec(search)[1];
+const body = (source, signature) => {
+  const at = source.indexOf(signature);
+  assert.ok(at >= 0, 'missing: ' + signature);
+  const open = source.indexOf('{', at);
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(open + 1, i);
+  }
+  assert.fail('unbalanced: ' + signature);
+};
+const chatReds = strip(text('../r6/scripts/CyberpunkConvai/PhoneChat.reds'));
+
+test('redscript: O, / or a click on the row starts the search on the Chat list, for a keyboard only', () => {
+  const open = body(search, 'private final func ConvaiSearchOpen() -> Void');
   assert.match(open, /NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{ return; \};/, 'the list only');
-  assert.match(open, /if !this\.m_player\.PlayerLastUsedKBM\(\) \{ return; \};/, 'no search on a pad');
+  assert.match(open, /if !this\.m_player\.PlayerLastUsedKBM\(\) \|\| !this\.ConvaiSearchAvailable\(\) \{ return; \};/, 'no search on a pad');
   assert.match(search, /Equals\(key, EInputKey\.IK_O\) \|\| Equals\(key, EInputKey\.IK_Slash\)/);
+  assert.match(search, /public class ConvaiSearchOpenEvent extends Event/);
+  assert.match(search, /private cb func OnConvaiSearchOpenEvent\(evt: ref<ConvaiSearchOpenEvent>\) -> Bool \{\s*this\.ConvaiSearchOpen\(\);/);
+  assert.match(search, /row\.RegisterToCallback\(n"OnRelease", this, n"OnConvaiSearchRowClick"\);/);
+  assert.match(search, /if evt\.IsAction\(n"click"\) \{\s*this\.QueueEvent\(new ConvaiSearchOpenEvent\(\)\);/);
   // The key targets of the list's callback carry the two opening keys and the two arrows, and it asks the search first, before T, H and F.
   for (const key of ['IK_O', 'IK_Slash', 'IK_Up', 'IK_Down']) assert.match(tabs, new RegExp('AddTarget\\(ConvaiKeyTarget\\(EInputKey\\.' + key + ', EInputAction\\.IACT_Press\\)\\)'), key);
   assert.match(tabs, /if this\.ConvaiSearchKey\(key\) \{ return; \};[^]*?let selected = [^]*?if Equals\(key, EInputKey\.IK_T\)/);
-  // The box takes the strip's place: same parent, same margin, the strip hidden while the box shows.
-  assert.match(search, /strip\.GetParentWidget\(\) as inkCompoundWidget/);
-  assert.match(search, /root\.SetMargin\(strip\.GetMargin\(\)\);/);
-  assert.match(search, /this\.m_convaiSearchStrip\.SetVisible\(!visible\)/);
+});
+
+test('redscript: the search is the first row of the Chat list, plain widgets at rest, in the scroll area\'s own place, not in the tab strip', () => {
+  const make = body(search, 'private final func ConvaiSearchRowMake() -> Bool');
+  // The holder is the panel of the scroll area (list, then its scroll area, then the panel), the row is put in front of the list's gradient mask.
+  assert.match(make, /let list = inkWidgetRef\.Get\(this\.m_contactsList\);\s*let area = IsDefined\(list\) \? list\.GetParentWidget\(\) : null;\s*let holder = IsDefined\(area\) \? area\.GetParentWidget\(\) as inkCompoundWidget : null;/);
+  assert.match(make, /row\.Reparent\(holder, 0\);/);
+  assert.match(make, /row\.SetHAlign\(inkEHorizontalAlign\.Right\);[^]*?row\.SetVAlign\(inkEVerticalAlign\.Top\);[^]*?area\.GetMargin\(\)\.right/, 'aligned as the scroll area is');
+  assert.match(make, /bar\.SetSize\(new Vector2\(1000\.0, 100\.0\)\)/, 'the size of a Chat row of the game');
+  assert.match(make, /n"convaiSearchPlaceholder"[^]*?word\.SetText\("Search"\);/);
+  assert.match(make, /ConvaiFavoriteArt\.KeyCap\(n"kb_o"\)/, 'the O key is in the row');
+  // At rest the row holds no Codeware widget (its text input runs an animation tick every frame): the box is made only when the search starts.
+  assert.doesNotMatch(make, /ConvaiPhoneSearchInput|HubTextInput|TextInput/);
+  const boxMake = body(search, 'private final func ConvaiSearchBoxMake() -> Bool');
+  assert.match(boxMake, /let row = this\.m_contactListLogicController\.ConvaiSearchRow\(\);/);
+  assert.match(boxMake, /box\.Reparent\(row, 2\);/, 'above the row\'s bar and line, under its word and key');
+  const open = body(search, 'private final func ConvaiSearchOpen() -> Void');
+  assert.match(open, /if !this\.ConvaiSearchBoxMake\(\) \{ return; \};/);
+  // The list moves down by the row's height while the row shows, and comes back with it.
+  const shift = body(search, 'private final func ConvaiSearchShift(on: Bool) -> Void');
+  assert.match(shift, /margin\.top \+ 100\.0/);
+  assert.match(shift, /size\.Y - 100\.0/);
+  assert.match(shift, /this\.m_convaiSearchArea\.SetMargin\(this\.m_convaiSearchAreaMargin\);\s*this\.m_convaiSearchArea\.SetSize\(this\.m_convaiSearchAreaSize\);/, 'put back exactly');
+  // The tab strip is not touched any more.
+  assert.doesNotMatch(search, /ConvaiSearchStrip|m_menuSelectorCtrl|SetVisible\(!visible\)/);
+  // The row is built before the rows are, on a keyboard, and only with the text input; it goes with the Chat list.
+  assert.match(tabs, /this\.ConvaiSearchRowSync\(\);\s*this\.m_contactListLogicController\.PopulateListData\(shown\);/);
+  const sync = body(search, 'private final func ConvaiSearchRowSync() -> Void');
+  assert.match(sync, /this\.ConvaiSearchAvailable\(\) && IsDefined\(this\.m_player\) && this\.m_player\.PlayerLastUsedKBM\(\)/);
+  const closeAll = body(search, 'public final func ConvaiSearchClose(rebuild: Bool) -> Void');
+  assert.match(closeAll, /this\.m_convaiSearchEsc = false;/);
+  assert.match(closeAll, /this\.m_contactListLogicController\.ConvaiSearchRowShow\(false\);/);
 });
 
 test('redscript: typing in the box cannot reach T, H, F, J, L, V, R or the tab keys, and no menu key opens', () => {
@@ -165,63 +210,108 @@ test('redscript: typing in the box cannot reach T, H, F, J, L, V, R or the tab k
   const phone = strip(text('../r6/scripts/CyberpunkConvai/PhoneContacts.reds'));
   assert.match(phone, /if this\.ConvaiSearchTyping\(\) \{ return; \};\n\s*if Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Opening\)/);
   // The game's own actions on the list (A and D change tab, F and R open, V calls) are swallowed while typing; the wheel and other releases are not.
-  assert.match(tabs, /if this\.ConvaiSearchSwallows\(action\) \{\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;\s*\};/);
-  const swallows = /private final func ConvaiSearchSwallows\(action: ListenerAction\) -> Bool \{([^]*?)\n\}\n/.exec(search)[1];
+  assert.match(tabs, /if this\.ConvaiSearchSwallows\(action\) \{\s*this\.ConvaiSearchHoldsPause\(action, consumer\);\s*ListenerActionConsumer\.Consume\(consumer\);\s*return false;\s*\};/);
+  const swallows = body(search, 'private final func ConvaiSearchSwallows(action: ListenerAction) -> Bool');
   assert.match(swallows, /if !this\.ConvaiSearchTyping\(\) \{ return false; \};/);
   assert.match(swallows, /BUTTON_PRESSED\) \|\| Equals\(type, gameinputActionType\.REPEAT\) \{ return true; \};/);
   assert.match(swallows, /if !Equals\(type, gameinputActionType\.BUTTON_RELEASED\) \{ return false; \};/, 'axes (the wheel) pass');
   for (const name of ['click', 'proceed', 'call', 'cancel', 'OpenPauseMenu', 'secondaryAction']) assert.ok(swallows.includes('n"' + name + '"'), name);
   // The menu keys (Esc, J) are shut through the same flag phone-input.lua already reads while a chat is typed.
-  const chat = strip(text('../r6/scripts/CyberpunkConvai/PhoneChat.reds'));
-  assert.match(chat, /public final func ConvaiPhoneChatTyping\(\) -> Bool \{\s*return \(IsDefined\(this\.m_convaiChatView\) && this\.m_convaiChatView\.ConvaiChatTyping\(\)\) \|\| this\.ConvaiPhoneChatSearchTyping\(\);/);
-  // Typing needs the focus in the box, the Chat list state, and an open box; an Esc that just closed it still counts for 0.4 s.
-  assert.match(search, /public final func ConvaiSearchTyping\(\) -> Bool \{\s*if this\.m_convaiSearchGuardUntil > 0\.0 && this\.ConvaiSearchNow\(\) < this\.m_convaiSearchGuardUntil \{ return true; \};\s*return this\.m_convaiSearchOpen && Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) && this\.ConvaiSearchBoxFocused\(\);/);
-  assert.match(search, /this\.m_convaiSearchGuardUntil = this\.ConvaiSearchNow\(\) \+ 0\.4;\s*this\.ConvaiSearchClose\(true\);/);
+  assert.match(chatReds, /public final func ConvaiPhoneChatTyping\(\) -> Bool \{\s*return \(IsDefined\(this\.m_convaiChatView\) && this\.m_convaiChatView\.ConvaiChatTyping\(\)\) \|\| this\.ConvaiPhoneChatSearchTyping\(\);/);
   // Never the conversation's composer: the search does not touch it.
   assert.doesNotMatch(search, /m_convaiChatInput|ConvaiChatAutoFocus/);
 });
 
-test('redscript: Enter opens the selected match, Esc and Back clear the search first, a second Esc is the game\'s', () => {
+test('redscript: the typing flag is read live and cannot outlive the box (the 31 Oct dead pause menu)', () => {
+  // The cause: Esc closed the box, the box let the player forget the list at once, so the flag fell to false while the Esc was still going through the game. The Esc came up
+  // as a pause-menu release over the open phone (its press had been swallowed), and the pause menu that opened took no input. The list is now remembered until it is taken down.
+  const close = body(search, 'public final func ConvaiSearchClose(rebuild: Bool) -> Void');
+  const end = body(search, 'private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void');
+  assert.doesNotMatch(close + end, /ConvaiPhoneChatSearchView\(null\)/, 'ending a search does not make the player forget the list');
+  assert.match(body(search, 'public final func ConvaiSearchUninitialize() -> Void'), /this\.m_player\.ConvaiPhoneChatSearchView\(null\);/);
+  assert.match(tabs, /this\.ConvaiChatListKeysStop\(\);\s*this\.ConvaiSearchUninitialize\(\);\s*return wrappedMethod\(\);/);
+  assert.match(search, /public final func ConvaiPhoneChatSearchTyping\(\) -> Bool \{\s*return IsDefined\(this\.m_convaiSearchView\) && this\.m_convaiSearchView\.ConvaiSearchTyping\(\);/);
+  // The press of the Esc the search swallows is marked as the phone itself marks it, so no release comes up to open the pause menu.
+  const holds = body(search, 'private final func ConvaiSearchHoldsPause(action: ListenerAction, consumer: ListenerActionConsumer) -> Void');
+  assert.match(holds, /n"OpenPauseMenu"[^]*?BUTTON_PRESSED[^]*?ListenerActionConsumer\.DontSendReleaseEvent\(consumer\);/);
+  // The flag: the Esc that left the box until it came up (seen by the list's key callback) and two ticks, never more than six ticks or a second and a half.
+  const typing = body(search, 'public final func ConvaiSearchTyping() -> Bool');
+  assert.match(typing, /if this\.m_convaiSearchEsc \{\s*if this\.ConvaiSearchNow\(\) - this\.m_convaiSearchEscAt < 1\.5 \{ return true; \};\s*this\.m_convaiSearchEsc = false;\s*\};/);
+  assert.match(typing, /return this\.m_convaiSearchOpen && Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) && this\.ConvaiSearchBoxFocused\(\) && this\.ConvaiSearchOnScreen\(\);/);
+  const onScreen = body(search, 'private final func ConvaiSearchOnScreen() -> Bool');
+  assert.match(onScreen, /this\.m_player\.ConvaiPhoneIsOpen\(\)/, 'the phone is open');
+  assert.match(onScreen, /this\.m_contactListLogicController\.ConvaiSearchOnScreen\(\) && this\.GetRootWidget\(\)\.IsVisible\(\)/, 'no menu has hidden the phone');
+  const walk = body(search, 'public final func ConvaiSearchOnScreen() -> Bool');
+  assert.match(walk, /if !widget\.IsVisible\(\) \{ return false; \};\s*widget = widget\.GetParentWidget\(\);/, 'every widget up to the top is shown');
+  assert.match(tabs, /AddTarget\(ConvaiKeyTarget\(EInputKey\.IK_Escape, EInputAction\.IACT_Release\)\)/);
+  assert.match(tabs, /if Equals\(key, EInputKey\.IK_Escape\) \{\s*if !pressed \{ this\.ConvaiSearchEscapeReleased\(\); \};\s*return;\s*\};/);
+  const escape = body(search, 'public final func ConvaiSearchEscape() -> Void');
+  assert.match(escape, /this\.m_convaiSearchEsc = true;[^]*?this\.ConvaiSearchEnd\(true, true\);/);
+  const tick = body(search, 'public final func ConvaiSearchTick() -> Void');
+  assert.match(tick, /this\.m_convaiSearchEscTicks >= 6 \{ this\.m_convaiSearchEsc = false; \}/);
+  assert.match(tick, /if !this\.ConvaiSearchOnScreen\(\) \{\s*this\.ConvaiSearchClose\(false\);\s*return;\s*\};/, 'the phone or the list is gone: everything is let go of');
+  assert.match(tick, /this\.m_convaiSearchDrop \{\s*this\.ConvaiSearchBoxDrop\(\);/);
+  assert.match(tick, /m_convaiSearchIdle >= 3 \{ this\.ConvaiSearchEnd\(false, false\); \}/, 'a search nobody uses ends by itself');
+  // Lua's 10 Hz tick reaches it, through the player.
+  assert.match(chatReds, /public final func ConvaiPhoneChatTick\(\) -> Void \{[^]*?this\.ConvaiPhoneChatSearchTick\(\);/);
+  assert.match(search, /public final func ConvaiPhoneChatSearchTick\(\) -> Void \{\s*if IsDefined\(this\.m_convaiSearchView\) \{ this\.m_convaiSearchView\.ConvaiSearchTick\(\); \};/);
+});
+
+test('redscript: the box is taken away when the search ends (its tick stops), never from inside its own key callback', () => {
+  const stop = body(search, 'public final func Stop() -> Void');
+  assert.match(stop, /this\.m_holdTickProxy\.Stop\(\);/);
+  const drop = body(search, 'private final func ConvaiSearchBoxDrop() -> Void');
+  assert.match(drop, /box\.Stop\(\);/);
+  assert.match(drop, /row\.RemoveChild\(root\)/);
+  assert.match(drop, /this\.m_convaiSearchBox = null;/);
+  const end = body(search, 'private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void');
+  assert.match(end, /if later \{ this\.m_convaiSearchDrop = true; \} else \{ this\.ConvaiSearchBoxDrop\(\); \};/);
+  assert.match(end, /^\s*if !this\.m_convaiSearchOpen && !this\.m_convaiSearchDrop && !IsDefined\(this\.m_convaiSearchBox\) \{ return; \};/, 'no search, no cost');
+  assert.match(end, /this\.ConvaiShowChatContacts\(selectId\);/, 'the whole list is back around the selected contact');
+});
+
+test('redscript: Enter opens the selected match, Esc and Back end the search first, a second Esc is the game\'s', () => {
   assert.match(search, /Equals\(evt\.GetKey\(\), EInputKey\.IK_Enter\) \{\s*if Equals\(evt\.GetAction\(\), EInputAction\.IACT_Press\) \{ this\.m_owner\.ConvaiSearchEnter\(\); \};\s*return;/);
   assert.match(search, /Equals\(evt\.GetKey\(\), EInputKey\.IK_Escape\) \{\s*if Equals\(evt\.GetAction\(\), EInputAction\.IACT_Press\) \{ this\.m_owner\.ConvaiSearchEscape\(\); \};\s*return;/);
-  const enter = /public final func ConvaiSearchEnter\(\) -> Void \{([^]*?)\n\}\n/.exec(search)[1];
+  const enter = body(search, 'public final func ConvaiSearchEnter() -> Void');
   assert.match(enter, /this\.m_convaiSearchOpenOnAnswer = true;\s*return;/, 'Enter before the answer waits for it');
   assert.match(enter, /this\.ConvaiOpenChat\(selected, true\)/);
-  const close = /public final func ConvaiSearchClose\(rebuild: Bool\) -> Void \{([^]*?)\n\}\n/.exec(search)[1];
-  assert.match(close, /^\s*if !this\.m_convaiSearchOpen \{ return; \};/, 'a closed search costs nothing');
-  assert.match(close, /this\.ConvaiSearchBoxClear\(\);\s*this\.ConvaiSearchBoxShow\(false, false\);/, 'the text is cleared and the strip is back');
-  assert.match(close, /this\.ConvaiShowChatContacts\(selectId\);/, 'the whole list is back around the selected contact');
   assert.match(search, /public func Back\(\) -> Void \{\s*if this\.ConvaiSearchBackHandled\(\) \{ return; \};\s*wrappedMethod\(\);/);
-  // Anything that leaves the Chat list closes the search without rebuilding it.
-  assert.equal([...tabs.matchAll(/this\.ConvaiSearchClose\(false\);/g)].length, 4, 'tab change, screen type, list closed, uninitialize');
+  const back = body(search, 'private final func ConvaiSearchBackHandled() -> Bool');
+  assert.match(back, /if this\.m_convaiSearchEsc \{ return true; \};/, 'the Esc that just left the box is not a Back');
+  assert.match(back, /this\.ConvaiSearchEnd\(true, false\);\s*return true;/);
+  // Anything that leaves the Chat list lets go of the search without rebuilding it: tab change, screen type, list closed (the uninitialize has its own).
+  assert.equal([...tabs.matchAll(/this\.ConvaiSearchClose\(false\);/g)].length, 3, 'tab change, screen type, list closed');
 });
 
 test('redscript: the list is filtered from the rows it already has, only when the text changes, and the F key keeps the filter', () => {
-  const changed = /private cb func OnConvaiSearchInput\(widget: wref<inkWidget>\) -> Bool \{([^]*?)\n\}\n/.exec(search)[1];
+  const changed = body(search, 'private cb func OnConvaiSearchInput(widget: wref<inkWidget>) -> Bool');
   assert.match(changed, /^\s*if !this\.m_convaiSearchOpen \|\| this\.m_convaiSearchMuted/, 'a closed box asks nothing');
   assert.match(changed, /StrLen\(text\) == 0 \{[^]*?ConvaiRefillChat\(this\.m_convaiSearchRows\);/, 'an empty text is the whole list at once');
   assert.match(changed, /this\.m_convaiSearchSeq = this\.m_player\.ConvaiPhoneChatSearchAsk\(text, this\.m_convaiSearchJournal\);/);
   assert.match(search, /if !this\.m_convaiSearchOpen \|\| seq != this\.m_convaiSearchSeq/, 'an answer for older text is dropped');
   // The build keeps every row and shows only the matches while a search is in force (a favorite turned on rebuilds the list).
-  assert.match(tabs, /let shown = this\.ConvaiSearchRowsBuilt\(contacts\);\s*this\.m_contactListLogicController\.PopulateListData\(shown\);/);
+  assert.match(tabs, /let shown = this\.ConvaiSearchRowsBuilt\(contacts\);[^]*?this\.m_contactListLogicController\.PopulateListData\(shown\);/);
   assert.match(search, /if this\.m_convaiSearchOpen && this\.m_convaiSearchFilter \{ return this\.ConvaiSearchFilterRows\(\); \};\s*return rows;/);
-  // Nothing is polled or scheduled by the search.
-  assert.doesNotMatch(search, /DelayCallback|DelaySystem|OnUpdate|OnTick|Schedule/);
+  // Nothing is polled or scheduled by the search: no frame hook, no delay, only Lua's 10 Hz tick and the key callbacks.
+  assert.doesNotMatch(search, /DelayCallback|DelaySystem|OnUpdate|OnTick|Schedule|OnAnimation|PlayAnimation/);
   // Lua's questions: the player owns the counter, so a new list never repeats a number Lua has answered.
   assert.match(search, /public final func ConvaiPhoneChatSearchAsk\(query: String, journal: String\) -> Int32 \{\s*this\.m_convaiSearchSeq \+= 1;/);
 });
 
 test('redscript: without Codeware\'s text input the search compiles to nothing (stand-ins with the real signatures)', () => {
   const src = text('../r6/scripts/CyberpunkConvai/PhoneChatSearch.reds');
-  for (const name of ['ConvaiSearchBoxFocused\\(\\) -> Bool', 'ConvaiSearchBoxMake\\(\\) -> Bool', 'ConvaiSearchBoxShow\\(visible: Bool, focus: Bool\\) -> Void',
-    'ConvaiSearchBoxText\\(\\) -> String', 'ConvaiSearchBoxClear\\(\\) -> Void']) {
+  for (const name of ['ConvaiSearchAvailable\\(\\) -> Bool', 'ConvaiSearchBoxFocused\\(\\) -> Bool', 'ConvaiSearchBoxMake\\(\\) -> Bool', 'ConvaiSearchBoxDrop\\(\\) -> Void',
+    'ConvaiSearchBoxFocus\\(focus: Bool\\) -> Void', 'ConvaiSearchBoxText\\(\\) -> String', 'ConvaiSearchBoxClear\\(\\) -> Void']) {
     assert.match(src, new RegExp('@if\\(ModuleExists\\("Codeware\\.UI\\.TextInput"\\)\\)\\n@addMethod\\(NewHudPhoneGameController\\)\\nprivate final func ' + name), name);
     assert.match(src, new RegExp('@if\\(!ModuleExists\\("Codeware\\.UI\\.TextInput"\\)\\)\\n@addMethod\\(NewHudPhoneGameController\\)\\nprivate final func ' + name), 'stand-in ' + name);
   }
   assert.match(src, /@if\(!ModuleExists\("Codeware\.UI\.TextInput"\)\)\npublic class ConvaiPhoneSearchInput extends IScriptable \{\s*public static func Create\(owner: wref<NewHudPhoneGameController>\) -> ref<ConvaiPhoneSearchInput> \{\s*return null;/);
+  // Without the text input no row is shown at all (a field nobody could type in).
+  assert.match(src, /@if\(!ModuleExists\("Codeware\.UI\.TextInput"\)\)\n@addMethod\(NewHudPhoneGameController\)\nprivate final func ConvaiSearchAvailable\(\) -> Bool \{\s*return false;/);
   // No Codeware type outside the guarded parts: the key arrives as the game's own EInputKey.
   const unguarded = src.replace(/@if\(ModuleExists\("Codeware\.UI\.TextInput"\)\)\n[^]*?\n\}\n/g, '');
-  assert.doesNotMatch(strip(unguarded), /KeyInputEvent|HubTextInput/);
+  assert.doesNotMatch(strip(unguarded), /KeyInputEvent|HubTextInput|ConvaiPhoneSearchInput\./);
 });
 
 test('redscript: the new file is shipped, catalogued and holds no Input/Key registration of its own', () => {
@@ -230,7 +320,7 @@ test('redscript: the new file is shipped, catalogued and holds no Input/Key regi
   assert.ok(text('../scripts/Extract-UiCatalog.mjs').includes("'r6/scripts/CyberpunkConvai/PhoneChatSearch.reds'"));
 });
 
-test('the one new word, Search, is in the catalogue and in all fifteen other interface languages, and the styler puts it on the hint', () => {
+test('the one new word, Search, is in the catalogue and in all fifteen other interface languages, and the styler puts it on the hint and on the search row', () => {
   assert.ok(text('../localization/en.json').includes('"Search": "Search"'));
   const files = readdirSync(new URL('../mod/locales/', import.meta.url)).filter(name => name.endsWith('.lua'));
   assert.equal(files.length, 15);
@@ -241,4 +331,6 @@ test('the one new word, Search, is in the catalogue and in all fifteen other int
   const style = text('../mod/phone-chat-style.lua');
   assert.match(style, /find\(root, 'convaiSearchHintLabel', 8\)\n\s*if search and search:GetText\(\) == 'Search' then search:SetText\(text\('Search'\)\) end/);
   assert.match(text('../r6/scripts/CyberpunkConvai/PhoneChatSearch.reds'), /label\.SetText\("Search"\);/);
+  assert.match(text('../r6/scripts/CyberpunkConvai/PhoneChatSearch.reds'), /word\.SetText\("Search"\);/);
+  assert.match(style, /local word = text\('Search'\)\n\s*if word ~= 'Search' then\n\s*local placeholder = okRoot and root and find\(root, 'convaiSearchPlaceholder', 16\)\n\s*if placeholder and placeholder:GetText\(\) == 'Search' then placeholder:SetText\(word\) end/);
 });

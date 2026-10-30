@@ -295,6 +295,13 @@ function M.action(controller, contact, presentation)
     local okRoot, root = pcall(function() return controller:GetRootWidget() end)
     local search = okRoot and root and find(root, 'convaiSearchHintLabel', 8)
     if search and search:GetText() == 'Search' then search:SetText(text('Search')) end
+    -- The word of the search row (the first row of the Chat list, PhoneChatSearch.reds) is the same word. It sits deeper in the window than the hint, and the walk is
+    -- skipped when the interface language is English (the word is already right).
+    local word = text('Search')
+    if word ~= 'Search' then
+        local placeholder = okRoot and root and find(root, 'convaiSearchPlaceholder', 16)
+        if placeholder and placeholder:GetText() == 'Search' then placeholder:SetText(word) end
+    end
 end
 
 local function messagePath(controller)
