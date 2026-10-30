@@ -11,6 +11,7 @@ import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
 import {matchInput} from './mic-match.mjs';
+import {isTinyVoiceTranscript} from './tiny-transcript.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -22,7 +23,8 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
   .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '')
   .replace("import {PcmRelay} from './pcm-relay.mjs';", '')
-  .replace("import {matchInput} from './mic-match.mjs';", '');
+  .replace("import {matchInput} from './mic-match.mjs';", '')
+  .replace("import {isTinyVoiceTranscript} from './tiny-transcript.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 // Waits for a state to hold. The ceiling is reached only by a hung test (a fixed count of short polls is a wall-clock limit in disguise).
 async function until(predicate, label) {
@@ -138,7 +140,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ConvaiVision: visionClass, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE,
-    ContinuousPcmPlayer: player || ForbiddenAudio, PcmRelay: relayClass, navigator, matchInput,
+    ContinuousPcmPlayer: player || ForbiddenAudio, PcmRelay: relayClass, navigator, matchInput, isTinyVoiceTranscript,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
@@ -1826,7 +1828,7 @@ test('a turn played live whose voice never starts is shown as text after 5 s: no
 // Error signature cbb775b3 (owner decision 2026-10-26): a 1 to 3 character final transcript and no reply ends as no speech after 15 s, not as a failure after 60 s.
 test('a microphone turn with a tiny final transcript and no reply ends as no speech 15 s after the transcript; a longer one, and a reply that arrives, keep the 60 s rule', async () => {
   const transcribe = (client, content) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false}]);
-  for (const content of ['a', 'Hm.', '\u{1f600}\u{1f600}\u{1f600}']) {
+  for (const content of ['yes', 'Hey', 'abc']) {
     let offset = 0;
     const clock = {now: () => performance.now() + offset};
     const {api, clients} = fixture({allowMic: true, clock});
@@ -1858,15 +1860,84 @@ test('a microphone turn with a tiny final transcript and no reply ends as no spe
   const slow = fixture({allowMic: true, clock: {now: () => performance.now() + later}});
   await slow.api.beginVoice(request);
   const waiting = slow.api.finishVoice(request); waiting.catch(() => {}); await flush();
-  transcribe(slow.clients[0], 'ok');
+  transcribe(slow.clients[0], 'yes');
   slow.clients[0].state.isThinking = true;
   later = 20000; await new Promise(done => setTimeout(done, 120));
   assert.equal(slow.api.diagnostics().activeTurn, true, 'a thinking character is not cut');
   slow.clients[0].state.isThinking = false;
-  slow.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'ok', isStreaming: false},
+  slow.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'yes', isStreaming: false},
     {id: 'reply', type: 'bot-llm-text', content: 'Okay then.', isStreaming: false}]);
-  assert.equal((await waiting).userText, 'ok');
+  assert.equal((await waiting).userText, 'yes');
   await slow.api.close();
+});
+
+// Triage 2026-10-30 (error signature d1deacf2 and its kin): Convai never answers a transcript of one character, and the resend did not rescue it, so the player waited 30 s for a failure.
+// A FINISHED transcript of 1 letter or digit (or none) ends the voice turn at once as no speech: no resend, no wait, the microphone listens again (bridge/tiny-transcript.mjs).
+test('a finished voice transcript of 1 character ends the turn at once as no speech, with no resend; two characters (no, ok) and a typed line of that size are still sent', async () => {
+  const transcribe = (client, content, isStreaming = false) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming}]);
+  for (const content of ['k', ' M. ', '?', '\u{1f600}\u{1f600}\u{1f600}', '7!']) {
+    const {api, clients, events} = fixture({allowMic: true});
+    const request = {...config, ttsEnabled: false};
+    await api.beginVoice(request);
+    const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+    transcribe(clients[0], content);
+    await assert.rejects(pending, error => /^No speech was heard \(the finished transcript held only 1 character/.test(error.message)
+      && !/did not finish/.test(error.message) && !error.message.includes(content.trim()), JSON.stringify(content));
+    assert.equal(events.some(event => event[0] === 'message'), false, 'nothing is resent: ' + JSON.stringify(content));
+    assert.equal(clients[0].isBotReady, false);
+    await api.close();
+  }
+  // Two characters are a real answer: "no" and "ok" reach the character and its reply comes back.
+  for (const content of ['no', 'ok']) {
+    const two = fixture({allowMic: true});
+    const req = {...config, ttsEnabled: false};
+    await two.api.beginVoice(req);
+    const heard = two.api.finishVoice(req); heard.catch(() => {}); await flush();
+    two.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false},
+      {id: 'reply', type: 'bot-llm-text', content: 'Sure.', isStreaming: false}]);
+    assert.equal((await heard).text, 'Sure.', content);
+    await two.api.close();
+  }
+  // Three characters keep the 15 s rule, and a transcript that is still being written (not finished) is never dropped early.
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const three = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await three.api.beginVoice(request);
+  const waiting = three.api.finishVoice(request); waiting.catch(() => {}); await flush();
+  transcribe(three.clients[0], 'yes');
+  await new Promise(done => setTimeout(done, 120));
+  assert.equal(three.api.diagnostics().activeTurn, true, 'three characters are not dropped at once');
+  offset = 16000;
+  await assert.rejects(waiting, error => /^No speech was heard$/.test(error.message));
+  await three.api.close();
+  const growing = fixture({allowMic: true});
+  await growing.api.beginVoice(request);
+  const speech = growing.api.finishVoice(request); speech.catch(() => {}); await flush();
+  transcribe(growing.clients[0], 'k', true);
+  await new Promise(done => setTimeout(done, 120));
+  assert.equal(growing.api.diagnostics().activeTurn, true, 'a transcript still being written is not final');
+  transcribe(growing.clients[0], 'k to that', false);
+  growing.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'k to that', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Fine.', isStreaming: false}]);
+  assert.equal((await speech).text, 'Fine.');
+  await growing.api.close();
+  // A word that is one character long in Chinese, Japanese or Korean is speech.
+  for (const content of ['\u4f60\u597d', '\u306f\u3044', '\ub124']) {
+    const cjk = fixture({allowMic: true});
+    await cjk.api.beginVoice(request);
+    const heard = cjk.api.finishVoice(request); heard.catch(() => {}); await flush();
+    cjk.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false},
+      {id: 'reply', type: 'bot-llm-text', content: 'Hi.', isStreaming: false}]);
+    assert.equal((await heard).text, 'Hi.', content);
+    await cjk.api.close();
+  }
+  // A typed line (no microphone) of one character is sent as before.
+  const typed = fixture(); await typed.api.warm({...config, ttsEnabled: false});
+  const line = typed.api.reply({...config, ttsEnabled: false, text: 'k'}); line.catch(() => {}); await flush();
+  assert.deepEqual(typed.events.filter(event => event[0] === 'message'), [['message', 'k']]);
+  assert.equal(typed.api.diagnostics().activeTurn, true, 'the typed turn goes on waiting for its reply');
+  await typed.api.close(); await assert.rejects(line, /cancelled/i);
 });
 
 // Live 2026-10-24: Convai's recogniser heard the words (the interim transcript reached the game as the subtitle) but never finalised them, so no reply came and the turn

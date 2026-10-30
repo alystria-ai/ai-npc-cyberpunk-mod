@@ -5,7 +5,7 @@
 // docs/DYNAMIC_CONTEXT_AUDIT.md). The sentences land in the Background line of the right-now block, so they say what is there, not that something happened.
 //
 // The shape the game side sends (every field optional, the whole table absent when nothing is playing):
-//   {radio: {source: 'car' | 'pocket', station: <text>, track: <text>}, tv: {channel: <text>, said: <the last line a TV said>}}
+//   {radio: {source: 'car' | 'pocket', station: <text>, track: <text>, said: <what the radio host just said>}, tv: {channel: <text>, said: <the last line a TV said>}}
 // Only the form of a turn that hears what V hears gets the words: a companion in person with V ('person') and Johnny in V's head ('head').
 // A stranger, a phone chat, a call and an add-on voice get nothing: they are not in the car, and the radio is no business of theirs.
 //
@@ -13,7 +13,7 @@
 // characters and localisation-key leftovers are stripped, lengths are capped, and every piece is JSON-quoted in the sentence so an odd or hostile
 // title reads as a name and not as an instruction.
 
-const MAX_STATION = 40, MAX_TRACK = 80, MAX_CHANNEL = 40, MAX_SAID = 120;
+const MAX_STATION = 40, MAX_TRACK = 80, MAX_CHANNEL = 40, MAX_SAID = 120, MAX_HOST_SAID = 200;
 /** The whole wording of one turn, both sentences together. */
 export const MAX_CHARS = 300;
 const SOURCES = new Set(['car', 'pocket']);
@@ -39,8 +39,8 @@ export function parseMedia(value) {
   const result = {};
   const radio = value.radio;
   if (plain(radio) && SOURCES.has(radio.source)) {
-    const station = clean(radio.station, MAX_STATION), track = clean(radio.track, MAX_TRACK);
-    result.radio = {source: radio.source, ...(station ? {station} : {}), ...(track ? {track} : {})};
+    const station = clean(radio.station, MAX_STATION), track = clean(radio.track, MAX_TRACK), said = clean(radio.said, MAX_HOST_SAID);
+    result.radio = {source: radio.source, ...(station ? {station} : {}), ...(track ? {track} : {}), ...(said ? {said} : {})};
   }
   const tv = value.tv;
   if (plain(tv)) {
@@ -50,7 +50,7 @@ export function parseMedia(value) {
   return Object.keys(result).length ? result : undefined;
 }
 
-/** A short text that changes when the song, the station or the channel does (a TV's last line does not count: it changes all the time), or undefined. */
+/** A short text that changes when the song, the station or the channel does (a TV's last line and the radio host's do not count: they change all the time), or undefined. */
 export function mediaSignature(media) {
   if (!plain(media)) return undefined;
   const parts = [];
@@ -64,14 +64,17 @@ const quote = text => JSON.stringify(text);
 // She is in the car or next to V, so she hears it: the wording says so (a live turn of 2026-10-25 had a companion in the car answer "what song is this?" with
 // "I can't hear it" from "The car radio is playing ..." under a Background header), and says what to do when V asks, without asking her to bring it up.
 const RADIO_ASK = ' If V asks what is on, answer from this.';
-function radioSentence(radio) {
+// What the radio host (the DJ or presenter between songs) just said follows the radio sentence, before the "if V asks" hint, as a sentence of its own.
+function radioSentence(radio, said) {
   const hear = radio.source === 'pocket' ? "You can hear V's pocket radio, playing nearby" : 'You can hear the car radio';
-  if (radio.track) return `${hear}: ${quote(radio.track)}${radio.station ? ` on ${quote(radio.station)}` : ''}.${RADIO_ASK}`;
-  if (radio.station) return `${hear}, tuned to ${quote(radio.station)}.${RADIO_ASK}`;
-  return `${hear}.`;
+  const host = said ? ` The radio host just said: ${quote(said)}.` : '';
+  if (radio.track) return `${hear}: ${quote(radio.track)}${radio.station ? ` on ${quote(radio.station)}` : ''}.${host}${RADIO_ASK}`;
+  if (radio.station) return `${hear}, tuned to ${quote(radio.station)}.${host}${RADIO_ASK}`;
+  return `${hear}.${host}`;
 }
 
-function tvSentence(tv, said = tv.said) {
+// `said` is the TV's line to quote, or undefined for none (the caller passes tv.said when the whole line should be there).
+function tvSentence(tv, said) {
   const head = tv.channel ? `A TV nearby is on ${quote(tv.channel)}` : 'A TV nearby is on';
   return said ? `${head}; it just said: ${quote(said)}.` : `${head}.`;
 }
@@ -82,13 +85,25 @@ export function mediaSentences(media, form) {
   if (!plain(media)) return [];
   const sentences = [];
   if (plain(media.radio) && SOURCES.has(media.radio.source)) {
-    // Quoting can lengthen a title full of quotation marks: over the budget the station goes first, then the whole sentence.
-    let radio = radioSentence(media.radio);
-    if (radio.length > MAX_CHARS) radio = radioSentence({source: media.radio.source, track: media.radio.track});
+    // Quoting can lengthen a title full of quotation marks: over the budget the host's line goes first (shortened, then dropped), then the station,
+    // then the whole sentence. A TV beside it keeps the room for its own shortest sentence.
+    const tvRoom = plain(media.tv) ? tvSentence(media.tv, undefined).length + 1 : 0;
+    const limit = MAX_CHARS - tvRoom;
+    let base = media.radio;
+    let radio = radioSentence(base, undefined);   // without the host's words first: they are added only when they fit
+    if (radio.length > MAX_CHARS) { base = {source: media.radio.source, track: media.radio.track}; radio = radioSentence(base, undefined); }
+    if (media.radio.said && radio.length <= limit) {
+      const room = limit - radioSentence(base, 'x').length + 1;
+      const said = room >= 26 ? clean(media.radio.said, room - 2) : undefined;   // two characters for the quotes of an ordinary line
+      if (said) {
+        const full = radioSentence(base, said);
+        if (full.length <= limit) radio = full;
+      }
+    }
     if (radio.length <= MAX_CHARS) sentences.push(radio);
   }
   if (plain(media.tv)) {
-    let tv = tvSentence(media.tv);
+    let tv = tvSentence(media.tv, media.tv.said);
     const used = sentences.join(' ').length + (sentences.length ? 1 : 0);
     // Over the budget: the TV's last line is the first to be shortened, then dropped, then the whole TV sentence.
     if (used + tv.length > MAX_CHARS && media.tv.said) {

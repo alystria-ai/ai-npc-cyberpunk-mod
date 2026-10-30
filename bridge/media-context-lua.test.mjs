@@ -58,6 +58,9 @@ make('tvQuery', function() return W.query end)
 make('tvState', function(entity) return entity.state end)
 make('tvChannelRecord', function(entity) return entity.record end)
 make('tvLine', function(maxAge) if W.line and W.line.age <= maxAge then return W.line.text, W.line.age end end)
+make('radioLine', function(maxAge, source)
+  if W.host and W.host.age <= maxAge and (W.host.source == nil or W.host.source == source) then return W.host.text, W.host.age end
+end)
 N.log = function(line) logs[#logs + 1] = line end
 local reader = M.new({native = N})
 local PLAYER = {}
@@ -371,9 +374,12 @@ const dialoguePrelude = `
 local api = (function() ${dialogueSource} end)()
 local now, wanted, enabled = 1000, true, true
 local player = {id = '99ULL'}
+-- callInfo: a phone call on or not. R: what the game side says about a Radio line (Instance native radioSource: source and whether V is the speaker, or nil and a reason).
+local callInfo, R, logs = nil, {}, {}
 local N = {player = function() return player end, ready = function(p) return p ~= nil end, entity = function(o) return o.id end,
   braindance = function() return false end, replacer = function() return false end, playerCombat = function() return false end,
-  npcCombat = function() return false end, isVehicle = function(o) return o.vehicle == true end, call = function() return nil end,
+  radioSource = function(line) if R.source then return R.source, R.byV == true end return nil, R.why or 'refused' end,
+  npcCombat = function() return false end, isVehicle = function(o) return o.vehicle == true end, call = function() return callInfo end,
   lineType = function(value) return value end, text = function(line) return line.text end,
   speakerName = function(line) return line.speakerName end, lineId = function(line) return tostring(line.id) end,
   lineNumber = function(line) return tonumber(line.id) end, fromVariant = function(value) return value end,
@@ -381,13 +387,13 @@ local N = {player = function() return player end, ready = function(p) return p ~
   subtitles = function() return {serial = 0} end}
 local present = {}
 local dialogue = api.new({native = N, now = function() return now end, enabled = function() return enabled end,
-  heardWanted = function() return wanted end,
+  heardWanted = function() return wanted end, log = function(line) logs[#logs + 1] = line end,
   resolve = function(speaker) if speaker.key then return speaker.key, speaker.name end end,
-  resolveName = function() return nil end, contactKey = function() return nil end, present = function() return present end})
+  resolveName = function(name) if name == 'Judy Alvarez' then return 'judy-alvarez' end end, contactKey = function() return nil end, present = function() return present end})
 local nextId = 100
-local function say(kind, text, speaker, hook)
+local function say(kind, text, speaker, hook, shownName)
   nextId = nextId + 1
-  local line = {id = nextId, type = kind, speaker = speaker, text = text}
+  local line = {id = nextId, type = kind, speaker = speaker, text = text, speakerName = shownName}
   return dialogue:line(line, hook or 'show'), line
 end
 local JUDY = {id = '11ULL', key = 'judy-alvarez', name = 'Judy'}
@@ -465,7 +471,274 @@ test('Recent game dialogue is exactly as before: TV lines are still skipped as a
   wanted = true
   say('Radio', 'DJ talk.', {id = 'veh', vehicle = true})
   assert(dialogue:status().skipped.radio == 1 and #dialogue.heard == 2)
+  assert(#dialogue.heardRadio == 0, 'the game side did not accept it as a broadcast')
 `));
+
+// ---- the radio host ring ------------------------------------------------------------------------------------------------------------------------
+const CAR = '{id = "veh", vehicle = true}';
+
+test('a broadcast on the receiver that is on is kept in its own ring: separate from the TV ring, same caps, same clock', () => dialogue$(`
+  local car = ${CAR}
+  R = {source = 'car'}
+  say('Radio', 'This is Radio Pebkac, stay tuned.', car)
+  now = now + 4
+  say('GlobalTV', 'A TV line.')
+  assert(#dialogue.heardRadio == 1 and #dialogue.heard == 1, 'two rings, one line each')
+  assert(dialogue.heard[1].text == 'A TV line.' and dialogue.heardRadio[1].text == 'This is Radio Pebkac, stay tuned.')
+  assert(dialogue:heardMedia(60) == 'A TV line.', 'the TV answer is the TV line, never the host')
+  local text, age = dialogue:heardRadioLines(60, 'car')
+  assert(text == 'This is Radio Pebkac, stay tuned.' and age == 4, tostring(text) .. ' ' .. tostring(age))
+  -- the last two lines, oldest first, and no more than three are kept
+  now = now + 2; say('Radio', 'Second.', car)
+  now = now + 2; say('Radio', 'Third.', car)
+  now = now + 2; say('Radio', 'Fourth.', car)
+  assert(#dialogue.heardRadio == api.HEARD_KEEP)
+  assert(dialogue.heardRadio[1].text == 'Second.' and dialogue.heardRadio[3].text == 'Fourth.')
+  assert(dialogue:heardRadioLines(60, 'car') == 'Third. Fourth.')
+  -- a long pair gives only the newest; a very long line is capped like a TV line
+  say('Radio', string.rep('long ', 100), car)
+  assert(#dialogue.heardRadio[3].text <= api.HEARD_TEXT)
+  local newest = dialogue.heardRadio[3].text
+  assert(dialogue:heardRadioLines(60, 'car') == 'Fourth. ' .. newest)
+  say('Radio', string.rep('other ', 100), car)   -- two long lines together are over 200: only the newest is given
+  assert(dialogue:heardRadioLines(60, 'car') == dialogue.heardRadio[3].text)
+  -- the same words a moment later are one line, a repeat much later is another
+  now = now + 100
+  say('Radio', 'Jingle.', car)
+  now = now + 2
+  say('Radio', 'Jingle.', car)
+  assert(dialogue.heardRadio[#dialogue.heardRadio].text == 'Jingle.' and dialogue.heardRadio[#dialogue.heardRadio - 1].text ~= 'Jingle.')
+`));
+
+test("the host is told by age and by receiver: an old line is not heard, and a car line is not the pocket radio's", () => dialogue$(`
+  R = {source = 'car'}
+  say('Radio', 'Car host.', ${CAR})
+  now = now + 30
+  R = {source = 'pocket'}
+  say('Radio', 'Pocket host.')
+  now = now + 10
+  assert(dialogue:heardRadioLines(90, 'pocket') == 'Pocket host.')
+  assert(dialogue:heardRadioLines(90, 'car') == 'Car host.')
+  assert(dialogue:heardRadioLines(90) == 'Car host. Pocket host.', 'no source asked: both')
+  assert(dialogue:heardRadioLines(20, 'car') == nil, 'too old')
+  now = now + 100
+  assert(dialogue:heardRadioLines(90, 'pocket') == nil and dialogue:heardRadioLines() == nil)
+`));
+
+test('a Radio line is dropped when it cannot be told from a cab or quest voice: a call, a refusal by the game side, a known character, no words', () => dialogue$(`
+  local car = ${CAR}
+  -- a call is on: the cab's own voice and every caller come as Radio lines
+  R = {source = 'car'}
+  callInfo = {active = true, contact = 'delamain'}
+  say('Radio', 'Welcome aboard.', car)
+  assert(#dialogue.heardRadio == 0 and logs[#logs]:find('not kept (call)', 1, true), logs[#logs])
+  callInfo = nil
+  -- the game side refuses it (receiver off, another vehicle, a Delamain cab, an NPC): the reason is logged, never the words
+  for _, why in ipairs({'car:receiver-off', 'car:other-vehicle', 'car:delamain', 'foot:other-speaker', 'foot:pocket-off'}) do
+    R = {why = why}
+    say('Radio', 'Secret words ' .. why, car)
+    assert(#dialogue.heardRadio == 0 and logs[#logs]:find('not kept (' .. why .. ')', 1, true), logs[#logs])
+    assert(not logs[#logs]:find('Secret', 1, true), 'the words are not logged')
+  end
+  R = {}
+  say('Radio', 'No reason given.', car)
+  assert(logs[#logs]:find('not kept (refused)', 1, true))
+  -- a speaker the mod knows (a character profile, or a name that maps to one) is a quest voice or a person
+  R = {source = 'car'}
+  say('Radio', 'A named person on the receiver.', {id = 'veh', vehicle = true, key = 'judy-alvarez', name = 'Judy'})
+  assert(#dialogue.heardRadio == 0 and logs[#logs]:find('known-character', 1, true))
+  say('Radio', 'A named voice.', car, 'show', 'Judy Alvarez')
+  assert(#dialogue.heardRadio == 0 and logs[#logs]:find('known-name', 1, true))
+  -- a host's name that is nobody the mod knows is fine
+  say('Radio', 'Host speaking.', car, 'show', 'Night Shift Host')
+  assert(#dialogue.heardRadio == 1)
+  -- markup and nothing else: no words, nothing kept
+  say('Radio', '<b></b>', car)
+  assert(#dialogue.heardRadio == 1 and logs[#logs]:find('not kept (empty)', 1, true))
+  -- V as the speaker (the pocket radio plays at V): V's own name is not checked against the characters
+  R = {source = 'pocket', byV = true}
+  say('Radio', 'Pocket host.', {id = 'v', key = 'judy-alvarez', name = 'V'})
+  assert(#dialogue.heardRadio == 2 and dialogue.heardRadio[2].source == 'pocket')
+`));
+
+test('only the first dozen Radio decisions are logged, and the two subtitle hooks ask the game side once per line', () => dialogue$(`
+  local asked = 0
+  N.radioSource = function() asked = asked + 1; return 'car', false end
+  local _, line = say('Radio', 'One.', ${CAR})
+  dialogue:line(line, 'event')
+  assert(asked == 1 and #dialogue.heardRadio == 1, 'the second hook finds the line already seen: ' .. asked)
+  for index = 1, 30 do now = now + 100; say('Radio', 'Line ' .. index, ${CAR}) end
+  local count = 0
+  for _, entry in ipairs(logs) do if entry:find('Radio line', 1, true) then count = count + 1 end end
+  assert(count == 12, count)
+`));
+
+test('the host ring obeys the Music and TV switch: nothing is asked or kept while it is off, and a missing option costs nothing', () => dialogue$(`
+  local asked = 0
+  N.radioSource = function() asked = asked + 1; return 'car', false end
+  wanted = false
+  say('Radio', 'Not kept.', ${CAR})
+  assert(#dialogue.heardRadio == 0 and asked == 0, 'off: the game side is not even asked')
+  local bare = api.new({native = N, now = function() return now end})
+  nextId = nextId + 1
+  bare:line({id = nextId, type = 'Radio', text = 'Not kept either.', speaker = ${CAR}}, 'show')
+  assert(#bare.heardRadio == 0 and asked == 0)
+`));
+
+test('Recent game dialogue, Johnny and the add-ons do not change: a kept host line is never recorded, and the cab voice in a call goes the old way', () => dialogue$(`
+  present = {'judy-alvarez'}
+  say('Regular', 'Meet me at the Afterlife.', JUDY)
+  R = {source = 'car'}
+  say('Radio', 'DJ talk that is kept for Music and TV.', ${CAR})
+  assert(#dialogue.heardRadio == 1)
+  local snapshot = dialogue:capture()
+  assert(#snapshot.lines == 1 and snapshot.lines[1].text == 'Meet me at the Afterlife.', 'no radio line is recorded')
+  local status = dialogue:status()
+  assert(status.skipped.radio == 1 and status.recorded == 1, 'it is skipped as a radio line by the recorder, as ever')
+  -- a call: a Radio line from a vehicle is still skipped, a Radio line from elsewhere still counts as phone dialogue, and neither enters the host ring
+  callInfo = {active = true, contact = 'delamain'}
+  say('Radio', 'Cab voice from the vehicle.', ${CAR})
+  assert(dialogue:status().skipped.radio == 2)
+  say('Radio', 'Caller on a radio line.', JUDY)
+  local lines = dialogue:capture().lines
+  assert(lines[#lines].text == 'Caller on a radio line.' and lines[#lines].channel == 'phone', 'a call keeps working')
+  assert(#dialogue.heardRadio == 1, 'a call adds nothing to the host ring')
+  -- the add-on path: a kept host line reaches no row and no Johnny remark; the voice-line count is the old one (Radio was already a voice line)
+  callInfo = nil
+  local rows, voices = {}, {}
+  local second = api.new({native = N, now = function() return now end, heardWanted = function() return true end,
+    onRow = function(row) rows[#rows + 1] = row end, onGameLineWanted = function() return true end,
+    onGameLine = function(seconds, kind) voices[#voices + 1] = kind end})
+  nextId = nextId + 1
+  second:line({id = nextId, type = 'Radio', text = 'Host words.', speaker = ${CAR}}, 'show')
+  assert(#rows == 0 and #second.heardRadio == 1)
+  assert(#voices == 1 and voices[1] == 'Radio', 'the add-on voice-line hook behaves as before')
+`));
+
+test('the host ring survives the dialogue context being off, and a reset for another reason clears it', () => dialogue$(`
+  R = {source = 'car'}
+  enabled = false
+  say('Radio', 'Heard while the context is off.', ${CAR})
+  assert(dialogue:heardRadioLines(60, 'car') == 'Heard while the context is off.')
+  assert(dialogue:capture() == nil)
+  assert(dialogue:heardRadioLines(60, 'car') == 'Heard while the context is off.', 'capture() resets with "disabled": the ring stays')
+  dialogue:reset('world-change')
+  assert(dialogue:heardRadioLines(60, 'car') == nil)
+`));
+
+test("the default adapter's radioSource: V's own car with the receiver on, or the pocket radio on foot with no other speaker; anything else is refused", () => run(`
+  local mounted, pocket = nil, nil
+  local function entity(hash, props)
+    props = props or {}
+    return setmetatable({}, {__index = function(_, key)
+      if key == 'GetEntityID' then return function() return {hash = hash} end end
+      if key == 'IsVehicle' then return function() return props.vehicle == true end end
+      if key == 'IsRadioReceiverActive' then return function() return props.receiver end end
+      if key == 'GetRecordID' then return function() return props.record or 'Vehicle.v_regular_car' end end
+      if key == 'GetMountedVehicle' then return function() return mounted end end
+      if key == 'GetPocketRadio' then return function() return pocket end end
+    end})
+  end
+  TweakDBID = {new = function(name) return name end}
+  local V = entity(7)
+  local current = V
+  convaiPlayer = function() return current end
+  local api = (function() ${dialogueSource} end)()
+  local native = api.new({}).native
+  local function check(line, source, extra)
+    local a, b = native.radioSource(line)
+    assert(a == source and (b == extra), tostring(a) .. ' ' .. tostring(b))
+  end
+  -- in a car
+  local car = entity(100, {vehicle = true, receiver = true})
+  mounted = car
+  check({speaker = car}, 'car', false)
+  check({}, nil, 'car:speaker-not-vehicle')
+  check({speaker = entity(5)}, nil, 'car:speaker-not-vehicle')
+  check({speaker = entity(101, {vehicle = true, receiver = true})}, nil, 'car:other-vehicle')
+  local off = entity(102, {vehicle = true, receiver = false})
+  mounted = off
+  check({speaker = off}, nil, 'car:receiver-off')
+  for _, record in ipairs({'Vehicle.v_standard2_villefort_cortes_delamain_player', 'Vehicle.v_delamain_taxi'}) do
+    local cab = entity(103, {vehicle = true, receiver = true, record = record})
+    mounted = cab
+    check({speaker = cab}, nil, 'car:delamain')
+  end
+  -- on foot
+  mounted = nil
+  pocket = {IsActive = function() return true end}
+  check({}, 'pocket', false)
+  check({speaker = V}, 'pocket', true)
+  check({speaker = entity(5)}, nil, 'foot:other-speaker')
+  check({speaker = car}, nil, 'foot:other-speaker')
+  pocket = {IsActive = function() return false end}
+  check({}, nil, 'foot:pocket-off')
+  pocket = nil
+  check({}, nil, 'foot:pocket-off')
+  current = nil
+  check({}, nil, 'no-player')
+`));
+
+test("media-context: the host's words join the radio that is on, by receiver and age, and nothing else", () => lua$(`
+  W.vehicle = {}
+  W.host = {text = 'That was Rebel Path. More after the news.', age = 12, source = 'car'}
+  local result = reader:read(PLAYER)
+  assert(result.radio.said == 'That was Rebel Path. More after the news.' and result.radio.track == 'Rebel Path')
+  assert(logs[#logs]:find('hostSaid=yes', 1, true), logs[#logs])
+  assert(calls.radioLine == 1, 'one read per turn')
+  -- the same age rule as a TV in view: SAID_AGE seconds
+  W.host.age = M.SAID_AGE
+  assert(reader:read(PLAYER).radio.said ~= nil)
+  W.host.age = M.SAID_AGE + 1
+  assert(reader:read(PLAYER).radio.said == nil)
+  -- the host's words are not part of the log line's identity (a new line per sentence would flood it): a fresh reader shows the "no"
+  assert(M.new({native = N}):read(PLAYER).radio.said == nil and logs[#logs]:find('hostSaid=no', 1, true), logs[#logs])
+  -- a line kept for the other receiver is not told
+  W.host = {text = 'Pocket words.', age = 3, source = 'pocket'}
+  assert(reader:read(PLAYER).radio.said == nil)
+  -- cleaned and capped
+  W.host = {text = '<i>Hello</i>\\n' .. string.rep('x ', 300), age = 3}
+  local said = reader:read(PLAYER).radio.said
+  assert(said:sub(1, 6) == 'Hello ' and #said <= M.MAX_RADIO_SAID and said:sub(-3) == '...', said)
+  -- the pocket radio on foot asks for its own receiver
+  W.vehicle = nil
+  W.pocket, W.pocketActive, W.pocketStation, W.pocketTrack = {}, true, 'st_growl', 'tr_rebel'
+  W.host = {text = 'Pocket words.', age = 3, source = 'pocket'}
+  assert(reader:read(PLAYER).radio.said == 'Pocket words.')
+  -- a radio that is off reports nothing, and the ring is not even read
+  W.pocketActive = false
+  calls.radioLine = nil
+  assert(reader:read(PLAYER) == nil and calls.radioLine == nil)
+  -- a TV and the host: each keeps its own words
+  W.pocketActive = true
+  W.lookAt = tv(3, on('ch_news'))
+  W.keyText.ch_news = 'Channel 5 News'
+  W.line = {text = 'The TV line.', age = 2}
+  local both = reader:read(PLAYER)
+  assert(both.radio.said == 'Pocket words.' and both.tv.said == 'The TV line.')
+  -- a failing ring read costs the host's words, not the radio
+  W.failing.radioLine = true
+  local broken = reader:read(PLAYER)
+  assert(broken.radio.track == 'Rebel Path' and broken.radio.said == nil)
+`));
+
+test('media-context: the default adapter reads the host from the game-dialogue instance and survives it missing', () => run(`
+  local M = (function() ${source} end)()
+  local N = M.adapter()
+  assert(N.radioLine(90, 'car') == nil, 'no dialogue instance yet')
+  convaiGameDialogue = {heardRadioLines = function(self, maxAge, source) return 'said ' .. source .. ' ' .. maxAge, 4 end}
+  local text, age = N.radioLine(90, 'car')
+  assert(text == 'said car 90' and age == 4)
+  convaiGameDialogue = {}
+  assert(N.radioLine(90, 'car') == nil)
+`));
+
+test('nothing of the host ring runs per frame', () => {
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
+  assert.doesNotMatch(update, /heardRadio|radioSource|noteRadio/);
+  assert.doesNotMatch(dialogueSource, /registerForEvent|onUpdate/, 'game-dialogue has no timer or frame hook');
+  assert.equal((dialogueSource.match(/observe\('/g) ?? []).length, 4, 'still the same four hooks');
+});
 
 test('the ring survives the dialogue context being off (it is a Music and TV matter), and a reset for another reason clears it', () => dialogue$(`
   enabled = false

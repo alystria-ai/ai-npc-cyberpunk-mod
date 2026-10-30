@@ -133,6 +133,60 @@ test('"the voice never played" is one voice-failed report with the counts and th
   } finally { await f.cleanup(); }
 });
 
+// Triage 2026-10-30 (error signature 966a31e3): 4 of the 9 "voice never played" rows came from runs whose voice had already fallen back to text after a voice failure that was reported.
+test('"the voice never played" is not reported when the voice fell back to text after a failure that was itself reported; every other silent voice still is', async () => {
+  const silent = {engine: 'pocket', requested: 'pocket', active: 'text', fellBackTo: 'text', turns: 3, silentTurns: 3, playedTurns: 0, lastStage: 'published', reasons: ['pocket']};
+  // The failure is reported first: one row, no second one for the same fault.
+  let f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'pocket', reason: 'Pocket student runtime is unavailable (ImportError)', cause: 'unknown', requested: 'pocket', active: 'text', fellBackTo: 'text'});
+    events.voiceSilent(silent);
+    await untilQueued(f, 1);
+    await new Promise(done => setTimeout(done, 40));
+    const queue = await readQueue(f.state, {now: START});
+    assert.deepEqual(queue.map(record => record.frame), ['voice-selection']);
+  } finally { await f.cleanup(); }
+  // The same failure reported earlier in the run and now a repeat of it (already queued): still counts as reported.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    const failure = {engine: 'pocket', reason: 'Pocket student runtime is unavailable (ImportError)', cause: 'unknown', requested: 'pocket', active: 'pocket', fellBackTo: 'pocket'};
+    events.voiceFailed(failure);
+    events.voiceFailed({...failure, active: 'text', fellBackTo: 'text'});
+    events.voiceSilent({...silent, fellBackTo: 'pocket'});
+    await untilQueued(f, 1);
+    await new Promise(done => setTimeout(done, 40));
+    assert.deepEqual((await readQueue(f.state, {now: START})).map(record => record.frame), ['voice-selection']);
+  } finally { await f.cleanup(); }
+  // No failure behind it: the silent voice is reported, text or not.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent(silent);
+    await untilQueued(f, 1);
+    assert.deepEqual((await readQueue(f.state, {now: START})).map(record => record.frame), ['voice-silence']);
+  } finally { await f.cleanup(); }
+  // A failure that did not end as text (Omni failed, Pocket speaks) does not hide a voice that then never played.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'omni', reason: 'OmniVoice timed out', cause: 'timeout', requested: 'omni', active: 'omni', fellBackTo: 'pocket'});
+    events.voiceSilent({...silent, active: 'pocket', fellBackTo: 'pocket'});
+    await untilQueued(f, 2);
+    assert.deepEqual((await readQueue(f.state, {now: START})).map(record => record.frame).sort(), ['voice-selection', 'voice-silence']);
+  } finally { await f.cleanup(); }
+  // A failure whose report could not be made (V's own worker is 'silent', not text) hides nothing either.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'v-helper', reason: 'Pocket student startup stalled', cause: 'unknown', requested: 'pocket', active: 'text', fellBackTo: 'silent'});
+    events.voiceSilent(silent);
+    await untilQueued(f, 2);
+    assert.deepEqual((await readQueue(f.state, {now: START})).map(record => record.frame).sort(), ['voice-selection', 'voice-silence']);
+  } finally { await f.cleanup(); }
+});
+
 test('"the voice never played" in a run whose hidden browser would not start says that, with the browser\'s own lines (install 0d0750, 27 Oct 2026)', async () => {
   const f = await folders();
   try {
