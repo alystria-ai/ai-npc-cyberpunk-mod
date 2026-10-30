@@ -435,6 +435,13 @@ local function attachFollower(entry, player)
     end
     -- A visitor walks on the navmesh from her first command and is not in the party loop that settles a fresh copy on the floor.
     if not entry.visitor then entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0} end
+    -- A fresh invitation is checked three times (placementCheck): where she stood when the game attached her, and later where she is. A copy
+    -- recreated after fast travel has its own arrival rule. Plain numbers, no handle.
+    if not entry.visitor and not entry.transitRecreated then
+        local okAt, vAt = pcall(function() return player:GetWorldPosition() end)
+        entry.placed = {at = runtimeClock, next = 1, spawnGap = okAt and vAt and rounded(space.ground(actual, vAt)) or nil,
+            spawnRise = okAt and vAt and rounded(math.abs(actual.z - vAt.z)) or nil}
+    end
     -- Alt Cunningham's copy (companion-records.lua): invulnerable, once, no per-frame work. nil: not a protected model.
     entry.invulnerable = spawnRecords.protect(entry.entityID, entry.modelRecordID)
     -- Combat readiness (companion-records.lua): level scaling to V once, the attitude group read back once. A difference is
@@ -1691,6 +1698,7 @@ local function recoverTransit(player,step)
             -- The game normally brings a follower along. A copy it left far
             -- away or behind a wall rejoins near V (recoverDistant).
             entry.arrivalStart,entry.arrivalUntil=runtimeClock,runtimeClock+separation.arrivalWindow
+            entry.arrivalGap,entry.arrivalRule,entry.placed=nil,nil,nil
             local ok,gap=pcall(function() return space.distance(entry.npc:GetWorldPosition(),player:GetWorldPosition()) end)
             entry.playerGap=ok and gap or nil
             note(entry,'fast-travel-reacquired',{respawned=(entry.spawnAttempts or 0)>0})
@@ -2905,7 +2913,8 @@ local function recoverDistant(entry,player)
         and runtimeClock>=(entry.catchUpAt or 0)
     -- Just after fast travel: a copy the game left far away rejoins at once.
     local arriving=entry.arrivalUntil and runtimeClock<entry.arrivalUntil
-    local arrivalReady=arriving and entry.playerGap>separation.arrivalGap
+    local arrivalRule=entry.arrivalRule or 'fast-travel'
+    local arrivalReady=arriving and entry.playerGap>(entry.arrivalGap or separation.arrivalGap)
         and runtimeClock-entry.arrivalStart>=separation.arrivalAfter
     if presence and entry.carNoFloor~=s.insideSince and runtimeClock>=(entry.carCheckAt or 0) then
         entry.carCheckAt=runtimeClock+.5
@@ -2937,12 +2946,12 @@ local function recoverDistant(entry,player)
         -- Never in view after a ride; only a long wait on another floor may.
         watched=verticalFor>=(liftArrival and stranded.watchedAfter or separation.floorWatchedAfter)
     elseif farReady then rule,watched='far',runtimeClock-entry.farSince>=catchUp.watchedAfter
-    elseif arrivalReady then rule,watched='fast-travel',runtimeClock-entry.arrivalStart>=separation.arrivalWatchedAfter
+    elseif arrivalReady then rule,watched=arrivalRule,runtimeClock-entry.arrivalStart>=separation.arrivalWatchedAfter
     elseif strandedReady then
         rule,watched=unreachable and 'no-route' or stanceStuck and 'stance' or 'blocked',watchedTooLong
     end
     if not rule or runtimeClock<(entry.strandedRetryAt or 0) then return false end
-    local quick=rule=='far' or rule=='fast-travel' or rule:find('lift',1,true)
+    local quick=rule=='far' or rule=='fast-travel' or rule=='invitation' or rule:find('lift',1,true)
     entry.strandedRetryAt=runtimeClock+(quick and .5 or stranded.retry)
     -- The destination is always out of view where possible; only these
     -- waits may let the copy leave while V is looking at it.
@@ -2955,7 +2964,7 @@ local function recoverDistant(entry,player)
     if moved then
         entry.catchUpAt=runtimeClock+catchUp.cooldown
         if rule=='lift-board' then entry.boardedVisit=s.insideSince end
-        if rule=='fast-travel' then entry.arrivalUntil=nil end
+        if rule=='fast-travel' or rule=='invitation' then entry.arrivalUntil,entry.arrivalGap,entry.arrivalRule=nil,nil,nil end
     elseif moved==false then
         -- One attempt per car visit: a car without walkable floor keeps the
         -- companion outside, and the arrival rule brings them up instead.
@@ -2965,6 +2974,50 @@ local function recoverDistant(entry,player)
         if rule=='far' then entry.strandedRetryAt=runtimeClock+stranded.retry end
     end
     return moved==true
+end
+
+-- A fresh invitation is placed beside V by placement.find, but nothing used to look again: a copy that stood somewhere else a few
+-- seconds later (the game moved her, a route that never opened) stayed there while V stood still, because the distance rules above wait
+-- for a follow that is blocked (stranded) or 60 m (far). Live 2026-10-30: Judy and Panam, invited from the Companion Manager, were not
+-- near V a minute later. Three looks at 3, 12 and 30 s after she attached, from the 0.1 s party tick, one number comparison each and
+-- nothing after the last: the first is always one probe.log line ('Companion recovery placement'), the others only when she is still
+-- away. A copy more than invited.gap metres from V (or invited.rise above or below) with nobody holding her (a car, a seat, a tactic,
+-- a departure), while V has stood still since the look began and she is not closing in, takes the arrival rule of fast travel: she is placed
+-- behind V, out of view, through the same placement checks.
+local invited={checks={3,12,30},gap=6,rise=2.5,window=20}
+local function placementCheck(entry,player,v)
+    local p=entry.placed
+    local due=invited.checks[p.next]
+    if not due then entry.placed=nil; return end
+    if runtimeClock-p.at<due then return end
+    p.next=p.next+1
+    local ok,at=pcall(function() return entry.npc:GetWorldPosition() end)
+    if not ok or not at then return end
+    local gap,rise=space.ground(at,v),math.abs(at.z-v.z)
+    local away=gap>invited.gap or rise>invited.rise
+    if not away and p.next>2 then return end
+    local motor,person=entry.motor or {},entry.person or {}
+    local feedback=motor.feedback or {}
+    -- Who holds her, or what the walk to V said: the answer to "why is she not coming".
+    local holder
+    if vehicles.owns(fleet,entry.serial) then holder='vehicle'
+    elseif M.departure and M.departure.owns(entry.serial) then holder='leaving'
+    elseif M.tactics and M.tactics.owns(entry.serial) then holder='tactic'
+    elseif M.bodyAnimation and M.bodyAnimation.owns and M.bodyAnimation.owns(entry) then holder='seat' end
+    local rejection=motor.lastRejection
+    note(entry,'placement',{reason='check'..(p.next-1),t=due,spawn=p.spawnGap,spawnRise=p.spawnRise,
+        gap=rounded(gap),rise=rounded(rise),away=away or nil,holder=holder,phase=person.phase,why=person.reason,
+        move=motor.kind or feedback.kind,stage=feedback.stage or motor.stage,state=feedback.state,
+        blocked=motor.blockedReason,rejected=rejection and rejection.stage or nil,
+        vMoving=groupFrame and groupFrame.moving or nil,failures=person.failures,relocations=entry.relocations})
+    -- V standing still for the whole look (a V who runs off or is moved leaves her a walk to make) and no closing in since the last look.
+    local still=groupFrame and groupFrame.moving~=true and (tonumber(groupFrame.stillFor) or 0)>=due
+    local closing=p.lastGap~=nil and gap<p.lastGap-1.5
+    p.lastGap=gap
+    if away and still and not closing and not holder and not entry.arrivalUntil then
+        entry.arrivalStart,entry.arrivalUntil=runtimeClock-separation.arrivalAfter,runtimeClock+invited.window
+        entry.arrivalGap,entry.arrivalRule=invited.gap,'invitation'
+    end
 end
 
 -- Why a managed copy must stand although V crouches (companion-stance.lua): the transport, lift,
@@ -3144,6 +3197,7 @@ function M.update(player,delta,focusEntity)
         if not ticked then M.bodyAnimationError=tostring(tickError) end
     end
     for _,entry in ipairs(ready) do
+        if entry.placed then pcall(placementCheck,entry,player,playerPosition) end
         if entry.floorFix then pcall(settleOnFloor,entry) end
         if entry.attitudeCheck and runtimeClock >= entry.attitudeCheck.at then
             entry.attitudeCheck = nil

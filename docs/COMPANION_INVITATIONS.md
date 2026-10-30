@@ -192,3 +192,26 @@ no additional failure was induced just to repeat the notification check.
 A housemate's body is a visiting copy that belongs to the housemates (`entry.owner = 'housemates'`, `entry.home`): it is created by a quiet job with no preparation (`extra.resident`:
 no memory or connection is prepared, the profile is assigned as she spawns, the connection opens when someone talks to her), it is not listed in Current party and does not count in
 `Q.count()`. Tagging along gives her the follower role on the same body (`joinVisitor`); resting at home takes it away again (`companions.releaseToHome`).
+
+## The placement check of a fresh invitation
+
+Status: built on branch `fix/main-char-placement` (2026-10-31), unit-tested only, **not yet seen in the game**.
+
+An invitation is placed beside V by `mod/companion-placement.lua` and attached by `companions.lua` (`attachFollower`). Nothing used to look at her again: the
+distance rules of `recoverDistant` wait for a follow that is blocked (stranded, 10 m and 8 s) or for 60 m (far), so a copy that stood somewhere else a few
+seconds after she joined stayed there while V stood still. Live 2026-10-30 (game 2.5, Judy and Panam from Main characters to invite): the group notice
+came, the row said Add copy (1), and a minute later nobody stood near V. The log showed no teleport and Judy never had an idle move in 21 minutes (idles need her within 4 m).
+
+`placementCheck` (`companions.lua`) takes three looks at a fresh copy of the party, 3, 12 and 30 seconds after she attached, from the 0.1 s party tick (one number
+comparison per ready copy, nothing after the last look, no handle kept). A copy recreated after fast travel has no look, it has the fast travel arrival rule.
+
+* **The probe line.** `Companion recovery placement {...}` at the first look always, at the others only when she is still away. Fields: `reason` (check1 to check3),
+  `t` (seconds after attach), `spawn` and `spawnRise` (metres from V and height difference when the game attached her), `gap` and `rise` (now), `away`
+  (more than 6 m or 2.5 m of height), `holder` (who holds her: vehicle, seat, tactic, leaving), `phase` and `why` (the behaviour state and its reason), `move`, `stage`
+  and `state` (her last walk command), `blocked`, `rejected` (the stage that refused her route), `vMoving`, `failures`, `relocations`.
+* **The rule.** Away, held by nobody and not already under an arrival rule: she takes the arrival rule of fast travel with the name `invitation` for 20 s. The
+  `relocate` path then places her behind V, out of view, through the same placement checks a new invitation uses (`Companion recovery relocated {"rule":"invitation"}`,
+  `Companion teleport`). A copy that follows V keeps within 6 m and is left alone.
+* **What to look for after a live test.** `spawn` small and `gap` large at check1: the game or something of ours moved her after she attached (look at `why`, `move`, `stage`).
+  `spawn` large: the search put her far from V (it should not exceed 6 m).
+  `holder` set: another owner has her body. `gap` small at every look but nobody sees her: she is beside V and invisible, which the line cannot tell.
