@@ -21,7 +21,7 @@ const exchange = await loadRuntimeExchange(project);
 const MOD = config.layout.modDirectory;
 const VERSION = '0.0.1';
 // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> = runtimeBase.required.
-const UPDATE_BASE = `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : 'any'}-to-${VERSION}`;
+const UPDATE_BASE = `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : `${config.runtimeBase.required}-and-up`}-to-${VERSION}`;
 const ZIP_NAME = `${UPDATE_BASE}.zip`;
 const INSTALL_NOTE = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
 const tar = process.platform === 'win32' ? resolve(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';

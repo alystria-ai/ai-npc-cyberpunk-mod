@@ -28,8 +28,8 @@ export const updateBaseName = (from, version, game) => `${UPDATE_TITLE}-${from}-
 
 /**
  * The <from> of the update's name (owner decision 2026-10-28): the oldest Runtime base it runs on (runtimeBase.required) when that is the release just before
- * this one, so the update covers one release (Update-0.3.3-to-0.3.4), and "any" when the base is older than that and the update covers several
- * (Update-any-to-0.3.5). An install older than the base takes the Full zip either way. runtimeBase.previousRelease is the release before this one.
+ * this one, so the update covers one release (Update-0.3.3-to-0.3.4), and otherwise the base with "-and-up" (owner 2026-10-30: "any" read too loose),
+ * so the update for 0.3.3 and 0.3.4 is Update-0.3.3-and-up-to-0.3.5. An install older than the base takes the Full zip either way. runtimeBase.previousRelease is the release before this one.
  */
 export function updateFrom(config) {
   const {required, previousRelease} = config.runtimeBase ?? {};
@@ -37,7 +37,7 @@ export function updateFrom(config) {
   if (!plain(required)) throw Error(`runtimeBase.required in release.config.json is not a version: ${required}`);
   if (!plain(previousRelease)) throw Error('runtimeBase.previousRelease in release.config.json must name the release before this one (it names the update zip).');
   if (compareVersions(required, previousRelease) > 0) throw Error(`runtimeBase.required ${required} is newer than the previous release ${previousRelease}.`);
-  return compareVersions(required, previousRelease) === 0 ? required : 'any';
+  return compareVersions(required, previousRelease) === 0 ? required : `${required}-and-up`;
 }
 export const updateBaseNameFor = (config, version, game) => updateBaseName(updateFrom(config), version, game);
 export const runtimeZipName = (version, game) => `Runtime-${version}${gameSuffix(game)}.zip`;

@@ -256,7 +256,7 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 
 ## 2. File descriptions (the four uploads)
 
-Game 2.5 is the default: the full install is the main file and its update sits under Updates. Game 2.31 is two optional files ("Optional files", not "Old versions"), the same version number. `<from>` is runtimeBase.required, or `any` when the update covers several releases: for 0.3.5 the name is Update-any-to-0.3.5 and it needs the Runtime 0.3.3 or newer. Each description at most 255 characters.
+Game 2.5 is the default: the full install is the main file and its update sits under Updates. Game 2.31 is two optional files ("Optional files", not "Old versions"), the same version number. `<from>` is runtimeBase.required, or `<required>-and-up` when the update covers several releases: for 0.3.5 the name is Update-0.3.3-and-up-to-0.3.5 and it needs the Runtime 0.3.3 or newer. Each description at most 255 characters.
 
 AI NPC LLM Companions (the main file, game 2.5, zip AI-NPC-LLM-Companions-<version>.zip):
 

@@ -120,20 +120,20 @@ test('the update is named from the base it needs: <from> is that version when it
   assert.equal(updateFrom(at('0.3.3', '0.3.3')), '0.3.3');
   assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4');
   assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.31'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4-for-2.31');
-  // 0.3.5 on the same base: it covers 0.3.3 and 0.3.4, so "any".
-  assert.equal(updateFrom(at('0.3.3', '0.3.4')), 'any');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-any-to-0.3.5');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.31'), 'AI-NPC-LLM-Companions-Update-any-to-0.3.5-for-2.31');
+  // 0.3.5 on the same base: it covers 0.3.3 and 0.3.4, so the base with "-and-up".
+  assert.equal(updateFrom(at('0.3.3', '0.3.4')), '0.3.3-and-up');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.31'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5-for-2.31');
   // A base raised in the release itself is "the release before" again.
   assert.equal(updateFrom(at('0.3.5', '0.3.5')), '0.3.5');
   // Numeric, not text, order; and a config that cannot tell stops the build instead of guessing a name.
-  assert.equal(updateFrom(at('0.3.9', '0.3.10')), 'any');
+  assert.equal(updateFrom(at('0.3.9', '0.3.10')), '0.3.9-and-up');
   assert.throws(() => updateFrom({runtimeBase: {required: '0.3.3'}}), /previousRelease/);
   assert.throws(() => updateFrom(at('0.3.4', '0.3.3')), /newer than the previous release/);
   assert.throws(() => updateFrom(at('latest', '0.3.3')), /not a version/);
   // The real config is the 0.3.5 one: the base is still 0.3.3, the release before is 0.3.4, so the update covers two releases.
-  assert.equal(updateFrom(config), 'any');
-  assert.equal(updateBaseName('any', '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-any-to-0.3.5');
+  assert.equal(updateFrom(config), '0.3.3-and-up');
+  assert.equal(updateBaseName('0.3.3-and-up', '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5');
 });
 
 test('the Full note says where to extract, that it holds everything, and that Vortex and Mod Organizer 2 take two mods; it is the only note and is worded for the Full zip', () => {

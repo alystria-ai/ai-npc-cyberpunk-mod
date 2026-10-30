@@ -223,21 +223,21 @@ test('game 2.5 is the default and sits at the top of the repository, game 2.31 i
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
-test('the Update is found whatever its <from> is (a version, or "any"), exactly one of them, and a pre-0.3.4 Scripts zip is still accepted', {skip: !python && 'no Python'}, async () => {
+test('the Update is found whatever its <from> is (a version, or "<base>-and-up"), exactly one of them, and a pre-0.3.4 Scripts zip is still accepted', {skip: !python && 'no Python'}, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'hf update '));
   try {
     const plan = (...more) => py(['packaging/upload-packs.py', '--version', '0.3.5', '--pack', 'update', '--packages', directory, '--dry-run', ...more]);
     assert.notEqual(plan().status, 0, 'no Update zip');
-    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip'), 'x');
-    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5-for-2.31.zip'), 'x');
-    assert.equal(plan().stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip`);
-    assert.equal(plan('--game', '2.31').stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/AI-NPC-LLM-Companions-Update.zip`);
+    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5.zip'), 'x');
+    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5-for-2.31.zip'), 'x');
+    assert.equal(plan().stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip`);
+    assert.equal(plan('--game', '2.31').stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/AI-NPC-LLM-Companions-Update.zip`);
     await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.4-to-0.3.5.zip'), 'x');
     const two = plan();
     assert.notEqual(two.status, 0, 'two Update zips of one version are ambiguous');
     assert.match(two.stderr, /More than one Update zip/);
     // The old links: --also-old-name puts the Update at Scripts.zip and the Runtime at the root again.
-    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.4-to-0.3.5.zip'));
+    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5.zip'));
     assert.deepEqual(plan('--also-old-name').stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]),
       ['alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip', 'alystria-ai/ai-npc-cyberpunk-mod-packs/Scripts.zip']);
     assert.deepEqual(plan('--also-old-name', '--game', '2.31').stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]),
@@ -246,7 +246,7 @@ test('the Update is found whatever its <from> is (a version, or "any"), exactly 
     const runtime = py(['packaging/upload-packs.py', '--version', '0.3.5', '--pack', 'runtime', '--packages', directory, '--dry-run', '--also-old-name']);
     assert.deepEqual(runtime.stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]), ['alystria-ai/ai-npc-cyberpunk-mod-packs/runtime/Runtime.zip', 'alystria-ai/ai-npc-cyberpunk-mod-packs/Runtime.zip']);
     // A zip a build before 0.3.4 wrote is accepted for the Update.
-    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip'));
+    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.4-to-0.3.5.zip'));
     await writeFile(join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.5.zip'), 'x');
     assert.equal(plan().stdout.trim(), `${join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.5.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip`);
   } finally { await rm(directory, {recursive: true, force: true}); }

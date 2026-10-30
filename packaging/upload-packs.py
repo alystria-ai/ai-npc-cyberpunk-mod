@@ -29,7 +29,7 @@ The files at the top (the Full install, the Update, runtime/, updates/) are the 
 Runtime-Update-<from>-to-<to>.zip) is no longer offered to players since 0.3.4 and nothing here uploads to it; what is in it stays.
 
 The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs). The Full install is AI-NPC-LLM-Companions-<version>.zip (packaging/build-full.mjs)
-and the Update AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, <from> being the Runtime base it needs or "any" (packaging/lib/full-package.mjs); both
+and the Update AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, <from> being the Runtime base it needs, with "-and-up" when it covers several releases (packaging/lib/full-package.mjs); both
 have -for-2.31 after the version for game 2.31. Before 0.3.4 the update was AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip, published as Scripts.zip: --also-old-name
 additionally publishes the Update at Scripts.zip and the Runtime at Runtime.zip (the root, where it was), so the links of older texts keep working for a while.
 
@@ -154,7 +154,7 @@ def variant_of(game: str, pack: str) -> dict:
 
 def built_name(pack: str, version: str, game: str = "2.5") -> str:
     """The name of the zip a build writes for the pack (packaging/build-release.mjs, packaging/build-full.mjs). The Update's name carries the Runtime base it needs
-    (Update-0.3.3-to-0.3.4, or Update-any-to-0.3.5): update_zip finds it, this returns the pattern with <from> in it."""
+    (Update-0.3.3-to-0.3.4, or Update-0.3.3-and-up-to-0.3.5): update_zip finds it, this returns the pattern with <from> in it."""
     suffix = variant_of(game, pack)["suffix"]
     if pack == "update":
         return f"{UPDATE_TITLE}-<from>-to-{version}{suffix}.zip"
@@ -162,9 +162,9 @@ def built_name(pack: str, version: str, game: str = "2.5") -> str:
 
 
 def update_zip(packages: Path, version: str, game: str = "2.5") -> Path | None:
-    """The one Update zip of this version and game in the folder: AI-NPC-LLM-Companions-Update-<from>-to-<version>[-for-2.31].zip, <from> a version or "any"."""
+    """The one Update zip of this version and game in the folder: AI-NPC-LLM-Companions-Update-<from>-to-<version>[-for-2.31].zip, <from> a version, or a version with "-and-up" (an older "any" is still read)."""
     suffix = variant_of(game, "update")["suffix"]
-    pattern = re.compile(rf"{re.escape(UPDATE_TITLE)}-(?:any|\d+(?:\.\d+){{1,3}})-to-{re.escape(version)}{re.escape(suffix)}\.zip")
+    pattern = re.compile(rf"{re.escape(UPDATE_TITLE)}-(?:any|\d+(?:\.\d+){{1,3}}(?:-and-up)?)-to-{re.escape(version)}{re.escape(suffix)}\.zip")
     found = sorted(path for path in packages.iterdir() if path.is_file() and pattern.fullmatch(path.name))
     if len(found) > 1:
         raise SystemExit(f"More than one Update zip for {version} in {packages}: {', '.join(path.name for path in found)}.")

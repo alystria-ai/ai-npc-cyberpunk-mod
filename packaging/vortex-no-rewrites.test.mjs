@@ -59,7 +59,7 @@ before(async () => {
     const out = join(root, `out-${game}`);
     const run = build(game, out, join(root, `cache-${game}`));
     assert.equal(run.status, 0, `the ${game} Scripts build failed:\n${run.stderr}${run.stdout}`);
-    const zip = join(out, 'packages', `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : 'any'}-to-${VERSION}${game === '2.5' ? '' : `-for-${game}`}.zip`);
+    const zip = join(out, 'packages', `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : `${config.runtimeBase.required}-and-up`}-to-${VERSION}${game === '2.5' ? '' : `-for-${game}`}.zip`);
     const dir = join(root, `extracted-${game}`);
     mkdirSync(dir);
     const unpack = spawnSync(tar, ['-xf', zip, '-C', dir], {encoding: 'utf8'});
