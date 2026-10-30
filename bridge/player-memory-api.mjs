@@ -90,9 +90,9 @@ export class PlayerMemoryApi {
         || (credential !== undefined && typeof credential !== 'function')
         || !(markerKeys instanceof Map || object(markerKeys))) fail('INVALID_CONFIGURATION');
     this.#markers = new Map(markerKeys instanceof Map ? markerKeys : Object.entries(markerKeys));
-    if (this.#markers.size > 1024 || [...this.#markers].some(([profileKey, marker]) => !token(profileKey) || !token(marker))) fail('INVALID_CONFIGURATION');
+    if (this.#markers.size > 4096 || [...this.#markers].some(([profileKey, marker]) => !token(profileKey) || !token(marker))) fail('INVALID_CONFIGURATION');
     this.#ids = new Map(characterIds instanceof Map ? characterIds : Object.entries(characterIds));
-    if (this.#ids.size > 1024 || [...this.#ids].some(([profileKey, id]) => !token(profileKey) || !token(id))) fail('INVALID_CONFIGURATION');
+    if (this.#ids.size > 4096 || [...this.#ids].some(([profileKey, id]) => !token(profileKey) || !token(id))) fail('INVALID_CONFIGURATION');
     this.#key = key?.trim(); this.#fetch = fetchImpl; this.#timeout = timeoutMs; this.#maxBytes = maxResponseBytes;
     this.#polls = maxClearPolls; this.#interval = pollIntervalMs;
     this.#historicalPairAllowed = historicalPairAllowed; this.#credential = credential;

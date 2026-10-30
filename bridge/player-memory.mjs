@@ -61,7 +61,7 @@ import {randomUUID} from 'node:crypto';
  * uncertain intents/idempotency records. fsImpl is a fault-injection test seam.
  */
 
-const VERSION = 1, MAX_BYTES = 2 * 1024 * 1024, MAX_CHARACTERS = 1024, MAX_ACTIONS = 4096;
+const VERSION = 1, MAX_BYTES = 2 * 1024 * 1024, MAX_CHARACTERS = 4096, MAX_ACTIONS = 4096;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
