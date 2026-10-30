@@ -17,6 +17,9 @@ const sameWorld = (a, b) => binding(a) && binding(b)
   && a.worldToken === b.worldToken && a.generation === b.generation;
 const fail = code => { throw Object.assign(Error('Relationship routing: ' + code), {code}); };
 const MODES = new Set(['auto', 'on', 'off']);
+// How many profiles (and twins) one registry may hold. It was 256 and 512 for the named cast, the archetypes and the player's own characters; the side characters
+// (docs/SIDE_CHARACTERS.md) bring the mapping to about 900 originals and 900 twins, so the bound is 4096 for both.
+const MAX_PROFILES = 4096;
 // The game versions the eleven receipt facts were checked on (docs/GAME_VERSIONS.md): the same quest data in 2.31 and 2.5. The Lua side
 // (mod/relationship-state.lua) writes the canonical name, '2.5' for CD Projekt's 2.50. Any other patch is unsupported on purpose.
 export const RELATIONSHIP_GAME_VERSIONS = Object.freeze(['2.31', '2.5']);
@@ -56,10 +59,10 @@ function freeze(value) {
  * Each character has exactly one ordinary ID. The old alternate affectionate profiles (runtime/relationship-profiles.json,
  * provider keys "<key>-romantic") are retired: that file is no longer read. */
 export function relationshipRegistry(ordinaryIds, twins = {}, packTwins = []) {
-  if (!plain(ordinaryIds) || Object.keys(ordinaryIds).length > 256
+  if (!plain(ordinaryIds) || Object.keys(ordinaryIds).length > MAX_PROFILES
       || Object.entries(ordinaryIds).some(([profile, value]) => !key(profile) || !id(value))) fail('INVALID_ORDINARY_IDS');
   const providerIds = {...ordinaryIds}, providerFamilies = Object.fromEntries(Object.keys(ordinaryIds).map(profile => [profile, profile]));
-  if (!plain(twins) || Object.keys(twins).length > 512) fail('INVALID_MULTILINGUAL_REGISTRY');
+  if (!plain(twins) || Object.keys(twins).length > MAX_PROFILES) fail('INVALID_MULTILINGUAL_REGISTRY');
   const multilingual = {}, markerKeys = {};
   for (const [providerKey, twinId] of Object.entries(twins)) {
     if (!Object.hasOwn(providerIds, providerKey) || providerKey.endsWith(MULTILINGUAL_SUFFIX) || !id(twinId)) fail('INVALID_MULTILINGUAL_PROFILE');
