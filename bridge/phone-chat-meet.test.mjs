@@ -1,6 +1,8 @@
 // Phone chat and immersive invitations: the meet offer, the tag in her reply, and the events the character starts (bridge/meet-requests.mjs).
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+// Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): this test of them runs with the development switch on.
+import './story-packs-dev-on.mjs';
 import {PhoneChat, phoneRecentConversationContext} from './phone-chat.mjs';
 import {PhoneFailureLog} from './phone-failure.mjs';
 

@@ -18,6 +18,7 @@ import {screenMessage} from './threat-screen.mjs';
 import {MEMORY_KEY, scopeOf} from './memory-scope.mjs';
 import {MIC_PLACEHOLDER} from './call-meet.mjs';
 import {BOND_ARCS} from './bond-arcs.mjs';
+import {storyPacksAvailable} from './story-packs-gate.mjs';
 
 export const MAX_POINTS = 1000;
 /** The ten levels: the least points, the title, and how a character at that level treats V (the prompt line). */
@@ -77,9 +78,11 @@ export function levelOf(points) {
  */
 export function parseBonds(value) {
   if (!plain(value) || value.version !== 1 || value.on !== true) return null;
-  return {on: true, copy: COPIES.has(value.copy) ? value.copy : null, ...(value.packs === true ? {packs: true} : {}),
+  // Story packs and Characters text first are not part of 0.4.0: without the development switch (bridge/story-packs-gate.mjs) the two flags are dropped, whatever the game sent.
+  const packsMay = storyPacksAvailable();
+  return {on: true, copy: COPIES.has(value.copy) ? value.copy : null, ...(packsMay && value.packs === true ? {packs: true} : {}),
     ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true} : {}),
-    ...(value.reach === true ? {reach: true} : {}), ...(value.romance === 'together' || value.romance === 'ended' ? {romance: value.romance} : {})};
+    ...(packsMay && value.reach === true ? {reach: true} : {}), ...(value.romance === 'together' || value.romance === 'ended' ? {romance: value.romance} : {})};
 }
 
 /** Who gets a bond: a named character (not an ordinary NPC, an add-on voice or a model-only copy). */

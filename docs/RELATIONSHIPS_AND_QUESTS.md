@@ -1,5 +1,7 @@
 # Relationships and quests: bonds, story packs, favours and recruits
 
+> **Inactive in 0.4.0 (31 Oct 2026).** The story packs this document describes are not part of release 0.4.0. They have no setting row, the bridge ignores them and the game side builds none of it. They will come back as real game quests in a later update. See [STORY_PACKS_INACTIVE.md](STORY_PACKS_INACTIVE.md) for the switch that turns them on for development. Bonds, bond levels and romance, described below, are active.
+
 Status (2026-10-30): design, with **phases 1 and 2 built on branch `feat/bonds`** (worktree `../wt-bonds`, not merged, not pushed, nothing seen in the game).
 Phase 1 is the bond tracker (sections 3 to 5), its prompt line, its level notice and the story-pack format with a validator and gate (section 7).
 Phase 2 runs the packs (section 17: what it does, what is unverified, the live checks). Phases 3 and 4 are design.

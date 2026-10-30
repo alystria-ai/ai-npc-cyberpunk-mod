@@ -268,6 +268,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/stage-marker.mjs',
   'bridge/story-knowledge-data.mjs',
   'bridge/story-knowledge.mjs',
+  'bridge/story-packs-gate.mjs',
   'bridge/stt-activity.mjs',
   'bridge/support-report.mjs',
   'bridge/system-browser.mjs',

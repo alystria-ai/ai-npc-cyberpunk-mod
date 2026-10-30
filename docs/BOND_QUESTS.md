@@ -1,5 +1,7 @@
 # Bond quests: sixty relationship quests for ten characters
 
+> **Inactive in 0.4.0 (31 Oct 2026).** The story packs this document describes are not part of release 0.4.0. They have no setting row, the bridge ignores them and the game side builds none of it. They will come back as real game quests in a later update. See [STORY_PACKS_INACTIVE.md](STORY_PACKS_INACTIVE.md) for the switch that turns them on for development.
+
 Status (2026-10-29): design only, on branch `feat/bonds` (worktree `../wt-bonds`). Nothing here is built, nothing is seen in the game. It builds on
 [RELATIONSHIPS_AND_QUESTS.md](RELATIONSHIPS_AND_QUESTS.md) (the bond model, the pack format of section 7.2, the closed effects list of 7.4 and the
 plot-safety gate of section 8) and asks for the new pieces it names, in the build order of section 22. The owner reviewed it on 29 Oct 2026 and decided its open questions (section 26). The scripted lines, the holocall scripts and the talk gaps live in [BOND_QUEST_LINES.md](BOND_QUEST_LINES.md).

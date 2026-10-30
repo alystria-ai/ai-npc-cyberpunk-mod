@@ -37,7 +37,8 @@ export function run(code) {
 }
 
 export const storage = `
-  local files, saved, seed, extras = {}, nil, {}, nil
+  -- Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): the tests of the settings, the pages and the bonds run with the development switch on, the file the game looks for.
+  local files, saved, seed, extras = {['runtime/story-packs-dev.flag'] = 'dev'}, nil, {}, nil
   local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
   local failSave = false
   io = {open = function(path, mode)

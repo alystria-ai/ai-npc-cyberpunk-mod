@@ -3,6 +3,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+// Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): this test of them runs with the development switch on.
+import './story-packs-dev-on.mjs';
 import {BondPacks, ROLLBACK_SLACK} from './bond-pack-runner.mjs';
 import {screenIntent, intentKind} from './bond-intent.mjs';
 import {shippedPacks, validatePack} from './bond-packs.mjs';

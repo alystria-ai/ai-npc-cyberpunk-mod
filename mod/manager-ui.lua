@@ -2306,7 +2306,7 @@ end
 -- Companions: life with the party. Eye contact height and Head tracking strength have no row any more (they use their defaults), and the one switch Companions react
 -- writes both stored settings battleReactions and lootReactions.
 settingsPages['settings-companions'] = function(snapshot)
-    return {category('companions', 'Companions', {
+    local rows = {
         action('immersive-invitations', 'Immersive invitations', 'Open',
             'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
             function() return navigate('immersive-invitations') end),
@@ -2322,16 +2322,20 @@ settingsPages['settings-companions'] = function(snapshot)
         -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md): a bond with every named character, level 1 to 10, from their quests with V and their talks; one notice per change.
         setting('characterBonds', 'Character bonds', 'bool', snapshot.settings.characterBonds == true, false,
             'Every named character has a bond with you, level 1 to 10. Quests finished together, a romance, eddies paid back and talking raise it; threats and insults lower it. Closer characters trust you more.\n\nA notice shows each level change. Forget clears the talk part. Off by default.'),
+    }
+    -- Story packs are not part of 0.4.0 (docs/STORY_PACKS_INACTIVE.md): the two rows exist only while the development switch is on (manager.storyPacksAvailable).
+    if snapshot.settings.storyPacksAvailable == true then
         -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md section 7): a close character can start a short story arc of their own once their own quests are done.
-        setting('storyPacks', 'Story packs', 'bool', snapshot.settings.storyPacks == true, false,
-            'When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default.'),
+        rows[#rows + 1] = setting('storyPacks', 'Story packs', 'bool', snapshot.settings.storyPacks == true, false,
+            'When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default.')
         -- Off by default (docs/QUEST_PRIMITIVES.md section 10.7): close characters text or call first at calm moments, and Johnny speaks up in your head. Only with Story packs.
-        setting('reachOuts', 'Characters text first', 'bool', snapshot.settings.reachOuts == true, false,
-            'Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default.'),
-        -- On by default (2026-10-30): one switch for the two kinds of comment, stored as battleReactions and lootReactions. On when either was on.
-        setting('companionReactions', 'Companions react', 'bool', snapshot.settings.battleReactions == true or snapshot.settings.lootReactions == true, true,
-            'A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.'),
-    })}
+        rows[#rows + 1] = setting('reachOuts', 'Characters text first', 'bool', snapshot.settings.reachOuts == true, false,
+            'Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default.')
+    end
+    -- On by default (2026-10-30): one switch for the two kinds of comment, stored as battleReactions and lootReactions. On when either was on.
+    rows[#rows + 1] = setting('companionReactions', 'Companions react', 'bool', snapshot.settings.battleReactions == true or snapshot.settings.lootReactions == true, true,
+        'A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.')
+    return {category('companions', 'Companions', rows)}
 end
 
 -- Night City: how the world reacts to V. Street reputation and NPCs react to threats and commands are on for new players (2026-10-30), a saved choice is kept.
