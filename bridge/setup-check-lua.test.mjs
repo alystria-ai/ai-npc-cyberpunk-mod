@@ -234,6 +234,20 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   local launcherLine = check.serviceLine()
   assert(launcherLine and launcherLine.value == 'Not running' and launcherLine.description == 'The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.', launcherLine and launcherLine.description)
   assert(#check.problems() == 0 and check.problemCount() == 1)
+  -- Mod Organizer 2 holding the Runtime's own file where the program cannot see it (report c44c3c95): not "extract the zip again", the one fix instead
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', reason = 'mo2-hidden-file', updated = ms()})
+  check.run()
+  local hiddenLine = check.serviceLine()
+  assert(hiddenLine and hiddenLine.value == 'Not running' and hiddenLine.description == 'Mod Organizer 2 does not show a file of the Runtime to the program. Close the game and Mod Organizer 2, extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder by hand, then start the game.', hiddenLine and hiddenLine.description)
+  assert(not hiddenLine.description:find('again', 1, true) and not hiddenLine.description:find('With a mod manager', 1, true))
+  assert(#check.problems() == 0 and check.problemCount() == 1)
+  -- any other reason, or one with odd characters, keeps the ordinary incomplete line
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', reason = 'mo2-hidden-file; <b>', updated = ms()})
+  check.run()
+  assert(check.serviceLine().description:find('The Runtime is incomplete (install-incomplete).', 1, true))
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', reason = 'mo2-hidden-file', updated = ms()})
+  check.run()
+  assert(check.serviceLine().description:find('could not start (bridge-crashed)', 1, true), 'the word only counts with install-incomplete')
   -- any other failure: restart, then send a report; the code is kept short and plain
   advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', updated = ms()})
   check.run()

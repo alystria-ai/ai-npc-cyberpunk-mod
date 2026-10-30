@@ -32,7 +32,7 @@
 import fs from 'node:fs';
 import moduleApi, {syncBuiltinESMExports} from 'node:module';
 import {dirname, resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 
 export const USVFS_VARIABLE = 'CYBERPUNK_CONVAI_USVFS';
 const INSTALLED = Symbol.for('ai-npc-cyberpunk-mod.usvfs-compat');
@@ -295,6 +295,33 @@ const readOrNull = (base, path) => { try { return base.readFileSync(path, 'utf8'
 export const USVFS_IMPORT_VARIABLE = 'CYBERPUNK_CONVAI_USVFS_IMPORT';
 export function childEnvironment(moduleUrl = import.meta.url) {
   return {NODE_OPTIONS: `--import=${moduleUrl}`, [USVFS_VARIABLE]: '1', [USVFS_IMPORT_VARIABLE]: moduleUrl};
+}
+
+// The module's own copy outside the game folder (report c44c3c95, install 59e9f1, 0.3.5, 30 Oct 2026). A child's `--import` is resolved by Node's own
+// default loader before any fallback exists in the child. A Runtime installed in the game folder under MO2 has just been written by the hooked
+// installer, so every file of it lies in MO2's Overwrite and Node 24's stat cannot see any of them: the bridge ended with ERR_MODULE_NOT_FOUND for
+// this very file, seven starts in a row. A file in the player's data folder (%LOCALAPPDATA%, which usvfs does not redirect) is a plain file for
+// every process, so the first import of a child never depends on a file MO2 may have put in front. The path keeps the `/launcher/usvfs-compat.mjs`
+// ending that the supervisor requires (bridge/bridge-supervisor.mjs, usvfsCompatImport; the same pattern). Returns the file URL, or null when the
+// copy could not be made, is not the same bytes, or cannot be seen by a plain stat (then the caller keeps the Runtime's own file).
+export const CHILD_IMPORT_FILE = /^file:\/\/\/[^\s"']+\/launcher\/usvfs-compat\.mjs$/i;
+export function stageChildImport(folder, source = import.meta.url, base = fs) {
+  try {
+    const target = resolve(folder, 'launcher', 'usvfs-compat.mjs');
+    const wanted = base.readFileSync(fileURLToPath(source));
+    const same = () => { try { return base.readFileSync(target).equals(wanted); } catch { return false; } };
+    if (!same()) {
+      base.mkdirSync(dirname(target), {recursive: true});
+      const partial = `${target}.${process.pid}.tmp`;
+      try { base.writeFileSync(partial, wanted); base.renameSync(partial, target); }
+      catch (error) { try { base.rmSync(partial, {force: true}); } catch {} throw error; }
+      if (!same()) return null;
+    }
+    // What the child's default loader will do with it.
+    originalsOf(base).statSync(target);
+    const url = pathToFileURL(target).href;
+    return CHILD_IMPORT_FILE.test(url) ? url : null;
+  } catch { return null; }
 }
 
 if (process.env[USVFS_VARIABLE] === '1') installUsvfsCompat();

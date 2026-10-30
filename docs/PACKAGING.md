@@ -952,6 +952,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **The children's first import comes from the data folder (30 Oct 2026, report `c44c3c95`, install 59e9f1, 0.3.5).** A child's `--import` is resolved by Node's own
+  loader before any fallback exists in the child, and that loader's stat cannot see a file MO2 holds in Overwrite. With the Runtime physically in the game folder the
+  hooked installer had just written all 319 code files, so `launcher/usvfs-compat.mjs` was in Overwrite and the bridge ended at once with `ERR_MODULE_NOT_FOUND`, seven
+  starts in a row (the removal list refusing `app/defaults/service.txt` is the same mapping seen from another side). `start-service.mjs` now copies the module to
+  `<data folder>/launcher/usvfs-compat.mjs` (`stageChildImport`. %LOCALAPPDATA% is not redirected by usvfs. The copy has the same bytes, is written through a temporary file, is left alone
+  when it is already the same and is checked with a plain stat. The `/launcher/usvfs-compat.mjs` ending that `usvfsCompatImport` requires is kept) and `childEnvironment()` names that
+  file. When there is no data home of its own or the copy fails, the Runtime's own file is named as before (the log says which). Both layouts are in
+  `packaging/usvfs-runtime.test.mjs` (the Runtime and the Scripts as separate mods, and the Runtime in the game folder with its files in Overwrite). The simulation cannot
+  reach Node's own loader, so the live case (a real MO2 with that layout) is not run here. If the bridge still cannot import the module, the log and the status say so in
+  Mod Organizer 2's terms and not as an incomplete extraction: status `install-incomplete` with the reason `mo2-hidden-file` (`usvfsFileMessage`,
+  `bridge/runtime-files.mjs`), and the Help page says "Mod Organizer 2 does not show a file of the Runtime to the program" with the one fix, the full install zip extracted
+  by hand with the game and MO2 closed (`mod/service-status.lua` `failureReason`, `mod/setup-check.lua`, 15 languages).
 - **Update zips and language packs as separate mods (investigated 2026-10-22, from the code; not run in MO2).** The service runs from the REAL folder of
   the `launcher/start-service.mjs` the virtual file system serves (`appDirectory` in `start-service.mjs`), and it imports its own files from there, because the bundled
   Node's `stat` cannot see a file that exists only in a mod folder. So: (a) a Runtime update installed as its own mod whose zip does not hold `start-service.mjs` (the

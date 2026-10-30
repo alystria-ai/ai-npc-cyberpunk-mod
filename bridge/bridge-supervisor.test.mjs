@@ -396,6 +396,53 @@ test('a bridge whose files are of two versions (Node: "does not provide an expor
   run.endGame(); await run.done;
 });
 
+// Report c44c3c95 (install 59e9f1, 0.3.5, Mod Organizer 2 with the Runtime in the game folder): the bridge's own `--import` of launcher/usvfs-compat.mjs did not resolve, seven starts in a row,
+// and the notice said "extract the zip again" for a file that was extracted. Under MO2 the log and the status now say what is wrong; without MO2 the same words still mean an incomplete extraction.
+async function missingCompatRun(t, {mo2}) {
+  const f = await fixture(t);
+  const wanted = join(f.project, 'launcher', 'usvfs-compat.mjs').replace(/\//g, '\\');
+  await mkdir(join(f.project, 'launcher'), {recursive: true});
+  await writeFile(join(f.project, 'launcher', 'usvfs-compat.mjs'), await readFile(new URL('../packaging/runtime/usvfs-compat.mjs', import.meta.url)));
+  await writeFile(join(f.state, 'fake-behavior.json'), JSON.stringify({crashAlways: true, crashBeforeReady: true, exitCode: 1,
+    stderrText: `node:internal/modules/esm/resolve:873\n  throw new ERR_MODULE_NOT_FOUND(path || specifier, base && fileURLToPath(base), null);\nError [ERR_MODULE_NOT_FOUND]: Cannot find module '${wanted}' imported from ${f.project.replace(/\//g, '\\')}\\\n  code: 'ERR_MODULE_NOT_FOUND',`}));
+  const names = ['NODE_OPTIONS', 'CYBERPUNK_CONVAI_USVFS', 'CYBERPUNK_CONVAI_USVFS_IMPORT'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  if (mo2) { await mkdir(join(f.root, 'data', 'launcher'), {recursive: true}); await writeFile(join(f.root, 'data', 'launcher', 'usvfs-compat.mjs'), await readFile(new URL('../packaging/runtime/usvfs-compat.mjs', import.meta.url))); }
+  if (mo2) Object.assign(process.env, {CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: pathToFileURL(join(f.root, 'data', 'launcher', 'usvfs-compat.mjs')).href});
+  let run;
+  try {
+    run = supervise(f);
+    const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'no failure was published');
+    await sleep(300);
+    const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+    run.endGame(); await run.done;
+    return {f, failed, log, starts: (await bridgePids(f.state)).length};
+  } finally { for (const name of names) if (previous[name] === undefined) delete process.env[name]; else process.env[name] = previous[name]; }
+}
+
+test('under Mod Organizer 2 a bridge that cannot import the stat fallbacks is "install-incomplete" with the Mod Organizer 2 reason, one start, and no "extract again"', async t => {
+  const {f, failed, log, starts} = await missingCompatRun(t, {mo2: true});
+  assert.equal(failed.code, 'install-incomplete');
+  assert.equal(failed.reason, 'mo2-hidden-file');
+  assert.equal(starts, 1, 'one start, no restart loop');
+  const line = log.split('\n').find(text => text.includes('Mod Organizer 2 does not show'));
+  assert(line, log);
+  assert.match(line, /Mod Organizer 2 does not show launcher\/usvfs-compat\.mjs to the program, although the file is there\. Close the game and Mod Organizer 2, extract the full install zip \(AI-NPC-LLM-Companions, on Nexus Mods\) into the Cyberpunk 2077 folder by hand, then start the game\./);
+  assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
+  assert.doesNotMatch(log, /The Runtime is incomplete/);
+  assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
+  assert.match(log, /The conversation service cannot run: install-incomplete \(mo2-hidden-file\)\./);
+});
+
+test('outside Mod Organizer 2 the same missing file is an incomplete extraction, with no reason', async t => {
+  const {failed, log, starts} = await missingCompatRun(t, {mo2: false});
+  assert.equal(failed.code, 'install-incomplete');
+  assert.equal(failed.reason, undefined);
+  assert.equal(starts, 1);
+  assert.match(log, /The Runtime is incomplete: launcher\/usvfs-compat\.mjs is missing\. Extract the full install zip/);
+  assert.doesNotMatch(log, /Mod Organizer 2 does not show/);
+});
+
 test('a bridge that crashes for another reason is still a crash that is restarted and finally "bridge-crashed"', async t => {
   const f = await fixture(t, {behavior: {crashAlways: true, crashBeforeReady: true, exitCode: 1,
     stderrText: 'TypeError: something is not a function\n    at run (convai-bridge.mjs:1:1)'}});
