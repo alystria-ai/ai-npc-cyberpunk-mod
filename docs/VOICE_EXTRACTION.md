@@ -118,6 +118,10 @@ A manifest character can be missing from the voice configurations of an older Ru
 
 Write the file again after the manifest or the configurations change: `node scripts/voice-extract/write_words.mjs --runtime <folder with the autobest configurations>` (`--check` writes nothing). A test fails when it is out of step with the manifest. It ships in `appData` of `packaging/release.config.json`.
 
+### The workers read a file
+
+The voice workers hold the voices of the configuration FILE they are started with. The clip service edits the tables in memory at start (`applyReadyClips`, `applyStandIns`), so on their own those edits reached the bridge's registries but not the workers: Pocket's answer listed only the file's voices, so the ready clips and the stand-ins were never routed (30 Oct 2026, 27 characters missing from `routedProfiles`). When anything was edited, `clipVoiceConfigPaths` writes the edited configurations to `<state>/clips.pocket-voices.json`, `clips.omni-short-voices.json` and `clips.omni-long-voices.json` (a few small writes, once, at start), and the voice service starts its workers on those. The shipped and add-on files are never changed, and a failed write keeps the original file. Clips built later reach the running workers through `LiveVoices` as before.
+
 ## Risks
 
 - **Scipy and torch in the Runtime.** The `poly` and `torch` recipes need scipy or torch in the Runtime's Python. Both are in every Runtime since the first release builder, and the file check now asks for `scipy`, `scipy/signal` and `torch/nn`, so a broken Runtime is reported (the character then keeps a stand-in voice or downloads). Without torch the numpy port is used and a few samples differ by one step.
