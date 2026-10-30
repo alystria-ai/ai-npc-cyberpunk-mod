@@ -1,0 +1,72 @@
+{
+  "de": {
+    "propose": ["Willst du meine Freundin sein?", "Ich habe mich in dich verliebt", "Ich liebe dich, Panam", "Ich habe Gefühle für dich", "Lass uns es offiziell machen", "Willst du mit mir zusammen sein?"],
+    "end": ["Ich mache Schluss mit dir", "Zwischen uns ist es vorbei", "Ich liebe dich nicht mehr", "Ich will nicht mehr mit dir zusammen sein", "Lass uns einfach Freunde bleiben", "Ich bin fertig mit dir"],
+    "neither": ["Wir trennen uns und durchsuchen das Gebäude", "Liebst du mich?", "Wir sind hier fertig, lass uns gehen", "Es ist vorbei, der Alarm hat aufgehört", "Wie war dein Tag heute?", "Ich liebe dich wie einen Bruder"]
+  },
+  "fr": {
+    "propose": ["Veux-tu être ma copine ?", "Je suis amoureux de toi", "Je t'aime, Judy", "J'ai des sentiments pour toi", "Et si on sortait ensemble ?", "Je veux qu'on soit ensemble"],
+    "end": ["Je romps avec toi", "C'est fini entre nous", "Je ne t'aime plus", "Je ne veux plus être avec toi", "Restons juste amis", "Je te quitte"],
+    "neither": ["Séparons-nous et fouillons le bâtiment", "Est-ce que tu m'aimes ?", "On a fini ici, partons", "C'est fini, le combat est terminé", "Comment vas-tu aujourd'hui ?", "Je t'aime bien, tu es un bon ami"]
+  },
+  "es": {
+    "propose": ["¿Quieres ser mi novia?", "Estoy enamorado de ti", "Te amo, Panam", "Tengo sentimientos por ti", "Hagámoslo oficial", "Quiero que estemos juntos"],
+    "end": ["Quiero terminar contigo", "Se acabó lo nuestro", "Ya no te quiero", "Ya no quiero estar contigo", "Seamos solo amigos", "Voy a romper contigo"],
+    "neither": ["Separémonos y busquemos por todo el edificio", "¿Me quieres?", "Terminamos aquí, vámonos", "Se acabó el tiempo, corre", "¿Cómo estás hoy?", "Te quiero ver mañana temprano"]
+  },
+  "it": {
+    "propose": ["Vuoi essere la mia ragazza?", "Sono innamorato di te", "Ti amo, Judy", "Provo dei sentimenti per te", "Rendiamolo ufficiale", "Voglio che stiamo insieme"],
+    "end": ["Voglio rompere con te", "È finita tra noi", "Non ti amo più", "Non voglio più stare con te", "Restiamo solo amici", "Ti mollo"],
+    "neither": ["Dividiamoci e cerchiamo nell'edificio", "Mi ami?", "Abbiamo finito qui, andiamo", "È finita la benzina, fermiamoci", "Come stai oggi?", "Ti voglio bene come a un fratello"]
+  },
+  "pt": {
+    "propose": ["Quer ser minha namorada?", "Estou apaixonado por você", "Eu te amo, Panam", "Tenho sentimentos por ti", "Vamos namorar?", "Quero que sejamos um casal"],
+    "end": ["Quero terminar com você", "Acabou entre nós", "Não te amo mais", "Não quero mais ficar contigo", "Vamos ser só amigos", "Vou te largar"],
+    "neither": ["Vamos nos separar e revistar o prédio", "Você me ama?", "Terminamos aqui, vamos embora", "Acabou a munição, corre", "Como foi o seu dia?", "Amo vocês, galera"]
+  },
+  "pl": {
+    "propose": ["Zostaniesz moją dziewczyną?", "Zakochałem się w tobie", "Kocham cię, Judy", "Mam uczucia do ciebie", "Chcę, żebyśmy byli parą", "Zostańmy parą"],
+    "end": ["Zrywam z tobą", "Między nami koniec", "Już cię nie kocham", "Nie chcę już z tobą być", "Zostańmy tylko przyjaciółmi", "Rzucam cię"],
+    "neither": ["Rozdzielmy się i przeszukajmy budynek", "Czy ty mnie kochasz?", "Skończyliśmy tutaj, chodźmy", "Koniec zapasów, uciekajmy stąd", "Jak minął ci dzień?", "Kocham was, chłopaki"]
+  },
+  "ru": {
+    "propose": ["Будь моей девушкой", "Я влюбился в тебя", "Я тебя люблю, Панам", "У меня к тебе чувства", "Давай встречаться", "Хочешь встречаться со мной?"],
+    "end": ["Я с тобой расстаюсь", "Между нами всё кончено", "Я тебя больше не люблю", "Я не хочу больше быть с тобой", "Давай просто останемся друзьями", "Я ухожу от тебя"],
+    "neither": ["Давай разделимся и обыщем здание", "Ты меня любишь?", "Мы закончили здесь, пошли", "Всё кончено, бой окончен", "Как прошёл твой день?", "Я люблю вас всех, ребята"]
+  },
+  "uk": {
+    "propose": ["Будь моєю дівчиною", "Я закохався в тебе", "Я тебе кохаю, Панам", "У мене до тебе почуття", "Давай зустрічатися", "Хочеш зустрічатися зі мною?"],
+    "end": ["Я розриваю з тобою", "Між нами все скінчено", "Я тебе більше не кохаю", "Я не хочу більше бути з тобою", "Давай просто залишимося друзями", "Я йду від тебе"],
+    "neither": ["Розділімося і обшукаймо будівлю", "Ти мене любиш?", "Ми закінчили тут, ходімо", "Все скінчено, бій закінчено", "Як минув твій день?", "Я люблю вас усіх, хлопці"]
+  },
+  "tr": {
+    "propose": ["Sevgilim olur musun?", "Sana aşığım", "Seni seviyorum, Panam", "Sana karşı duygularım var", "Sevgili olalım", "Benimle çıkar mısın?"],
+    "end": ["Senden ayrılıyorum", "Aramız bitti", "Seni artık sevmiyorum", "Artık seninle olmak istemiyorum", "Sadece arkadaş kalalım", "Seni terk ediyorum"],
+    "neither": ["Ayrılıp binayı arayalım", "Beni seviyor musun?", "Burada işimiz bitti, gidelim", "Bugün nasılsın?", "Seni seviyorum çocuklar", "Zaman bitti, koş"]
+  },
+  "cs": {
+    "propose": ["Chceš být moje holka?", "Jsem do tebe zamilovaný", "Miluju tě, Judy", "Mám k tobě city", "Chceš se mnou chodit?", "Udělejme to oficiální"],
+    "end": ["Rozcházím se s tebou", "Mezi námi je konec", "Už tě nemiluju", "Už s tebou nechci být", "Zůstaňme jen kamarádi", "Opouštím tě"],
+    "neither": ["Rozdělme se a prohledejme budovu", "Miluješ mě?", "Tady jsme skončili, pojďme", "Jak ses dnes měl?", "Je konec zásob, utíkej", "Miluju vás všechny, kluci"]
+  },
+  "hu": {
+    "propose": ["Legyél a barátnőm", "Szerelmes vagyok beléd", "Szeretlek, Judy", "Érzek valamit irántad", "Járjunk együtt", "Szeretnél velem járni?"],
+    "end": ["Szakítok veled", "Vége köztünk", "Már nem szeretlek", "Nem akarok többé veled lenni", "Maradjunk barátok", "Elhagylak"],
+    "neither": ["Váljunk szét és kutassuk át az épületet", "Szeretsz engem?", "Itt végeztünk, menjünk", "Hogy telt a napod?", "Szeretlek titeket, srácok", "Vége a küldetésnek, indulás"]
+  },
+  "ja": {
+    "propose": ["私と付き合ってください", "あなたのことが好きです", "君を愛してる", "俺の彼女になってほしい", "私たち、付き合おう", "君に惚れた"],
+    "end": ["あなたと別れたい", "私たちは終わりだ", "君のことはもう好きじゃない", "もう君と一緒にいたくない", "友達に戻ろう", "あなたとはもう終わりだ"],
+    "neither": ["手分けしてビルを探そう", "私のこと好きですか", "ここでの仕事は終わりだ", "今日はどうだった", "みんなを愛してる", "ここで二手に別れて探そう"]
+  },
+  "ko": {
+    "propose": ["나랑 사귀자", "내 여자친구가 되어줘", "너를 사랑해", "너한테 반했어", "우리 사귈래?", "너 정말 좋아해"],
+    "end": ["우리 이제 헤어지자", "우리 사이는 끝났어", "너를 더 이상 사랑하지 않아", "너랑 더 이상 사귀고 싶지 않아", "우리 그냥 친구로 지내자", "너랑 헤어지고 싶어"],
+    "neither": ["흩어져서 건물을 수색하자", "나 사랑해?", "여기서 할 일은 끝났어", "오늘 하루 어땠어?", "우리 여기서 둘로 나뉘자", "너를 좋아하니?"]
+  },
+  "zh": {
+    "propose": ["做我女朋友吧", "我喜欢你", "我爱你", "我們在一起吧", "愿意和我在一起吗", "我想和你交往"],
+    "end": ["我们分手吧", "我不爱你了", "我們之間結束了", "我已经不喜欢你了", "我们还是做朋友吧", "我不想再和你在一起了"],
+    "neither": ["我们分头搜查这栋楼吧", "你爱我吗？", "我喜欢你的枪", "今天过得怎么样", "我爱你们大家", "这里的事情结束了"]
+  }
+}
