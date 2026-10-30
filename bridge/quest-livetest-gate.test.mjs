@@ -93,7 +93,7 @@ test('the reasons read as words: bond level, channel, journal, busy and the dice
     'panam-sunset-coffee waits: bond level 1 is under 3',
     'panam-sunset-coffee waits: the game is busy (a scene, a choice, a fight or a call)',
     'panam-sunset-coffee waits: the quest journal is not complete yet',
-    'panam-sunset-coffee waits: the dice said no (chance 0.5, roll 1 of 3 today)',
+    'panam-sunset-coffee waits: the dice said no (chance 0.5, roll 1 of 5 today)',
     "panam-palmer waits: story never starts a pack (a pack starts on one of V's own copies, a phone chat or a holocall)"]);
   assert.equal(explainGate({open: false, why: 'quest-not-finished', path: 'quests/a/q104_02_av_chase'}, pilot), 'q104_02_av_chase is not finished');
 });
@@ -130,16 +130,16 @@ test('Panam invites within a long talk even when the first rolls are lost, and a
     started = runner.forTurn(turn(30 * DAY + turns * 90, rows, {requestId: `long-${turns}`}), {level: 3, romance: 'partner'}).pack?.id ?? null;
   }
   assert.equal(started, 'panam-sunset-coffee');
-  assert.equal(turns, 7, 'roll 1 on the first turn, roll 2 on the 4th, roll 3 on the 7th');
+  assert.equal(turns, 5, 'roll 1 on the first turn, roll 2 on the 3rd, roll 3 on the 5th');
 });
 
-test('a day with no luck stops at 3 rolls and the next day starts fresh', () => {
+test('a day with no luck stops at 5 rolls and the next day starts fresh', () => {
   let rolls = 0;
   const runner = new BondPacks({packs: [pilot], characters: roster, random: () => { rolls++; return 0.99; }, log() {}, bonds: {award() {}, publish() {}}, debounceMs: 0, path: 'p.json',
     write: async () => {}, exists: () => false});
   const rows = [...DONE, HOOK];
   for (let i = 0; i < 30; i++) runner.forTurn(turn(30 * DAY + i * 90, rows), {level: 7, romance: 'partner'});
-  assert.equal(rolls, 3);
+  assert.equal(rolls, 5);
   runner.forTurn(turn(31 * DAY, rows), {level: 7, romance: 'partner'});
-  assert.equal(rolls, 4, 'the first eligible turn of the next day rolls at once');
+  assert.equal(rolls, 6, 'the first eligible turn of the next day rolls at once');
 });
