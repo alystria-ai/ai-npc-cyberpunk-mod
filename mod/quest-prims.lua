@@ -65,9 +65,11 @@ function M.new(options)
 
     -- ---- pin ----------------------------------------------------------------------------------------------------------------------------
     -- A map pin on a place. It is taken away when V arrives there (the arrived event of the same place), and by the ctx on every other exit.
+    -- ifAbsent (added by the bridge to a stage that needs her in person, bridge/quest-rendezvous.mjs): no pin when the stage's character already has a copy of V's.
     R.defs.pin = {
         arm = function(ctx, spec)
             local id = spec.at
+            if spec.ifAbsent == true and world('copyOf', ctx.character) ~= nil then return nil end
             local place = placeOf(ctx, id)
             if not place then log('pin: place ' .. tostring(id) .. ' is not in the stage'); return nil end
             if not env.places.pin(ctx, id, place) then return nil end
@@ -186,6 +188,8 @@ function M.new(options)
     -- A tagged character for the stage. who: 'self' (the pack's character), a profile key (another character's copy), or 'extra' (a nameless ordinary
     -- NPC made from spec.record, a Character record). It is made lazily when V is within 150 m of its place (spec.at, a place of the stage, or spec.x/y/z),
     -- retried up to five times, used only once the game has attached it (cast:<id>:arrived), and deleted with the ctx.
+    -- ifAbsent (added by the bridge to a stage that needs her in person, bridge/quest-rendezvous.mjs): nothing is made while the character has a copy of V's (a party
+    -- member, an invited visitor, a housemate), asked at the stage start and again before every try, so it only stands in for a copy that is not there.
     R.defs.cast = {
         interval = 2,
         arm = function(ctx, spec)
@@ -193,6 +197,7 @@ function M.new(options)
             if not id then log('cast has no id'); return nil end
             local who = spec.who or 'self'
             if who ~= 'self' and who ~= 'extra' and not (type(who) == 'string' and who:match('^[a-z0-9][a-z0-9%-]*$')) then log('cast ' .. id .. ': bad who'); return nil end
+            if spec.ifAbsent == true and who ~= 'extra' and world('copyOf', who == 'self' and ctx.character or who) ~= nil then return nil end
             if who == 'extra' and type(spec.record) ~= 'string' and type(spec.archetype) ~= 'string' then log('cast ' .. id .. ': an extra needs a record'); return nil end
             local at
             if type(spec.at) == 'string' then
@@ -211,7 +216,7 @@ function M.new(options)
                 return {id = id, who = who, at = {x = at.x, y = at.y, z = at.z}, handle = kept, arrived = true, tries = 0, nextTry = 0, carry = true}
             end
             return {id = id, who = who, at = {x = at.x, y = at.y, z = at.z}, facing = type(spec.facing) == 'table' and spec.facing or nil,
-                record = spec.record or spec.archetype, tries = 0, nextTry = 0, handle = nil, arrived = false, carry = spec.carry == true}
+                record = spec.record or spec.archetype, tries = 0, nextTry = 0, handle = nil, arrived = false, carry = spec.carry == true, ifAbsent = spec.ifAbsent == true}
         end,
         tick = function(ctx, spec, state)
             if state.arrived then return end
@@ -221,8 +226,9 @@ function M.new(options)
                 if now < state.nextTry then return end
                 local vpos = world('playerPosition')
                 if not point(vpos) or flat(vpos, state.at) > M.SPAWN_DISTANCE then return end
-                state.tries, state.nextTry = state.tries + 1, now + M.SPAWN_RETRY
                 local profileKey = state.who == 'self' and ctx.character or (state.who ~= 'extra' and state.who or nil)
+                if state.ifAbsent and profileKey and world('copyOf', profileKey) ~= nil then return end   -- she is with V after all: no second copy
+                state.tries, state.nextTry = state.tries + 1, now + M.SPAWN_RETRY
                 local handle, why = world('castSpawn', {id = ctx.pack .. ':' .. state.id, who = state.who, profileKey = profileKey, record = state.record,
                     x = state.at.x, y = state.at.y, z = state.at.z, facing = state.facing, tag = ctx.tag})
                 if handle then

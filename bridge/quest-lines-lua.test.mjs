@@ -20,6 +20,7 @@ local lines = M.new({
     game.started[#game.started + 1] = {entry = entry, id = id}
     return id
   end,
+  present = function(key, channel) game.presentAsks = (game.presentAsks or 0) + 1; if type(game.present) == 'table' then return game.present[key] end return game.present end,
   alive = function(id) return game.alive[id] ~= false end,
   subtitle = function(key, text) game.subtitles[#game.subtitles + 1] = key .. ': ' .. text end,
   phone = function(key, text, image) if not game.phoneOk then return false end game.phones[#game.phones + 1] = {key = key, text = text, image = image}; return true end,
@@ -214,3 +215,65 @@ test('the module is plain Lua 5.1 with no semicolon in a comment', () => {
   assert.ok(!/\bgoto\b|table\.unpack|bit32/.test(text));
   for (const line of text.split('\n')) assert.ok(!/--.*;/.test(line), 'no semicolon in a comment: ' + line);
 });
+
+test('a plot line whose speaker has no copy of V waits without ageing: no subtitle, no text, not given up; it plays the moment her copy is there', () => withGame(`
+game.present = false; game.startFail = 'no-speaker'
+assert(lines.say('pk', 'P1.a', {}))
+advance(30)
+assert(#game.started == 0 and #game.subtitles == 0 and #game.phones == 0, 'nothing is shown for a speaker who is not here')
+advance(700)
+assert(#game.started == 0 and #game.subtitles == 0 and #game.phones == 0 and eventCount('pk|line:P1.a:done') == 0, 'and it is not given up after ten minutes')
+local row = lines.status().waiting[1]
+assert(row and row.id == 'P1.a' and row.absent == true)
+assert(lines.pending() and not lines.busy())
+-- She arrives (an invitation, a cast): the line plays, and its clock starts again from then.
+game.present = true; game.startFail = nil
+advance(2)
+assert(#game.started == 1 and game.started[1].entry.id == 'P1.a')
+assert(#game.subtitles == 0)
+lines.stopped('r1', 'finished'); assert(eventCount('pk|line:P1.a:done') == 1)
+`));
+
+test('absent lines wait in order behind nothing: a bark for a copy that is there is not held up by them, and the presence is asked once a second at most', () => withGame(`
+game.present = false; game.startFail = 'no-speaker'
+lines.say('pk', 'P1.a', {}); lines.say('pk', 'P1.b', {})
+advance(10)
+assert(game.presentAsks <= 12, 'about once a second, got ' .. game.presentAsks)
+assert(#lines.status().waiting == 2)
+-- A bark never waits for a copy to be there (it is dropped after 4 s as ever) and a call line is untouched.
+lines.say('pk', 'B.1', {})
+advance(5)
+assert(#lines.status().waiting == 2 and logged('bark B.1 dropped'))
+game.present = true; game.startFail = nil
+advance(2); assert(#game.started == 1 and game.started[1].entry.id == 'P1.a')
+lines.stopped('r1', 'finished'); advance(2); assert(#game.started == 2 and game.started[2].entry.id == 'P1.b', 'in order')
+`));
+
+test('a stage that ends drops the lines that still wait for an absent speaker, a plot line of a speaker who is here stays as before', () => withGame(`
+game.present = {['panam-palmer'] = false, ['judy-alvarez'] = true}; game.startFail = 'no-speaker'
+lines.say('pk', 'P1.a', {}); advance(3)
+assert(lines.status().waiting[1].absent == true)
+game.busy = true; game.startFail = nil
+lines.say('pk', 'J.1', {}); advance(3)
+local rows = lines.status().waiting
+assert(#rows == 2 and rows[1].absent == true and rows[2].absent == false, 'Judy is here, her line is only held up by the busy flag')
+lines.dropPack('pk')
+local left = lines.status().waiting
+assert(#left == 1 and left[1].id == 'J.1', 'the line that waited for an absent speaker went, the other stays: ' .. #left)
+`));
+
+test('a line of an ending cannot wait for her: after 20 s it goes to her Phone Chat thread and counts as done', () => withGame(`
+game.present = false; game.startFail = 'no-speaker'
+lines.say('pk', 'P1.a', {final = true}); advance(10)
+assert(#game.phones == 0 and #lines.status().waiting == 1)
+advance(15)
+assert(#game.phones == 1 and game.phones[1].text == 'You actually came.' and game.phones[1].key == 'panam-palmer')
+assert(eventCount('pk|line:P1.a:done') == 1 and #lines.status().waiting == 0 and #game.subtitles == 0)
+lines.dropPack('pk')
+`));
+
+test('without a presence answer (nil) or without the hook a line is treated as present, as before', () => withGame(`
+game.present = nil
+lines.say('pk', 'P1.a', {}); advance(2)
+assert(#game.started == 1)
+`));

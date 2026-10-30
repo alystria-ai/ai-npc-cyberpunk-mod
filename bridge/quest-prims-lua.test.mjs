@@ -228,6 +228,38 @@ end
 assert(empty.get('nope') == nil)
 `));
 
+test('ifAbsent (the bridge adds it to a stage that needs her in person): no pin and no cast while she has a copy of V, and a copy that shows up stops a cast that is waiting', () => withGame(`
+-- She is not with V: the pin and the cast work as ever.
+local ctx = stageCtx('panam-palmer')
+local insts = drive(ctx, {{p = 'pin', at = 'sunset', ifAbsent = true}, {p = 'cast', id = 'rendezvous', who = 'self', at = 'sunset', ifAbsent = true, carry = true}})
+assert(#insts == 2 and game.pinAdds == 1)
+game.vpos = {x = 100, y = 200 + 120, z = 10}; advance(ctx, insts, 2)
+assert(#game.spawnCalls == 1 and game.spawnCalls[1].profileKey == 'panam-palmer')
+ctx:reap()
+-- She is a party member (or an invited visitor): nothing is pinned and nothing is made, at the stage start.
+game.spawnCalls, game.pinAdds = {}, 0
+game.copy = {profileKey = 'panam-palmer', kind = 'party', position = {x = 1, y = 1, z = 1}}
+local ctx2 = stageCtx('panam-palmer')
+local insts2 = drive(ctx2, {{p = 'pin', at = 'sunset', ifAbsent = true}, {p = 'cast', id = 'rendezvous', who = 'self', at = 'sunset', ifAbsent = true}})
+assert(#insts2 == 0 and game.pinAdds == 0, 'no pin, no cast state')
+advance(ctx2, insts2, 5); assert(#game.spawnCalls == 0)
+-- Without the flag a pack's own cast and pin are made whatever copies there are.
+local ctx3 = stageCtx('panam-palmer')
+local insts3 = drive(ctx3, {{p = 'pin', at = 'sunset'}, {p = 'cast', id = 'own', who = 'self', at = 'sunset'}})
+assert(#insts3 == 2 and game.pinAdds == 1)
+-- A cast that was armed while she was away is not made once a copy of hers shows up (an invitation arrived first).
+game.copy = nil
+local ctx4 = stageCtx('panam-palmer')
+local insts4 = drive(ctx4, {{p = 'cast', id = 'rendezvous', who = 'self', at = 'sunset', ifAbsent = true}})
+assert(#insts4 == 1)
+game.copy = {profileKey = 'panam-palmer', kind = 'visitor', position = {x = 1, y = 1, z = 1}}
+game.spawnCalls = {}
+game.vpos = {x = 100, y = 200 + 120, z = 10}; advance(ctx4, insts4, 6)
+assert(#game.spawnCalls == 0, 'no second copy of her')
+game.copy = nil; advance(ctx4, insts4, 4)
+assert(#game.spawnCalls == 1, 'and when the copy is gone again she is made')
+`));
+
 test('the module is plain Lua 5.1 with no semicolon in a comment and names no other mod', () => {
   const text = source('quest-prims.lua');
   assert.ok(!/\bgoto\b|table\.unpack|bit32/.test(text));

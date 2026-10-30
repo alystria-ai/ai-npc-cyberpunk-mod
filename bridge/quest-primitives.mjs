@@ -11,13 +11,13 @@ const RECORD = /^[A-Za-z][A-Za-z0-9_.]{2,80}$/;
 /** Every primitive: its fields, the ones that must be there, the places it refers to, and the events it raises (`<id>` is the spec's own id). */
 export const PRIMITIVES = Object.freeze({
   place:     {fields: {at: 'place', dwell: 'num:0:3600'}, required: ['at'], events: ['place:<at>:arrived', 'place:<at>:left']},
-  pin:       {fields: {at: 'place'}, required: ['at'], events: []},
+  pin:       {fields: {at: 'place', ifAbsent: 'bool'}, required: ['at'], events: []},
   timer:     {fields: {id: 'id', seconds: 'num:1:100000', clock: 'enum:game|real'}, required: ['id', 'seconds'], events: ['timer:<id>']},
   party:     {fields: {}, required: [], events: ['party:lost']},
   together:  {fields: {id: 'id', minutes: 'num:0.5:600', metres: 'num:1:30', breakSeconds: 'num:10:3600', seated: 'bool', at: 'place'}, required: ['id', 'minutes'],
     events: ['together:<id>:done', 'together:<id>:broken']},
   seat:      {fields: {}, required: [], events: ['seat:seated', 'seat:stood']},
-  cast:      {fields: {id: 'id', who: 'text', at: 'place', x: 'num:-100000:100000', y: 'num:-100000:100000', z: 'num:-10000:10000', facing: 'any', record: 'record', archetype: 'text', carry: 'bool'},
+  cast:      {fields: {id: 'id', who: 'text', at: 'place', x: 'num:-100000:100000', y: 'num:-100000:100000', z: 'num:-10000:10000', facing: 'any', record: 'record', archetype: 'text', carry: 'bool', ifAbsent: 'bool'},
     required: ['id', 'who'], events: ['cast:<id>:arrived']},
   squad:     {fields: {id: 'id', at: 'place', faction: 'text', kinds: 'any', count: 'int:1:8', hostile: 'bool', waves: 'any', points: 'any', shared: 'bool', alertAfterSeconds: 'num:1:3600'},
     required: ['id', 'at', 'faction'], events: ['squad:<id>:spawned', 'squad:<id>:hostile', 'squad:<id>:down', 'squad:<id>:fled', 'squad:<id>:wave<N>'], listens: ['squad:<id>:go']},
