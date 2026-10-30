@@ -6,6 +6,7 @@ import {isAmbientProfile} from './protocol.mjs';
 import {questPathsFromPack} from './quest-overview.mjs';
 import {isParsed} from './parsed-snapshot.mjs';
 import {decisionLedgerContext, ledgerPicks} from './game-dialogue.mjs';
+import {KNOWLEDGE_PARTS_MS} from './slow-turns.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
@@ -228,6 +229,8 @@ export class PlayerKnowledge {
   }
 
   async prepare(input, options = {}) {
+    // A few timestamps on every turn; the parts are only put together when the whole call took longer than KNOWLEDGE_PARTS_MS (bridge/slow-turns.mjs, knowledgeParts).
+    const startedAt = performance.now();
     // Capture request, options, world boundary and reset guard before any await.
     // Shared group inputs and provider resets cannot rebind an admitted turn.
     const frozen = cloneInput(input), settings = clone(options);
@@ -243,9 +246,12 @@ export class PlayerKnowledge {
     freeze(frozen);
     const memory = selected.reason ? {reason: selected.reason}
       : validBinding(binding) ? this.#memoryRoute(route) : {reason: 'current-world-unavailable'};
+    const setupDone = performance.now();
     const live = await this.#live(binding);
+    const liveDone = performance.now();
     const configuration = this.#configuration(route, binding, memory, frozen.entity, live, selected.relationship);
     const capturedAt = this.now();
+    let ledgerMs = 0, receiptsMs = 0, resolveMs = 0;
     const captureCurrent = configuration.sendAllowed && freshSnapshot(snapshot, binding, route, capturedAt);
     let knowledgeContext = '', sharedEvents;
     if (captureCurrent) {
@@ -254,20 +260,26 @@ export class PlayerKnowledge {
       // The decision ledger's picks (off unless the game wrote the file for this world) share the same 8,000 characters.
       let picks = '';
       if (this.decisionLedger) {
+        const ledgerStarted = performance.now();
         try {
           picks = decisionLedgerContext(ledgerPicks({ledger: this.decisionLedger(), worldToken: binding.worldToken,
             gameTimeSeconds: snapshot.gameTimeSeconds, profileKey: route.profileKey}));
         } catch { picks = ''; }
+        ledgerMs = performance.now() - ledgerStarted;
       }
       let receipts;
       if (this.witnessReceipts) {
+        const receiptsStarted = performance.now();
         try {
           const value = this.witnessReceipts();
           if (value) receipts = {receipts: value, worldToken: binding.worldToken, gameTimeSeconds: snapshot.gameTimeSeconds};
         } catch { receipts = undefined; }
+        receiptsMs = performance.now() - receiptsStarted;
       }
+      const resolveStarted = performance.now();
       const projection = resolveKnowledge({pack: this.pack, snapshot: {...snapshot, identity: {status: 'unknown'}},
         profileKey: route.profileKey, query: topicWords.fold(route.profileKey, frozen.text, capturedAt), maxChars: 8000 - (picks ? picks.length + 1 : 0), witnessReceipts: receipts});
+      resolveMs = performance.now() - resolveStarted;
       if (projection.diagnostics.status === 'ready') {
         knowledgeContext = picks ? projection.context + '\n' + picks : projection.context; sharedEvents = projection.shared;
       }
@@ -279,7 +291,11 @@ export class PlayerKnowledge {
       generation: captureCurrent ? binding.generation : undefined,
       worldToken: captureCurrent ? binding.worldToken : undefined, questCatalog: this.questCatalog, now: capturedAt,
       sharedEvents, questPaths: this.questPaths});
-    const prepared = freeze({...configuration, input: attached});
+    const finishedAt = performance.now();
+    // Only a slow call carries its parts, so a turn that is fast has nothing added to its result.
+    const timings = finishedAt - startedAt > KNOWLEDGE_PARTS_MS
+      ? {prepareMs: finishedAt - startedAt, setupMs: setupDone - startedAt, liveMs: liveDone - setupDone, ledgerMs, receiptsMs, resolveMs, attachMs: Math.max(0, finishedAt - liveDone - ledgerMs - receiptsMs - resolveMs)} : undefined;
+    const prepared = freeze({...configuration, input: attached, ...(timings ? {timings} : {})});
     this.#prepared.set(prepared, {binding, guard: memory.guard ?? null,
       admitted: configuration.sendAllowed, cancelled: false, submitted: false});
     return prepared;

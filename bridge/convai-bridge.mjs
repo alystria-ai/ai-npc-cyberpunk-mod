@@ -151,7 +151,7 @@ import {createVoiceChoice, KeySender, parseHub, HUB_FILE, RESULT_FILE} from './v
 import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
-import {SlowTurnWatch} from './slow-turns.mjs';
+import {KNOWLEDGE_PARTS_MS, SlowTurnWatch, knowledgeParts} from './slow-turns.mjs';
 import {VoiceSilenceWatch} from './voice-silence.mjs';
 import {LearnedLimits} from './prompt-fit.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
@@ -3399,8 +3399,17 @@ async function runInput(request, prepared, clock) {
     let vLine = null;
     current.vLine = () => vLine;
     if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
+    const prepareStarted = performance.now();
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
-    stages.knowledgePreparedMs = performance.now() - preparationStarted;
+    const preparedAt = performance.now();
+    stages.knowledgePreparedMs = preparedAt - preparationStarted;
+    // A knowledge stage over a second (two installs: 3.3 to 3.8 s on every turn) also records how long each part took, in the turn's record for the slow-turn report. Nothing is done below the limit.
+    if (stages.knowledgePreparedMs > KNOWLEDGE_PARTS_MS) {
+      try {
+        clock.annotate({knowledgeParts: knowledgeParts({...knowledgeTurn.timings, totalMs: stages.knowledgePreparedMs, cancelMicrophoneMs: stages.cancelMicrophoneMs,
+          beforePrepareMs: prepareStarted - preparationStarted - (stages.cancelMicrophoneMs ?? 0), prepareMs: preparedAt - prepareStarted})});
+      } catch { /* the report is never worth a turn */ }
+    }
     clock.mark('knowledge');
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
     // A turn the admission refuses ends here without a reply: its reason goes to the log, or the turn would vanish without a trace.

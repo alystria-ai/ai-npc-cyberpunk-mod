@@ -17,6 +17,7 @@ import {createHash} from 'node:crypto';
 import {mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {basename, join} from 'node:path';
+import {KNOWLEDGE_PART_NAMES} from './slow-turns.mjs';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
@@ -163,6 +164,13 @@ const slowNumber = (value, max = 1e7) => Number.isFinite(value) ? Math.max(0, Ma
 const slowWord = value => typeof value === 'string' && SLOW_WORD.test(value) ? value : undefined;
 const without = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
 
+// The parts of a slow knowledge stage (bridge/slow-turns.mjs knowledgeParts): the fixed names only, each a bounded number.
+function slowParts(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const parts = without(Object.fromEntries(KNOWLEDGE_PART_NAMES.map(name => [name, slowNumber(value[name])])));
+  return Object.keys(parts).length ? parts : undefined;
+}
+
 function slowTurn(row) {
   if (!row || typeof row !== 'object') return null;
   const marks = {};
@@ -173,7 +181,7 @@ function slowTurn(row) {
   const stalls = row.stalls && typeof row.stalls === 'object' ? without({count: slowNumber(row.stalls.count, 1000), maxMs: slowNumber(row.stalls.maxMs)}) : undefined;
   return without({n: slowNumber(row.n, 1e6), atMin: slowNumber(row.atMin, 1e6), soundMs: slowNumber(row.soundMs), provider: slowWord(row.provider),
     model: slowWord(row.model), voice: slowWord(row.voice), promptTokens: slowNumber(row.promptTokens), cachedTokens: slowNumber(row.cachedTokens),
-    cold: row.cold === true ? true : undefined, stalls: stalls && Object.keys(stalls).length ? stalls : undefined,
+    cold: row.cold === true ? true : undefined, knowledgeParts: slowParts(row.knowledgeParts), stalls: stalls && Object.keys(stalls).length ? stalls : undefined,
     marks: Object.keys(marks).length ? marks : undefined});
 }
 
