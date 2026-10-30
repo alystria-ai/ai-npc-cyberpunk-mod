@@ -290,6 +290,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-clips.mjs',
   'bridge/voice-config-paths.mjs',
   'bridge/voice-failures.mjs',
+  'bridge/voice-fallbacks.mjs',
   'bridge/voice-key-stream.mjs',
   'bridge/voice-language-packs.mjs',
   'bridge/voice-preview.mjs',

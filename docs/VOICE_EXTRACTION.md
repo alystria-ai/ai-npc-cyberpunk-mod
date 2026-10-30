@@ -144,3 +144,5 @@ vendor/reference-voicestudio/.venv/Scripts/python.exe scripts/voice-extract/uplo
 ```
 
 The recovery needs the main checkout's `runtime/` (voice lists and shipped clips), the game and vgmstream. It reads the game folder only.
+
+A side character with no clips of its own (and no shipped row) speaks with its fallback archetype voice from `characters/cast-sweep-voices.json`, an alias made by `bridge/voice-fallbacks.mjs` (see `docs/CAST_SWEEP.md`, Voices). A character in the manifest keeps its stand-in or built clips: its own row wins over the alias.
