@@ -60,8 +60,8 @@ const PLAYER_SENTENCES = [
   ['packaging/PLAYER_README.md', 'Settings > Conversations > Companion vision. With it on, vision of what V is looking at goes along with the turn'],
   ['packaging/PLAYER_README.md', 'a Local AI model has vision (Settings > Conversations > Companion vision) only with its vision file'],
   ['docs/NEXUS_PAGE.md', 'With Companion vision on they also get a fresh glimpse of the game window (never saved), with any provider.'],
-  ['docs/NEXUS_PAGE.md', 'a Local AI model has vision only with its vision file'],
-  ['docs/NEXUS_PAGE.md', 'so characters have vision of where you are.'],
+  ['docs/NEXUS_PAGE.md', 'with Companion vision on, a Local AI model sees only with its vision file'],
+  ['docs/NEXUS_PAGE.md', '[b]Companion vision (off by default):[/b]'],
   ['packaging/HF_MODEL_CARD.md', 'With it the model has vision (Settings > Conversations > Companion vision)'],
   ['docs/COMPANION_VISION.md', 'The player setting is **Companion Manager > Settings > Conversations > Companion vision**'],
 ];
