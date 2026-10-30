@@ -9,7 +9,7 @@
 //
 //   record   the model record the game spawns for the character ("Character.Judy")
 //   base     the look the character wears when nothing chooses for it (the one its appearance text describes)
-//   looks    [name, kind, label]; kind is the list's own (any, day, night, home, formal), label the English sentence the page translates
+//   looks    [name, kind, label], kind is the list's own (any, day, night, home, formal), label the English sentence the page translates
 //
 // Only a copy the mod itself made (a party companion, a resident of V's flat) is ever dressed. A character the game placed is never changed.
 export const OUTFITS = Object.freeze({

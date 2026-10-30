@@ -12,7 +12,7 @@
 --   'formal' dressed-up clothes for a club, a fancy bar or a Corpo district (mod/companion-outfits.lua FORMAL_PLACES), and only there. At night in such a place the 'night'
 --            looks join them (they are the evening looks). A character with no formal row keeps its ordinary rotation there.
 -- A situation (home, formal, out) holds all the rows of its kinds as one list that rotates: a new copy and a new in-game day pick another look than the last one worn in that
--- situation (companion-outfits.lua; the last pick is kept in runtime/outfit-rotation.json).
+-- situation (companion-outfits.lua, the last pick is kept in runtime/outfit-rotation.json).
 -- `base` is what the copy wears when nothing chooses for it (the template's default, or the one appearance companion-records.lua selects at creation:
 -- Kerry). It is the look the character's appearance text describes, so a base row is never flagged as a change of clothes. Every list holds its base row.
 -- `explicit = true`: the template's default is 'random', so the copy is always created with a named appearance (its base when nothing else is due).

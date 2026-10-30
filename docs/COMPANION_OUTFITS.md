@@ -11,7 +11,7 @@ mod's own party copies. Added 2026-10-25 on branch `feat/outfits`; built and uni
 - **Variety.** On an hour change, once a copy has worn a look for 4 game hours, there is a 30 % chance it changes into another look that suits the hour.
 - **Formal.** In a club, a fancy bar or a Corpo district a copy that has a formal look puts it on (at night the evening looks, the `night` rows, join the formal ones), and takes it off when V leaves. The
   places are the named interiors Afterlife, Riot Club, Lizzie's Bar, Clouds, Dark Matter, Totentaz and Embers, and every district record that starts with `CorpoPlaza` (with the Arasaka Tower floors) or `Downtown`
-  (`FORMAL_PLACES`, `FORMAL_PREFIXES` in `mod/companion-outfits.lua`; a flat of V's is home, never formal). The district is read once per party check, only when a copy has a home or formal look, never per frame.
+  (`FORMAL_PLACES`, `FORMAL_PREFIXES` in `mod/companion-outfits.lua`, a flat of V's is home, never formal). The district is read once per party check, only when a copy has a home or formal look, never per frame.
 - **Rotation.** Each situation (home, formal, out) holds all the rows of its kinds as one list. A new copy (an invitation) and a new in-game day (the first hour change of the day period after the day of the last
   pick) pick another look than the last one worn in that situation, never the same twice in a row while another exists. The last pick per character and situation is kept in `runtime/outfit-rotation.json`
   (read once, written only when a pick changes: a few times per game day at most), so a reload does not start the rotation over.
@@ -25,7 +25,7 @@ mod's own party copies. Added 2026-10-25 on branch `feat/outfits`; built and uni
 
 ## Which characters, how many
 
-19 characters, 55 outfits, all in `mod/companion-outfits-data.lua` (kinds: any / day / night / home / formal). Added on 2026-10-30: the formal kind and the rotation, Hanako, Songbird, Aaron McCarlson and Dante, and more looks for Jackie, Reed, Takemura (the game's own appearances the first list left out; each was checked in its `.app` with `scripts/Inspect-OutfitMeshes.mjs`, and the header of the data file names the ones that were checked and refused). Judy, Kerry and Rogue have no new look: the unused ones are undress, a censored body or a bare-foot diving suit.
+19 characters, 55 outfits, all in `mod/companion-outfits-data.lua` (kinds: any / day / night / home / formal). Added on 2026-10-30: the formal kind and the rotation, Hanako, Songbird, Aaron McCarlson and Dante, and more looks for Jackie, Reed, Takemura (the game's own appearances the first list left out, each was checked in its `.app` with `scripts/Inspect-OutfitMeshes.mjs`, and the header of the data file names the ones that were checked and refused). Judy, Kerry and Rogue have no new look: the unused ones are undress, a censored body or a bare-foot diving suit.
 
 | Character (record) | Outfits | Home look |
 | --- | --- | --- |

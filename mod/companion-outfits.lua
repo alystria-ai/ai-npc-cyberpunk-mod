@@ -3,7 +3,7 @@
 -- A party copy of a curated character (mod/companion-outfits-data.lua) changes into another look of its own entity template: by the game's time of day
 -- (a day look, a night look), now and then for variety, into casual clothes while V is at home and into formal clothes while V is in a club, a fancy bar or a
 -- Corpo district. Each situation holds a list of looks that rotate: a new copy and a new in-game day pick another look than the last one worn in that situation
--- (kept in runtime/outfit-rotation.json, so it survives a reload). Only our own spawned copies are touched; a character the
+-- (kept in runtime/outfit-rotation.json, so it survives a reload). Only our own spawned copies are touched. A character the
 -- game placed is never given a new look. A change happens only while nobody is looking: when the game's own frustum test says the copy is outside V's view
 -- (IsInCameraFrustum with the margins the game itself uses for "could be seen"), and never during a fight, a scene, a call, a ride, on a seat or while a command runs.
 --
@@ -25,7 +25,7 @@ local M = {}
 --   gameHours()            the game clock as absolute hours (days * 24 + hour + minutes / 60), or nil
 --   place()                the game's district record name where V is (the specific one, e.g. 'LittleChina_VApartment'), or nil
 --   load()                 the saved last picks, {key = {out = name, home = name, formal = name, day = n}}, or nil (optional, read once, on first use)
---   save(picks)            write them (optional; called when a pick changed: a few times per game day at most)
+--   save(picks)            write them (optional, called when a pick changed: a few times per game day at most)
 --   world()                nil when ordinary gameplay is open, else a reason (combat, scene, call, vehicle, menu)
 --   busy(row)              nil when the copy is walking or standing with V, else a reason (a fight, a seat, a car, a lift, a command)
 --   frustum(npc)           the game's own test: true when the copy may be seen by the camera, false when not, nil when it cannot say
@@ -247,7 +247,7 @@ local function noteLook(key, character, name, hours)
 end
 
 -- The decision, a pure function. ctx = {period, home, formal, hours, changedAt, hourChanged, bad = {name = true}, random, last = {out, home, formal}, day, pickDay}.
--- Returns the name to change into and why ('required': the look worn is not allowed now; 'daily': a new in-game day, the morning look; 'variety'), or nil.
+-- Returns the name to change into and why ('required': the look worn is not allowed now, 'daily': a new in-game day, the morning look, 'variety'), or nil.
 -- A pick is never the look worn, and never the last look picked for that situation while another exists (ctx.last).
 function M.choose(character, current, ctx)
     if type(character) ~= 'table' or type(current) ~= 'string' then return nil end
