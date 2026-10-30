@@ -153,7 +153,7 @@ test('the bridge tells the memory only when a reply is published, clears it with
   assert.equal([...bridge.matchAll(/commitExchange\(input\); gearTold\(\);/g)].length, 2, 'both publish paths');
   assert.match(bridge, /const gearTold = \(\) => \{ try \{ if \(!input\.reaction && !voice && dynamicInfo\.on\('gear'\)\) gearSeen\(input, gearMemory/);
   assert.equal([...bridge.matchAll(/sceneryMemory\.clear\(\); gearMemory\.clear\(\);/g)].length, 4);
-  assert.match(bridge, /gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\)\}\)/);
+  assert.match(bridge, /gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\), told: gearWantedFor\(input\)\}\)/);
   assert.ok(bridge.indexOf('[PlayerGear]') < bridge.indexOf('commitExchange(input); gearTold();'), 'the log line compares against the memory before the commit');
 });
 

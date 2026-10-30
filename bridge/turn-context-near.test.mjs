@@ -22,7 +22,7 @@ test('the parser keeps `near` only when it is true', () => {
 
 test('a phone chat with a character beside V says so, in the in-person form: no "somewhere else", no cannot-see, V\'s condition known', () => {
   const text = block({channel: 'phone'});
-  assert.match(text, /^Right now \(from the game, this turn only\): You are with V in person, standing near V, right next to V, even though V is texting you on the phone instead of talking out loud\./);
+  assert.match(text, /^Right now \(from the game, this turn only\): You are with V in person, right next to V, even though V is texting you on the phone instead of talking out loud\./);
   assert.match(text, /never ask V to come over or come here, never say you miss V or talk as if V were far away/);
   assert.doesNotMatch(text, /somewhere else|messaging V by text|not with V|cannot see V's surroundings/);
   assert.match(text, /The police are after V|V is rich/, 'she sees V, so V\'s condition counts as in person');
@@ -43,7 +43,7 @@ test('the same phone chat with her far away (or not listed as near) keeps the re
 test('a holocall or a voice call with a character beside V says so too; far away it stays a call', () => {
   for (const [mode, how] of [['audio', /voice call on the phone instead of just talking/], ['holo', /holocall on the phone instead of just talking/]]) {
     const near = block({holocall: {contact: 'panam-palmer', mode}});
-    assert.match(near, /You are with V in person, standing near V, right next to V, even though V has you on a/);
+    assert.match(near, /You are with V in person, right next to V, even though V has you on a/);
     assert.match(near, how);
     assert.doesNotMatch(near, /somewhere else|you are on a call, not with V/);
     const far = block({holocall: {contact: 'panam-palmer', mode}}, [{key: 'panam-palmer', name: 'Panam Palmer'}]);
@@ -54,7 +54,7 @@ test('a holocall or a voice call with a character beside V says so too; far away
 
 test('an ordinary in-person turn and an ambient stranger are unchanged by the flag', () => {
   assert.doesNotMatch(block({}), /right next to V|texting/);
-  assert.match(block({}), /^Right now \(from the game, this turn only\): You are with V in person, standing near V\./);
+  assert.match(block({}), /^Right now \(from the game, this turn only\): You are with V in person\./);
   const stranger = describeTurnContext(input({channel: 'phone', profileKey: 'resident-male'}), {ambient: true, split: true}).text;
   assert.doesNotMatch(stranger, /right next to V/);
 });
@@ -64,7 +64,7 @@ test('the first sentence is what is said again right before V\'s words, and it d
   const persona = new PersonaBook([{key: 'panam-palmer', name: 'Panam Palmer', backstory: 'A nomad.', speakingStyleDescription: 'Blunt.', speakingStyleSampleDialogues: ''}]).persona('panam-palmer');
   const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages.at(-1).content;
-  assert.match(last, /YOU, RIGHT NOW: You are with V in person, standing near V, right next to V, even though V is texting you on the phone instead of talking out loud\. That is all you are doing; never claim to be anywhere else\./);
+  assert.match(last, /YOU, RIGHT NOW: You are with V in person, right next to V, even though V is texting you on the phone instead of talking out loud\. That is all you are doing; never claim to be anywhere else\./);
   assert.doesNotMatch(last, /cannot see V/);
 });
 

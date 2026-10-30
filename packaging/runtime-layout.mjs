@@ -215,6 +215,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/repeat-log.mjs',
   'bridge/reply-language.mjs',
   'bridge/reply-stream.mjs',
+  'bridge/reply-variety.mjs',
   'bridge/reputation.mjs',
   'bridge/request-gate.mjs',
   'bridge/request-ownership.mjs',
