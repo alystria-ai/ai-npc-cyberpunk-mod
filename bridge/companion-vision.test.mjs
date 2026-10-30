@@ -385,14 +385,16 @@ test('a minimised game gives no frame and the turn goes on without one', async (
   assert.ok(vision.diagnostics().minimised >= 2);
 });
 
-test('a game that is not in front (covered) is not a failure: no frame, one log line, counted apart', async () => {
+test('a game that is not in front (covered) is not a failure: no frame, counted apart, one timer line and one line for the turn that asked', async () => {
   const logs = [];
   const {vision, run} = scene({capture: fakeCapture({fail: 'covered'}), log: line => logs.push(line)});
   await run(FRAME_INTERVAL_MS * 3);
   assert.equal(await vision.imagesForTurn({visionTurn: 't'}), null);
   const counts = vision.diagnostics();
   assert.ok(counts.covered >= 3 && counts.failed === 0, JSON.stringify(counts));
-  assert.equal(logs.filter(line => /no picture .*covered/.test(line)).length, 1, 'said once');
+  assert.equal(logs.filter(line => /no picture \(buffer\).*covered/.test(line)).length, 1, 'the timer says it once');
+  for (let i = 0; i < 6; i++) await new Promise(done => setImmediate(done));
+  assert.equal(logs.filter(line => /no picture \(turn\).*covered/.test(line)).length, 1, 'the turn that asked says it too');
 });
 
 test('the yellow border (Discord 2026-10-23): a capture that shows it stops the timer, pictures are taken only when a turn needs one, and the player is told once', async () => {
@@ -843,4 +845,58 @@ test('text providers: an endpoint that refused a picture is told once, and the C
   assert.equal(vision.takeSightNotice(), 'vision-custom-no-images');
   vision.noteRefused('custom');
   assert.equal(vision.takeSightNotice(), null, 'once');
+});
+
+// ---- a covered game (live 2026-10-30): no picture by design, but never silently ----------------------------------------------------------------------------------------
+test('a refused picture is never silent: every turn capture says how it went, the timer says it when the reason changes', async () => {
+  const logs = [];
+  const {vision, state, run, capture} = scene({capture: fakeCapture({fail: 'covered'}), log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 4);
+  assert.equal(logs.filter(line => /no picture \(buffer\): covered/.test(line)).length, 1, 'the timer: once');
+  state.conversing = true;
+  for (let turn = 0; turn < 3; turn++) {
+    vision.openComposer([{characterId: 'c'}]);
+    for (let i = 0; i < 6; i++) await new Promise(done => setImmediate(done));
+    state.now += FRESH_FRAME_AGE_MS + 1000; vision.closeComposer();
+  }
+  const lines = logs.filter(line => /no picture \(composer\): covered/.test(line));
+  assert.equal(lines.length, 3, logs.join(' | '));
+  assert.match(lines[0], /another window covers the game.*no picture was taken/);
+  assert.ok(capture.allOptions.every(options => options?.method === undefined), 'no Graphics Capture retry: a covered game sends no picture');
+});
+
+test('covered game, talk key and a turn with no frame: each logs its outcome and no retry is made', async () => {
+  const logs = [];
+  const {vision, state, run, capture} = scene({capture: fakeCapture({fail: 'covered'}), log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  assert.equal(vision.beginVoice('mic-covered'), true);
+  await vision.voice.get('mic-covered').done;
+  assert.ok(logs.some(line => /no picture \(talk key\): covered/.test(line)), logs.join(' | '));
+  state.now += 5000;
+  const calls = capture.calls;
+  assert.equal(await vision.imagesForTurn({visionTurn: 'first', characterId: 'jackie'}), null);
+  for (let i = 0; i < 6; i++) await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, calls + 1, 'one request, no second one');
+  assert.ok(logs.some(line => /no picture \(turn\): covered/.test(line)), logs.join(' | '));
+  assert.equal(vision.diagnostics().coveredRetries, undefined);
+});
+
+test('identical turn capture lines are held back for a moment and the next one counts them; pictures working again are logged once', async () => {
+  const logs = [];
+  const state = {mode: 'covered'};
+  const capture = fakeCapture();
+  const real = capture.capture;
+  capture.capture = async options => state.mode === 'covered' ? (capture.calls++, {ok: false, reason: 'covered', ms: {total: 1}}) : real(options);
+  const {vision, state: scenery} = scene({capture, log: line => logs.push(line)});
+  scenery.conversing = true;
+  for (let i = 0; i < 4; i++) await vision.grab('talk key');
+  assert.equal(logs.filter(line => /no picture \(talk key\)/.test(line)).length, 1, 'a burst is one line');
+  scenery.now += 2500;
+  await vision.grab('talk key');
+  assert.match(logs.filter(line => /no picture \(talk key\)/.test(line)).at(-1), /3 more like it held back/);
+  state.mode = 'open';
+  await vision.grab('talk key');
+  await vision.grab('talk key');
+  assert.equal(logs.filter(line => /taken again after covered/.test(line)).length, 1, logs.join(' | '));
 });
