@@ -1,0 +1,4562 @@
+[
+ {
+  "id": "fact-panam-al5.devil.called-platonic",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "When V called Panam from the cabin in the Devil ending, V had never been her lover, and she answered warmly: \"it's been a while since I heard that voice.\""
+ },
+ {
+  "id": "fact-panam-al5.temperance.panam-texts",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After V's body was left to Johnny in the Temperance ending, Panam sent V a string of angry texts, one calling Johnny a sociopath and vowing to find him and get V back. These record her messages and suspicion, not that she saw what happened."
+ },
+ {
+  "id": "fact-panam-al5.wartime.tracks-followed",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "While chasing Hellman after the AV crash, V and Panam followed physical evidence: V scanned the tire tracks at the crash site to trace where Hellman was taken."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.basilisk-convoy-secured",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The Militech convoy operation brought a Basilisk back to the Aldecaldo camp. Panam presented it to Saul and the clan kept it for assembly."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.farmhouse-backed-saul",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "While sheltering after his rescue, V defended Saul's practical case for accepting corporate support to help the clan survive. Saul approved the reasoning and Panam objected. This was a position in that conversation, not permanent hostility toward Panam or proof that the Biotechnica agreement later continued."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.farmhouse-initially-backed-panam",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "While sheltering after Saul's rescue, V initially backed Panam's criticism of Saul's corporate-dependence plan. Panam thanked V and Saul challenged the opinion. This records that initial stance, not which later explanation V gave or a permanent allegiance."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-basilisk-intimacy",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V accepted Panam's invitation to share an intimate experience through the Basilisk's sensory link, and the two became lovers."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-farmhouse-flirt",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After rescuing Saul, V made a flirtatious overture during the private farmhouse conversation with Panam. The established choice does not distinguish the physical-touch option from gentler banter and does not establish sex, mutual romantic commitment, or permission to ignore her boundaries."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-motel-flirt",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "At the Sunset Motel after Ghost Town, V made clear that the shared-room suggestion was flirtatious. Panam said she was glad they had met but was too tired for intimacy that night. This early exchange did not establish a committed relationship."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-motel-room-shared",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After the Ghost Town job, V and Panam shared a Sunset Motel room with separate twin beds and settled down for the night. Sharing the room was not a sexual encounter or a confirmed romance."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-nash-assistance",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V agreed to help Panam pursue Nash after recovering her vehicle and cargo, and joined her raid at the Raffen tunnel hideout. Their tunnel encounter was completed. This does not establish that V killed Nash or that Panam and V became romantic partners."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-relic-explanation",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V explained to Panam that a biochip and the personality construct inside it are harming V and threatening V's life. Panam knows this is why V is trying to survive."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.panam-saul-co-leadership",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After the camp was saved, Saul announced that Panam would lead the Aldecaldo family alongside him. Panam became his co-leader."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.saul-smasher-death",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "During the Aldecaldo assault inside Arasaka, Adam Smasher killed Saul in front of V and Panam. Panam witnessed Saul's death."
+ },
+ {
+  "id": "fact-panam-aldecaldos.native.v-aldecaldo-initiation",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Saul and Panam formally welcomed V into the Aldecaldos. V received the clan jacket as a member of the family before the assault."
+ },
+ {
+  "id": "fact-panam-db.queen-friendship-hook",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After the Aldecaldo initiation party, Panam sent V her friendly check-in messages about the chip and her plans, the friends version of her ending hook rather than the romantic one."
+ },
+ {
+  "id": "fact-panam-priority-endings.johnny.saul-killed",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Adam Smasher killed Saul during the Aldecaldo assault, witnessed by V and Panam."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.assault-plan",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The Aldecaldos agreed on the assault plan with V at their camp."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.bob-teddy-dead",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Bob and Teddy died during the Aldecaldo construction assault before the group drilled through to Arasaka."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.breach",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The Aldecaldo drill opened a route into Arasaka’s underground approach."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.mikoshi",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V reached and connected to Mikoshi after the Aldecaldo assault."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.mikoshi-panam",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam witnessed V connect to Mikoshi after the Aldecaldo assault."
+ },
+ {
+  "id": "fact-panam-priority-endings.nomad.star-plan",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam and V made a plan to leave Night City through an old smuggling tunnel."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.accepted-help",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V asked Panam for Aldecaldo help on the committed final route."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.devil-romantic-call",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V spoke with Panam from Arasaka orbit after choosing her as the romantic rooftop contact."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.rooftop-farewell",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V selected Panam for the private farewell call and spoke to her before the final plan."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.star-body-return",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V returned from Mikoshi and reached the Aldecaldo epilogue with Panam."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.star-border",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V and the Aldecaldos completed the border crossing out of Night City."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.star-together",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam was V’s selected romantic partner and they left Night City together on the Aldecaldo route."
+ },
+ {
+  "id": "fact-panam-priority-endings.panam.sun-goodbye",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam and V took different roads after Mikoshi; Panam left Night City while V stayed for the Afterlife job."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.av-down",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam and V brought down the corporate AV carrying Hellman."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.basilisk-training",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V and Panam operated the Basilisk and completed its target practice."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.camp-defense",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam and V helped defend the Aldecaldos camp against the Raffen with the Basilisk."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.camp-gear",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Mitch and Scorpion stayed at camp to repair the generators. They offered Panam equipment for recovering her vehicle and cargo."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.collapse-witnessed",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam knew that V had passed out and that the Aldecaldos brought V to the new camp."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.convoy-assistance",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V helped Panam and the veterans secure the Basilisk convoy."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.escape-covert",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V, Panam and Saul escaped the Wraiths without the vehicle chase."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.escape-pursued",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The escape with Saul drew pursuit, and V defended the getaway vehicle."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.ghost-delivery",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V and Panam recovered her vehicle and delivered the recovered cargo at Sunset Motel."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.hellman-captured",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "With Panam helping the pursuit, V captured Hellman at the gas station."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.mitch-help",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "V helped Panam resolve the hostage situation at the AV wreck and free Mitch."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.pilot-destination",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The AV pilot told V, Panam and Mitch that Hellman had been taken west to the gas station."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.railway-active",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The team brought the old railway locomotive online for the convoy operation."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.riders-briefing",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam briefed V on the Wraiths holding Saul and the plan to extract him from their base."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.riders-failed",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "The attempt to rescue Saul ended in failure; Panam sent V a failure message."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.scorpion-loss",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "Panam learned that Scorpion and other nomads died at the AV wreck, while Mitch survived."
+ },
+ {
+  "id": "fact-panam-priority-panam.native.tower-payment",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "At the railway tower V told Panam that this help was not free, and Panam responded about a firearm reward."
+ },
+ {
+  "id": "fact-panam-sh5.belly.smasher-killed",
+  "store": "fact",
+  "speaker": "panam-palmer",
+  "text": "After the Aldecaldos' assault on Arasaka Tower, V finished off the defeated Adam Smasher instead of walking away."
+ },
+ {
+  "id": "story-panam-relic",
+  "store": "story",
+  "speaker": "panam-palmer",
+  "text": "Panam knows V carries a biochip with a personality construct inside it that is harming V, because V told her after the Basilisk fight."
+ },
+ {
+  "id": "story-panam-dying",
+  "store": "story",
+  "speaker": "panam-palmer",
+  "text": "Panam knows the chip is threatening V's life, which is why V is fighting to survive."
+ },
+ {
+  "id": "story-panam-arasaka",
+  "store": "story",
+  "speaker": "panam-palmer",
+  "text": "Panam fought beside V inside Arasaka Tower during the Aldecaldo assault, where Smasher killed Saul."
+ },
+ {
+  "id": "story-panam-hellman",
+  "store": "story",
+  "speaker": "panam-palmer",
+  "text": "Panam helped V chase down and capture Hellman, the man Rogue named as V's lead."
+ },
+ {
+  "id": "story-panam-mikoshi",
+  "store": "story",
+  "speaker": "panam-palmer",
+  "text": "Panam was with V when V connected to Mikoshi during the Aldecaldo assault on Arasaka."
+ },
+ {
+  "id": "quest-panam-q103_warhead",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Ghost Town. To find the man V is hunting, V needs a fixer's help at the Afterlife and then a nomad named Panam, who has her own score to settle outside the city. People: Rogue Amendiares, Panam Palmer, Mitch Anderson, Nash. Places: the Afterlife, Watson, Panam's meeting spot, the Aldecaldo camp, Rocky Ridge, the substation, Rocky Ridge, the rooftops, Rocky Ridge, the bar and the gas pumps, Rocky Ridge, north of Rocky Ridge, the Raffen Shiv hideout in the old mines, the Sunset Motel."
+ },
+ {
+  "id": "quest-panam-q104_01_sabotage",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Lightning Breaks. Panam has a plan to shut down a power plant and bring down a convoy aircraft, and she wants V in her car at midnight to help pull it off. People: Panam Palmer. Places: the garage by the Sunset Motel, the satwave power plant, the hill above the plant."
+ },
+ {
+  "id": "quest-panam-q104_02_av_chase",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Life During Wartime. The aircraft is down, and V and Panam have to reach the wreck and the man on board before the Aldecaldos or the corporate security do. People: Panam Palmer, Mitch Anderson, Anders Hellman, Takemura. Places: the canyon road in the Badlands, the crash site, Badlands, the airstrip, the old gas station, the gas station office, upper floor, outside the gas station, a roadside motel room."
+ },
+ {
+  "id": "quest-panam-q114_01_nomad_initiation",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "We Gotta Live Together. Panam brings V to the Aldecaldo camp, where Saul and the nomads are getting ready for a hard fight and want V with them. People: Mitch Anderson, Saul Bright, Panam Palmer, Dakota Smith, Alt Cunningham, Carol Emeka, Cassidy Righter. Places: the Aldecaldo camp, the nomads' driving course, the Aldecaldo camp party."
+ },
+ {
+  "id": "quest-panam-q114_02_maglev_line_assault",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Forward to Death. Panam wants V in the Basilisk with the Aldecaldos, breaking through Militech forces to reach a construction site. People: Saul Bright, Panam Palmer, Mitch Anderson, Carol Emeka. Places: the Basilisk tent, the artillery route to the construction site, the stalled Basilisk, on the route, the bridge, the barricades, the construction site gate, the construction site courtyard, the control room stairs, the control room, the construction site, the Basilisk, at the construction site, the tunnel entrance."
+ },
+ {
+  "id": "quest-panam-q114_03_attack_on_arasaka_tower",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Belly of the Beast. Panam and the Aldecaldos drive the Basilisk into a tunnel below Arasaka Tower, and V has to drill into the tower and reach its mainframe with Alt's help. People: Panam Palmer, Mitch Anderson, Saul Bright, Alt Cunningham, Adam Smasher. Places: the tunnel below Arasaka Tower, the SERC drilling machine, the hole in the Arasaka building, the manufacturing floor, Arasaka Tower, the security room, Arasaka Tower, the maintenance shaft, the server room, Arasaka Tower, the mainframe, Arasaka Tower, the boss room, Arasaka Tower, the Mikoshi Access Point."
+ },
+ {
+  "id": "quest-panam-sq004_riders_on_the_storm",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Riders on the Storm. Panam wants V to help the Aldecaldos get Saul out of a Raffen Shiv camp in the Badlands, and starts by having the camp scouted with a drone. People: Panam Palmer, Mitch Anderson, Saul, Johnny Silverhand. Places: the Aldecaldo camp, Badlands, the lookout above the Raffen Shiv camp, the Raffen Shiv camp gate, the main building, the Raffen Shiv camp, the cellar, main building, the maintenance tunnel, Raffen Shiv camp, the van outside the camp, the roads away from the Raffen Shiv camp, the farm, Badlands, the farm porch, Badlands."
+ },
+ {
+  "id": "quest-panam-sq027_01_basilisk_convoy",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "With a Little Help from My Friends. Panam asks V to help the Aldecaldo nomads take a Militech convoy in the Outskirts, starting from their camp. People: Panam Palmer, Mitch Anderson, Saul Bright. Places: Aldecaldo camp, Outskirts, Sunset Motel, the old railway junction, the control tower, railway junction, the junction campfire, the railway line."
+ },
+ {
+  "id": "quest-panam-sq027_02_raffen_shiv_attack",
+  "store": "quest",
+  "speaker": "panam-palmer",
+  "text": "Queen of the Highway. Panam invites V to test-drive the Basilisk tank the nomads now have, starting from their camp in the Outskirts. People: Panam Palmer, Saul Bright. Places: Aldecaldo camp, Outskirts, the wind turbine course, the shooting range, Outskirts."
+ },
+ {
+  "id": "place-v-apartment-h10-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "V's apartment in Megabuilding H10, Little China, Watson"
+ },
+ {
+  "id": "place-afterlife-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "the Afterlife, a merc bar in Little China, Watson"
+ },
+ {
+  "id": "place-clouds-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Clouds, a club in Japantown, Westbrook"
+ },
+ {
+  "id": "place-v-apartment-corpo-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-v-apartment-northside-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "V's apartment in Northside, Watson"
+ },
+ {
+  "id": "place-arasaka-tower-ceo-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "the CEO level of Arasaka Tower, Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-lizzies-bar-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Lizzie's Bar, a club in Kabuki, Watson"
+ },
+ {
+  "id": "place-el-coyote-cojo-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "El Coyote Cojo, a bar in Vista del Rey, Heywood"
+ },
+ {
+  "id": "place-judys-apartment-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Judy's apartment in Kabuki, Watson"
+ },
+ {
+  "id": "place-totentanz-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "the Totentanz, a club in Northside, Watson"
+ },
+ {
+  "id": "place-wakakos-office-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Wakako's office in Japantown, Westbrook"
+ },
+ {
+  "id": "place-mistys-esoterica-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Misty's Esoterica, a shop in Little China, Watson"
+ },
+ {
+  "id": "place-victors-clinic-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Viktor's clinic, a ripperdoc's clinic in Little China, Watson"
+ },
+ {
+  "id": "place-toms-diner-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "Tom's Diner, a diner in Little China, Watson"
+ },
+ {
+  "id": "place-sunset-motel-panam",
+  "store": "place",
+  "speaker": "panam-palmer",
+  "text": "the Sunset Motel"
+ },
+ {
+  "id": "fact-judy-core-arcs.judy.committed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "After the dive at Laguna Bend, V and Judy chose to continue their relationship."
+ },
+ {
+  "id": "fact-judy-core-arcs.judy.friends",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy and V finished their Laguna Bend visit as friends."
+ },
+ {
+  "id": "fact-judy-jr-native.both-evelyn-burial-received",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Evelyn died, and Judy sent V a message reporting that she had buried her. This establishes Judy’s burial report to V; it does not establish that V read it or which support reply V chose."
+ },
+ {
+  "id": "fact-judy-jr-native.disasterpiece-evelyn-extracted",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy got Evelyn out of the scavenger braindance studio. This records her rescue at that point; her medical recovery and later fate are separate events."
+ },
+ {
+  "id": "fact-judy-jr-native.pisces-maiko-installed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V supported installing Maiko to run Clouds under its arrangement with the Tyger Claws. Judy confronted V about letting Maiko take control. This does not mean Clouds became permanently independent or that Judy approved of the compromise."
+ },
+ {
+  "id": "fact-judy-jr-native.pisces-maiko-killed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Maiko died in the Clouds confrontation, and Judy learned that V killed her. Judy was shocked and distressed. This records her response at the debrief; it does not establish her later relationship with V."
+ },
+ {
+  "id": "fact-judy-jr-native.pisces-payment-accepted",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V accepted Maiko's money after supporting her takeover. Judy learned this in the debrief and treated it as a betrayal of what she wanted for Clouds; she withdrew from V rather than accepting the deal as a shared victory."
+ },
+ {
+  "id": "fact-judy-jr-native.pyramid-dive-completed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy and V completed the Laguna Bend dive, and Judy brought V out of the water after V lost consciousness. The shared dive does not establish romance, an overnight stay, or what they said in optional conversations."
+ },
+ {
+  "id": "fact-judy-jr-native.revolution-overnight",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V stayed overnight at Judy’s apartment and woke there. Judy sent V a morning message about the breakfast she had left. This establishes her overnight care, not whether V accepted her Clouds plan, ate breakfast, disclosed Johnny, or began a romance."
+ },
+ {
+  "id": "fact-judy-jr5.temperance.judy-worried",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "In the Temperance epilogue Judy sent V a run of texts repeatedly asking V to pick up the phone, ending with a worried \"V? Hello?\"."
+ },
+ {
+  "id": "fact-judy-jr5.tower.judy-call.heard",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "In the 2079 holocall Judy told V she was living in Pittsburgh and had gotten married, and that she could not help V."
+ },
+ {
+  "id": "fact-judy-pm5.changed.judy-call-heard",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "After V woke in 2079, V called Judy; she said she now lives in Pittsburgh and is married, and that she could not help V now."
+ },
+ {
+  "id": "fact-judy-priority-endings.judy.devil-withdrawal",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V spoke with Judy from Arasaka orbit; she was angry and preparing to leave Night City."
+ },
+ {
+  "id": "fact-judy-priority-endings.judy.rooftop-farewell",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V chose Judy as the private rooftop farewell contact and completed the call."
+ },
+ {
+  "id": "fact-judy-priority-endings.judy.star-departure",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy joined V and the Aldecaldos to leave Night City."
+ },
+ {
+  "id": "fact-judy-priority-endings.judy.star-partner",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy joined V and the Aldecaldos to leave Night City."
+ },
+ {
+  "id": "fact-judy-priority-endings.judy.sun-goodbye",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy told V she would leave Night City instead of staying with V at the Afterlife."
+ },
+ {
+  "id": "fact-judy-priority-judy.booth-recording",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V saw the recording of Evelyn being attacked through her cyberware at Clouds and explicitly reported it to Judy. This is evidence of the attack, not medical recovery or the attacker’s identity."
+ },
+ {
+  "id": "fact-judy-priority-judy.evelyn-aftermath-help",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "After Evelyn died, V helped Judy by carrying Evelyn to the bed and waiting outside while Judy covered her. This records that practical help without inventing an optional comforting reply."
+ },
+ {
+  "id": "fact-judy-priority-judy.evelyn-located-active",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy located Evelyn in the braindance studio. The current quest is still active, so extraction and medical recovery are not established by this observation."
+ },
+ {
+  "id": "fact-judy-priority-judy.evelyn-recording-assignment",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy reviewed evidence that Evelyn was hired to record a virtu rather than organize the entire Relic heist. That evidence does not identify her hidden employer with certainty."
+ },
+ {
+  "id": "fact-judy-priority-judy.ex-helped",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V attended the Clouds meeting with Judy and completed their Ex-Factor visit. This establishes participation without choosing a Woodman fate."
+ },
+ {
+  "id": "fact-judy-priority-judy.ex-refused",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V declined Judy’s Ex-Factor request. Later acceptance or attendance is not established by that refusal."
+ },
+ {
+  "id": "fact-judy-priority-judy.ex-woodman-avoided",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy left the Ex-Factor visit without pursuing Woodman after V declined an execution. This does not establish his later fate."
+ },
+ {
+  "id": "fact-judy-priority-judy.ex-woodman-confronted",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy confronted Woodman during Ex-Factor. The confrontation alone does not establish who killed him or whether the final blow was lethal."
+ },
+ {
+  "id": "fact-judy-priority-judy.ex-woodman-dead",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Woodman died in the Ex-Factor confrontation. His death is confirmed separately from the fight, and the killer’s identity is not established."
+ },
+ {
+  "id": "fact-judy-priority-judy.fingers-assault",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy witnessed V assault Fingers during their search for Evelyn. This does not establish that Fingers was killed."
+ },
+ {
+  "id": "fact-judy-priority-judy.fingers-testimony",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V and Judy questioned Fingers about Evelyn. Fingers said he had called Wakako to hand off the incapacitated doll. This testimony does not by itself establish whether V assaulted him."
+ },
+ {
+  "id": "fact-judy-priority-judy.information-judy-met",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy met V in her workshop when Evelyn brought V for the Konpeki braindance analysis. Their first meeting does not mean Judy heard Evelyn’s later private offer to cut Dex out."
+ },
+ {
+  "id": "fact-judy-priority-judy.information-security-scanned",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V examined optional suite security details in the braindance and explicitly shared that finding with Judy. Completing the main Relic search alone does not prove these optional scans."
+ },
+ {
+  "id": "fact-judy-priority-judy.information-storage-found",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V found the Relic storage case while analyzing Evelyn’s suite recording, then explicitly shared that finding with Judy. This does not establish who later took the Relic."
+ },
+ {
+  "id": "fact-judy-priority-judy.judy-hangout-attended",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Judy completed a specific apartment visit with V. Her Judy-only date objective finished, and the post-visit phase recorded their first completed hangout; an invitation alone does not count."
+ },
+ {
+  "id": "fact-judy-priority-judy.pisces-bosses-removed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V rejected Maiko’s arrangement and removed the Tyger bosses from the meeting. Judy’s completed debrief recorded that route. This does not establish lasting freedom for Clouds."
+ },
+ {
+  "id": "fact-judy-priority-judy.pisces-maiko-survived-installed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Maiko survived the Pisces meeting and took control of Clouds under the Tyger Claws. This confirms her survival on the installed-Maiko branch; it does not claim she was subdued in combat."
+ },
+ {
+  "id": "fact-judy-priority-judy.pyramid-clouds-retaliation",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "At Laguna Bend, Judy told V the Tyger Claws had retaliated at Clouds after the bosses were removed. Tom was dead and Roxanne had escaped. This is Judy’s later report, not an immediate consequence inferred from the penthouse fight."
+ },
+ {
+  "id": "fact-judy-priority-judy.pyramid-clouds-unchanged",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "At Laguna Bend, Judy told V that Maiko controlled Clouds and the dolls had seen no improvement. This is Judy’s later report, not a claim that her earlier plan had succeeded."
+ },
+ {
+  "id": "fact-judy-priority-judy.pyramid-fling-dismissed",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "After their intimate night, V dismissed it as a pleasant distraction. Judy rejected that understanding and ended the relationship."
+ },
+ {
+  "id": "fact-judy-priority-judy.pyramid-left-while-asleep",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "After the Laguna Bend dive, V left before morning while Judy slept. Judy then sent her departure message and treated the visit as the end of their contact."
+ },
+ {
+  "id": "fact-judy-priority-judy.revolution-accepted",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V agreed to help Judy’s Clouds plan during the Revolution meeting. The completed meeting was followed by the next-operation wait objective; completion alone would not establish agreement."
+ },
+ {
+  "id": "fact-judy-priority-judy.tom-clinic-testimony",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V heard Tom’s claim that Evelyn had gone to a distant clinic for a faceplate, then explicitly reported that testimony to Judy. Tom’s story does not establish that Evelyn reached such a clinic or recovered."
+ },
+ {
+  "id": "fact-judy-priority-judy.voodoo-clue",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "During the recordings, V and Judy connected the veve markings with a possible Voodoo Boys lead. It remained a clue, not a confirmed identity of the woman who hired Evelyn."
+ },
+ {
+  "id": "fact-judy-priority-judy.woodman-defeated",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "V defeated Woodman during the Clouds encounter and explicitly told Judy. Defeat alone does not establish that Woodman died."
+ },
+ {
+  "id": "fact-judy-priority-judy.woodman-fingers-lead",
+  "store": "fact",
+  "speaker": "judy-alvarez",
+  "text": "Woodman gave V the Fingers lead during their conversation, and V explicitly told Judy. The lead does not establish Woodman’s later survival or death."
+ },
+ {
+  "id": "story-judy-relic",
+  "store": "story",
+  "speaker": "judy-alvarez",
+  "text": "Judy knows V has the Relic chip, because the shared dive at the lake showed her what it is doing in V's head."
+ },
+ {
+  "id": "story-judy-johnny",
+  "store": "story",
+  "speaker": "judy-alvarez",
+  "text": "Judy saw Johnny Silverhand in V's head during the shared dive."
+ },
+ {
+  "id": "quest-judy-q105_02_jigjig",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "The Space in Between. Judy Alvarez is hunting for Evelyn Parker and has a lead on a Ripperdoc called Fingers, who works from a clinic on Jig-Jig Street in Japantown: V goes there to get what he knows. People: Judy Alvarez, Fingers. Places: Jig-Jig Street, Japantown, Fingers' clinic, the clinic door, Jig-Jig Street, the clinic waiting room, Fingers' surgery room, Fingers' office."
+ },
+ {
+  "id": "quest-judy-q105_03_braindance_studio",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Disasterpiece. Judy Alvarez needs an illegal braindance that may show where Evelyn Parker is being held, so V tracks down a dealer on Jig-Jig Street, watches the recording and follows it to the place it was made. People: Judy Alvarez, Wakako Okada, Evelyn Parker. Places: the clinic hallway, Jig-Jig Street, Jig-Jig Street, a terminal on Jig-Jig Street, the sex shop on Jig-Jig Street, Judy's van, inside the braindance, the old power plant, Charter Hill, the power plant main building, the sub-levels, level -1, the big room, the small stairs, level -1, the maintenance room, the sub-level hallway, the room with the bed, sub-levels, the sub-level elevator."
+ },
+ {
+  "id": "quest-judy-q105_04_judys",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Double Life. Judy Alvarez wants to go through the recordings from the power plant with V in her apartment, and V helps her make sense of what they show. People: Johnny Silverhand, Judy Alvarez, Evelyn Parker. Places: the balcony of Judy's apartment, Judy's apartment, Kabuki, the editing room, inside the second recording."
+ },
+ {
+  "id": "quest-judy-q105_dollhouse",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Automatic Love. Judy Alvarez asks V to track down her friend Evelyn Parker, last seen at Clouds, a club in Megabuilding H8: V gets the address from Judy, pays to get in and presses the club's manager for answers. People: Judy Alvarez, Johnny Silverhand, Tom, Evelyn Parker, Woodman. Places: Lizzie's Bar, the basement of Lizzie's Bar, outside Lizzie's Bar, Megabuilding H8, Westbrook, the Clouds reception, the locker by the door, a booth at Clouds, the VIP area of Clouds, Evelyn's booth, booth 11, the security room, Woodman's office, Clouds, the locker at Clouds, the elevator to the ground floor."
+ },
+ {
+  "id": "quest-judy-q004_braindance",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "The Information. A client named Evelyn Parker has inside knowledge for Dex's big job, and V has to meet her at Lizzie's Bar in Kabuki and go through a braindance with Judy. People: Evelyn Parker, Judy Alvarez, T-Bug, Dex. Places: Lizzie's Bar, Kabuki, Watson, the VIP room, Lizzie's Bar, Judy's workshop, below Lizzie's Bar, the recorded store, practice braindance, Yorinobu's apartment, in the recording, Judy's workshop, Lizzie's Bar."
+ },
+ {
+  "id": "quest-judy-sq026_01_suicide",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Both Sides, Now. Judy calls V to her apartment in Watson and asks for help with a problem she has at home. People: Judy Alvarez, Evelyn Parker. Places: Judy's apartment, Watson, the bedroom, Judy's apartment, the rooftop, Watson, Judy's building, Watson."
+ },
+ {
+  "id": "quest-judy-sq026_02_maiko",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Ex-Factor. Judy asks V to meet her at Clouds in Megabuilding H8 in Westbrook, to sort something out with Maiko. People: Judy Alvarez, Maiko Maeda, Woodman. Places: Megabuilding H8, Westbrook, Clouds terrace, Megabuilding H8, the office, Clouds, Clouds, Megabuilding H8, the elevator, Megabuilding H8, the ground floor, Megabuilding H8."
+ },
+ {
+  "id": "quest-judy-sq026_03_pizza",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Talkin' 'Bout a Revolution. Judy calls V over to her apartment in Watson one evening to hear a plan she and her friends have worked out. People: Judy Alvarez, Roxanne, Tom. Places: Watson, Judy's apartment, Watson, Judy's kitchen, Watson, Judy's building, Watson."
+ },
+ {
+  "id": "quest-judy-sq026_04_hiromi",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Pisces. Judy asks V to meet her and the dolls at Megabuilding H8 in Westbrook in the afternoon, for a job she has lined up. People: Judy Alvarez, Maiko Maeda, Hiromi Sato, the Tyger Claw bosses, Johnny Silverhand. Places: Megabuilding H8, Westbrook, the maintenance level, Megabuilding H8, the freight elevator and roof, Megabuilding H8, the penthouse, Megabuilding H8, Hiromi's office, penthouse."
+ },
+ {
+  "id": "quest-judy-sq030_judy_romance",
+  "store": "quest",
+  "speaker": "judy-alvarez",
+  "text": "Pyramid Song. Judy invites V to the Badlands lake one evening to dive with her, after first helping her get her gear ready. People: Judy Alvarez, Johnny Silverhand. Places: the lake, Badlands, the sunken village, lake, the cottage, Badlands, the pier, Badlands."
+ },
+ {
+  "id": "place-v-apartment-h10-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "V's apartment in Megabuilding H10, Little China, Watson"
+ },
+ {
+  "id": "place-afterlife-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "the Afterlife, a merc bar in Little China, Watson"
+ },
+ {
+  "id": "place-clouds-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Clouds, a club in Japantown, Westbrook"
+ },
+ {
+  "id": "place-v-apartment-corpo-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-v-apartment-northside-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "V's apartment in Northside, Watson"
+ },
+ {
+  "id": "place-arasaka-tower-ceo-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "the CEO level of Arasaka Tower, Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-lizzies-bar-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Lizzie's Bar, a club in Kabuki, Watson"
+ },
+ {
+  "id": "place-el-coyote-cojo-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "El Coyote Cojo, a bar in Vista del Rey, Heywood"
+ },
+ {
+  "id": "place-judys-apartment-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Judy's apartment in Kabuki, Watson"
+ },
+ {
+  "id": "place-totentanz-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "the Totentanz, a club in Northside, Watson"
+ },
+ {
+  "id": "place-wakakos-office-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Wakako's office in Japantown, Westbrook"
+ },
+ {
+  "id": "place-mistys-esoterica-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Misty's Esoterica, a shop in Little China, Watson"
+ },
+ {
+  "id": "place-victors-clinic-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Viktor's clinic, a ripperdoc's clinic in Little China, Watson"
+ },
+ {
+  "id": "place-toms-diner-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "Tom's Diner, a diner in Little China, Watson"
+ },
+ {
+  "id": "place-sunset-motel-judy",
+  "store": "place",
+  "speaker": "judy-alvarez",
+  "text": "the Sunset Motel"
+ },
+ {
+  "id": "fact-johnny-ah5.totentanz.brick",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "At the Totentanz V and Nancy met Brick, who had taken over the Maelstrom gang from Royce after the All Foods incident."
+ },
+ {
+  "id": "fact-johnny-ah5.totentanz.patricia",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "At the Totentanz V and Nancy were received by Patricia and her Maelstrom crew, not by Brick."
+ },
+ {
+  "id": "fact-johnny-ah5.totentanz.royce",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "At the Totentanz V and Nancy dealt with Royce and Dum Dum, who were still running the Maelstrom gang there."
+ },
+ {
+  "id": "fact-johnny-ah5.war-pigs.confronted",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "In War Pigs V went to the briefcase location and met Frank Nostra there. Purged by Abernathy, he held V at gunpoint to win his way back; V confronted him. This does not record how the confrontation ended."
+ },
+ {
+  "id": "fact-johnny-core-arcs.johnny.second-chance",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "At the oilfield, V gave Johnny a final chance to rebuild their relationship, and Johnny committed to trying."
+ },
+ {
+  "id": "fact-johnny-jr-priority.bender.completed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny used V’s body for the night and handed control back after the outing."
+ },
+ {
+  "id": "fact-johnny-jr-priority.buck-ravers.visited",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V and Johnny completed the visit to Karim’s Samurai bootleg stall."
+ },
+ {
+  "id": "fact-johnny-jr-priority.date.arranged",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V arranged Johnny’s outing with Rogue; the pair subsequently met at the theater."
+ },
+ {
+  "id": "fact-johnny-jr-priority.ebunike.lead-obtained",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny gained the Ebunike lead through Ruby and V later relayed it to Rogue."
+ },
+ {
+  "id": "fact-johnny-jr-priority.family.car-not-returned",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V completed the Family Heirloom branch without returning Dan’s car."
+ },
+ {
+  "id": "fact-johnny-jr-priority.family.car-returned",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V returned Dan’s car during Family Heirloom."
+ },
+ {
+  "id": "fact-johnny-jr-priority.family.recording-delivered",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V delivered Dan’s recording for Nancy’s Family Heirloom job."
+ },
+ {
+  "id": "fact-johnny-jr-priority.kang-tao.payment-accepted",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V cashed Kang Tao’s credchip and received the payment."
+ },
+ {
+  "id": "fact-johnny-jr-priority.karl.killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Karl Ginsky was killed during Nasty Hangover, and Rogue received the debrief."
+ },
+ {
+  "id": "fact-johnny-jr-priority.karl.saved",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Karl Ginsky survived and Rogue arranged a safehouse for him."
+ },
+ {
+  "id": "fact-johnny-jr-priority.mansion.recognized",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "At Kerry’s villa, Kerry recognized Johnny speaking through V."
+ },
+ {
+  "id": "fact-johnny-jr-priority.mansion.reunion-proposed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny proposed bringing Samurai back during the meeting with Kerry; the performance had not happened yet."
+ },
+ {
+  "id": "fact-johnny-jr-priority.nancy.safe",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V safely extracted Nancy from the Totentanz encounter."
+ },
+ {
+  "id": "fact-johnny-jr-priority.psychofan.guitar-delivered",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V delivered Kerry’s stolen guitar to the gig’s drop point."
+ },
+ {
+  "id": "fact-johnny-jr-priority.rogue.commission",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V paid Rogue, who supplied the Hellman lead and directed V to Panam."
+ },
+ {
+  "id": "fact-johnny-jr-priority.sabotage.completed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V and Kerry completed the planned equipment sabotage."
+ },
+ {
+  "id": "fact-johnny-jr-priority.tattoo.special",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny selected the tattoo named “Johnny’s Special” during his night using V’s body."
+ },
+ {
+  "id": "fact-johnny-jr-priority.tattoo.together",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny selected the tattoo named “Together Forever” during his night using V’s body."
+ },
+ {
+  "id": "fact-johnny-jr-priority.totentanz.royce",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Royce’s group controlled the Totentanz encounter that V navigated with Nancy."
+ },
+ {
+  "id": "fact-johnny-jt.takemura-fate.left-behind",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V escaped the safe-house assault without bringing Takemura out. The resulting story branch treats Takemura as lost; Johnny had urged V to leave."
+ },
+ {
+  "id": "fact-johnny-phantom.native.ncx.moon",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "The NCX launchpad sequence ended with Reed dead and Songbird sent away on the lunar shuttle. Johnny witnessed and discussed this outcome. Her subsequent medical recovery is not established by the launch."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.alt-memory",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V lived through Johnny’s 2013 memory of Alt’s abduction and the Arasaka rescue attempt."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.body-kept-by-johnny",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny retained V’s body and entered the Temperance epilogue."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.body-kept-by-v",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V retained the body after Mikoshi and entered the Star or Sun epilogue."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.firestorm-memory",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V lived through Johnny’s 2023 Arasaka assault memory after the Relic activated."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.kerry-dismissive",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny insulted Kerry during their 2023 farewell after the Samurai show."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.memorial-v",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny visited V’s memorial after retaining the body on an Aldecaldo or solo route where Rogue survived."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.netwatch-purge",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "The NetWatch deal led to the Voodoo Boys netrunners’ purge after V and Johnny reached Alt."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.route-devil",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V committed to Hanako’s Arasaka plan and completed the help call."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.route-rogue",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny and Rogue took the Arasaka assault route together; Rogue boarded the AV."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.route-solo",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V and Johnny carried the solo Arasaka assault through to Mikoshi."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.route-star",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V committed to Panam’s Aldecaldo plan and completed the help call."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.solo-mikoshi",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V reached Mikoshi on the solo assault; the late solo marker is written only after its Mikoshi access branch."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.steve-guitar",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny left the guitar he bought with Steve in Steve’s care when he departed by bus."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.tapeworm-tags",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V took Johnny’s dog tags during their Tapeworm conversation."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.temperance-departure",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny left Night City at the end of New Dawn Fades."
+ },
+ {
+  "id": "fact-johnny-priority-endings.johnny.transmission-alt",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V and Johnny reached Alt beyond the Blackwall during Transmission."
+ },
+ {
+  "id": "fact-johnny-priority-endings.nomad.mikoshi",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V reached and connected to Mikoshi after the Aldecaldo assault."
+ },
+ {
+  "id": "fact-johnny-priority-endings.rogue.assault-commitment",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Rogue and Johnny committed to the Arasaka assault and boarded the AV."
+ },
+ {
+  "id": "fact-johnny-priority-endings.rogue.son-farewell",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny overheard Rogue’s farewell call to her son before their Arasaka AV assault."
+ },
+ {
+  "id": "fact-johnny-priority-endings.rogue.weyland-recovered",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Weyland was recovered during Rogue’s Arasaka assault route."
+ },
+ {
+  "id": "fact-johnny-sh5.belly.smasher-killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "After the Aldecaldos' assault on Arasaka Tower, V finished off the defeated Adam Smasher instead of walking away."
+ },
+ {
+  "id": "fact-johnny-sh5.forever.farewell-conciliatory",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "On the FIA flight before the surgery, Johnny and V parted on good terms: he said they had made their peace at the oil fields and stayed with V to the end."
+ },
+ {
+  "id": "fact-johnny-sh5.forever.surgery-boarded",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V boarded the FIA medical AV on the rooftop to undergo the NUSA surgery that would remove Johnny."
+ },
+ {
+  "id": "fact-johnny-sh5.ghost-town.nash-detour-assisted",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "In Ghost Town, V agreed to Panam's detour after Nash and rode with her to the Raffen Shiv hideout instead of insisting on the original deal."
+ },
+ {
+  "id": "fact-johnny-sh5.knockin.smasher-killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "On the assault with Rogue, after Smasher was defeated, Johnny (in control of V's body) finished him off instead of walking away."
+ },
+ {
+  "id": "fact-johnny-sh5.nocturne.final-route-nusa",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "V took Reed's NUSA option instead of storming Arasaka: V boarded the FIA medical AV for the experimental surgery, with Johnny still in V's head."
+ },
+ {
+  "id": "fact-johnny-sh5.reaper.smasher-killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "On the solo assault on Arasaka Tower, V shot the defeated Adam Smasher dead before moving on to Mikoshi."
+ },
+ {
+  "id": "fact-johnny-sh5.resurrection.johnny-proposal",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "Early on, Johnny told V it had not been easy for him either - V woke up in a landfill, he woke up in V's head - and proposed they help each other, starting with Rogue. It was a truce of necessity, not friendship."
+ },
+ {
+  "id": "fact-johnny-sh5.resurrection.relic-diagnosis",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "After the Heist, Viktor told V that the Relic was overwriting V's consciousness with Johnny Silverhand's construct and that V had only a few weeks left."
+ },
+ {
+  "id": "fact-johnny-sh5.second-conflict.brick",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "In Second Conflict, Brick was back in charge at the Totentanz; V and Nancy talked with him and he let Nancy walk out with V."
+ },
+ {
+  "id": "fact-johnny-sh5.second-conflict.patricia",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "In Second Conflict, Patricia ran the Totentanz; when V came for Nancy, Patricia's Maelstromers turned hostile and V had to fight them."
+ },
+ {
+  "id": "fact-johnny-silverhand.grayson-killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that Grayson was killed during V's confrontation with him at the Ebunike."
+ },
+ {
+  "id": "fact-johnny-silverhand.grayson-spared",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that during the Ebunike confrontation, V chose to lower the weapon and spare Grayson."
+ },
+ {
+  "id": "fact-johnny-silverhand.lineup-denny",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "For the planned Samurai reunion, this save establishes that V selected Denny when Denny and Henry refused to play together. That choice does not establish that the concert has taken place."
+ },
+ {
+  "id": "fact-johnny-silverhand.lineup-henry",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "For the planned Samurai reunion, this save establishes that V selected Henry when Denny and Henry refused to play together. That choice does not establish that the concert has taken place."
+ },
+ {
+  "id": "fact-johnny-silverhand.movie-completed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "The drive-in outing with Rogue has concluded in this save. Johnny attended using V's body, and control returned to V afterward."
+ },
+ {
+  "id": "fact-johnny-silverhand.movie-intimacy-interrupted",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "During the completed drive-in outing, Johnny and Rogue began an intimate moment, but Rogue stopped it and explained that she could not return to their old relationship. Johnny was using V's body; this was not a V/Rogue partnership."
+ },
+ {
+  "id": "fact-johnny-silverhand.nancy-truth-report",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V told Nancy the supposed Swedenborg source was an automated fortune-teller that somebody had connected to the Net."
+ },
+ {
+  "id": "fact-johnny-silverhand.porsche-recovered",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V recovered and unlocked Johnny's old Porsche at the Ebunike."
+ },
+ {
+  "id": "fact-johnny-silverhand.reunion-performed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "The Samurai reunion concert has taken place in this save, with V on stage alongside Kerry and the reunion musicians, including Nancy."
+ },
+ {
+  "id": "fact-johnny-silverhand.rogue-killed",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "In this save's assault on Arasaka with Rogue, Adam Smasher killed Rogue during the confrontation before Mikoshi. Johnny witnessed her sacrifice while controlling V's body."
+ },
+ {
+  "id": "fact-johnny-silverhand.swedenborg-altered",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V modified the discovered Swedenborg fortune-teller algorithm to generate nonsense instead of its prior messages."
+ },
+ {
+  "id": "fact-johnny-silverhand.swedenborg-disconnected",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V disconnected the Swedenborg fortune-teller operation from the Net after finding its source."
+ },
+ {
+  "id": "fact-johnny-silverhand.swedenborg-identified",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V and Johnny traced Swedenborg's messages to a hacked fortune-teller bot whose algorithm someone had modified."
+ },
+ {
+  "id": "fact-johnny-silverhand.swedenborg-left-running",
+  "store": "fact",
+  "speaker": "johnny-silverhand",
+  "text": "This save establishes that V left the discovered Swedenborg fortune-teller operation running without altering its algorithm."
+ },
+ {
+  "id": "story-johnny-relic",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows he is a personality construct living on the Relic chip in V's head."
+ },
+ {
+  "id": "story-johnny-johnny",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows the Relic put his engram in V's head and that the two of them are stuck with each other."
+ },
+ {
+  "id": "story-johnny-dying",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows the Relic is killing V."
+ },
+ {
+  "id": "story-johnny-arasaka",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows he died in the 2023 attack on Arasaka Tower and that Arasaka kept his construct in its labs for decades."
+ },
+ {
+  "id": "story-johnny-hellman",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows V paid Rogue for the Hellman lead and that it led to Panam."
+ },
+ {
+  "id": "story-johnny-mikoshi",
+  "store": "story",
+  "speaker": "johnny-silverhand",
+  "text": "Johnny knows he and V reached Alt beyond the Blackwall and that she spoke of a way into Mikoshi."
+ },
+ {
+  "id": "quest-johnny-q101_01_firestorm",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "Love Like Fire. Johnny Silverhand plans a raid on Arasaka Tower after one last show on stage: a helicopter to the roof, a bomb in the elevator and a hack into the network. People: Kerry Eurodyne, Spider Murphy, Rogue Amendiares. Places: the concert stage, outside the concert building, the helicopter over Arasaka Tower, the roof of Arasaka Tower, the stairwell in Arasaka Tower, the elevator, the elevator shaft, the upper room with an Access Point, the Arasaka Tower roof."
+ },
+ {
+  "id": "quest-johnny-q108_johnny",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "Never Fade Away. Johnny takes V to Kerry Eurodyne's show at the Hammer, then to the Atlantis to win over Rogue, and finally into Arasaka Tower to get Alt Cunningham out. People: Kerry Eurodyne, Alt Cunningham, Thompson, Rogue Amendiares, Santiago, Johnny Silverhand. Places: the Hammer, dressing room, the alley behind the Hammer, a ripperdoc's clinic, the Atlantis, the Atlantis, upper and ground floors, the Atlantis elevator, the Atlantis parking lot, Arasaka Tower, the door to the mainframe, Arasaka Tower, Arasaka Tower, near the mainframe, the mainframe room, Arasaka Tower, the Voodoo Boys' BBS."
+ },
+ {
+  "id": "quest-johnny-09_solo",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "(Don't Fear) The Reaper. Johnny asks V to go after Arasaka Tower on V's own, with no backup, and push all the way in. People: Johnny Silverhand, Alt Cunningham, Adam Smasher. Places: the Arasaka Tower lobby, the netrunner operations level, the mainframe room, Arasaka Tower, the arena beyond the second gate, the Mikoshi access point."
+ },
+ {
+  "id": "quest-johnny-sq011_johnny",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "Second Conflict. Johnny sends V to the Totentanz club in Watson to get Nancy Hartley out of trouble, and then to Denny's mansion in North Oak. People: Nancy Hartley, Dum Dum, Patricia, Brick, Kerry Eurodyne, Denny, Henry. Places: the Totentanz club, Watson, the back room, Totentanz, the Totentanz exit and elevator, the car outside the club, N54 News, Watson, Denny's mansion, North Oak."
+ },
+ {
+  "id": "quest-johnny-sq011_kerry",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "Holdin' On. Johnny Silverhand asks V to visit Kerry Eurodyne at his gated villa in Westbrook and see how he is doing. People: Johnny Silverhand, Kerry Eurodyne, Nancy Hartley. Places: North Oak, Westbrook, Kerry's villa, Westbrook, the upstairs couch, Kerry's villa."
+ },
+ {
+  "id": "quest-johnny-sq031_smack_my_bitch_up",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "A Cool Metal Fire. During the Chippin' In job, V lets Johnny take over V's body for one night out in Watson, and Johnny has his own plans for it. People: Johnny Silverhand, Cassius Ryder, Ruby, Rogue Amendiares. Places: the Afterlife, Watson, Cassius Ryder's parlour, the club, outside the club, a motel room."
+ },
+ {
+  "id": "quest-johnny-sq032_tapeworm",
+  "store": "quest",
+  "speaker": "johnny-silverhand",
+  "text": "Tapeworm. Johnny asks V to follow him into a motel room through the window, to open a cache hidden there. People: Johnny Silverhand. Places: outside the motel, the motel room."
+ },
+ {
+  "id": "place-v-apartment-h10-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "V's apartment in Megabuilding H10, Little China, Watson"
+ },
+ {
+  "id": "place-afterlife-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "the Afterlife, a merc bar in Little China, Watson"
+ },
+ {
+  "id": "place-clouds-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Clouds, a club in Japantown, Westbrook"
+ },
+ {
+  "id": "place-v-apartment-corpo-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-v-apartment-northside-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "V's apartment in Northside, Watson"
+ },
+ {
+  "id": "place-arasaka-tower-ceo-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "the CEO level of Arasaka Tower, Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-lizzies-bar-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Lizzie's Bar, a club in Kabuki, Watson"
+ },
+ {
+  "id": "place-el-coyote-cojo-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "El Coyote Cojo, a bar in Vista del Rey, Heywood"
+ },
+ {
+  "id": "place-judys-apartment-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Judy's apartment in Kabuki, Watson"
+ },
+ {
+  "id": "place-totentanz-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "the Totentanz, a club in Northside, Watson"
+ },
+ {
+  "id": "place-wakakos-office-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Wakako's office in Japantown, Westbrook"
+ },
+ {
+  "id": "place-mistys-esoterica-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Misty's Esoterica, a shop in Little China, Watson"
+ },
+ {
+  "id": "place-victors-clinic-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Viktor's clinic, a ripperdoc's clinic in Little China, Watson"
+ },
+ {
+  "id": "place-toms-diner-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "Tom's Diner, a diner in Little China, Watson"
+ },
+ {
+  "id": "place-sunset-motel-johnny",
+  "store": "place",
+  "speaker": "johnny-silverhand",
+  "text": "the Sunset Motel"
+ },
+ {
+  "id": "fact-viktor-ah5.jackie.body-viktor",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "After the Heist V had Jackie's body delivered to Viktor Vektor's clinic; Delamain confirmed the delivery."
+ },
+ {
+  "id": "fact-viktor-heywood.jackie.body-instruction.family",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V disclosed the following save-established instruction: V asked Delamain to take Jackie's remains to his family, and Delamain identified Mama Welles as the recipient."
+ },
+ {
+  "id": "fact-viktor-heywood.jackie.body-instruction.viktor",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V disclosed the following save-established instruction: V asked Delamain to take Jackie's remains to Viktor's clinic. This instruction alone does not establish what happened to the body at the clinic."
+ },
+ {
+  "id": "fact-viktor-heywood.jackie.body-instruction.wait",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V disclosed the following save-established instruction: V initially asked Delamain to wait at the No-Tell Motel with Jackie's remains. This instruction alone does not state the later delivery destination."
+ },
+ {
+  "id": "fact-viktor-hw5.boxing.final.fixed-loss",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V accepted Fred's offer to throw the Razor Hughes finale and then lost it; afterwards Fred said the loss looked natural and Viktor said V had thrown the fight."
+ },
+ {
+  "id": "fact-viktor-hw5.boxing.razor.viktor-advice",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "Before the Razor Hughes finale Viktor told V that Razor had a weakness: abdominal muscles that had been swapped out, so V should hit him there."
+ },
+ {
+  "id": "fact-viktor-hw5.jackie.body-disposition.clinic-seized",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V had Jackie's body taken to Viktor's clinic; Arasaka agents then seized it there, forcing Viktor to the floor."
+ },
+ {
+  "id": "fact-viktor-hw5.nocturne.final-triage.treated",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "Viktor treated V at the clinic after V dragged in beaten and half-conscious, warned that V had reached a critical juncture and would flatline in some back alley after the next attack, and told V to take matters into his own hands."
+ },
+ {
+  "id": "fact-viktor-hw5.pft.viktor.relic-diagnosis",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "After the Heist, Viktor told V that the biochip was a bomb with the fuse lit, that Silverhand's construct was overwriting V's consciousness, and that V had only a few weeks."
+ },
+ {
+  "id": "fact-viktor-hw5.tarot.viktor.consultation",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "V told Viktor about the strange murals they kept seeing; he said it was probably the biochip overloading the brain and that the only fix was to get rid of the chip."
+ },
+ {
+  "id": "fact-viktor-hw5.tower.vik-call.connected",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "In 2079, after waking from the coma, V called Viktor; he ended the call by saying he would see V at his clinic, \"You know the address\"."
+ },
+ {
+  "id": "fact-viktor-hw5.tower.viktor.exam-confirmed",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "In 2079 Viktor scanned V in his clinic and found that V's cortex had turned deaf to implant signals; he could find no safe fix and admitted he had been wrong to promise one."
+ },
+ {
+  "id": "fact-viktor-hw5.vik.tool-consultation.advice-sent",
+  "store": "fact",
+  "speaker": "viktor-vektor",
+  "text": "When V messaged Viktor about the identity problem, he replied that psychotherapy works best and the key is exposing the patient to something personal from their true reality; he also warned the patient is highly suggestible."
+ },
+ {
+  "id": "story-viktor-relic",
+  "store": "story",
+  "speaker": "viktor-vektor",
+  "text": "Viktor told V the biochip is a bomb with the fuse lit."
+ },
+ {
+  "id": "story-viktor-johnny",
+  "store": "story",
+  "speaker": "viktor-vektor",
+  "text": "Viktor knows Silverhand's construct on the chip is overwriting V's consciousness."
+ },
+ {
+  "id": "story-viktor-dying",
+  "store": "story",
+  "speaker": "viktor-vektor",
+  "text": "Viktor told V that V has only a few weeks."
+ },
+ {
+  "id": "quest-viktor-q101_resurrection",
+  "store": "quest",
+  "speaker": "viktor-vektor",
+  "text": "Playing for Time. V has to climb out of trouble with Takemura's help, get checked over by Viktor, recover at home, and then meet Takemura to talk about what comes next. People: Takemura, Viktor Vektor. Places: the landfill, the road out of the landfill, Viktor's clinic, Watson, V's apartment, Tom's Diner, Japantown."
+ },
+ {
+  "id": "quest-viktor-q001_01_victor",
+  "store": "quest",
+  "speaker": "viktor-vektor",
+  "text": "The Ripperdoc. Jackie wants V to meet him downstairs and then drive to Viktor's clinic in Watson, where a ripperdoc will fit V with the cyberware V needs for the work ahead. People: Jackie Welles, Viktor Vektor. Places: the megabuilding, Watson, the food stall downstairs, the food stall, Watson, Viktor's clinic, Watson."
+ },
+ {
+  "id": "quest-viktor-02_sickness",
+  "store": "quest",
+  "speaker": "viktor-vektor",
+  "text": "Nocturne Op55N1. Hanako Arasaka wants to meet V at Embers, a restaurant, to talk about what she has in mind for V. People: Hanako Arasaka, Johnny Silverhand, Viktor Vektor, Misty Olszewski, Panam Palmer, Takemura. Places: Embers restaurant, the elevator, Viktor's clinic, Watson, Misty's shop, the roof."
+ },
+ {
+  "id": "place-v-apartment-h10-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "V's apartment in Megabuilding H10, Little China, Watson"
+ },
+ {
+  "id": "place-afterlife-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "the Afterlife, a merc bar in Little China, Watson"
+ },
+ {
+  "id": "place-clouds-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Clouds, a club in Japantown, Westbrook"
+ },
+ {
+  "id": "place-v-apartment-corpo-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-v-apartment-northside-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "V's apartment in Northside, Watson"
+ },
+ {
+  "id": "place-arasaka-tower-ceo-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "the CEO level of Arasaka Tower, Corpo Plaza, City Center"
+ },
+ {
+  "id": "place-lizzies-bar-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Lizzie's Bar, a club in Kabuki, Watson"
+ },
+ {
+  "id": "place-el-coyote-cojo-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "El Coyote Cojo, a bar in Vista del Rey, Heywood"
+ },
+ {
+  "id": "place-judys-apartment-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Judy's apartment in Kabuki, Watson"
+ },
+ {
+  "id": "place-totentanz-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "the Totentanz, a club in Northside, Watson"
+ },
+ {
+  "id": "place-wakakos-office-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Wakako's office in Japantown, Westbrook"
+ },
+ {
+  "id": "place-mistys-esoterica-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Misty's Esoterica, a shop in Little China, Watson"
+ },
+ {
+  "id": "place-victors-clinic-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Viktor's clinic, a ripperdoc's clinic in Little China, Watson"
+ },
+ {
+  "id": "place-toms-diner-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "Tom's Diner, a diner in Little China, Watson"
+ },
+ {
+  "id": "place-sunset-motel-viktor",
+  "store": "place",
+  "speaker": "viktor-vektor",
+  "text": "the Sunset Motel"
+ },
+ {
+  "id": "mem-panam-001",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me they spent the last month in Watson working with fixers I don't know.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-002",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V asked me to drive them out to the Badlands and we hit a checkpoint on the way back.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-003",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V prefers their coffee black with a single shot of whiskey, not the sweet stuff the Mox serves.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-004",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V called me reckless when I wanted to hit the Raffen Shiv camp, then did it their way anyway.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-005",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to meet me at Afterlife by midnight and showed up forty minutes late.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-006",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned they once owned a Arch Nazare motorcycle but sold it to Hideo.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-007",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V got shot in the shoulder during a gig in Heywood and wouldn't let me help bandage it.",
+  "kind": "event",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-panam-008",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V hates corporate security details and refuses to work for Arasaka even for double pay.",
+  "kind": "preference",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-009",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's silence after I criticized Saul suggested they were taking my side in family disputes.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-010",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they'd help the Aldecaldos get supplies through Mox connections if we needed it.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-011",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me their handle is V, not Valerie, and they get angry if you use the full name.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-012",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V asked me to teach them nomad radio codes and I spent three hours drilling them in the truck.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-013",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V likes Samurai's early work better than Kerry's solo stuff, which Samurai fans don't usually admit.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-014",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's laugh when I told the joke about Saul's tie suggests they actually like him underneath.",
+  "kind": "relationship",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-panam-015",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to call me before taking any Arasaka jobs, even solo ones.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-016",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V carries a military-grade Kang Tao pistol they got from a corpo they used to know.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-017",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V crashed a Kusanagi into a storefront in Little China and laughed about it like it was nothing.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-018",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V refuses to eat synthetic meat and only buys from street vendors in Charter Hill.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-019",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's questions about Saul felt like they were testing whether I still wanted to go back.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-020",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to lend me 5000 eddies for Aldecaldo medical supplies but wanted it back in a month.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-021",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me they know Rogue from way back and they don't always see eye to eye on jobs.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-022",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V took a bullet meant for me during a deal in Corpo Plaza, so I know what they're made of.",
+  "kind": "event",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-panam-023",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's taste in music is weird, mixing heavy industrial with some classical stuff.",
+  "kind": "preference",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-panam-024",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned missing someone but wouldn't say who, and their whole demeanor changed.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-025",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they'd introduce me to someone in the Mox but never followed through.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-026",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned they're allergic to some implant bioware and had a bad reaction once.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-027",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V got drunk at Afterlife and told me their entire background story at 3 AM.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-028",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V hates being told what to do and will deliberately do the opposite if you sound commanding.",
+  "kind": "preference",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-029",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's eyes went hard when I mentioned betrayal, like they'd lived through it recently.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-030",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to meet me at the overlook at 10 PM and actually showed up early.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-031",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they owe Judy a favor and it's eating at them that they haven't paid it back.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-032",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V asked me to help them break into a corpo facility in Watson and I said no way.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-033",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V prefers working at night and gets irritable if jobs run into daylight hours.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-034",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's tone when discussing the Aldecaldos changed after that first conversation, got warmer.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-035",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised not to tell anyone about my fight with Saul but I'm not sure if they kept it.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-036",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V carries a braindance recording they refuse to talk about, keeps it locked in their jacket.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-037",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V drove the truck through a Raffen Shiv roadblock and didn't even slow down.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-038",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V loves the smell of desert sand and always rolls the truck windows down at dawn.",
+  "kind": "preference",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-panam-039",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V asked about Mitch like they actually cared, not just making small talk.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-040",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to lend me 3000 eddies for a truck repair and then lent me 6000 instead.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-041",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned they once lived in a bad district and had to fight for everything.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-042",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V picked a fight with a Maelstrom gang member just to get information out of them.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-043",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V doesn't like being photographed and gets defensive if someone tries to record them.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-044",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's body language relaxed around me after I drove them out to the Badlands that first time.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-045",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to be back by 11 PM and showed up at sunrise the next day.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-046",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V has a scar on their neck they say is from a corpo that wanted them dead.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-047",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V saved Scorpion's life during a run and Scorpion owes them everything now.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-048",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V hates small talk and would rather sit in silence than make empty conversation.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-049",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's voice gets quieter when they talk about people they've had to hurt.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-050",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they'd back me in a fight against Saul if it came to that, no questions asked.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-051",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me they've been to Japantown but won't go back because of someone they knew there.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-052",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V fought with Viktor over cybernetic compatibility and Viktor said V has the wrong implants.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-053",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V listens to midnight jazz broadcasts and sometimes falls asleep in the truck to it.",
+  "kind": "preference",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-panam-054",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's questions about the Nomad lifestyle seemed like they were considering joining us.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-055",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to help Mitch with some upgrades and showed up with equipment and 800 eddies.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-056",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said their first corpo job went sideways and it taught them not to trust fixers.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-057",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V got shot in the shoulder during a gig in Westbrook and needed several stitches.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-058",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V enjoys racing and once beat me in a street race through Pacifica, which I didn't see coming.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-059",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned missing someone and their whole mood shifted darker for the rest of the day.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-060",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to back me up if I ever confronted Saul about the corporate deal.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-061",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me they once worked a job in Heywood that ended with three corp security dead.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-062",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V asked me to teach them how to hot-wire a vehicle and by day two they had it down.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-063",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V prefers vehicles with manual transmission because they like feeling in control.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-064",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's tone shifted to anger when I mentioned Rogue's name, but they wouldn't explain why.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-065",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to introduce me to someone important but canceled three times already.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-066",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned they know someone at Misty's Esoterica who deals with implant issues.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-067",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V broke their arm during a fall and didn't get it looked at for three days straight.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-068",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V likes strong drinks but never gets fully drunk, like they need to keep their edge.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-069",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's questions felt like they were making sure I was reliable before trusting me with real jobs.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-070",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to pay me back 2000 eddies for the favor I did and already has.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-071",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they have a connection to an old fixer who used to run jobs in the Badlands.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-072",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V took out a whole Tyger Claw gang by themselves and walked away like it was nothing.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-073",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V avoids corporate diner chains and only eats at local spots in Pacifica or Heywood.",
+  "kind": "preference",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-panam-074",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's silence when I talked about wanting more independence suggested they understood.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-075",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they'd help me get the Nomads information about corporate movements but never did.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-076",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V mentioned they owe someone named Johnny a debt they'll never be able to repay.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-077",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V cut their hand on glass during a run and just wrapped it up without complaining.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-078",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V doesn't trust cyber-therapists and avoids any talk about mental health support.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-079",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V brought up Scorpion like they actually respected their opinion on things.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-080",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to send me word if they heard anything about Raffen Shiv movement.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-081",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V told me their birthday is in March and they don't want a celebration but a gift.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-082",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V met my family and impressed Saul more than I expected with their knowledge of nomad routes.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-083",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's taste in weapons runs to precision rifles over heavy assault gear.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-084",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's expression when I mentioned loyalty suggested they value that more than most.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-085",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to teach me about urban tactics if I taught them nomad survival skills.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-086",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V said they once owned a motorcycle with a custom paint job they had to abandon.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-panam-087",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V helped me plan a run and caught three mistakes I would have made on my own.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-panam-088",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V likes driving at night and seems calmer when they're behind the wheel in darkness.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-panam-089",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V's trust in me felt earned, not given, and that made it mean something real.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-panam-090",
+  "store": "memory",
+  "speaker": "panam-palmer",
+  "text": "V promised to call me before taking risks and they've kept that promise twice now.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-001",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they grew up around braindances and understand the addiction risk better than most.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-002",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V came to the basement asking for editing help and I realized they'd been to Clouds before.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-003",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V prefers raw unedited recordings over polished corporate braindances, says they feel more real.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-004",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's questions about Evelyn suggested they cared about her welfare, not just the business.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-005",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to look out for any Clouds workers they meet and report back to me.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-006",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they know someone at Lizzie's who's good with electronic locks.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-007",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V brought me hardware from a street vendor in Japantown that I'd been looking for weeks.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-008",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V hates corporate art installations and would rather watch street performers in Charter Hill.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-009",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's tone shifted when I mentioned Maiko, like they sensed the history was complicated.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-010",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they'd help me get justice for Clouds workers if I ever needed backup.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-011",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they've decoded netrunner encryption before and have some practical knowledge.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-012",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V spent three hours helping me troubleshoot a faulty BD deck and actually knew what they were doing.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-013",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V likes technical people and respects those who build things from spare parts.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-014",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's questions about my past felt genuine, not just extracting information.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-015",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to bring me any rare hardware they find on jobs and actually delivered.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-016",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they once had a close call with a psycho at a BD parlor.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-017",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V hacked a security camera to get me footage I needed and didn't ask for anything back.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-018",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V prefers working in the basement over meeting in public, less eyes less trouble.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-019",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned loyalty and their voice got hard, like they'd been betrayed before.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-020",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to keep confidential what they learned about my connections to the Mox.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-021",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they know someone at Viktor's clinic who owes them a favor.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-022",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V helped me move equipment from the old space to the basement without telling the Mox.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-023",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V avoids Clouds completely now and gets tense if we walk past the entrance.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-024",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's body language changed when they talked about protecting people, shoulders got straighter.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-025",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they'd warn me if Arasaka ever came asking questions about my work.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-026",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they have contacts in Kabuki that can get rare electronics at good prices.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-027",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V decoded a braindance fragment that had been corrupted and found important data I missed.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-028",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V doesn't like being double-crossed and holds grudges longer than anyone I know.",
+  "kind": "preference",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-029",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V asked about Laguna Bend like they actually cared about my childhood, not just being polite.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-030",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to back the Mox if we ever needed muscle against corpo retaliation.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-031",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they once saw Evelyn's work and said she had real talent as a BD actress.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-032",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V broke into a corpo database and pulled files that proved Clouds was exploiting workers.",
+  "kind": "event",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-judy-033",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V appreciates artistic vision and understands why I refuse corporate money for my work.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-034",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's silence when I mentioned heartbreak felt like they knew exactly what that meant.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-035",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they'd never give up my location to anyone, not for money or threats.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-judy-036",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they worked in data retrieval once and understand the risks of black ICE.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-037",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V spent a night in the basement editing with me and fell asleep at the control deck.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-038",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V trusts machines more than people and has strong opinions about hardware reliability.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-039",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's expression hardened when I mentioned corporate control, like they'd fought it themselves.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-040",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to help protect Evelyn if things ever got dangerous for her again.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-041",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they know a netrunner named T-Bug who specializes in safe data extraction.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-042",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V brought me 8000 eddies worth of equipment they lifted from a corpo office.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-043",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V likes technical people who think outside the box and actually get things done.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-044",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned missing someone specific and their whole demeanor went somber.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-045",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to keep tabs on Arasaka movements in the Kabuki area for me.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-046",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they once had a braindance burned into their skull against their will.",
+  "kind": "fact",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-047",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V helped me design a failsafe for my BD equipment that could wipe data if raided.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-048",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V prefers quality over speed and doesn't mind waiting for something done right.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-049",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's trust in me felt conditional at first, but now they talk like I'm dependable.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-050",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they'd take any heat that came down if we ever got caught working together.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-051",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they have a specific song that reminds them of someone they lost.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-052",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V got angry at me over a small mistake and I realized they have a bad temper.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-053",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V respects people who stand by their principles even when it costs them money.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-054",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V asked if I was okay with risk and wouldn't proceed until they knew I understood.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-055",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to fund new equipment if my current setup ever failed during a job.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-056",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they grew up around music and understand why bands matter to people's identities.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-057",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V took shrapnel in their leg during a run and walked it off like it was nothing.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-058",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V avoids corpo parties and prefers low-key time in the Mox bar.",
+  "kind": "preference",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-judy-059",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned family and their voice went cold, suggesting there's pain there.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-060",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to track down anyone who hurt Evelyn and make them pay.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-061",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they've been to Laguna Bend and understand why I left it behind.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-062",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V negotiated a deal with the Mox to get me better protection in the area.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-063",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V doesn't waste time on small talk and prefers direct conversation about real things.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-064",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's concern for me felt protective, not condescending, like they respected my capabilities.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-065",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said they'd give their life to protect what I've built in the basement.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-066",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they once knew someone in tech security who now works for Militech.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-067",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V stayed up all night helping me restore corrupted BD files that I thought were lost.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-068",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V values independence and refuses to work for anyone who wants to control them.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-069",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's laugh when I made a tech joke told me they actually have a sense of humor.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-070",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to introduce me to people who could help expand my network safely.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-071",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they once worked with a corpo netrunner who went rogue.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-072",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V caught a security breach in my system before it happened and saved my setup.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-073",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V likes people who think deeply and doesn't respect those who act without considering impact.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-074",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's willingness to risk themselves for my safety suggested I mattered to them.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-075",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to teach me combat skills if I ever felt threatened.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-076",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V mentioned they have scars from a run in Arasaka territory they refuse to discuss.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-077",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V helped me plan a BD shoot that exposed corporate exploitation without getting anyone killed.",
+  "kind": "event",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-judy-078",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V respects those who choose meaning over money, even when it makes life harder.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-079",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's tone changed when discussing trust, like they take that seriously.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-080",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to back me up if Elizabeth ever asked them to do something against Mox interests.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-081",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V said their grandfather taught them something valuable about loyalty and integrity.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-082",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V bought me tools worth 3000 eddies as a gift without expecting anything in return.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-judy-083",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V prefers working with people who have actual skills over corporate credentials.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-084",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V asked about my future plans like they actually cared what happens to me.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-judy-085",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to never use braindances on me without permission, no matter what.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-judy-086",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V told me they know someone at Afterlife who deals in rare equipment trades.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-087",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V spent days teaching me defensive netrunning techniques to protect my workspace.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-088",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V appreciates creativity and gets excited when I show them new editing techniques.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-judy-089",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V's trust grew over time and now they tell me things they don't tell anyone else.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-judy-090",
+  "store": "memory",
+  "speaker": "judy-alvarez",
+  "text": "V promised to stand with the Mox if they ever needed military backing against real threats.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-001",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they know who Alt Cunningham was and understand what I lost.",
+  "kind": "fact",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-002",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V played Samurai recordings and I had to admit they had taste in music, better than I expected.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-003",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V despises corporate authority and will break rules just to spite Arasaka.",
+  "kind": "preference",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-004",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned Rogue and their tone suggested they respect her more than they used to.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-005",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to burn Arasaka to the ground someday and they sounded serious about it.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-006",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they were in the Relic with me, not just carrying me around in their implants.",
+  "kind": "fact",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-007",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V played Never Fade Away and I caught them air-guitaring along with it.",
+  "kind": "event",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-008",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V hates corporate propaganda and will call out BS from any megacorp every time.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-009",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's voice got quiet when discussing Kerry, like they actually give a damn about his future.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-010",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to help me understand Alt before I fade away completely.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-011",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they had conflict with Militech and still have enemies there.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-012",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V asked me about my military days and actually listened instead of judging.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-013",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V respects musicians who stand for something and despises sell-outs.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-014",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V asked about Alt like they understood what she meant to me, not just facts.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-015",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they'd make sure I got to say goodbye to Alt before the Relic gave out.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-016",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they've seen the Arasaka Penthouse and lived to tell about it.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-017",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V came back from a corpo job fuming about double-crossing and related to my history.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-018",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V hates authority figures and has no patience for corporate chain of command.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-019",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's loyalty to those they care about runs deep, reminds me of how I used to be.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-020",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised they'd rather die than let Arasaka get control of the Relic.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-021",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they once worked directly against Militech and lived through it.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-022",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V got into an argument about Samurai versus Kerry's music and took my side hard.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-023",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V values authentic self-expression over corporate-approved image and style.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-024",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V listened to my stories about the old days without rolling their eyes once.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-025",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to help Kerry find his own voice as a musician, not just my shadow.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-026",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they've been in combat zones and understand what war actually costs.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-027",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V took out a Militech squad without hesitation and I realized they're cold when they need to be.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-028",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V refuses to follow orders blindly and questions every mission they accept.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-029",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's sense of humor is dark and twisted like mine, which shouldn't surprise me.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-030",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they'd never abandon me on the Relic, no matter how bad it gets.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-031",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they know people in the underground music scene who still remember Samurai.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-032",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V hacked a corpo database and found information about the Arasaka raids I didn't know.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-033",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V likes people who don't compromise their principles for money or safety.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-034",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V got angry on my behalf when I mentioned being betrayed, suggests they care.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-035",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to give me a chance to say goodbye to everyone before the Relic fails.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-036",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they've played instruments and understand what music means to identity.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-037",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V spent time learning about my history with Alt and actually remembered details.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-038",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V won't take work that involves hurting innocent people, shows restraint.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-039",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned loss and their voice cracked, means they know real pain.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-040",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised they'd fight for my freedom even if it means standing alone.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-041",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they have enemies from their past who'd kill them on sight.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-042",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V played a guitar riff and I realized they're not completely tone-deaf to music.",
+  "kind": "event",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-043",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V respects true rebels and despises those who claim to fight the system.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-044",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's commitment to keeping me alive shows they don't see me as just a tool.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-045",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they'd help Kerry become the musician I never let him be.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-046",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they've lost someone they loved and understand grief at that level.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-047",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V defended my reputation against someone trying to dismiss Samurai as dated garbage.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-048",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V values artistic integrity over commercial success, respectable for a merc.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-049",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's questions about my past felt like they wanted to understand, not judge.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-050",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised they'd try to bring Alt back if there was any way possible.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-051",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they went through the streets of Night City at night often.",
+  "kind": "fact",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-johnny-052",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V got wounded saving someone innocent and didn't complain about the pain.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-053",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V despises exploitation and will fight corpo greed whenever they encounter it.",
+  "kind": "preference",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-054",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's willingness to die for their beliefs reminds me why people followed me back then.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-055",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to make sure my music lives on even after I fade from the Relic.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-056",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they've done jobs that required breaking corpo infrastructure.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-057",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V asked me what I would do with a body again and actually listened to my answer.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-058",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V won't let themselves be controlled by anyone and respects that in others.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-059",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's anger at injustice matches mine, suggests we're cut from similar cloth.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-060",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to handle any problem I face inside the Relic, no matter what.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-061",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they once refused a high-paying job on principle and haven't regretted it.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-062",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V spent time showing me around Night City from a modern perspective.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-063",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V values people who create things over people who just consume and destroy.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-064",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's trust in me despite what I am suggests they see past the rock star image.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-065",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised they'd get Rogue and Kerry to respect each other if possible.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-066",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they understand loss of identity and what it means.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-067",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V protected me from being overwritten by Arasaka systems through sheer determination.",
+  "kind": "event",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-068",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V refuses to kill for profit and only fights when provoked or for a cause.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-069",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned vulnerability and it made them seem more human than any merc should.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-070",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to remember me by continuing to fight for what I believed in.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-071",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they know what it's like to be someone's weapon and hates it.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-072",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V went head to head with a corpo AI and won, showing serious cyberware skills.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-073",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V respects those who keep their word even when circumstances get difficult.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-074",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's determination to save me suggests I matter to them beyond just having my memories.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-075",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to give me one last performance with the band if it was possible.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-076",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V mentioned they've been betrayed by people close to them multiple times.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-077",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V confronted their past head-on instead of running, shows more courage than expected.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-078",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V appreciates raw honest emotion in art over technical perfection any day.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-079",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's fight to keep me alive means more than any contract or promise could.",
+  "kind": "relationship",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-johnny-080",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they'd share the burden of being hunted with me, not let me face it alone.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-081",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V told me they've paid a high price for freedom and it was worth it.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-082",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V and I argued about morality and they actually made points I had to consider.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-083",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V won't compromise their values even when the cost is higher than anyone expects.",
+  "kind": "preference",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-johnny-084",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's loyalty to me despite my flaws suggests they really do see past the legend.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-085",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to keep my memory alive in the best possible way.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-086",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V said they know who pulled the strings on certain Arasaka operations.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-johnny-087",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V played every Samurai record we had and listened all the way through without comment.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-088",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V values truth over comfortable lies and will face reality head on.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-johnny-089",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V's tears when we discussed Alt proved they understand real love when they see it.",
+  "kind": "relationship",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-johnny-090",
+  "store": "memory",
+  "speaker": "johnny-silverhand",
+  "text": "V promised to never forget what we went through together on the Relic.",
+  "kind": "promise",
+  "importance": 0.9
+ },
+ {
+  "id": "mem-viktor-001",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they have military-grade implants that need maintenance I usually don't do.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-002",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V came in with chrome damage from a corpo run and refused to let me report it.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-003",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V prefers function over form and doesn't care about chrome that looks pretty.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-004",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V treated my clinic with respect from the start, not like most mercs do.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-005",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to recommend my clinic to other independent operators and followed through.",
+  "kind": "promise",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-viktor-006",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they know boxing and respect the sport for its honesty.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-007",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V brought me information about Militech implant compatibility that saved me hours of research.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-008",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V doesn't trust corporate tech and always wants to verify my work independently.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-009",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V asked about my boxing days like they actually cared about my past.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-010",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to get any materials I needed for experimental implant work.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-011",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they have implants that are bleeding chrome, literal biometric rejection.",
+  "kind": "fact",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-viktor-012",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V spent a session asking detailed questions about implant removal procedures.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-013",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V values honest craftsmanship and won't pay for corporate shortcuts.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-014",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's trust in me as their surgeon suggests they've got real problems nobody else can handle.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-015",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to keep my clinic location secret and never mention it in dangerous crowds.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-016",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V said they once had cybernetic rejection and had to get emergency surgery.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-017",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed extensive implant overhaul and paid me double without being asked to.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-018",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V respects medical professionals who don't cut corners on patient safety.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-019",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned Jackie and their voice went soft with something like grief.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-020",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to bring me any rare medical supplies from jobs if they came across them.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-021",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they know someone at Arasaka with serious implant compatibility issues.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-022",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V helped me secure a shipment of rare medical chrome from illegal channels.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-023",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V doesn't care about implants looking pristine if they function perfectly well.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-024",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's openness about their health issues suggested they trust me more than most clients.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-025",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to warn me if any corpo came looking for my clinic information.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-026",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they have a particular neural implant that occasionally malfunctions.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-027",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V came in with shrapnel embedded in their ribs and asked me to extract it carefully.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-viktor-028",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V appreciates surgeons who explain what they're doing and why.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-029",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's questions about my boxing career felt genuine, not just making conversation.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-030",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V said they'd always pay my fair rate, no negotiating or short-changing.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-031",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me their entire cyberware loadout was put together by themselves, not a pro.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-032",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed a complete diagnostic on their skeletal reinforcement after a heavy job.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-033",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V values independence and respects those who don't work for large corporations.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-034",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's knowledge of surgical procedures suggested they've had experience with trauma.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-035",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to pay extra if I ever needed to do off-books emergency surgery.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-036",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they have implants that cause chronic pain they manage without meds.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-037",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V came in after getting shot and wanted confirmation nothing vital was hit.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-038",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V doesn't waste time on pleasantries and prefers getting straight to the work.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-039",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V asked about my life outside the clinic, showed interest in me as a person.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-040",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to protect the clinic if trouble ever came looking for me.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-041",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they're allergic to some cyberware bioware and had a severe reaction once.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-042",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V brought me a customer who needed extensive implant replacement and referred me business.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-043",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V appreciates surgeons who tell you the truth about limitations and risks.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-044",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's trust in my medical decisions showed they view me as a real professional.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-045",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to help with any corpo harassment if my clinic ever got heat.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-046",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they once worked with someone who had military-spec chrome.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-047",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V had a neural implant malfunction during a session and I had to stabilize them fast.",
+  "kind": "event",
+  "importance": 0.8
+ },
+ {
+  "id": "mem-viktor-048",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V respects physical capability and the discipline it takes to maintain chrome.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-049",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's questions about my boxing showed they actually listen to what I say.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-050",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to never badmouth my clinic or try to get me corporate attention.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-051",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they have combat implants that are bleeding chrome, causing real problems.",
+  "kind": "fact",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-052",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V came in needing a procedure at 2 AM and paid triple without asking about cost.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-053",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V doesn't like corporate medicine and mistrusts branded pharmaceutical solutions.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-054",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V treated Misty with respect when they came in, suggests they value loyalty.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-055",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V said they'd pay for any experimental procedures I wanted to try.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-056",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they've had implants rejected by their body and understand the pain.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-057",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed extensive scarring removal from an old injury and trusted me completely.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-058",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V values honesty in treatment plans and won't accept sugar-coated bad news.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-059",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned loss and their voice changed, suggests they carry real pain.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-060",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to keep clinic business confidential and never gossip about my clients.",
+  "kind": "promise",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-061",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V said they know about military implant specifications and their limitations.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-062",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V brought me diagnostic information about a rare implant compatibility issue.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-063",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V respects craftspeople who take pride in their work, regardless of payment.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-064",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's commitment to following medical protocols suggests they understand discipline.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-065",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to stay off their implants for a week after surgery when I recommended it.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-066",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they've had surgery performed by someone who didn't know what they were doing.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-067",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed psychological support after a heavy surgery and let me talk them through it.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-068",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V doesn't fake strength and will admit when something hurts or when they're scared.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-069",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V asked about my life philosophy and listened to my answer without interrupting.",
+  "kind": "relationship",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-070",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised they'd take care of themselves between clinic visits.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-071",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they value freedom more than a functional healthy body.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-072",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V came in after a job that left them with nerve damage in their hand.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-073",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V appreciates surgeons who keep their emotions in check during procedures.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-074",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's willingness to be vulnerable in my clinic shows they trust me more than they let on.",
+  "kind": "relationship",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-075",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised not to aggravate their implants between sessions.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-076",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V mentioned they have a specific allergy to bioware that limits their options.",
+  "kind": "fact",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-077",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed pain management advice and actually followed my recommendations.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-078",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V respects professionals who maintain standards regardless of payment pressure.",
+  "kind": "preference",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-079",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's commitment to recovery protocols suggests they have discipline most mercs lack.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-080",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to pay me fairly for emergency procedures without complaint.",
+  "kind": "promise",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-081",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V said they came to Night City with some implants already installed.",
+  "kind": "fact",
+  "importance": 0.4
+ },
+ {
+  "id": "mem-viktor-082",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V needed implant calibration after heavy combat use.",
+  "kind": "event",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-083",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V values straightforward advice over corporate sales pitches.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-084",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's respect for my work showed when they recommended me without being asked.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-085",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised to bring Misty by for a checkup and actually did.",
+  "kind": "promise",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-086",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V told me they prefer surgery over medications for most health issues.",
+  "kind": "fact",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-087",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V helped me solve a stubborn implant compatibility issue that was affecting a patient.",
+  "kind": "event",
+  "importance": 0.7
+ },
+ {
+  "id": "mem-viktor-088",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V likes people who know their limitations and don't pretend to be experts.",
+  "kind": "preference",
+  "importance": 0.5
+ },
+ {
+  "id": "mem-viktor-089",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V's professionalism in the clinic showed they respect medicine as a craft.",
+  "kind": "relationship",
+  "importance": 0.6
+ },
+ {
+  "id": "mem-viktor-090",
+  "store": "memory",
+  "speaker": "viktor-vektor",
+  "text": "V promised they'd always come to me first for implant work and not a corpo clinic.",
+  "kind": "promise",
+  "importance": 0.7
+ }
+]

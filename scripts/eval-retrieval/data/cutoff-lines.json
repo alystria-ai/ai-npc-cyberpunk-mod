@@ -1,0 +1,52 @@
+{
+  "greeting": [
+    "hey", "hi", "hello", "yo", "hey you", "morning", "good evening", "hey, it's me again", "sup", "what's up",
+    "ok", "okay", "thanks", "thank you", "yeah", "yep", "nope", "sure", "cool", "got it",
+    "alright", "fine by me", "sounds good", "see you later", "bye", "later", "goodnight", "never mind", "hmm", "right"
+  ],
+  "smalltalk": [
+    "How are you doing?", "How's it going?", "Long day?", "Nice night, isn't it?", "What are you up to?",
+    "Anything new with you?", "You look tired.", "Quiet around here tonight.", "What's on your mind?", "Got a minute?",
+    "Can we just talk for a bit?", "How was your day?", "Weather's strange lately.", "You hungry?", "Did you sleep okay?",
+    "Funny how the city never really sleeps.", "I needed a break from everything.", "What do you do for fun?", "Tell me something interesting.", "Just wanted to see how you were."
+  ],
+  "action": [
+    "Let's get going.", "Follow me.", "Wait here a second.", "Can you drive me downtown?", "Look at that building over there.",
+    "Where's the nearest ripperdoc?", "Hold on, someone's coming.", "Watch my back.", "What time is it?", "Come on, we're late.",
+    "Is this a safe place to stop?", "Check the street, would you?", "Let's take the car.", "I'll be right back.", "Stay close."
+  ],
+  "memoryQueries": [
+    {"gold": "mem-panam-006", "text": "Remember that old bike I used to have? Went to a guy named Hideo."},
+    {"gold": "mem-panam-017", "text": "Still funny to me, putting that car through a shop window in Little China."},
+    {"gold": "mem-panam-028", "text": "Don't boss me around, you know how I get when someone gives orders."},
+    {"gold": "mem-panam-039", "text": "How's Mitch holding up? I keep wondering."},
+    {"gold": "mem-panam-050", "text": "If it comes down to Saul, I'm on your side, no questions."},
+    {"gold": "mem-panam-061", "text": "That Heywood job went bad, three security guards never walked out."},
+    {"gold": "mem-panam-072", "text": "I wiped out a full Tyger Claw crew alone, remember hearing about that?"},
+    {"gold": "mem-panam-083", "text": "Give me a precision rifle over a heavy assault gun any day."},
+    {"gold": "mem-judy-006", "text": "Do you still know that guy at Lizzie's who handles electronic locks?"},
+    {"gold": "mem-judy-017", "text": "I got you that camera footage and never asked for a favor back."},
+    {"gold": "mem-judy-028", "text": "Cross me once and I'll hold it against you for a long, long time."},
+    {"gold": "mem-judy-039", "text": "You know I hate how the corps try to own everything."},
+    {"gold": "mem-judy-050", "text": "If we get caught on this, I'll take the heat."},
+    {"gold": "mem-judy-061", "text": "I've been out to Laguna Bend, so I get why you left."},
+    {"gold": "mem-judy-072", "text": "Remember I warned you about the breach before it hit your system?"},
+    {"gold": "mem-judy-083", "text": "I'd take someone with real skills over a fancy corporate degree."},
+    {"gold": "mem-johnny-006", "text": "I was there in the Relic with you, not just riding along in your head."},
+    {"gold": "mem-johnny-017", "text": "That corpo job pissed me off, double-crossed again, reminds me of my own past."},
+    {"gold": "mem-johnny-028", "text": "I don't follow orders blindly, I question every job I take."},
+    {"gold": "mem-johnny-039", "text": "My voice broke when I talked about losing someone, I know that pain."},
+    {"gold": "mem-johnny-050", "text": "I said I'd try to get Alt back if there was any way at all."},
+    {"gold": "mem-johnny-061", "text": "I turned down a huge payday once because it went against my principles."},
+    {"gold": "mem-johnny-072", "text": "I beat a corpo AI head on, my cyberware held up."},
+    {"gold": "mem-johnny-083", "text": "I won't give up my values, whatever it costs me."},
+    {"gold": "mem-viktor-006", "text": "I know a bit about boxing, I respect how honest the sport is."},
+    {"gold": "mem-viktor-017", "text": "That big implant overhaul, I paid you double and didn't make you ask."},
+    {"gold": "mem-viktor-028", "text": "I like surgeons who tell me what they're doing and why."},
+    {"gold": "mem-viktor-039", "text": "I asked how your life is outside the clinic, because I care about you."},
+    {"gold": "mem-viktor-050", "text": "I won't trash your clinic or point the corps at you, I promised."},
+    {"gold": "mem-viktor-061", "text": "I know military implants and where their limits are."},
+    {"gold": "mem-viktor-072", "text": "After that job I came in with nerve damage in my hand."},
+    {"gold": "mem-viktor-083", "text": "Give me straight advice, not a corporate sales pitch."}
+  ]
+}

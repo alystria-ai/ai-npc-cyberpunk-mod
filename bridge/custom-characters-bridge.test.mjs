@@ -23,6 +23,8 @@ function rig({active = true, route = 'local', voiced = false, streaming = true, 
     profileFor: (input, roster) => roster.find(row => row.key === input.profileKey),
     roster: [profile],
     mistral: {active, route},
+    mistralMemory: {warmFor: key => { log.push(['memory-warm', key]); return true; }},
+    memoryNamespace: {keyFor: key => key},
     stopped: false,
     deferExchange: () => commit => { log.push(['deferred', typeof commit]); },
     mistralHost: {
@@ -141,12 +143,14 @@ test('opening the composer on a character warms its text route and the voice tha
   local.warmCustom(profile.key);
   await new Promise(done => setImmediate(done));
   assert.deepEqual(find(local.log, 'prewarm')[0], ['prewarm', {local: {profileKey: profile.key, name: 'Rebecca'}}]);
+  assert.deepEqual(find(local.log, 'memory-warm'), [['memory-warm', profile.key]], 'the memory embedder starts with the talk (the store itself skips a character with no memories)');
   assert.deepEqual(find(local.log, 'prepareProfile'), [['prepareProfile', 'resident-female-v2']], 'the voice that will really speak, from the character\'s own key');
   assert.deepEqual(find(local.log, 'voiceKeyFor')[0], ['voiceKeyFor', profile.key, profile.key]);
   const cloud = rig({route: 'mistral'});
   cloud.warmCustom(profile.key);
   assert.deepEqual(find(cloud.log, 'warmConnection'), [['warmConnection', {provider: 'mistral'}]]);
   assert.equal(find(cloud.log, 'prewarm').length, 0);
+  assert.equal(find(cloud.log, 'memory-warm').length, 1, 'a cloud text route retrieves memories too');
   const none = rig({active: false});
   none.warmCustom(profile.key);
   assert.equal(none.log.length, 0, 'Convai answering: nothing is warmed');

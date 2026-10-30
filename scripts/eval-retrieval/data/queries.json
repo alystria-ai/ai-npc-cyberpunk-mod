@@ -1,0 +1,366 @@
+[
+  {
+    "id": "q-panam-01",
+    "speaker": "panam-palmer",
+    "category": "smalltalk",
+    "text": "How's everything been treating you lately?",
+    "gold": []
+  },
+  {
+    "id": "q-panam-02",
+    "speaker": "panam-palmer",
+    "category": "smalltalk",
+    "text": "What's on your mind today?",
+    "gold": []
+  },
+  {
+    "id": "q-panam-03",
+    "speaker": "panam-palmer",
+    "category": "memory",
+    "text": "Growing up rough like I did, you know how that shapes you?",
+    "gold": ["mem-panam-041"]
+  },
+  {
+    "id": "q-panam-04",
+    "speaker": "panam-palmer",
+    "category": "memory",
+    "text": "Trust like ours doesn't just happen, does it?",
+    "gold": ["mem-panam-089"]
+  },
+  {
+    "id": "q-panam-05",
+    "speaker": "panam-palmer",
+    "category": "memory",
+    "text": "If you ever decide to take Saul on, you know I'm with you?",
+    "gold": ["mem-panam-060"]
+  },
+  {
+    "id": "q-panam-06",
+    "speaker": "panam-palmer",
+    "category": "memory",
+    "text": "I work best when the sun's down, night jobs really are my thing.",
+    "gold": ["mem-panam-033"]
+  },
+  {
+    "id": "q-panam-07",
+    "speaker": "panam-palmer",
+    "category": "fact",
+    "text": "That raid we did on Nash at the Raffen hideout, you remember?",
+    "gold": ["fact-panam-aldecaldos.native.panam-nash-assistance"]
+  },
+  {
+    "id": "q-panam-08",
+    "speaker": "panam-palmer",
+    "category": "fact",
+    "text": "What went wrong with the whole rescue operation for Saul?",
+    "gold": ["fact-panam-priority-panam.native.riders-failed"]
+  },
+  {
+    "id": "q-panam-09",
+    "speaker": "panam-palmer",
+    "category": "story",
+    "text": "Fighting through that corporate tower with you was something else.",
+    "gold": ["story-panam-arasaka"]
+  },
+  {
+    "id": "q-panam-10",
+    "speaker": "panam-palmer",
+    "category": "quest",
+    "text": "So we're going after that downed aircraft in the Badlands?",
+    "gold": ["quest-panam-q104_02_av_chase"]
+  },
+  {
+    "id": "q-panam-11",
+    "speaker": "panam-palmer",
+    "category": "quest",
+    "text": "Tell me about that whole Ghost Town situation with you.",
+    "gold": ["quest-panam-q103_warhead"]
+  },
+  {
+    "id": "q-panam-12",
+    "speaker": "panam-palmer",
+    "category": "place",
+    "text": "You ever been up to Corpo Plaza where my place is?",
+    "gold": ["place-v-apartment-corpo-panam"]
+  },
+  {
+    "id": "q-panam-13",
+    "speaker": "panam-palmer",
+    "category": "place",
+    "text": "You know Misty's shop over in Little China, Watson?",
+    "gold": ["place-mistys-esoterica-panam"]
+  },
+  {
+    "id": "q-judy-01",
+    "speaker": "judy-alvarez",
+    "category": "smalltalk",
+    "text": "You good or you need something?",
+    "gold": []
+  },
+  {
+    "id": "q-judy-02",
+    "speaker": "judy-alvarez",
+    "category": "smalltalk",
+    "text": "How's your day going so far?",
+    "gold": []
+  },
+  {
+    "id": "q-judy-03",
+    "speaker": "judy-alvarez",
+    "category": "memory",
+    "text": "Family stuff gets heavy for you, doesn't it?",
+    "gold": ["mem-judy-059"]
+  },
+  {
+    "id": "q-judy-04",
+    "speaker": "judy-alvarez",
+    "category": "memory",
+    "text": "You know a good hacker who's careful with data jobs?",
+    "gold": ["mem-judy-041"]
+  },
+  {
+    "id": "q-judy-05",
+    "speaker": "judy-alvarez",
+    "category": "memory",
+    "text": "You mentioned those connections of yours in Kabuki are solid.",
+    "gold": ["mem-judy-026"]
+  },
+  {
+    "id": "q-judy-06",
+    "speaker": "judy-alvarez",
+    "category": "memory",
+    "text": "You'd really put your life on the line for what I'm building?",
+    "gold": ["mem-judy-065"]
+  },
+  {
+    "id": "q-judy-07",
+    "speaker": "judy-alvarez",
+    "category": "fact",
+    "text": "So Maiko still controls Clouds and nothing's changed there?",
+    "gold": ["fact-judy-priority-judy.pyramid-clouds-unchanged"]
+  },
+  {
+    "id": "q-judy-08",
+    "speaker": "judy-alvarez",
+    "category": "fact",
+    "text": "Maiko's alive and running things under the Tyger Claws now?",
+    "gold": ["fact-judy-priority-judy.pisces-maiko-survived-installed"]
+  },
+  {
+    "id": "q-judy-09",
+    "speaker": "judy-alvarez",
+    "category": "story",
+    "text": "That dive we did at the lake, you know what I figured out?",
+    "gold": ["story-judy-relic"]
+  },
+  {
+    "id": "q-judy-10",
+    "speaker": "judy-alvarez",
+    "category": "quest",
+    "text": "What do we know about that ripperdoc Fingers on Jig-Jig Street?",
+    "gold": ["quest-judy-q105_02_jigjig"]
+  },
+  {
+    "id": "q-judy-11",
+    "speaker": "judy-alvarez",
+    "category": "quest",
+    "text": "Ready to go sort things out with Maiko at Clouds?",
+    "gold": ["quest-judy-sq026_02_maiko"]
+  },
+  {
+    "id": "q-judy-12",
+    "speaker": "judy-alvarez",
+    "category": "place",
+    "text": "You ever check out the Totentanz up in Northside?",
+    "gold": ["place-totentanz-judy"]
+  },
+  {
+    "id": "q-judy-13",
+    "speaker": "judy-alvarez",
+    "category": "place",
+    "text": "Lizzie's Bar in Kabuki, you been there before?",
+    "gold": ["place-lizzies-bar-judy"]
+  },
+  {
+    "id": "q-johnny-01",
+    "speaker": "johnny-silverhand",
+    "category": "smalltalk",
+    "text": "You still got that spark left in you?",
+    "gold": []
+  },
+  {
+    "id": "q-johnny-02",
+    "speaker": "johnny-silverhand",
+    "category": "smalltalk",
+    "text": "What's eating at you right now?",
+    "gold": []
+  },
+  {
+    "id": "q-johnny-03",
+    "speaker": "johnny-silverhand",
+    "category": "memory",
+    "text": "You can't stand corporate lies, you call it out every time.",
+    "gold": ["mem-johnny-008"]
+  },
+  {
+    "id": "q-johnny-04",
+    "speaker": "johnny-silverhand",
+    "category": "memory",
+    "text": "Freedom costs everything, but you paid it and don't regret it.",
+    "gold": ["mem-johnny-081"]
+  },
+  {
+    "id": "q-johnny-05",
+    "speaker": "johnny-silverhand",
+    "category": "memory",
+    "text": "When you showed me weakness, it made you more real somehow.",
+    "gold": ["mem-johnny-069"]
+  },
+  {
+    "id": "q-johnny-06",
+    "speaker": "johnny-silverhand",
+    "category": "memory",
+    "text": "You know who really controls some of those megacorp operations?",
+    "gold": ["mem-johnny-086"]
+  },
+  {
+    "id": "q-johnny-07",
+    "speaker": "johnny-silverhand",
+    "category": "fact",
+    "text": "That time at Kerry's place when he figured out it was you?",
+    "gold": ["fact-johnny-jr-priority.mansion.recognized"]
+  },
+  {
+    "id": "q-johnny-08",
+    "speaker": "johnny-silverhand",
+    "category": "fact",
+    "text": "What went down with Patricia and those Maelstromers at the club?",
+    "gold": ["fact-johnny-sh5.second-conflict.patricia"]
+  },
+  {
+    "id": "q-johnny-09",
+    "speaker": "johnny-silverhand",
+    "category": "story",
+    "text": "I'm just code, you get that, right? Living in your head.",
+    "gold": ["story-johnny-relic"]
+  },
+  {
+    "id": "q-johnny-10",
+    "speaker": "johnny-silverhand",
+    "category": "quest",
+    "text": "That whole plan for hitting Arasaka Tower, how'd that go?",
+    "gold": ["quest-johnny-q101_01_firestorm"]
+  },
+  {
+    "id": "q-johnny-11",
+    "speaker": "johnny-silverhand",
+    "category": "quest",
+    "text": "Remember that night you let me take the controls?",
+    "gold": ["quest-johnny-sq031_smack_my_bitch_up"]
+  },
+  {
+    "id": "q-johnny-12",
+    "speaker": "johnny-silverhand",
+    "category": "place",
+    "text": "Viktor still running that clinic over in Little China?",
+    "gold": ["place-victors-clinic-johnny"]
+  },
+  {
+    "id": "q-johnny-13",
+    "speaker": "johnny-silverhand",
+    "category": "place",
+    "text": "Your old place at Corpo Plaza, you ever go back?",
+    "gold": ["place-v-apartment-corpo-johnny"]
+  },
+  {
+    "id": "q-viktor-01",
+    "speaker": "viktor-vektor",
+    "category": "smalltalk",
+    "text": "Business treating you alright these days?",
+    "gold": []
+  },
+  {
+    "id": "q-viktor-02",
+    "speaker": "viktor-vektor",
+    "category": "smalltalk",
+    "text": "How's it going with you, Doc?",
+    "gold": []
+  },
+  {
+    "id": "q-viktor-03",
+    "speaker": "viktor-vektor",
+    "category": "memory",
+    "text": "I've been sending fixers and independent operators your way like I said.",
+    "gold": ["mem-viktor-005"]
+  },
+  {
+    "id": "q-viktor-04",
+    "speaker": "viktor-vektor",
+    "category": "memory",
+    "text": "My chrome's rejecting hard, literal biometric warfare going on here.",
+    "gold": ["mem-viktor-011"]
+  },
+  {
+    "id": "q-viktor-05",
+    "speaker": "viktor-vektor",
+    "category": "memory",
+    "text": "That heavy surgery, I still think about our talk after it.",
+    "gold": ["mem-viktor-067"]
+  },
+  {
+    "id": "q-viktor-06",
+    "speaker": "viktor-vektor",
+    "category": "memory",
+    "text": "I promised I'd bring Misty in for a checkup and I did.",
+    "gold": ["mem-viktor-085"]
+  },
+  {
+    "id": "q-viktor-07",
+    "speaker": "viktor-vektor",
+    "category": "fact",
+    "text": "That advice about Razor's weak spot, you were right on target.",
+    "gold": ["fact-viktor-hw5.boxing.razor.viktor-advice"]
+  },
+  {
+    "id": "q-viktor-08",
+    "speaker": "viktor-vektor",
+    "category": "fact",
+    "text": "So you threw that boxing match with Razor Hughes on purpose?",
+    "gold": ["fact-viktor-hw5.boxing.final.fixed-loss"]
+  },
+  {
+    "id": "q-viktor-09",
+    "speaker": "viktor-vektor",
+    "category": "story",
+    "text": "This biochip is a time bomb with the fuse already burning, yeah?",
+    "gold": ["story-viktor-relic"]
+  },
+  {
+    "id": "q-viktor-10",
+    "speaker": "viktor-vektor",
+    "category": "quest",
+    "text": "That whole recovery after the landfill, you remember how rough it was?",
+    "gold": ["quest-viktor-q101_resurrection"]
+  },
+  {
+    "id": "q-viktor-11",
+    "speaker": "viktor-vektor",
+    "category": "quest",
+    "text": "Were you at Embers when everything went down with Hanako?",
+    "gold": ["quest-viktor-02_sickness"]
+  },
+  {
+    "id": "q-viktor-12",
+    "speaker": "viktor-vektor",
+    "category": "place",
+    "text": "You ever stay at the Sunset Motel?",
+    "gold": ["place-sunset-motel-viktor"]
+  },
+  {
+    "id": "q-viktor-13",
+    "speaker": "viktor-vektor",
+    "category": "place",
+    "text": "You got that apartment in Megabuilding H10, Little China, right?",
+    "gold": ["place-v-apartment-h10-viktor"]
+  }
+]

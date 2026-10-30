@@ -1,0 +1,366 @@
+[
+ {
+  "qid": "q-panam-01",
+  "speaker": "panam-palmer",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-panam-02",
+  "speaker": "panam-palmer",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-panam-03",
+  "speaker": "panam-palmer",
+  "category": "memory",
+  "sourceId": "mem-panam-041",
+  "sourceText": "V mentioned they once lived in a bad district and had to fight for everything."
+ },
+ {
+  "qid": "q-panam-04",
+  "speaker": "panam-palmer",
+  "category": "memory",
+  "sourceId": "mem-panam-089",
+  "sourceText": "V's trust in me felt earned, not given, and that made it mean something real."
+ },
+ {
+  "qid": "q-panam-05",
+  "speaker": "panam-palmer",
+  "category": "memory",
+  "sourceId": "mem-panam-060",
+  "sourceText": "V promised to back me up if I ever confronted Saul about the corporate deal."
+ },
+ {
+  "qid": "q-panam-06",
+  "speaker": "panam-palmer",
+  "category": "memory",
+  "sourceId": "mem-panam-033",
+  "sourceText": "V prefers working at night and gets irritable if jobs run into daylight hours."
+ },
+ {
+  "qid": "q-panam-07",
+  "speaker": "panam-palmer",
+  "category": "fact",
+  "sourceId": "fact-panam-aldecaldos.native.panam-nash-assistance",
+  "sourceText": "V agreed to help Panam pursue Nash after recovering her vehicle and cargo, and joined her raid at the Raffen tunnel hideout. Their tunnel encounter was completed. This does not establish that V killed Nash or that Panam and V became romantic partners."
+ },
+ {
+  "qid": "q-panam-08",
+  "speaker": "panam-palmer",
+  "category": "fact",
+  "sourceId": "fact-panam-priority-panam.native.riders-failed",
+  "sourceText": "The attempt to rescue Saul ended in failure; Panam sent V a failure message."
+ },
+ {
+  "qid": "q-panam-09",
+  "speaker": "panam-palmer",
+  "category": "story",
+  "sourceId": "story-panam-arasaka",
+  "sourceText": "Panam fought beside V inside Arasaka Tower during the Aldecaldo assault, where Smasher killed Saul."
+ },
+ {
+  "qid": "q-panam-10",
+  "speaker": "panam-palmer",
+  "category": "quest",
+  "sourceId": "quest-panam-q104_02_av_chase",
+  "sourceText": "Life During Wartime. The aircraft is down, and V and Panam have to reach the wreck and the man on board before the Aldecaldos or the corporate security do. People: Panam Palmer, Mitch Anderson, Anders Hellman, Takemura. Places: the canyon road in the Badlands, the crash site, Badlands, the airstrip, the old gas station, the gas station office, upper floor, outside the gas station, a roadside motel room."
+ },
+ {
+  "qid": "q-panam-11",
+  "speaker": "panam-palmer",
+  "category": "quest",
+  "sourceId": "quest-panam-q103_warhead",
+  "sourceText": "Ghost Town. To find the man V is hunting, V needs a fixer's help at the Afterlife and then a nomad named Panam, who has her own score to settle outside the city. People: Rogue Amendiares, Panam Palmer, Mitch Anderson, Nash. Places: the Afterlife, Watson, Panam's meeting spot, the Aldecaldo camp, Rocky Ridge, the substation, Rocky Ridge, the rooftops, Rocky Ridge, the bar and the gas pumps, Rocky Ridge, north of Rocky Ridge, the Raffen Shiv hideout in the old mines, the Sunset Motel."
+ },
+ {
+  "qid": "q-panam-12",
+  "speaker": "panam-palmer",
+  "category": "place",
+  "sourceId": "place-v-apartment-corpo-panam",
+  "sourceText": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "qid": "q-panam-13",
+  "speaker": "panam-palmer",
+  "category": "place",
+  "sourceId": "place-mistys-esoterica-panam",
+  "sourceText": "Misty's Esoterica, a shop in Little China, Watson"
+ },
+ {
+  "qid": "q-judy-01",
+  "speaker": "judy-alvarez",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-judy-02",
+  "speaker": "judy-alvarez",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-judy-03",
+  "speaker": "judy-alvarez",
+  "category": "memory",
+  "sourceId": "mem-judy-059",
+  "sourceText": "V mentioned family and their voice went cold, suggesting there's pain there."
+ },
+ {
+  "qid": "q-judy-04",
+  "speaker": "judy-alvarez",
+  "category": "memory",
+  "sourceId": "mem-judy-041",
+  "sourceText": "V said they know a netrunner named T-Bug who specializes in safe data extraction."
+ },
+ {
+  "qid": "q-judy-05",
+  "speaker": "judy-alvarez",
+  "category": "memory",
+  "sourceId": "mem-judy-026",
+  "sourceText": "V mentioned they have contacts in Kabuki that can get rare electronics at good prices."
+ },
+ {
+  "qid": "q-judy-06",
+  "speaker": "judy-alvarez",
+  "category": "memory",
+  "sourceId": "mem-judy-065",
+  "sourceText": "V said they'd give their life to protect what I've built in the basement."
+ },
+ {
+  "qid": "q-judy-07",
+  "speaker": "judy-alvarez",
+  "category": "fact",
+  "sourceId": "fact-judy-priority-judy.pyramid-clouds-unchanged",
+  "sourceText": "At Laguna Bend, Judy told V that Maiko controlled Clouds and the dolls had seen no improvement. This is Judy’s later report, not a claim that her earlier plan had succeeded."
+ },
+ {
+  "qid": "q-judy-08",
+  "speaker": "judy-alvarez",
+  "category": "fact",
+  "sourceId": "fact-judy-priority-judy.pisces-maiko-survived-installed",
+  "sourceText": "Maiko survived the Pisces meeting and took control of Clouds under the Tyger Claws. This confirms her survival on the installed-Maiko branch; it does not claim she was subdued in combat."
+ },
+ {
+  "qid": "q-judy-09",
+  "speaker": "judy-alvarez",
+  "category": "story",
+  "sourceId": "story-judy-relic",
+  "sourceText": "Judy knows V has the Relic chip, because the shared dive at the lake showed her what it is doing in V's head."
+ },
+ {
+  "qid": "q-judy-10",
+  "speaker": "judy-alvarez",
+  "category": "quest",
+  "sourceId": "quest-judy-q105_02_jigjig",
+  "sourceText": "The Space in Between. Judy Alvarez is hunting for Evelyn Parker and has a lead on a Ripperdoc called Fingers, who works from a clinic on Jig-Jig Street in Japantown: V goes there to get what he knows. People: Judy Alvarez, Fingers. Places: Jig-Jig Street, Japantown, Fingers' clinic, the clinic door, Jig-Jig Street, the clinic waiting room, Fingers' surgery room, Fingers' office."
+ },
+ {
+  "qid": "q-judy-11",
+  "speaker": "judy-alvarez",
+  "category": "quest",
+  "sourceId": "quest-judy-sq026_02_maiko",
+  "sourceText": "Ex-Factor. Judy asks V to meet her at Clouds in Megabuilding H8 in Westbrook, to sort something out with Maiko. People: Judy Alvarez, Maiko Maeda, Woodman. Places: Megabuilding H8, Westbrook, Clouds terrace, Megabuilding H8, the office, Clouds, Clouds, Megabuilding H8, the elevator, Megabuilding H8, the ground floor, Megabuilding H8."
+ },
+ {
+  "qid": "q-judy-12",
+  "speaker": "judy-alvarez",
+  "category": "place",
+  "sourceId": "place-totentanz-judy",
+  "sourceText": "the Totentanz, a club in Northside, Watson"
+ },
+ {
+  "qid": "q-judy-13",
+  "speaker": "judy-alvarez",
+  "category": "place",
+  "sourceId": "place-lizzies-bar-judy",
+  "sourceText": "Lizzie's Bar, a club in Kabuki, Watson"
+ },
+ {
+  "qid": "q-johnny-01",
+  "speaker": "johnny-silverhand",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-johnny-02",
+  "speaker": "johnny-silverhand",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-johnny-03",
+  "speaker": "johnny-silverhand",
+  "category": "memory",
+  "sourceId": "mem-johnny-008",
+  "sourceText": "V hates corporate propaganda and will call out BS from any megacorp every time."
+ },
+ {
+  "qid": "q-johnny-04",
+  "speaker": "johnny-silverhand",
+  "category": "memory",
+  "sourceId": "mem-johnny-081",
+  "sourceText": "V told me they've paid a high price for freedom and it was worth it."
+ },
+ {
+  "qid": "q-johnny-05",
+  "speaker": "johnny-silverhand",
+  "category": "memory",
+  "sourceId": "mem-johnny-069",
+  "sourceText": "V mentioned vulnerability and it made them seem more human than any merc should."
+ },
+ {
+  "qid": "q-johnny-06",
+  "speaker": "johnny-silverhand",
+  "category": "memory",
+  "sourceId": "mem-johnny-086",
+  "sourceText": "V said they know who pulled the strings on certain Arasaka operations."
+ },
+ {
+  "qid": "q-johnny-07",
+  "speaker": "johnny-silverhand",
+  "category": "fact",
+  "sourceId": "fact-johnny-jr-priority.mansion.recognized",
+  "sourceText": "At Kerry’s villa, Kerry recognized Johnny speaking through V."
+ },
+ {
+  "qid": "q-johnny-08",
+  "speaker": "johnny-silverhand",
+  "category": "fact",
+  "sourceId": "fact-johnny-sh5.second-conflict.patricia",
+  "sourceText": "In Second Conflict, Patricia ran the Totentanz; when V came for Nancy, Patricia's Maelstromers turned hostile and V had to fight them."
+ },
+ {
+  "qid": "q-johnny-09",
+  "speaker": "johnny-silverhand",
+  "category": "story",
+  "sourceId": "story-johnny-relic",
+  "sourceText": "Johnny knows he is a personality construct living on the Relic chip in V's head."
+ },
+ {
+  "qid": "q-johnny-10",
+  "speaker": "johnny-silverhand",
+  "category": "quest",
+  "sourceId": "quest-johnny-q101_01_firestorm",
+  "sourceText": "Love Like Fire. Johnny Silverhand plans a raid on Arasaka Tower after one last show on stage: a helicopter to the roof, a bomb in the elevator and a hack into the network. People: Kerry Eurodyne, Spider Murphy, Rogue Amendiares. Places: the concert stage, outside the concert building, the helicopter over Arasaka Tower, the roof of Arasaka Tower, the stairwell in Arasaka Tower, the elevator, the elevator shaft, the upper room with an Access Point, the Arasaka Tower roof."
+ },
+ {
+  "qid": "q-johnny-11",
+  "speaker": "johnny-silverhand",
+  "category": "quest",
+  "sourceId": "quest-johnny-sq031_smack_my_bitch_up",
+  "sourceText": "A Cool Metal Fire. During the Chippin' In job, V lets Johnny take over V's body for one night out in Watson, and Johnny has his own plans for it. People: Johnny Silverhand, Cassius Ryder, Ruby, Rogue Amendiares. Places: the Afterlife, Watson, Cassius Ryder's parlour, the club, outside the club, a motel room."
+ },
+ {
+  "qid": "q-johnny-12",
+  "speaker": "johnny-silverhand",
+  "category": "place",
+  "sourceId": "place-victors-clinic-johnny",
+  "sourceText": "Viktor's clinic, a ripperdoc's clinic in Little China, Watson"
+ },
+ {
+  "qid": "q-johnny-13",
+  "speaker": "johnny-silverhand",
+  "category": "place",
+  "sourceId": "place-v-apartment-corpo-johnny",
+  "sourceText": "V's apartment at Corpo Plaza, City Center"
+ },
+ {
+  "qid": "q-viktor-01",
+  "speaker": "viktor-vektor",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-viktor-02",
+  "speaker": "viktor-vektor",
+  "category": "smalltalk",
+  "sourceId": null,
+  "sourceText": null
+ },
+ {
+  "qid": "q-viktor-03",
+  "speaker": "viktor-vektor",
+  "category": "memory",
+  "sourceId": "mem-viktor-005",
+  "sourceText": "V promised to recommend my clinic to other independent operators and followed through."
+ },
+ {
+  "qid": "q-viktor-04",
+  "speaker": "viktor-vektor",
+  "category": "memory",
+  "sourceId": "mem-viktor-011",
+  "sourceText": "V told me they have implants that are bleeding chrome, literal biometric rejection."
+ },
+ {
+  "qid": "q-viktor-05",
+  "speaker": "viktor-vektor",
+  "category": "memory",
+  "sourceId": "mem-viktor-067",
+  "sourceText": "V needed psychological support after a heavy surgery and let me talk them through it."
+ },
+ {
+  "qid": "q-viktor-06",
+  "speaker": "viktor-vektor",
+  "category": "memory",
+  "sourceId": "mem-viktor-085",
+  "sourceText": "V promised to bring Misty by for a checkup and actually did."
+ },
+ {
+  "qid": "q-viktor-07",
+  "speaker": "viktor-vektor",
+  "category": "fact",
+  "sourceId": "fact-viktor-hw5.boxing.razor.viktor-advice",
+  "sourceText": "Before the Razor Hughes finale Viktor told V that Razor had a weakness: abdominal muscles that had been swapped out, so V should hit him there."
+ },
+ {
+  "qid": "q-viktor-08",
+  "speaker": "viktor-vektor",
+  "category": "fact",
+  "sourceId": "fact-viktor-hw5.boxing.final.fixed-loss",
+  "sourceText": "V accepted Fred's offer to throw the Razor Hughes finale and then lost it; afterwards Fred said the loss looked natural and Viktor said V had thrown the fight."
+ },
+ {
+  "qid": "q-viktor-09",
+  "speaker": "viktor-vektor",
+  "category": "story",
+  "sourceId": "story-viktor-relic",
+  "sourceText": "Viktor told V the biochip is a bomb with the fuse lit."
+ },
+ {
+  "qid": "q-viktor-10",
+  "speaker": "viktor-vektor",
+  "category": "quest",
+  "sourceId": "quest-viktor-q101_resurrection",
+  "sourceText": "Playing for Time. V has to climb out of trouble with Takemura's help, get checked over by Viktor, recover at home, and then meet Takemura to talk about what comes next. People: Takemura, Viktor Vektor. Places: the landfill, the road out of the landfill, Viktor's clinic, Watson, V's apartment, Tom's Diner, Japantown."
+ },
+ {
+  "qid": "q-viktor-11",
+  "speaker": "viktor-vektor",
+  "category": "quest",
+  "sourceId": "quest-viktor-02_sickness",
+  "sourceText": "Nocturne Op55N1. Hanako Arasaka wants to meet V at Embers, a restaurant, to talk about what she has in mind for V. People: Hanako Arasaka, Johnny Silverhand, Viktor Vektor, Misty Olszewski, Panam Palmer, Takemura. Places: Embers restaurant, the elevator, Viktor's clinic, Watson, Misty's shop, the roof."
+ },
+ {
+  "qid": "q-viktor-12",
+  "speaker": "viktor-vektor",
+  "category": "place",
+  "sourceId": "place-sunset-motel-viktor",
+  "sourceText": "the Sunset Motel"
+ },
+ {
+  "qid": "q-viktor-13",
+  "speaker": "viktor-vektor",
+  "category": "place",
+  "sourceId": "place-v-apartment-h10-viktor",
+  "sourceText": "V's apartment in Megabuilding H10, Little China, Watson"
+ }
+]

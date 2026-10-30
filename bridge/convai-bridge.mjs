@@ -1865,6 +1865,9 @@ const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOw
 function warmTalkTargets(profileKeys, {persona = true} = {}) {
   if (stopped || !Array.isArray(profileKeys)) return;
   let personaDone = false;
+  // A private talk starts: the memory embedder is started now (only when this character has memories stored, a text route answers and the embedder is not running), so the first line
+  // does not meet it cold. It exits by itself 300 s after its last use.
+  if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
     if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) {
@@ -3281,6 +3284,7 @@ function customTurnConfig(input, profile) {
 function warmCustom(profileKey) {
   const profile = profileFor({profileKey}, roster);
   if (!profile || !mistral.active || stopped) return;
+  mistralMemory.warmFor(memoryNamespace.keyFor(profileKey));
   if (mistral.route === 'local') void mistralHost.prewarm({local: {profileKey, name: profile.name}});
   else void warmConnection({provider: 'mistral'}).catch(() => {});
   if (localVoice.playbackEnabled === false || !localVoice.usesProfile(profileKey)) return;
