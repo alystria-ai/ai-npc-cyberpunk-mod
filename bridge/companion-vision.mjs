@@ -51,6 +51,7 @@ export const MAX_FRAME_AGE_MS = 15000;
 // A frame this young is used as it is; an older one makes the turn take a new picture first (twice the 3 s buffer cadence, so a
 // walk with the buffer running normally needs no extra capture).
 export const FRESH_FRAME_AGE_MS = 6000;
+const REFUSAL_LOG_GAP_MS = 2000;
 // How long a queued picture (attachToNextTurn) waits for a turn before it is dropped.
 export const QUEUE_TTL_MS = 20000;
 // How long ahead-of-time staging keeps retrying while the page is still connecting or the recording is starting.
@@ -97,7 +98,7 @@ export class CompanionVision {
     this.pageFrames = new Map(); this.nextRound = 0;
     this.counters = {captures: 0, failed: 0, minimised: 0, covered: 0, borderCaptures: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
       prestaged: 0, nextStaged: 0, nextCaptures: 0, unstagedSent: 0, helperStarts: 0, helperReleases: 0};
-    this.borderNoticePending = false; this.borderNoticeGiven = false; this.borderLogged = false;
+    this.borderNoticePending = false; this.borderNoticeGiven = false; this.borderLogged = false; this.lastFailure = null; this.refusalLogs = new Map();
   }
   // Windows is drawing its capture border around the game for these pictures: no buffer on a timer, only a picture when a turn needs one.
   get borderShown() { try { return this.capture?.borderShown === true; } catch { return false; } }
@@ -488,11 +489,15 @@ export class CompanionVision {
     try { result = await this.capture.capture(this.captureOptions()); } catch { result = {ok: false, reason: 'failed'}; }
     if (!result?.ok) {
       // A minimised game, or one that is not in front or has a window over it (the border-free capture sees the whole monitor, so it does not take that), is not a failure.
-      const quiet = result?.reason === 'minimised' || result?.reason === 'covered';
-      if (result?.reason === 'minimised') this.counters.minimised++; else if (result?.reason === 'covered') this.counters.covered++; else this.counters.failed++;
-      if (!quiet || this.counters[result.reason] === 1) this.log(`no picture (${trigger}): ${result?.reason ?? 'failed'}`);
+      const reason = result?.reason ?? 'failed';
+      if (reason === 'minimised') this.counters.minimised++; else if (reason === 'covered') this.counters.covered++; else this.counters.failed++;
+      this.logRefusal(trigger, reason);
+      this.lastFailure = reason;
       return null;
     }
+    // Pictures work again after a refusal: say so once, so a stretch without pictures has a visible end in the log.
+    if (this.lastFailure) this.log(`picture (${trigger}) taken again after ${this.lastFailure}`);
+    this.lastFailure = null;
     this.counters.captures++;
     // Windows drew its yellow border around the game for this picture: from here on no timer capture (`capturing`), and the player is told once.
     if (result.border === true) {
@@ -507,6 +512,18 @@ export class CompanionVision {
       this.writeDebug(path, Buffer.from(result.base64, 'base64')).catch(() => {});
     }
     return {mime: result.mime, base64: result.base64, width: result.width, height: result.height, bytes: result.bytes};
+  }
+  // Says why no picture was taken. The timer (`buffer`) says it when its reason changes, not every 3 s. A capture a turn started (composer, talk key, turn, next speaker) always says
+  // how it went, so a turn without a picture is never unexplained (live 2026-10-30: only the first `covered` of a session was logged, which hid 25 minutes without a picture). The same
+  // line from the same trigger is held back for REFUSAL_LOG_GAP_MS so a burst of turns cannot flood the log, and the next line that gets through counts what was held back.
+  logRefusal(trigger, reason) {
+    const text = reason === 'covered' ? 'another window covers the game (or it is not in front), so no picture was taken'
+      : reason === 'minimised' ? 'the game is minimised, so no picture was taken' : reason;
+    if (trigger === 'buffer') { if (reason !== this.lastFailure) this.log(`no picture (${trigger}): ${reason}, ${text}`); return; }
+    const key = `${trigger}:${reason}`, now = this.now(), seen = this.refusalLogs.get(key);
+    if (seen && now - seen.at < REFUSAL_LOG_GAP_MS) { seen.held++; return; }
+    this.log(`no picture (${trigger}): ${reason}, ${text}${seen?.held ? ` (${seen.held} more like it held back)` : ''}`);
+    this.refusalLogs.set(key, {at: now, held: 0});
   }
   remember(map, key, value) {
     map.delete(key); map.set(key, value);
