@@ -57,7 +57,7 @@ const gameSuffix = GAME_VARIANTS[gameId].suffix;
 // The optional packs are named by pack id ('omni', 'localai-standard', 'localai-lite'; the file name carries the model, packaging/lib/pack-names.mjs). A build
 // folder made before 0.3.4 holds the old titles (OmniPack-<v>.zip), which are accepted too: titlesOf(id) lists the new title first.
 const releaseConfig = JSON.parse(readFileSync(new URL('./release.config.json', import.meta.url), 'utf8'));
-// The Scripts package is the Update zip of the mod page: AI-NPC-LLM-Companions-Update-<from>-to-<version> (packaging/lib/full-package.mjs).
+// The Scripts package is the Update zip of the mod page: AI-Companions-LLM-Update-<from>-to-<version> (packaging/lib/full-package.mjs).
 const titlesOf = id => id === 'Scripts' ? ['Update'] : id === 'Runtime' ? ['Runtime'] : packTitles(releaseConfig, id);
 const packageBase = (id, version, title = titlesOf(id)[0]) => id === 'Scripts' ? updateBaseNameFor(releaseConfig, version, gameId) : id === 'Runtime' ? `${title}-${version}${gameSuffix}` : `${title}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';

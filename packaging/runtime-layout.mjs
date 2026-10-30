@@ -112,6 +112,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/house-chat.mjs',
   'bridge/intrinsic-character-context.mjs',
   'bridge/inworld-key.mjs',
+  'bridge/inworld-languages.mjs',
   'bridge/inworld-voice.mjs',
   'bridge/jali-face-model.mjs',
   'bridge/jali-face.mjs',

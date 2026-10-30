@@ -72,17 +72,17 @@ local function buildConsole(check)
     local game, scripts, runtime = check.forGame or '?', check.scripts or '?', check.runtime or '?'
     local head = 'AI NPC Cyberpunk Mod: game build mismatch (' .. tostring(check.detail) .. '). '
     if check.code == 'runtime-wrong' then
-        return head .. 'Your game is ' .. game .. ' but the Runtime is the one for game ' .. runtime .. '. Get the full install zip (AI-NPC-LLM-Companions) for game ' .. game
+        return head .. 'Your game is ' .. game .. ' but the Runtime is the one for game ' .. runtime .. '. Get the full install zip (AI-Companions-LLM) for game ' .. game
             .. ' from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it over this one, then restart the game.'
     elseif check.code == 'scripts-wrong' then
         return head .. 'Your game is ' .. game .. ' but the Scripts are the build for game ' .. scripts .. '. Get the update zip for game ' .. game
             .. ' from the mod’s Nexus Mods page (update file for game 2.5, optional update file for game 2.31) and install it over these, then restart the game.'
     elseif check.code == 'both-wrong' then
-        return head .. 'Your game is ' .. game .. ' but the Scripts and the Runtime are the build for game ' .. scripts .. '. Get the full install zip (AI-NPC-LLM-Companions) for game ' .. game
+        return head .. 'Your game is ' .. game .. ' but the Scripts and the Runtime are the build for game ' .. scripts .. '. Get the full install zip (AI-Companions-LLM) for game ' .. game
             .. ' from Nexus Mods and extract it over these, then restart the game.'
     end
     return head .. 'The Scripts are the build for game ' .. scripts .. ' but the Runtime is the build for game ' .. runtime
-        .. ', and the game version matches neither. Extract the full install zip (AI-NPC-LLM-Companions) made for the same game as yours, then restart the game.'
+        .. ', and the game version matches neither. Extract the full install zip (AI-Companions-LLM) made for the same game as yours, then restart the game.'
 end
 local COMPILER_CONSOLE = 'AI NPC Cyberpunk Mod: redscript is missing. Install it from Nexus Mods, then restart the game.'
 local OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Codeware is too old (it lacks the text input this mod needs). '
@@ -496,20 +496,20 @@ end
 local function lineFor(check)
     if not check then return nil end
     if check.code == 'never' then
-        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.') .. managerHint()}
+        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-Companions-LLM) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.') .. managerHint()}
     end
     -- The launcher found no launcher.ini beside its DLL (a 0.2.3 Vortex report; the launcher from 0.2.4 on starts without it, so this is an
     -- older launcher): the generic sentence below would say "download it again" without saying which file or why.
     if check.code == 'incomplete' and check.detail == 'launcher-not-configured' then
-        return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.') .. managerHint()}
+        return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-Companions-LLM) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.') .. managerHint()}
     end
     -- Mod Organizer 2 holds the Runtime's own file (launcher/usvfs-compat.mjs) where the program cannot see it (report c44c3c95): extracting the zip again would change
     -- nothing, so this says what MO2 does and the one thing that helps. No managerHint: it would send the player to install as a mod, which is the setup that fails.
     if check.code == 'incomplete' and check.reason == 'mo2-hidden-file' then
-        return {value = ui.t('Not running'), description = ui.t('Mod Organizer 2 does not show a file of the Runtime to the program. Close the game and Mod Organizer 2, extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder by hand, then start the game.')}
+        return {value = ui.t('Not running'), description = ui.t('Mod Organizer 2 does not show a file of the Runtime to the program. Close the game and Mod Organizer 2, extract the full install zip (AI-Companions-LLM) into the Cyberpunk 2077 folder by hand, then start the game.')}
     end
     if check.code == 'incomplete' then
-        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', {code = check.detail or '?'}) .. managerHint()}
+        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Extract the full install zip (AI-Companions-LLM) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', {code = check.detail or '?'}) .. managerHint()}
     end
     if check.code == 'failed' then
         return {value = ui.t('Not running'), description = ui.t('The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.', {code = check.detail or '?'})}
@@ -660,7 +660,7 @@ local function bridgeLines(out)
     elseif versions and versions.code == 'base-old' then
         -- From 0.3.4 the Scripts carry the code and the Runtime is the base (docs/PACKAGING.md, "Code in the Scripts"): its version must be at least the
         -- base the Scripts name (runtimeBase). An older base gets the full install zip (the Runtime update zips are no longer offered), the base it needs named.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.',
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.',
             {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?', required = text(versions.required, 30) or '?'}))
     elseif versions and versions.code == 'match' and versions.base == true then
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} on Runtime base {runtime}.',
@@ -670,17 +670,17 @@ local function bridgeLines(out)
         local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
         out[#out + 1] = versions.code == 'mismatch'
             and line('versions', ui.t('Scripts and Runtime'), 'problem', older
-                and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', values)
-                or ui.t('Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
+                and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', values)
+                or ui.t('Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-Companions-LLM). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
             or line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} and Runtime {runtime}.', values))
     elseif versions and (versions.code == 'chain-gap' or versions.code == 'chain-order') then
         -- The versions agree, but an update step in between was never applied (bridge/runtime-steps.mjs): the files are a mix of releases.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', versions.code == 'chain-gap'
-            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
-            or ui.t('Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.'))
+            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
+            or ui.t('Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.'))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.'))
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.'))
     end
     -- Under a mod manager a problem with the versions or the update steps says how to install the full install zip as one mod.
     local hint = managerHint()

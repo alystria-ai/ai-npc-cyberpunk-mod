@@ -1,12 +1,12 @@
-# Nexus Mods page: AI NPC LLM Companions (launch 18 Oct 2026, page text for 0.3.5, file descriptions for 0.3.5)
+# Nexus Mods page: AI Companions using Large Language Models (launch 18 Oct 2026, page text for 0.3.5, file descriptions for 0.3.5)
 
 ## 1. Page description (Nexus BBCode)
 
 The page text is kept short: each fact is said once, in the section where a player looks for it, and features get one tight line. Sections in order: one download with the game versions, videos, key features (the old FAQ is folded in here and into the packs section), the settings block (local first, then cloud, then video memory), install (requirements, then three routes: by hand, Vortex, Mod Organizer 2, each with its update line), optional packs and your own models (including the second PC setup), languages, privacy and error reports, troubleshooting. Release history stays in the changelog, not on the page.
 
 ```text
-[size=4][b]One download: the main file, AI NPC LLM Companions, holds everything. Extract it into your Cyberpunk 2077 folder and you are done.[/b][/size]
-The main file is for game [b]2.5[/b]. Still on [b]2.31[/b]? Take the optional file [b]AI NPC LLM Companions - for game 2.31 (older game version)[/b] instead, same mod and version. To play 2.31 on Steam: right-click the game, Properties, Game Versions & Betas, 2_31_old.
+[size=4][b]One download: the main file, AI Companions using Large Language Models, holds everything. Extract it into your Cyberpunk 2077 folder and you are done.[/b][/size]
+The main file is for game [b]2.5[/b]. Still on [b]2.31[/b]? Take the optional file [b]AI Companions using Large Language Models - for game 2.31 (older game version)[/b] instead, same mod and version. To play 2.31 on Steam: right-click the game, Properties, Game Versions & Betas, 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -31,7 +31,7 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 [*][b]Faces and bodies that act.[/b] Lips follow the words, the face shifts at the word the feeling changes, eyes and head follow you, and characters gesture, nod and hold poses with props.
 [*][b]Voices that sound like them.[/b] Pocket TTS (default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a Mistral key, and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations. The companion and V volume sliders both run 50 to 300 percent. If a voice fails mid-reply, you still get the whole reply as text. V speaks too: lines you type are voiced in a V voice that matches yours (Settings > Voice and microphone > V's voice), and V's voice for microphone lines (off by default) does the same for spoken ones.
 [*][b]OmniVoice on AMD Radeon (experimental) or another PC.[/b] With the OmniVoice pack and a Radeon RX 6000, 7000 or 9000 card, Settings > Voice and microphone > OmniVoice for AMD downloads AMD's ROCm PyTorch (about 1.5 GB) and turns it on, but the one-button setup is not yet tried on AMD hardware. To render voices on another PC instead, paste the address of an OmniVoice server (see Optional packs) into Custom voices > Remote OmniVoice and press Test. Nothing of OmniVoice loads on your game PC.
-[*][b]Inworld voice (your own key).[/b] At the bottom of Settings > Voice and microphone > Custom voices, add an Inworld API key from [url=https://inworld.ai]inworld.ai[/url], press Test connection and pick Inworld as the last entry of Companion voices. Companions speak in cloned voices, English only. The free plan is a one-time trial of about 70 minutes. Not used with Mature content.
+[*][b]Inworld voice (your own key).[/b] At the bottom of Settings > Voice and microphone > Custom voices, add an Inworld API key from [url=https://inworld.ai]inworld.ai[/url], press Test connection and pick Inworld as the last entry of Companion voices. Companions speak in cloned voices, in English and the other languages Inworld supports. The free plan is a one-time trial of about 70 minutes. Not used with Mature content.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, clothes and what you carry. With Companion vision on they also get a fresh glimpse of the game window (never saved), with any provider. Quest givers explain the job: ask "what do I do next?" and they walk you through the step you are on, never beyond it. Covers 171 jobs, Phantom Liberty included.
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
@@ -78,7 +78,7 @@ Pick a provider in Companion Manager > Settings > AI provider. Local is free and
 First install the mods in Requirements. Vortex and Mod Organizer 2 always use the [b]main file[/b], for a new install and for every update. The [b]Update[/b] file is only for installs you extracted by hand.
 
 [b]By hand[/b][list=1]
-[*]Download [b]AI NPC LLM Companions[/b] from this page (the main file for game 2.5, or the optional file for 2.31). It holds everything.
+[*]Download [b]AI Companions using Large Language Models[/b] from this page (the main file for game 2.5, or the optional file for 2.31). It holds everything.
 [*]Close the game. Extract the zip into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip, as "Extract All" and 7-Zip's "Extract to" suggest.
 [*]Want Local AI, Mature or OmniVoice? Extract its pack into the same folder the same way, after the main file.
 [*]Start the game (the first start takes a little longer), then check your keys under [b]Companion Manager > Key bindings[/b] or in Cyber Engine Tweaks' [b]Bindings[/b].
@@ -123,7 +123,7 @@ Then in game: Settings > AI provider, choose Local AI and pick your model in the
 
 [size=4][b]Languages[/b][/size]
 Menus come in sixteen languages. Characters answer in English by default, and Settings > Voice and microphone > Voice language can be Automatic (the language you write in) or a fixed language. With Convai, Google Gemini, Local AI or a Custom endpoint the other languages need no pack.[list]
-[*][b]Voices:[/b] other spoken languages need the OmniVoice, Voxtral or Convai voice. OmniVoice and the Convai voice (with Convai as the provider) speak every language, Voxtral the 22 Mistral lists for it. Pocket speaks English, and French, Italian, German, Spanish and Portuguese with the optional PocketTTS model and that language's multilingual pack. A reply in a language your voice does not speak is shown as text.
+[*][b]Voices:[/b] other spoken languages need the OmniVoice, Voxtral or Convai voice. OmniVoice and the Convai voice (with Convai as the provider) speak every language, Voxtral the 38 Mistral lists for it, Inworld the 94 it lists. Pocket speaks English, and French, Italian, German, Spanish and Portuguese with the optional PocketTTS model and that language's multilingual pack. A reply in a language your voice does not speak is shown as text.
 [*][b]Dubbed voices:[/b] for Chinese (Mandarin), Japanese, Korean, French, German, Italian, Spanish (Spain), Polish, Portuguese (Brazil) and Russian, the optional [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual]multilingual packs[/url] make OmniVoice and Mistral voices sound like the game's dub instead of the English actors, and with the PocketTTS model of the same language Pocket speaks in the dubbed voice too.
 [*][b]Microphone:[/b] the Convai microphone expects English, so type in other languages. With Mistral it understands others too. With Google Gemini, Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 [/list]
@@ -168,25 +168,25 @@ In game, open Companion Manager > Settings > Privacy and help > Help and support
 
 Game 2.5 is the default: the full install is the main file and its update sits under Updates. Game 2.31 is two optional files ("Optional files", not "Old versions"), the same version number. `<from>` is runtimeBase.required, or `<required>-and-up` when the update covers several releases: for 0.3.5 the name is Update-0.3.3-and-up-to-0.3.5 and it needs the Runtime 0.3.3 or newer. Each description at most 255 characters.
 
-AI NPC LLM Companions (the main file, game 2.5, zip AI-NPC-LLM-Companions-<version>.zip):
+AI Companions using Large Language Models (the main file, game 2.5, zip AI-Companions-LLM-<version>.zip):
 
 ```text
 Full install for game 2.5, everything in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: content packs, key bindings, car invitations, housemates, outfits, Music and TV info.
 ```
 
-Update <from> to <version> (an update file, game 2.5, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, for example Update 0.3.3 to 0.3.4, and Update any to 0.3.5 for this release):
+Update <from> to <version> (an update file, game 2.5, zip AI-Companions-LLM-Update-<from>-to-<version>.zip, for example Update 0.3.3 to 0.3.4, and Update any to 0.3.5 for this release):
 
 ```text
 Update for game 2.5, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2, they use the main file. Needs the Runtime <from> or newer. New: content packs, key bindings, car invitations, housemates.
 ```
 
-AI NPC LLM Companions - for game 2.31 (older game version) (optional file, zip AI-NPC-LLM-Companions-<version>-for-2.31.zip):
+AI Companions using Large Language Models - for game 2.31 (older game version) (optional file, zip AI-Companions-LLM-<version>-for-2.31.zip):
 
 ```text
 Full install for older game 2.31, all in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: content packs, key bindings, car invitations, housemates, outfits, Music and TV info.
 ```
 
-Update <from> to <version> - for game 2.31 (older game version) (optional file, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>-for-2.31.zip):
+Update <from> to <version> - for game 2.31 (older game version) (optional file, zip AI-Companions-LLM-Update-<from>-to-<version>-for-2.31.zip):
 
 ```text
 Update for older game 2.31, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2. Needs the Runtime <from> or newer. New: content packs, key bindings, car invitations, housemates.

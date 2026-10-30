@@ -5,6 +5,7 @@ import {createServer} from 'node:http';
 import {resolve} from 'node:path';
 import {VOXTRAL_TTS3_LANGUAGES, VOXTRAL_TTS1_LANGUAGES, voxtralSpeaks, modelRefused} from './voxtral-languages.mjs';
 import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL, capWav, isContentRefusal, joinWavs, mapStatus, redact, singleClip, SINGLE_CLIP, splitReply, sseEvents} from './voxtral-voice.mjs';
+import {MOD_LANGUAGES} from './speech-language.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
@@ -803,7 +804,7 @@ test('the Voxtral voice speaks the language of the text, and a Pocket choice sta
     const h = selection(server);
     h.voice.update({voiceProvider: 'voxtral', multilingualConversations: true}, null, false);
     assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.cloud, 'voxtral');
-    assert.equal(h.cloud.speaks('es'), true); assert.equal(h.cloud.speaks('cs'), false, 'Czech is not one of the languages Mistral names for Voxtral TTS 3');
+    assert.equal(h.cloud.speaks('es'), true); assert.equal(h.cloud.speaks('cs'), true, 'Czech is on the Mistral languages page for Voxtral TTS 3'); assert.equal(h.cloud.speaks('he'), false, 'Hebrew is not');
     h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
     assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, false);
     await h.voice.close();
@@ -1864,7 +1865,7 @@ test('both models refused (a missing plan or a bad key): the error is thrown as 
   }
 });
 
-test('Voxtral speaks the language of the text: the request carries no language field, and the language lists are Mistral\'s own (22 for v3, 9 for the older model)', async () => {
+test('Voxtral speaks the language of the text: the request carries no language field, and the language lists are Mistral\'s own (38 for v3, 9 for the older model)', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
     const {voice} = voiceFor(server);
@@ -1872,9 +1873,11 @@ test('Voxtral speaks the language of the text: the request carries no language f
     assert.equal(server.requests[0].body.input, 'Hola, como estas?');
     assert.deepEqual(Object.keys(server.requests[0].body).sort(), ['input', 'model', 'ref_audio', 'response_format', 'stream']);
   } finally { await server.close(); }
-  assert.equal(VOXTRAL_TTS3_LANGUAGES.length, 22); assert.equal(VOXTRAL_TTS1_LANGUAGES.length, 9);
-  for (const language of ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'uk', 'tr', 'hu', 'ar', 'hi', 'ja', 'ko', 'zh', 'el']) assert.equal(voxtralSpeaks(language), true, language);
-  for (const language of ['cs', 'sv', 'he', 'th']) assert.equal(voxtralSpeaks(language), false, language + ': not named by Mistral for TTS 3');
+  assert.equal(VOXTRAL_TTS3_LANGUAGES.length, 38); assert.equal(VOXTRAL_TTS1_LANGUAGES.length, 9);
+  for (const language of ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'uk', 'tr', 'hu', 'ar', 'hi', 'ja', 'ko', 'zh', 'el', 'cs', 'sv', 'th', 'ro', 'ca', 'no', 'vi', 'fil']) assert.equal(voxtralSpeaks(language), true, language);
+  // Every interface language of the mod (mod/locales, base codes) is spoken by Voxtral TTS 3.
+  for (const language of MOD_LANGUAGES) assert.equal(voxtralSpeaks(language), true, language + ' (a mod language)');
+  for (const language of ['he', 'sw', 'fa']) assert.equal(voxtralSpeaks(language), false, language + ': not on the Mistral TTS 3 list');
   for (const language of ['pl', 'ru', 'uk', 'tr', 'ja', 'ko', 'zh']) assert.equal(voxtralSpeaks(language, VOXTRAL_FALLBACK_MODEL), false, language + ' on the older model');
   assert.equal(voxtralSpeaks('en', VOXTRAL_FALLBACK_MODEL), true); assert.equal(voxtralSpeaks(null), true); assert.equal(voxtralSpeaks('fr', VOXTRAL_FALLBACK_MODEL), true);
   assert.equal(modelRefused({status: 404, kind: 'request'}), true); assert.equal(modelRefused({status: 403, kind: 'key'}), false); assert.equal(modelRefused({status: 403, kind: 'key'}, 1), true);

@@ -11,13 +11,16 @@ import {INSTALL_NOTE_PATH} from './pack-overlap.mjs';
 import {GAME_VARIANTS, LEGACY_GAME} from './game-variants.mjs';
 import {BASE_MARKER, archiveEntry, forbiddenEntry} from './package-guards.mjs';
 import {shippedButWritten} from './package-writes.mjs';
+import {longRuntimePaths} from './runtime-prune.mjs';
 
 // The names are the mod page's name on Nexus Mods (owner decision 2026-10-28).
-//   Full install   AI-NPC-LLM-Companions-<version>[-for-2.31].zip                       (Hugging Face: AI-NPC-LLM-Companions.zip)
-//   Update         AI-NPC-LLM-Companions-Update-<from>-to-<version>[-for-2.31].zip      (Hugging Face: AI-NPC-LLM-Companions-Update.zip)
+//   Full install   AI-Companions-LLM-<version>[-for-2.31].zip                       (Hugging Face: AI-Companions-LLM.zip)
+//   Update         AI-Companions-LLM-Update-<from>-to-<version>[-for-2.31].zip      (Hugging Face: AI-Companions-LLM-Update.zip)
 // <from> is runtimeBase.required, the oldest Runtime base the update runs on. The update is the former "Scripts" zip: the same contents (the package keeps
 // the internal name "scripts" in its release.json and in the build's package id). The .files.json beside each zip is named like the zip.
-export const FULL_TITLE = 'AI-NPC-LLM-Companions';
+// Renamed from AI-NPC-LLM-Companions on 2026-10-31 (the Nexus name is "AI Companions using Large Language Models" from 0.4.0). Nothing in the mod recognises an install by this name,
+// so an install made from an older zip keeps working. Only upload-packs.py still reads the old Update zip name in a build folder.
+export const FULL_TITLE = 'AI-Companions-LLM';
 export const UPDATE_TITLE = `${FULL_TITLE}-Update`;
 export const gameSuffix = game => {
   if (!Object.hasOwn(GAME_VARIANTS, game)) throw Error(`Unknown game ${game}; expected one of ${Object.keys(GAME_VARIANTS).join(', ')}.`);
@@ -45,9 +48,9 @@ export const runtimeZipName = (version, game) => `Runtime-${version}${gameSuffix
 // The install note of the Full zip. The standard note (build-release.mjs INSTALL_NOTE) is fixed text that the optional packs carry too, so the Full zip
 // uses a file name of its own: extracting a pack, or the Update zip, over a Full install adds the standard note beside this one and Windows never asks
 // about a file with the same name and other words.
-export const FULL_NOTE_NAME = 'HOW TO INSTALL - AI NPC LLM Companions full install - extract into your Cyberpunk 2077 folder.txt';
+export const FULL_NOTE_NAME = 'HOW TO INSTALL - AI Companions using Large Language Models full install - extract into your Cyberpunk 2077 folder.txt';
 export const FULL_NOTE = [
-  'AI NPC LLM Companions - full install',
+  'AI Companions using Large Language Models - full install',
   '',
   'Extract this zip INTO your Cyberpunk 2077 folder (the folder that has bin, archive and r6 in it), and allow folders to merge.',
   'It holds everything the mod needs, so there is nothing else to download. The zip already starts with the right folders (red4ext or bin).',
@@ -112,6 +115,8 @@ export function planFull({update, runtime, config, game, version}) {
     if (archive) problems.push(`${entry.name} ${archive}: the main file holds no archive.`);
     if (entry.name.length > layout.maxPathLength - layout.maxGameRootLength - 1) problems.push(`${entry.name} is too long for a typical game folder.`);
   }
+  const longRuntime = longRuntimePaths(runtime.entries.map(entry => entry.name), layout.maxRuntimeEntryPath);
+  if (longRuntime.length) problems.push(`The Runtime base has ${longRuntime.length} path(s) over ${layout.maxRuntimeEntryPath} characters (a mod manager folder named after the mod would pass Windows' limit): ${longRuntime.slice(0, 3).join(', ')}.`);
   const written = shippedButWritten(union.map(entry => entry.name), {layout, game, codeRemoves: update.extra?.removes ?? [], removes: runtime.extra?.removes ?? []});
   if (written.length) problems.push(`The Full package would ship files our own code writes or deletes (the Vortex rule): ${written.slice(0, 5).map(item => `${item.name} (${item.why})`).join('; ')}.`);
 

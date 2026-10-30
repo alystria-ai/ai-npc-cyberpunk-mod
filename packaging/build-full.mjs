@@ -4,11 +4,11 @@
 //   node packaging/build-full.mjs --version 0.3.4 --game 2.31
 //
 // Input (dist/release/packages/, both written by `node packaging/build-release.mjs --packages scripts,runtime`, same version and game):
-//   AI-NPC-LLM-Companions-Update-<from>-to-<v>[-for-2.31].zip     (<from> is the Runtime base it needs, or "any", full-package.mjs updateFrom) the update: the mod's code, the launcher and native DLLs, the CET and redscript files
+//   AI-Companions-LLM-Update-<from>-to-<v>[-for-2.31].zip     (<from> is the Runtime base it needs, or "any", full-package.mjs updateFrom) the update: the mod's code, the launcher and native DLLs, the CET and redscript files
 //   Runtime-<v>[-for-2.31].zip                                    the Runtime base: Node, Python, llama.cpp, vgmstream, Playwright, voices, archives
 // Output, beside them:
-//   AI-NPC-LLM-Companions-<v>[-for-2.31].zip                      the two in one zip, extracted into the game folder (the main file for a new player)
-//   AI-NPC-LLM-Companions-<v>[-for-2.31].files.json               [{path, bytes, sha256}] of every entry, like the other packages
+//   AI-Companions-LLM-<v>[-for-2.31].zip                      the two in one zip, extracted into the game folder (the main file for a new player)
+//   AI-Companions-LLM-<v>[-for-2.31].files.json               [{path, bytes, sha256}] of every entry, like the other packages
 // and a "full" record in release-manifest.json when that file is there.
 //
 // The two must not overlap (the split of 0.3.4 guarantees it) and the build stops loudly when they do. The combined zip holds every entry of both,

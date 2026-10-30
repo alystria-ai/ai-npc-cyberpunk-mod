@@ -5,7 +5,7 @@
 //   - the reply-language block of the turn's context (textProviderLanguageContext: nothing in an English conversation, so the context is
 //     byte-identical to before; the player's language when a message is in another language; English again on a switch back);
 //   - the voice of the turn (planTurnVoice, replyVoice): Pocket TTS speaks English only (and the languages whose model and voice pack are installed), so a
-//     reply in another language is shown as text rather than handed to a cloud voice; OmniVoice and the Voxtral voice speak the languages they list;
+//     reply in another language is shown as text rather than handed to a cloud voice; OmniVoice, the Voxtral voice and the Inworld voice speak the languages they list;
 //   - on the Convai route, which character answers (wantsTwin): a message that is clearly not English goes to the character's multilingual
 //     twin, a full clone of its Convai profile that answers in the player's language (docs/MULTILINGUAL_PROFILES.md); English goes back to
 //     the ordinary character. A twin is its own character for Convai memory: its memories are separate, and Forget clears both (the twin
@@ -15,7 +15,7 @@
 // Voices: Pocket TTS speaks English only, unless the optional Pocket model of the reply's language is installed together with that language's voice
 // language pack (bridge/pocket-language-models.mjs: French, Italian, German, Spanish, Portuguese). A turn the cloud voice speaks gets no Natural speech or Expressive emotions instructions (the cloud
 // voice would read their tags aloud), OmniVoice is told the reply's language. The Convai voice is only ever the player's own choice: a voice that
-// cannot speak a turn (a local one that failed, Pocket in a language other than English, Voxtral with no key or in a language it does not list)
+// cannot speak a turn (a local one that failed, Pocket in a language other than English, Voxtral or Inworld with no key or in a language it does not list)
 // never hands the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
 // Pure functions plus one small state holder: no I/O.
 import {assessLanguage, detectLanguage, spokenLanguage} from './reply-language.mjs';
@@ -217,12 +217,12 @@ function planVoice({enabled = false, language = 'en', local = {}, textProvider =
   // a reply in another language that the voice cannot speak is shown as text.
   if (!enabled) {
     if (local.uses && local.provider === 'omni') return {engine: 'omni', language, reason: 'omni', textProvider: true};
-    if (cloudSpeaks(local, language)) return {engine: chosen, language, reason: 'voxtral', textProvider: true};
+    if (cloudSpeaks(local, language)) return {engine: chosen, language, reason: cloudReason(local), textProvider: true};
     if (pocketSpeaks(local, language)) return {engine: chosen, language, reason: 'pocket-language', textProvider: true};
     return {engine: chosen, language, reason: chosen === 'convai' ? 'cloud-voice' : unsupported, textProvider: true};
   }
   if (local.uses && local.provider === 'omni') return {engine: 'omni', language, reason: 'omni'};
-  if (cloudSpeaks(local, language)) return {engine: chosen, language, reason: 'voxtral'};
+  if (cloudSpeaks(local, language)) return {engine: chosen, language, reason: cloudReason(local)};
   if (pocketSpeaks(local, language)) return {engine: chosen, language, reason: 'pocket-language'};
   // A chosen voice that cannot speak the language (Pocket is English only; the Voxtral voice lists its languages) is not replaced by another one,
   // the Convai voice included: the reply is written. Only a player who chose the Convai voice gets it (and its twin's voice).
@@ -231,13 +231,17 @@ function planVoice({enabled = false, language = 'en', local = {}, textProvider =
 }
 
 /**
- * Does the Voxtral cloud voice speak `language` for this character? `local.cloud` is 'voxtral' while that voice is the chosen one and can be
- * asked; `local.speaks(language)` says which languages the model in use speaks (Voxtral TTS 3 and the older alias differ, bridge/voxtral-languages.mjs).
- * The API has no language field: the model speaks the language the text is written in, so nothing else is passed to it.
+ * Does the chosen cloud voice (Voxtral or Inworld) speak `language` for this character? `local.cloud` is 'voxtral' or 'inworld' while that voice is
+ * the chosen one and can be asked; `local.speaks(language)` says which languages that voice speaks (Voxtral TTS 3 and the older alias differ,
+ * bridge/voxtral-languages.mjs, and Inworld's TTS-2 list is bridge/inworld-languages.mjs). Voxtral's API has no language field: the model speaks the
+ * language the text is written in. Inworld's takes a language code, which the voice adds to the request itself (InworldVoice.synthesizeStream).
  */
 function cloudSpeaks(local, language) {
-  return local?.uses === true && local.cloud === 'voxtral' && typeof local.speaks === 'function' && local.speaks(language) === true;
+  return local?.uses === true && (local.cloud === 'voxtral' || local.cloud === 'inworld') && typeof local.speaks === 'function' && local.speaks(language) === true;
 }
+
+/** The plan's reason for a turn the cloud voice speaks: the name of that voice. */
+const cloudReason = local => local?.cloud === 'inworld' ? 'inworld' : 'voxtral';
 
 /** Does the local Pocket voice speak `language` for this character: the model of the language and the voice pack it clones from are both installed (and no cloud voice is in the way)? */
 function pocketSpeaks(local, language) {
