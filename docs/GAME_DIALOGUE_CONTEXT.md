@@ -50,8 +50,8 @@ Sources: the installed 2.31 scripts `cyberpunk/UI/subtitles/baseSubtitlesControl
 | `Regular`, `OwnerlessRegular` | scene dialogue (phone dialogue while a call is in progress) |
 | `Holocall` | phone dialogue |
 | `OverHead`, `OverHeadAlwaysVisible` | ambient (barks, chatter): kept only outside combat, and used only when the speaker is the one being addressed |
-| `Radio` | phone dialogue only while a call is in progress and the speaker is not a vehicle; otherwise dropped (car radio, broadcasts) |
-| `GlobalTV`, `GlobalTVAlwaysVisible`, `Narrator`, `SceneComment`, `Invisible`, `AlwaysCinematicNoSpeaker`, anything else | never recorded (since the Music and TV kind, the last three `GlobalTV` lines are also kept in a separate ring that is no part of this record: `Instance:noteHeard`, docs/DYNAMIC_INFO.md "Music and TV") |
+| `Radio` | phone dialogue only while a call is in progress and the speaker is not a vehicle; otherwise dropped from this record (car radio, broadcasts; since 2026-10-30 a broadcast host's lines are kept in the separate Music and TV ring, see the next row) |
+| `GlobalTV`, `GlobalTVAlwaysVisible`, `Narrator`, `SceneComment`, `Invisible`, `AlwaysCinematicNoSpeaker`, anything else | never recorded (since the Music and TV kind, the last three `GlobalTV` lines, and the last three `Radio` lines that are a broadcast on the receiver that is on, are also kept in separate rings that are no part of this record: `Instance:noteHeard`, docs/DYNAMIC_INFO.md "Music and TV") |
 
 Which type holocalls actually use is one of the in-game checks; the adapter
 accepts the three plausible ones while a call is active.

@@ -12,14 +12,20 @@
 -- and ONE probe.log line per distinct (radio, station, track, TV channel) says what was read (the raw key, the text, which resolver worked) so a
 -- live pass can set it against the HUD. mod/media-probe.lua dumps every candidate read in Developer mode.
 -- A TV exposes only its channel, not the programme. The nearest words for what is on are the TV's own recent speech lines, which mod/game-dialogue.lua
--- keeps in a tiny ring (Instance:heardMedia) from the subtitle callback it already has; a car radio's DJ is not kept.
+-- keeps in a tiny ring (Instance:heardMedia) from the subtitle callback it already has.
+-- The radio host (the DJ or presenter between songs) is told the same way: lines of type Radio that are a broadcast on the receiver that is on
+-- (V's car radio, or the pocket radio on foot) go into a ring of their own (Instance:heardRadioLines, filtered by mod/game-dialogue.lua noteRadio so
+-- the Delamain cab's voice, a quest voice, another car's radio and a call never count), and the last line or two, at most SAID_AGE seconds old,
+-- become radio.said beside the radio that is on.
 -- The result is a plain table the bridge validates (bridge/media-context.mjs):
---   {radio = {source = 'car' | 'pocket', station = <text>, track = <text>}, tv = {channel = <text>, said = <the last line a TV said>}}
+--   {radio = {source = 'car' | 'pocket', station = <text>, track = <text>, said = <what the radio host just said>},
+--    tv = {channel = <text>, said = <the last line a TV said>}}
 local M = {}
 M.TV_RADIUS, M.QUERY_PARTS, M.TV_CANDIDATES = 12, 400, 6   -- metres, targeting parts looked at, TVs asked whether they are on
 M.TV_MEMORY = 1800                    -- seconds: a TV that spoke this long ago is still looked up by its ID (it must still be near and on)
 M.SAID_AGE, M.HEARD_AGE = 90, 20      -- seconds: a TV line this young is "just said"; a TV line alone (no TV located) counts this long
 M.MAX_TEXT, M.MAX_LOGS = 120, 200
+M.MAX_RADIO_SAID = 200                -- characters: the host's last line or two (the same age rule as a TV in view: SAID_AGE)
 -- A targeting query that found no TV that is on is not asked again for QUERY_REST seconds while V stays within QUERY_MOVE metres of where it
 -- was asked: in a street the query lists every part within 12 m (up to QUERY_PARTS, about ten native reads each), and every turn on foot would
 -- pay for it. A TV V looks at, or one that just spoke, is found before the query and never waits for it.
@@ -220,6 +226,12 @@ local function nativeAdapter()
     function N.tvLine(maxAge)
         local dialogue = convaiGameDialogue
         if type(dialogue) == 'table' and type(dialogue.heardMedia) == 'function' then return dialogue:heardMedia(maxAge) end
+        return nil
+    end
+    -- The last line or two the radio host said on this receiver ('car' or 'pocket'), from the radio ring mod/game-dialogue.lua keeps beside the TV's.
+    function N.radioLine(maxAge, source)
+        local dialogue = convaiGameDialogue
+        if type(dialogue) == 'table' and type(dialogue.heardRadioLines) == 'function' then return dialogue:heardRadioLines(maxAge, source) end
         return nil
     end
     -- The mod's probe.log (and console) line, the one the turn-context uses.
@@ -484,6 +496,7 @@ function Instance:report(detail)
     local line = key
     if detail.distance then line = line .. string.format(' distance=%.1f', detail.distance) end
     if detail.tv then line = line .. ' said=' .. (detail.said and 'yes' or 'no') end
+    if detail.radioSaid ~= nil then line = line .. ' hostSaid=' .. (detail.radioSaid and 'yes' or 'no') end
     if detail.why then line = line .. ' why: ' .. detail.why end
     local log = self.options.log or self.native.log
     if type(log) == 'function' then pcall(log, safe(line)) end
@@ -501,6 +514,12 @@ function Instance:read(player)
         if read then tv = value else detail.tv = 'tv:error' end
     else
         detail.tv = 'skipped(in a vehicle)'
+    end
+    -- What the radio host just said (a broadcast line, see mod/game-dialogue.lua noteRadio), told with the radio that is on and no other.
+    if radio then
+        local text = call(self.native.radioLine, M.SAID_AGE, radio.source)
+        local said = type(text) == 'string' and clean(text, M.MAX_RADIO_SAID) or nil
+        radio.said, detail.radioSaid = said, said ~= nil
     end
     pcall(self.report, self, detail)
     if not radio and not tv then return nil end
