@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, generatedReference, readManifest, standInDescriptors, standInKey} from './voice-clips.mjs';
+import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, generatedReference, readManifest, readWords, standInDescriptors, standInKey} from './voice-clips.mjs';
 import {LiveVoices} from './live-voices.mjs';
 
 // The stand-in voices (bridge/voice-clips.mjs): with the shipped clips left out of the packages (voiceClips.fromGame), a character whose own clips are not built yet
@@ -125,4 +125,30 @@ test('the bridge puts the stand-ins in before the voice service is built, hands 
   const check = source.indexOf('missingOmniClips({config: omniVoiceConfigs[mode]');
   assert(check > standIn, 'the missing-clips line is written after the stand-ins are in');
   assert(source.includes("except: gameVoiceClips ? Object.keys(gameVoiceClips.manifest) : []"), 'and never counts the characters the game builds');
+});
+
+test('a character with no row in the shipped tables (a Runtime that predates it) speaks with the stand-in too, an engine without a table is left out', () => {
+  const tables = tableOf();
+  delete tables.pocket['judy-alvarez']; delete tables.short['judy-alvarez']; delete tables.long['judy-alvarez'];
+  const changed = applyStandIns(makeClips(only('resident-male', 'resident-female')), tables, key => genders[key]);
+  assert.deepEqual(changed.sort(), ['johnny-silverhand', 'judy-alvarez', 'npc-valentinos-female']);
+  for (const engine of Object.keys(tables)) assert.equal(tables[engine]['judy-alvarez'].reference, tableOf()[engine]['resident-female'].reference, engine);
+  const noOmni = {pocket: tableOf().pocket, short: null, long: null};
+  delete noOmni.pocket['judy-alvarez'];
+  assert.deepEqual(applyStandIns(makeClips(only('resident-male', 'resident-female')), noOmni, key => genders[key]).sort(), ['johnny-silverhand', 'judy-alvarez', 'npc-valentinos-female']);
+  assert.equal(noOmni.short, null);
+});
+
+test('the bridge hands the words file to the clip service', () => {
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert(source.includes("characters/voice-clips-words.json"));
+  assert(source.includes('GameVoiceClips.open({manifest, words,'));
+});
+
+test('characters/voice-clips-words.json has the words of every character of the manifest, each from the clip the manifest names', () => {
+  const read = name => readFileSync(new URL(`../characters/${name}`, import.meta.url), 'utf8');
+  const manifest = Object.keys(readManifest(read('voice-clips-manifest.json')));
+  const words = readWords(read('voice-clips-words.json'));
+  assert.deepEqual(Object.keys(words).sort(), [...manifest].sort(), 'run node scripts/voice-extract/write_words.mjs after the manifest changes');
+  assert(JSON.parse(read('../packaging/release.config.json')).appData.includes('characters/voice-clips-words.json'), 'the words ship with the code');
 });

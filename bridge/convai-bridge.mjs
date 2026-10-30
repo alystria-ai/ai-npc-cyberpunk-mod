@@ -104,7 +104,7 @@ import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
-import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, readManifest as readVoiceClipManifest, standInDescriptors} from './voice-clips.mjs';
+import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -376,7 +376,10 @@ const genderOfVoiceKey = key => {
 try {
   const manifestPath = resolve(project, 'characters/voice-clips-manifest.json');
   const manifest = existsSync(manifestPath) ? readVoiceClipManifest(await readFile(manifestPath, 'utf8')) : {};
-  gameVoiceClips = await GameVoiceClips.open({manifest, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory,
+  // The words of each character's clips: a character the shipped configurations have no row for (an older Runtime) has none to take from.
+  const wordsPath = resolve(project, 'characters/voice-clips-words.json');
+  const words = existsSync(wordsPath) ? readVoiceClipWords(await readFile(wordsPath, 'utf8')) : {};
+  gameVoiceClips = await GameVoiceClips.open({manifest, words, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory,
     mirrorRoots: [...referenceRoots.slice(1), voiceConfig.runtime?.referenceDirectory],
     ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
     prefer: process.env.CYBERPUNK_CONVAI_GAME_CLIPS === '1', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},

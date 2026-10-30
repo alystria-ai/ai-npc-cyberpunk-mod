@@ -2,12 +2,13 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {createHash} from 'node:crypto';
-import {mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
 import {PassThrough, Writable} from 'node:stream';
 import {tmpdir} from 'node:os';
 import {join, relative, resolve} from 'node:path';
 import {createServer} from 'node:http';
 import {LiveVoices, shippedVoicesReader, voicesOf, withPlayerVoice} from './live-voices.mjs';
+import {GameVoiceClips, applyReadyClips, applyStandIns, generatedReference, readManifest, readWords, standInDescriptors} from './voice-clips.mjs';
 import {EditorControl} from './character-editor-control.mjs';
 import {PlayerVoices, PLAYER_VOICES_FILE, PLAYER_VOICES_FOLDER} from './player-voices.mjs';
 import {PocketVoice} from './pocket-voice.mjs';
@@ -660,5 +661,110 @@ test('the bridge gives the store, the voice workers and the cloud voices one sta
   for (const name of ['character-editor.mjs', 'character-editor-server.mjs', 'custom-characters.mjs', 'live-voices.mjs']) {
     const text = await readFile(new URL(`./${name}`, import.meta.url), 'utf8');
     assert.doesNotMatch(text, /join\([^)]*player-voices|resolve\([^)]*player-voices\.json/, name);
+  }
+});
+
+// ---- a character the clip build adds while the service runs (bridge/voice-clips.mjs) ------------------------------------------------
+
+const KINDS_OF = {pocket: 'pocket', short: 'omni-short', long: 'omni-long'};
+const clipSpec = seed => ({sha256: sha(`generated ${seed}`), samples: 1000 + seed, lines: [], writer: 'sf'});
+
+test('whole chain (Pocket): a character the shipped tables have no row for speaks with the stand-in, then with its built clips from the next line, and is routed throughout', async () => {
+  // 'aaron-mccarlson' is in the manifest and has no row in the (older) shipped tables, like the side characters of a Runtime that predates them.
+  // 'late-row' has a row, but its shipped clip is not on disk (voiceClips.fromGame). Both are built on this PC.
+  const keys = ['aaron-mccarlson', 'late-row'];
+  const manifest = readManifest(JSON.stringify({version: 1, voices: Object.fromEntries(keys.map((key, at) => [key,
+    {'omni-short': clipSpec(at * 2 + 1), 'omni-long': clipSpec(at * 2 + 2), pocket: {sameAs: 'omni-long'}}]))}));
+  const words = readWords(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {pocket: 'Aaron pocket.', short: 'Aaron short.', long: 'Aaron long.'}}}));
+  const standIns = {'resident-male': shipped('stand-in-male'), 'resident-female': shipped('stand-in-female')};
+  const onDisk = new Set(Object.values(standIns).map(row => row.reference));
+  // The three tables of the configurations (OmniVoice is not chosen here, but its tables exist and are kept up to date like Pocket's).
+  const tablesOf = prefix => ({'judy-alvarez': shipped(prefix + 'judy'), 'late-row': shipped(prefix + 'late'), ...standIns});
+  const shippedTables = {pocket: tablesOf(''), short: tablesOf('short-'), long: tablesOf('long-')};
+  const settings = pocketSettings({...shippedTables.pocket});
+  const omniStart = {short: {...shippedTables.short}, long: {...shippedTables.long}};
+  const dir = await mkdtemp(join(tmpdir(), 'live-built-'));
+  const references = join(dir, 'references');
+  const live = {};
+  const builder = async (command, args) => {
+    const out = args[args.indexOf('--out') + 1], key = args[args.indexOf('--key') + 1];
+    for (const kind of Object.values(KINDS_OF)) {
+      await mkdir(join(out, kind), {recursive: true});
+      await writeFile(join(out, kind, `${key}.wav`), Buffer.alloc(60, kind.length + key.length));
+    }
+    return {code: 0, stdout: '', stderr: ''};
+  };
+  // The bridge's order: the ready clips, then the stand-ins, in the tables the voice service is made from.
+  const clips = new GameVoiceClips({manifest, words, gameDirectory: join(dir, 'game'), referenceRoot: references, stateDirectory: join(dir, 'state'), python: 'python.exe', script: 'build.py',
+    manifestPath: 'manifest.json', run: builder, shippedPresentSync: reference => onDisk.has(reference), onBuilt: key => live.voices.refresh(key)});
+  const startTables = {pocket: settings.voices, ...omniStart};
+  assert.deepEqual(applyReadyClips(clips, startTables), []);
+  assert.deepEqual(applyStandIns(clips, startTables, () => 'male').sort(), ['aaron-mccarlson', 'late-row']);
+  assert.equal(settings.voices['aaron-mccarlson'].reference, standIns['resident-male'].reference, 'no row at all: the stand-in voice of its gender');
+  assert.equal(settings.voices['late-row'].reference, standIns['resident-male'].reference);
+  const states = [];
+  let lastUpdate = null;
+  const worker = scriptedPocket(settings);
+  const voice = chain(settings, worker, {onState: value => { states.push(value); }});
+  live.voices = new LiveVoices({players: {extras: async () => []}, folder: join(dir, 'player'), voices: startTables, shipped: async () => shippedTables, apply: update => { lastUpdate = update; return voice.setVoices(update); },
+    generated: (key, shippedRows) => clips.descriptors(key, shippedRows) ?? standInDescriptors(clips, key, shippedRows, {pocket: standIns, short: {}, long: {}}, 'male')});
+  try {
+    voice.request({voiceProvider: 'pocket'}); voice.applyWhenIdle(false);
+    await voice.start();
+    for (const key of keys) {
+      assert.equal(voice.usesProfile(key), true, `${key}: routed to Pocket before its clips are built`);
+      assert.ok(voice.availability.has(key));
+    }
+    // Both are built (an invitation) while the service runs.
+    assert.equal(await clips.ensure('aaron-mccarlson'), 'ready');
+    assert.equal(await clips.ensure('late-row'), 'ready');
+    await live.voices.chain; await tick(); await tick();
+    voice.applyWhenIdle(false); await tick(); await tick();
+    voice.applyWhenIdle(false);
+    for (const key of keys) {
+      assert.equal(voice.voiceOf(key), key);
+      assert.equal(voice.usesProfile(key), true, `${key}: still routed to Pocket once its clips are built`);
+      assert.equal(voice.registry.status(key), 'ready');
+      assert.ok(voice.routeKeys.includes(key));
+      assert.equal(worker.table[key].reference, generatedReference('pocket', key), `${key}: the worker holds the built clip`);
+      await voice.prepareProfile(key);
+      await voice.synthesizeStream(key, 'Next line.', {onPcm: () => {}});
+      assert.equal(worker.log.streams.at(-1).reference, generatedReference('pocket', key), `${key}: the next line is spoken with the built clip`);
+    }
+    assert.equal(worker.table['aaron-mccarlson'].transcript, 'Aaron pocket.', 'the words come from the words file when the shipped tables have no row');
+    assert.equal(worker.table['late-row'].transcript, 'Shipped words of late.', 'the words of the shipped row are kept when there is one');
+    for (const key of keys) {
+      assert.equal(lastUpdate.omni.short[key].reference, generatedReference('omni-short', key), `${key}: OmniVoice's short table follows too`);
+      assert.equal(lastUpdate.omni.long[key].reference, generatedReference('omni-long', key));
+    }
+    voice.applyWhenIdle(false);
+    assert.ok(states.at(-1).routedProfiles.includes('aaron-mccarlson'), 'the manager can name the voice of the invited character');
+    assert.ok(states.at(-1).routedProfiles.includes('late-row'));
+    assert.equal(worker.spawned.length, 1, 'the worker was never restarted');
+    const closing = voice.close(); await tick(); worker.spawned.forEach(child => child.emit('close', 0)); await closing;
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('LiveVoices: a built character with no shipped row gets its three tables (Pocket, OmniVoice short and long) from the words file, and none without words', async () => {
+  const manifest = readManifest(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {'omni-short': clipSpec(1), 'omni-long': clipSpec(2), pocket: {sameAs: 'omni-long'}}}}));
+  const words = readWords(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {pocket: 'Aaron pocket.', short: 'Aaron short.', long: 'Aaron long.'}, broken: {pocket: 'x'}}}));
+  assert.deepEqual(Object.keys(words), ['aaron-mccarlson'], 'a row without the three sets of words is left out');
+  assert.deepEqual(Object.keys(readWords('{')), [], 'unreadable words are no words');
+  const start = {pocket: {'judy-alvarez': shipped('judy')}, short: {'judy-alvarez': shipped('short-judy')}, long: {'judy-alvarez': shipped('long-judy')}};
+  for (const [name, given, expected] of [['with words', words, true], ['without words', {}, false]]) {
+    const clips = new GameVoiceClips({manifest, words: given, referenceRoot: 'refs', stateDirectory: 'state', shippedPresentSync: () => false});
+    clips.index['aaron-mccarlson'] = Object.fromEntries(Object.values(KINDS_OF).map((kind, at) => [kind, {sha256: sha(`built ${kind}`), bytes: 5 + at, source: 'build'}]));
+    const calls = [];
+    const voices = new LiveVoices({players: {extras: async () => []}, folder: 'player', voices: start, shipped: async () => start, apply: update => { calls.push(update); return true; },
+      generated: (key, shippedRows) => clips.descriptors(key, shippedRows)});
+    await voices.refresh('aaron-mccarlson');
+    const update = calls.at(-1);
+    assert.equal(Object.hasOwn(update.pocket, 'aaron-mccarlson'), expected, name);
+    assert.equal(Object.hasOwn(update.omni.short, 'aaron-mccarlson'), expected, name);
+    assert.equal(Object.hasOwn(update.omni.long, 'aaron-mccarlson'), expected, name);
+    if (expected) {
+      assert.equal(update.omni.short['aaron-mccarlson'].transcript, 'Aaron short.');
+      assert.equal(update.omni.long['aaron-mccarlson'].reference, generatedReference('omni-long', 'aaron-mccarlson'));
+    }
   }
 });
