@@ -1442,7 +1442,8 @@ export class VoiceSelection {
       if (this.provider === 'convai' || this.provider === TEXT_ROUTE) return remote(this.remoteReason(profile));
       if (this.client !== client) continue;
       if (!this.hasProfile(profile)) return remote('unavailable');
-      return {...receipt,provider:this.provider};
+      // The worker names the voice it prepared, which is the alias's for a profile with no voice of its own: the receipt names the profile that was asked for (the invitation compares them).
+      return {...receipt,profile,provider:this.provider};
     }
   }
   close() {
