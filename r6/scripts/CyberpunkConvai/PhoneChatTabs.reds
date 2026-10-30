@@ -402,7 +402,8 @@ private final func ConvaiChatListKeysStart() -> Void {
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_Slash, EInputAction.IACT_Press))
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_Up, EInputAction.IACT_Press))
         .AddTarget(ConvaiKeyTarget(EInputKey.IK_Down, EInputAction.IACT_Press))
-        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Escape, EInputAction.IACT_Release));
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Escape, EInputAction.IACT_Release))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_Enter, EInputAction.IACT_Release));
     // A key target of the game 2.31 filters by the action, so the releases (which end a hold, see OnConvaiChatListKey) need targets of their own.
     if ConvaiKeyTargetsByAction() {
         this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Release));
@@ -442,9 +443,9 @@ private cb func OnConvaiChatListKey(evt: ref<KeyInputEvent>) -> Void {
     let key = evt.GetKey();
     let pressed = Equals(evt.GetAction(), EInputAction.IACT_Press);
     if !pressed && NotEquals(evt.GetAction(), EInputAction.IACT_Release) { return; };
-    // Esc: only its coming up matters here, to the search that the Esc has just left (PhoneChatSearch.reds). The press is the box's own.
-    if Equals(key, EInputKey.IK_Escape) {
-        if !pressed { this.ConvaiSearchEscapeReleased(); };
+    // Esc and Enter: only their coming up matters here, to the search that the key has just left (PhoneChatSearch.reds). The press is the box's own.
+    if Equals(key, EInputKey.IK_Escape) || Equals(key, EInputKey.IK_Enter) {
+        if !pressed { this.ConvaiSearchKeyReleased(); };
         return;
     };
     if !pressed {

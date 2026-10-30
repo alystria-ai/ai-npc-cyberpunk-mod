@@ -7,7 +7,7 @@ import Codeware.UI.TextInput.*
 
 // Search on the phone's Chat list (docs/PHONE_CHAT.md, "Search on the Chat list"). On a keyboard the Chat list has a search row as its first row (above the
 // people, the same width, the O key shown in it). O, / or a click on the row puts the keyboard in it. Typing filters the list to the people whose name has a
-// word that starts with each typed word. Enter opens the selected match, Esc clears the search and leaves the row.
+// word that starts with each typed word. Enter leaves the row for the first match (the usual list keys work then), Esc clears the search and leaves the row.
 //
 // The row is drawn from plain ink widgets and costs nothing while it rests. Codeware's text input (which runs a 60 Hz animation tick of its own) is made only
 // when the search starts and taken away again when it ends. Lua owns the matching (mod/phone-chat.lua searchIds: case and accent insensitive, word starts).
@@ -47,7 +47,7 @@ public class ConvaiPhoneSearchInput extends HubTextInput {
         this.m_wrapper.SetMargin(new inkMargin(40.0, 28.0, 40.0, 0.0));
     }
 
-    // Enter opens the selected match and Escape clears the search: neither reaches the text. Everything else is the box's own (caret, selection, clipboard).
+    // Enter leaves the row for the first match and Escape clears the search: neither reaches the text. Everything else is the box's own (caret, selection, clipboard).
     protected cb func OnInputKey(evt: ref<inkKeyInputEvent>) {
         if Equals(evt.GetKey(), EInputKey.IK_Enter) {
             if Equals(evt.GetAction(), EInputAction.IACT_Press) { this.m_owner.ConvaiSearchEnter(); };
@@ -179,20 +179,21 @@ private let m_convaiSearchIds: array<String>;
 private let m_convaiSearchRows: array<ref<IScriptable>>;
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchJournal: String;
-// Enter was pressed before the answer for the text came: the first row of the answer is opened.
+// Enter was pressed before the answer for the text came: the row is left for the first row of the answer.
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchOpenOnAnswer: Bool;
-// The Esc that left the box: true from its press until it has come up again (the release is seen by the list's key callback) and two Lua ticks more,
-// and never for more than six ticks. While it is true the game's Esc and Back are the search's (they must not close the phone or open the pause menu).
+private let m_convaiSearchLeaveOnAnswer: Bool;
+// The Esc or Enter that left the box: true from its press until it has come up again (the release is seen by the list's key callback) and two Lua ticks more,
+// and never for more than six ticks. While it is true the game's Esc, Enter and Back are the search's (they must not close the phone, open the pause menu or open the
+// chat of the row the selection has just gone to).
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchEsc: Bool;
+private let m_convaiSearchLeaving: Bool;
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchEscTicks: Int32;
+private let m_convaiSearchLeavingTicks: Int32;
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchEscFrames: Int32;
-// The engine time of that Esc: the flag is also dropped when it is older than a second and a half, if no tick has come to end it.
+private let m_convaiSearchLeavingFrames: Int32;
+// The engine time of that key: the flag is also dropped when it is older than a second and a half, if no tick has come to end it.
 @addField(NewHudPhoneGameController)
-private let m_convaiSearchEscAt: Float;
+private let m_convaiSearchLeavingAt: Float;
 // The box is to be taken away at the next tick (it was left from inside its own key callback, where it cannot be removed), and the ticks the box has been
 // without the focus and without text (a search nobody is using ends by itself).
 @addField(NewHudPhoneGameController)
@@ -211,9 +212,9 @@ public final func ConvaiSearchNow() -> Float {
 // The player is typing in the box: the focus is in it, on the Chat list, in a phone the player can see, or the Esc that left it has not come up yet.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchTyping() -> Bool {
-    if this.m_convaiSearchEsc {
-        if this.ConvaiSearchNow() - this.m_convaiSearchEscAt < 1.5 { return true; };
-        this.m_convaiSearchEsc = false;
+    if this.m_convaiSearchLeaving {
+        if this.ConvaiSearchNow() - this.m_convaiSearchLeavingAt < 1.5 { return true; };
+        this.m_convaiSearchLeaving = false;
     };
     return this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) && this.ConvaiSearchBoxFocused() && this.ConvaiSearchOnScreen();
 }
@@ -393,7 +394,7 @@ private final func ConvaiSearchOpen() -> Void {
     if !this.m_convaiSearchOpen {
         this.m_convaiSearchOpen = true;
         this.m_convaiSearchFilter = false;
-        this.m_convaiSearchOpenOnAnswer = false;
+        this.m_convaiSearchLeaveOnAnswer = false;
         this.m_convaiSearchSeq = -1;
         ArrayClear(this.m_convaiSearchIds);
         this.m_player.ConvaiPhoneChatSearchView(this);
@@ -412,7 +413,7 @@ private cb func OnConvaiSearchInput(widget: wref<inkWidget>) -> Bool {
     if StrLen(text) == 0 {
         this.m_convaiSearchSeq = -1;
         this.m_convaiSearchFilter = false;
-        this.m_convaiSearchOpenOnAnswer = false;
+        this.m_convaiSearchLeaveOnAnswer = false;
         ArrayClear(this.m_convaiSearchIds);
         this.m_contactListLogicController.ConvaiRefillChat(this.m_convaiSearchRows);
         return true;
@@ -429,9 +430,9 @@ public final func ConvaiSearchApply(seq: Int32, ids: String) -> Void {
     this.m_convaiSearchFilter = true;
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
     this.m_contactListLogicController.ConvaiRefillChat(this.ConvaiSearchFilterRows());
-    if this.m_convaiSearchOpenOnAnswer {
-        this.m_convaiSearchOpenOnAnswer = false;
-        this.ConvaiOpenChat(this.m_contactListLogicController.ConvaiChatContactAt(0u), true);
+    if this.m_convaiSearchLeaveOnAnswer {
+        this.m_convaiSearchLeaveOnAnswer = false;
+        this.ConvaiSearchLeave(false);
     };
 }
 
@@ -459,35 +460,54 @@ private final func ConvaiSearchRowsBuilt(rows: array<ref<IScriptable>>) -> array
     return rows;
 }
 
-// Enter in the box: the selected match opens, as T does. While the answer for the last typed letter is on its way the first row of the answer is the match.
+// Enter in the box: the row is left and the selection goes to the first match, the keyboard is the list's again (T chat, H call, F favorite, Up and Down). No chat opens.
+// While the answer for the last typed letter is on its way the first row of the answer is the match. With no match Enter does nothing.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchEnter() -> Void {
     if !this.m_convaiSearchOpen || NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
     if this.m_convaiSearchSeq > 0 && !this.m_convaiSearchFilter {
-        this.m_convaiSearchOpenOnAnswer = true;
+        this.m_convaiSearchLeaveOnAnswer = true;
         return;
     };
-    let selected = this.m_contactListLogicController.GetSelectedContactData();
-    if IsDefined(selected) && selected.convaiChat { this.ConvaiOpenChat(selected, true); };
+    this.ConvaiSearchLeave(true);
+}
+
+// The row is left for the first row of the list. The game's own Enter (its confirm, which opens the chat of the selected row) is the search's until the Enter has come up,
+// as the Esc is. The search stays in force (the text stays in the row, not focused) until Esc or Back, or ends by itself when the row holds no text.
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchLeave(keyDown: Bool) -> Void {
+    if !IsDefined(this.m_contactListLogicController) { return; };
+    let first = this.m_contactListLogicController.ConvaiChatContactAt(0u);
+    if !IsDefined(first) { return; };
+    if keyDown {
+        this.m_convaiSearchLeaving = true;
+        this.m_convaiSearchLeavingAt = this.ConvaiSearchNow();
+        this.m_convaiSearchLeavingTicks = 0;
+        this.m_convaiSearchLeavingFrames = 0;
+    };
+    this.m_contactListLogicController.ConvaiSearchSelectFirst();
+    this.ConvaiSearchBoxFocus(false);
+    this.m_contactListLogicController.ConvaiSearchRowLook(false, StrLen(this.ConvaiSearchBoxText()) == 0);
+    if IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatTrace("search: left the row for the first match"); };
 }
 
 // Esc in the box: the search is cleared and the box is left (the whole list is back around the selected person). That Esc must not also close the phone or open the
-// pause menu: it is the search's until it has come up again (m_convaiSearchEsc, which the game's actions and phone-input.lua both honour through the typing flag).
+// pause menu: it is the search's until it has come up again (m_convaiSearchLeaving, which the game's actions and phone-input.lua both honour through the typing flag).
 // The box itself is taken away at the next tick, not here: this runs inside its own key callback.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchEscape() -> Void {
     if !this.m_convaiSearchOpen { return; };
-    this.m_convaiSearchEsc = true;
-    this.m_convaiSearchEscAt = this.ConvaiSearchNow();
-    this.m_convaiSearchEscTicks = 0;
-    this.m_convaiSearchEscFrames = 0;
+    this.m_convaiSearchLeaving = true;
+    this.m_convaiSearchLeavingAt = this.ConvaiSearchNow();
+    this.m_convaiSearchLeavingTicks = 0;
+    this.m_convaiSearchLeavingFrames = 0;
     this.ConvaiSearchEnd(true, true);
 }
 
 // The Esc key came up (the list's key callback): two Lua ticks more and the Esc is the game's again.
 @addMethod(NewHudPhoneGameController)
-public final func ConvaiSearchEscapeReleased() -> Void {
-    if this.m_convaiSearchEsc && this.m_convaiSearchEscFrames == 0 { this.m_convaiSearchEscFrames = 2; };
+public final func ConvaiSearchKeyReleased() -> Void {
+    if this.m_convaiSearchLeaving && this.m_convaiSearchLeavingFrames == 0 { this.m_convaiSearchLeavingFrames = 2; };
 }
 
 // The search ends: the text is cleared, the box loses the focus (and is taken away now, or at the next tick when `later`), and the whole list is back
@@ -503,7 +523,7 @@ private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void {
     let wasOpen = this.m_convaiSearchOpen;
     this.m_convaiSearchOpen = false;
     this.m_convaiSearchFilter = false;
-    this.m_convaiSearchOpenOnAnswer = false;
+    this.m_convaiSearchLeaveOnAnswer = false;
     this.m_convaiSearchSeq = -1;
     this.m_convaiSearchIdle = 0;
     ArrayClear(this.m_convaiSearchIds);
@@ -519,9 +539,9 @@ private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void {
 // Costs nothing when there is no search and no row.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchClose(rebuild: Bool) -> Void {
-    this.m_convaiSearchEsc = false;
-    this.m_convaiSearchEscTicks = 0;
-    this.m_convaiSearchEscFrames = 0;
+    this.m_convaiSearchLeaving = false;
+    this.m_convaiSearchLeavingTicks = 0;
+    this.m_convaiSearchLeavingFrames = 0;
     this.ConvaiSearchEnd(rebuild, false);
     if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiSearchRowShow(false); };
     this.ConvaiSearchReset();
@@ -541,14 +561,14 @@ public final func ConvaiSearchUninitialize() -> Void {
 public final func ConvaiSearchReset() -> Void {
     this.m_convaiSearchOpen = false;
     this.m_convaiSearchFilter = false;
-    this.m_convaiSearchOpenOnAnswer = false;
+    this.m_convaiSearchLeaveOnAnswer = false;
     this.m_convaiSearchSeq = -1;
     this.m_convaiSearchIdle = 0;
     this.m_convaiSearchDrop = false;
     this.m_convaiSearchMuted = false;
-    this.m_convaiSearchEsc = false;
-    this.m_convaiSearchEscTicks = 0;
-    this.m_convaiSearchEscFrames = 0;
+    this.m_convaiSearchLeaving = false;
+    this.m_convaiSearchLeavingTicks = 0;
+    this.m_convaiSearchLeavingFrames = 0;
     ArrayClear(this.m_convaiSearchIds);
     ArrayClear(this.m_convaiSearchRows);
     this.m_convaiSearchJournal = "";
@@ -559,13 +579,13 @@ public final func ConvaiSearchReset() -> Void {
 // a search whose phone or list is no longer on the screen is let go of whole, whatever closed it.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchTick() -> Void {
-    if this.m_convaiSearchEsc {
-        this.m_convaiSearchEscTicks += 1;
-        if this.m_convaiSearchEscFrames > 0 {
-            this.m_convaiSearchEscFrames -= 1;
-            if this.m_convaiSearchEscFrames == 0 { this.m_convaiSearchEsc = false; };
+    if this.m_convaiSearchLeaving {
+        this.m_convaiSearchLeavingTicks += 1;
+        if this.m_convaiSearchLeavingFrames > 0 {
+            this.m_convaiSearchLeavingFrames -= 1;
+            if this.m_convaiSearchLeavingFrames == 0 { this.m_convaiSearchLeaving = false; };
         } else {
-            if this.m_convaiSearchEscTicks >= 6 { this.m_convaiSearchEsc = false; };
+            if this.m_convaiSearchLeavingTicks >= 6 { this.m_convaiSearchLeaving = false; };
         };
     };
     if !this.m_convaiSearchOpen && !this.m_convaiSearchDrop && !IsDefined(this.m_convaiSearchBox) { return; };
@@ -589,7 +609,7 @@ public final func ConvaiSearchTick() -> Void {
 // is not a Back.
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiSearchBackHandled() -> Bool {
-    if this.m_convaiSearchEsc { return true; };
+    if this.m_convaiSearchLeaving { return true; };
     if this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
         this.ConvaiSearchEnd(true, false);
         return true;
@@ -629,7 +649,7 @@ private final func ConvaiSearchHoldsPause(action: ListenerAction, consumer: List
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The list of the phone
 
-// The look of the row. The word and the key are plain ink, the word is put in the interface language by mod/phone-chat-style.lua (convaiSearchPlaceholder).
+// The look of the row. The hint ("Type a name to search") and the key are plain ink, the hint is put in the interface language by mod/phone-chat-style.lua (convaiSearchPlaceholder).
 @addField(PhoneDialerLogicController)
 private let m_convaiSearchRow: wref<inkCanvas>;
 @addField(PhoneDialerLogicController)
@@ -647,7 +667,7 @@ private let m_convaiSearchAreaMargin: inkMargin;
 private let m_convaiSearchBarMargin: inkMargin;
 
 // The row, made once beside the list's scroll area (in the panel that holds it, in front of the gradient mask that fades the list so the row is not faded):
-// the dark bar and the thin line of a field, the word Search and the O key. It is 1000 by 100 like a Chat row, at the left of the scroll area's width.
+// the dark bar and the thin line of a field, the hint and the O key. It is 1000 by 100 like a Chat row, at the left of the scroll area's width.
 @addMethod(PhoneDialerLogicController)
 private final func ConvaiSearchRowMake() -> Bool {
     if IsDefined(this.m_convaiSearchRow) { return true; };
@@ -698,7 +718,7 @@ private final func ConvaiSearchRowMake() -> Bool {
     word.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
     word.BindProperty(n"tintColor", n"MainColors.Blue");
     word.SetOpacity(0.8);
-    word.SetText("Search");
+    word.SetText("Type a name to search");
     word.Reparent(row);
     let cap = ConvaiFavoriteArt.KeyCap(n"kb_o");
     cap.SetHAlign(inkEHorizontalAlign.Left);
@@ -756,7 +776,7 @@ private final func ConvaiSearchShift(on: Bool) -> Void {
     if on && IsDefined(player) { player.ConvaiPhoneChatTrace("search row: list moved down, scroll area margin top " + FloatToString(this.m_convaiSearchAreaMargin.top) + " + 112"); };
 }
 
-// The row at rest or in use: the word shows while there is no text (dim while the box has the keyboard), the O key while the row rests.
+// The row at rest or in use: the hint shows while there is no text (dim while the box has the keyboard), the O key while the row rests.
 @addMethod(PhoneDialerLogicController)
 public final func ConvaiSearchRowLook(active: Bool, empty: Bool) -> Void {
     if IsDefined(this.m_convaiSearchPlaceholder) {
@@ -800,6 +820,16 @@ public final func ConvaiRefillChat(rows: array<ref<IScriptable>>) -> Void {
 public final func ConvaiChatContactAt(index: Uint32) -> ref<ContactData> {
     if index >= this.m_dataView.Size() { return null; };
     return this.m_dataView.GetItem(index) as ContactData;
+}
+
+// The selection goes to the first row of the list.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSearchSelectFirst() -> Void {
+    if this.m_dataView.Size() == 0u { return; };
+    let list = inkWidgetRef.GetController(this.m_contactsList) as inkVirtualListController;
+    if !IsDefined(list) { return; };
+    list.SelectItem(0u);
+    list.ScrollToIndex(0u);
 }
 
 // Up and Down while the player types: the selection moves one row, the list wraps as the game's does.

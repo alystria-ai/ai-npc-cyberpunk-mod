@@ -1865,4 +1865,5 @@ return {
     ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "你的 AMD Radeon 顯示卡可以執行 OmniVoice。請在 設定 > 語音 AI 與麥克風 > AMD 版 OmniVoice 中配置：下載一次，之後它會自動啟動。在此之前由 Pocket 發聲。",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "你的 Custom 端點不接受視覺，因此回覆只使用你的文字。",
     ["Search"] = "搜尋",
+    ["Type a name to search"] = "輸入名字進行搜尋",
 }

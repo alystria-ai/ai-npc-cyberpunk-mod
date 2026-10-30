@@ -59,7 +59,7 @@
     ]
   },
   "counts": {
-    "strings": 1864,
+    "strings": 1865,
     "dynamicTemplates": 52,
     "contexts": 40
   },
@@ -1570,6 +1570,7 @@
     "Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.": "Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.",
     "Two options fit. Say its number.": "Two options fit. Say its number.",
     "Type a message first.": "Type a message first.",
+    "Type a name to search": "Type a name to search",
     "Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.": "Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.",
     "Type the new name in the Search box at the top (Mod Configuration Menu), then press Rename. Native Settings UI has no text box, so a party keeps its name there.": "Type the new name in the Search box at the top (Mod Configuration Menu), then press Rename. Native Settings UI has no text box, so a party keeps its name there.",
     "Type the new name in the Search box first, then press Rename.": "Type the new name in the Search box first, then press Rename.",
@@ -2782,7 +2783,8 @@
       "Chat",
       "Favorite",
       "Search",
-      "TALK TO {character}"
+      "TALK TO {character}",
+      "Type a name to search"
     ],
     "phone.native": [
       "CHAT",
@@ -2797,6 +2799,7 @@
       "The microphone you chose in Settings is not connected, so the Windows default input is used.",
       "The microphone {name} sends no sound. Check your Windows input device.",
       "This contact has no companion mapping yet.",
+      "Type a name to search",
       "Voice input could not reach Convai. Hold the voice key again, or type.",
       "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
       "Voice input only understands English for now. Typing works in any language.",
@@ -5194,7 +5197,7 @@
         "mod/phone-chat-style.lua:221",
         "mod/phone-chat-style.lua:321",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:694",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:844"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:845"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -5464,7 +5467,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:290",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:745"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:746"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -7780,7 +7783,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:293",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:766"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:767"
       ]
     },
     "Favorites": {
@@ -13039,9 +13042,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:297",
-        "mod/phone-chat-style.lua:300",
-        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:701",
-        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:848"
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:878"
       ]
     },
     "Search characters": {
@@ -16760,6 +16761,16 @@
       "references": [
         "mod/phone-chat-style.lua:43",
         "mod/phone-chat.lua:898"
+      ]
+    },
+    "Type a name to search": {
+      "contexts": [
+        "phone.localized",
+        "phone.native"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:300",
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:721"
       ]
     },
     "Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.": {
