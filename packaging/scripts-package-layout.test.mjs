@@ -20,8 +20,8 @@ const config = JSON.parse(await readFile(resolve(project, 'packaging/release.con
 const exchange = await loadRuntimeExchange(project);
 const MOD = config.layout.modDirectory;
 const VERSION = '0.0.1';
-// The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> = runtimeBase.required.
-const UPDATE_BASE = `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : `${config.runtimeBase.required}-and-up`}-to-${VERSION}`;
+// The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-Companions-LLM-Update-<from>-to-<version>, <from> = runtimeBase.required.
+const UPDATE_BASE = `AI-Companions-LLM-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : `${config.runtimeBase.required}-and-up`}-to-${VERSION}`;
 const ZIP_NAME = `${UPDATE_BASE}.zip`;
 const INSTALL_NOTE = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
 const tar = process.platform === 'win32' ? resolve(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
@@ -293,7 +293,7 @@ test('a rebuild into the same output folder replaces the packages: a stale zip o
     const args = buildArgs(join(again, 'out'), join(again, 'cache'));
     assert.equal(build(args).status, 0);
     const packagesDir = join(again, 'out/packages');
-    await writeFile(join(packagesDir, 'AI-NPC-LLM-Companions-Update-0.0.0-to-0.0.0.zip'), 'stale');
+    await writeFile(join(packagesDir, 'AI-Companions-LLM-Update-0.0.0-to-0.0.0.zip'), 'stale');
     await writeFile(join(packagesDir, 'SHA256SUMS.txt'), 'stale'); // an old build's checksum file is cleared too
     assert.equal(build(args).status, 0);
     assert.deepEqual((await readdir(packagesDir)).sort(), [`${UPDATE_BASE}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());

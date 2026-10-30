@@ -170,9 +170,9 @@ jobs:
       - name: Keep the Full install and Update zips for Nexus Mods
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AI-NPC-LLM-Companions-${{ steps.version.outputs.version }}
+          name: AI-Companions-LLM-${{ steps.version.outputs.version }}
           path: |
-            ${{ env.OUT }}\packages\AI-NPC-LLM-Companions-*.zip
+            ${{ env.OUT }}\packages\AI-Companions-LLM-*.zip
             ${{ env.OUT }}\packages\release-manifest.json
           retention-days: 30
 
@@ -192,8 +192,8 @@ jobs:
           # This note is only on the release page, not in the README.txt inside the zips.
           $base = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag"
           $from = (Get-Content packaging/release.config.json -Raw | ConvertFrom-Json).runtimeBase.required
-          $update = "AI-NPC-LLM-Companions-Update-$from-to-$version.zip"
-          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-NPC-LLM-Companions-$version.zip]($base/AI-NPC-LLM-Companions-$version.zip): the full install, everything in one zip (also on Nexus Mods)`n> - [$update]($base/$update): the update for an install that already has the Runtime $from or newer (also on Nexus Mods)`n> - [Runtime-$version.zip]($base/Runtime-$version.zip): the Runtime alone, for Vortex and Mod Organizer 2`n>`n> Then follow **Install** below.`n`n"
+          $update = "AI-Companions-LLM-Update-$from-to-$version.zip"
+          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-Companions-LLM-$version.zip]($base/AI-Companions-LLM-$version.zip): the full install, everything in one zip (also on Nexus Mods)`n> - [$update]($base/$update): the update for an install that already has the Runtime $from or newer (also on Nexus Mods)`n> - [Runtime-$version.zip]($base/Runtime-$version.zip): the Runtime alone, for Vortex and Mod Organizer 2`n>`n> Then follow **Install** below.`n`n"
           $download + (Get-Content packaging/PLAYER_README.md -Raw) | Set-Content $notes -Encoding utf8
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {

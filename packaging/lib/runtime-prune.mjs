@@ -21,6 +21,16 @@
 //  scipy/stats/_sobol_direction_numbers.npz  A numpy zip of Sobol direction numbers, opened by scipy.stats.qmc.Sobol when a generator is made. Importing scipy.stats
 //                                   does not open it. Nothing of ours uses scipy.stats.qmc (the phone worker and the clip builder use scipy.signal).
 //  Lib/site-packages/<name>.whl     A zero-byte file named like the scipy wheel, found at the top of site-packages in the 0.3.5 Runtime. Nothing reads it.
+//  Five torch files that made the longest paths of the Runtime (over 140 characters inside the zip; a Mod Organizer 2 or Vortex mod folder named after the
+//  mod leaves little room under Windows' 260, MAX_RUNTIME_ENTRY_PATH below). None is imported by `import torch`, by the Pocket, speech-to-text or phone workers
+//  or by anything else of ours (checked 2026-10-31 against the 0.3.5 Runtime: the workers' imports and a Pocket generation give the same audio with the files gone):
+//  torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/   Experimental sparsifier callbacks for PyTorch Lightning, which is not shipped.
+//  torch/_inductor/codegen/cuda/cutlass_lib_extensions/gemm_operation_extensions.py   CUDA CUTLASS code generation for torch.compile, imported on demand only.
+//  torch/testing/_internal/distributed/rpc/examples/reinforcement_learning_rpc_test.py   An example script of torch's own tests.
+//  torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/embedding_bag.py   Sharded-tensor embedding ops. Without it torch.distributed._shard.sharded_tensor
+//                                   and torch.distributed.fsdp no longer import: multi-GPU training, which no worker of ours does.
+//  torch/distributed/elastic/multiprocessing/subprocess_handler/subprocess_handler.py   The torchrun launcher's subprocess wrapper. Without it
+//                                   torch.distributed.elastic.multiprocessing no longer imports: the launcher, not `import torch.distributed`.
 const SITE = 'Lib/site-packages/';
 const TESTS_FOLDER = /^Lib\/site-packages\/(?:[^/]+\/)+tests\//;
 
@@ -31,6 +41,11 @@ export const PYTHON_PRUNE_RULES = Object.freeze([
   {id: 'networkx-atlas', test: rel => rel === `${SITE}networkx/generators/atlas.dat.gz`},
   {id: 'scipy-sobol-numbers', test: rel => rel === `${SITE}scipy/stats/_sobol_direction_numbers.npz`},
   {id: 'stray-wheel', test: rel => /^Lib\/site-packages\/[^/]+\.whl$/i.test(rel)},
+  {id: 'torch-lightning-callbacks', test: rel => rel.startsWith(`${SITE}torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/`)},
+  {id: 'torch-cutlass-extensions', test: rel => rel === `${SITE}torch/_inductor/codegen/cuda/cutlass_lib_extensions/gemm_operation_extensions.py`},
+  {id: 'torch-rpc-example', test: rel => rel === `${SITE}torch/testing/_internal/distributed/rpc/examples/reinforcement_learning_rpc_test.py`},
+  {id: 'torch-shard-embedding-bag', test: rel => rel === `${SITE}torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/embedding_bag.py`},
+  {id: 'torch-elastic-subprocess-handler', test: rel => rel === `${SITE}torch/distributed/elastic/multiprocessing/subprocess_handler/subprocess_handler.py`},
 ]);
 
 // Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches. Applied to every Python the release builds (the Runtime's and the
@@ -43,6 +58,27 @@ export const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /^L
 
 /** True for a file of the Runtime's Python that the build leaves out (in addition to the build's own PYTHON_SKIP). */
 export const pythonPruned = rel => PYTHON_PRUNE_RULES.some(rule => rule.test(rel));
+
+// The longest path a Runtime entry may have inside the zip (release.config.json layout.maxRuntimeEntryPath is the value the build reads). Mod Organizer 2 names its
+// mod folder after the Nexus title by default (41 characters for "AI Companions using Large Language Models") and may sit under
+// C:/Users/<name>/AppData/Local/ModOrganizer/Cyberpunk 2077/mods/ (77 characters with a 20 character user name), which with the title leaves about 140 for an entry
+// under Windows' 259 (260 with the end mark). docs/PACKAGING.md, "Path length".
+export const MAX_RUNTIME_ENTRY_PATH = 140;
+
+/** The names (zip paths) longer than `limit`. */
+export const longRuntimePaths = (names, limit = MAX_RUNTIME_ENTRY_PATH) => [...names].filter(name => name.length > limit);
+
+/**
+ * A licence text of a package's dist-info that would pass the limit moves up the tree: Lib/site-packages/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md
+ * becomes .../licenses/x86-simd-sort-LICENSE.md. The text itself ships (a BSD notice has to go with the binary), only its place changes; nothing reads these files
+ * (pip's RECORD, read only by an uninstall, lists the old path). `rel` is a path inside the Python folder, `prefixLength` the length of the zip path before it.
+ * Returns the new path, or null when the file stays.
+ */
+export function pythonRenamed(rel, prefixLength, limit = MAX_RUNTIME_ENTRY_PATH) {
+  if (prefixLength + rel.length <= limit) return null;
+  const match = /^(Lib\/site-packages\/[^/]+\.dist-info\/licenses\/)(?:[^/]+\/)+([^/]+)\/([^/]+)$/.exec(rel);
+  return match ? `${match[1]}${match[2]}-${match[3]}` : null;
+}
 
 // ---- Pocket TTS source (app/pocket-tts) ----------------------------------------------------------------------------------------------------
 // The upstream checkout has 140 files; the voice worker imports the pocket_tts/ package only (bridge/pocket-voice-worker.py puts the folder on

@@ -74,10 +74,10 @@ async function fixture(name, {game = '2.5', update = {}, runtime = {}, drop = []
 
 test('the names follow game-variants.json: the Full zip and the update carry the game suffix, none for 2.5, -for-2.31 for 2.31', () => {
   assert.equal(GAME_VARIANTS['2.5'].suffix, '');
-  assert.equal(fullBaseName('0.3.4', '2.5'), 'AI-NPC-LLM-Companions-0.3.4');
-  assert.equal(fullBaseName('0.3.4', '2.31'), 'AI-NPC-LLM-Companions-0.3.4-for-2.31');
-  assert.equal(updateBaseName('0.3.3', '0.3.4', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4');
-  assert.equal(updateBaseName('0.3.3', '0.3.4', '2.31'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4-for-2.31');
+  assert.equal(fullBaseName('0.3.4', '2.5'), 'AI-Companions-LLM-0.3.4');
+  assert.equal(fullBaseName('0.3.4', '2.31'), 'AI-Companions-LLM-0.3.4-for-2.31');
+  assert.equal(updateBaseName('0.3.3', '0.3.4', '2.5'), 'AI-Companions-LLM-Update-0.3.3-to-0.3.4');
+  assert.equal(updateBaseName('0.3.3', '0.3.4', '2.31'), 'AI-Companions-LLM-Update-0.3.3-to-0.3.4-for-2.31');
   assert.equal(runtimeZipName('0.3.4', '2.31'), 'Runtime-0.3.4-for-2.31.zip');
   assert.throws(() => fullBaseName('0.3.4', '3.0'), /Unknown game/);
   // The Full name has no "Full", no "Scripts" and no product prefix of the old files.
@@ -89,8 +89,8 @@ for (const game of ['2.5', '2.31']) {
     const f = await fixture(`union-${game}`, {game});
     const result = await buildFull({...f, log: () => {}});
     const suffix = GAME_VARIANTS[game].suffix;
-    assert.equal(result.file, `AI-NPC-LLM-Companions-${VERSION}${suffix}.zip`);
-    assert.deepEqual((await readdir(f.outDir)).sort(), [`AI-NPC-LLM-Companions-${VERSION}${suffix}.files.json`, result.file].sort(), 'the zip and its files.json, nothing else');
+    assert.equal(result.file, `AI-Companions-LLM-${VERSION}${suffix}.zip`);
+    assert.deepEqual((await readdir(f.outDir)).sort(), [`AI-Companions-LLM-${VERSION}${suffix}.files.json`, result.file].sort(), 'the zip and its files.json, nothing else');
     const entries = await listZip(result.path);
     const names = entries.map(entry => entry.name).sort();
     const MARKER = `${PLUGIN}/CyberpunkConvaiBase.dll`;
@@ -106,7 +106,7 @@ for (const game of ['2.5', '2.31']) {
     }
     assert.equal((await readEntry(result.path, entries.find(entry => entry.name === FULL_NOTE_NAME))).toString(), FULL_NOTE);
     // The files.json lists every entry with its size and SHA-256, like the other packages, and the zip is deterministic.
-    const list = JSON.parse(await readFile(join(f.outDir, `AI-NPC-LLM-Companions-${VERSION}${suffix}.files.json`), 'utf8'));
+    const list = JSON.parse(await readFile(join(f.outDir, `AI-Companions-LLM-${VERSION}${suffix}.files.json`), 'utf8'));
     assert.deepEqual(list.map(row => row.path).sort(), names);
     assert(list.every(row => /^[0-9a-f]{64}$/.test(row.sha256) && Number.isSafeInteger(row.bytes)));
     const again = await buildFull({...f, outDir: join(f.outDir, 'again'), log: () => {}});
@@ -118,12 +118,12 @@ test('the update is named from the base it needs: <from> is that version when it
   const at = (required, previousRelease) => ({runtimeBase: {required, previousRelease}});
   // 0.3.4 on the 0.3.3 base: one earlier release, so the version itself.
   assert.equal(updateFrom(at('0.3.3', '0.3.3')), '0.3.3');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.31'), 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4-for-2.31');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.5'), 'AI-Companions-LLM-Update-0.3.3-to-0.3.4');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.3'), '0.3.4', '2.31'), 'AI-Companions-LLM-Update-0.3.3-to-0.3.4-for-2.31');
   // 0.3.5 on the same base: it covers 0.3.3 and 0.3.4, so the base with "-and-up".
   assert.equal(updateFrom(at('0.3.3', '0.3.4')), '0.3.3-and-up');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5');
-  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.31'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5-for-2.31');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.5'), 'AI-Companions-LLM-Update-0.3.3-and-up-to-0.3.5');
+  assert.equal(updateBaseNameFor(at('0.3.3', '0.3.4'), '0.3.5', '2.31'), 'AI-Companions-LLM-Update-0.3.3-and-up-to-0.3.5-for-2.31');
   // A base raised in the release itself is "the release before" again.
   assert.equal(updateFrom(at('0.3.5', '0.3.5')), '0.3.5');
   // Numeric, not text, order; and a config that cannot tell stops the build instead of guessing a name.
@@ -133,7 +133,7 @@ test('the update is named from the base it needs: <from> is that version when it
   assert.throws(() => updateFrom(at('latest', '0.3.3')), /not a version/);
   // The real config is the 0.3.5 one: the base is still 0.3.3, the release before is 0.3.4, so the update covers two releases.
   assert.equal(updateFrom(config), '0.3.3-and-up');
-  assert.equal(updateBaseName('0.3.3-and-up', '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5');
+  assert.equal(updateBaseName('0.3.3-and-up', '0.3.5', '2.5'), 'AI-Companions-LLM-Update-0.3.3-and-up-to-0.3.5');
 });
 
 test('the Full note says where to extract, that it holds everything, and that Vortex and Mod Organizer 2 take two mods; it is the only note and is worded for the Full zip', () => {
@@ -167,6 +167,7 @@ test('the install note must be the same in both, and every other guard runs over
     ['a Convai key file', {runtime: {[`${PLUGIN}/app/convai-key.txt`]: 'k'}}, /forbidden file|key file/],
     ['the development launcher', {update: {'red4ext/plugins/CyberpunkConvaiLauncher/launcher.dll': 'x'}}, /unexpected RED4ext plugin file/],
     ['developer material', {runtime: {'misc/notes.txt': 'x'}}, /developer-only material/],
+    ['a Runtime path over the limit', {runtime: {[`${PLUGIN}/app/python/Lib/site-packages/${'deep/'.repeat(30)}file.py`]: 'x'}}, /Runtime base has 1 path\(s\) over 140 characters/],
     ['a plugin DLL of the Runtime', {runtime: {[`${PLUGIN}/CyberpunkConvai.dll`]: 'old launcher'}}, /unexpected RED4ext plugin file|writes or deletes/],
   ];
   for (const [name, set, pattern] of cases) {
@@ -197,10 +198,10 @@ test('the command line builds from a packages folder by the names a release buil
   await writeFile(join(dir, 'release-manifest.json'), JSON.stringify({version: VERSION, packages: {scripts: {}, runtime: {}}}));
   const run = spawnSync(process.execPath, [resolve(project, 'packaging/build-full.mjs'), '--version', VERSION, '--game', '2.31', '--packages', dir], {encoding: 'utf8'});
   assert.equal(run.status, 0, run.stderr + run.stdout);
-  assert(existsSync(join(dir, `AI-NPC-LLM-Companions-${VERSION}-for-2.31.zip`)));
+  assert(existsSync(join(dir, `AI-Companions-LLM-${VERSION}-for-2.31.zip`)));
   const manifest = JSON.parse(await readFile(join(dir, 'release-manifest.json'), 'utf8'));
   assert.deepEqual(Object.keys(manifest.packages), ['scripts', 'runtime', 'full']);
-  assert.equal(manifest.packages.full.archives[0].file, `AI-NPC-LLM-Companions-${VERSION}-for-2.31.zip`);
+  assert.equal(manifest.packages.full.archives[0].file, `AI-Companions-LLM-${VERSION}-for-2.31.zip`);
   // A missing input stops it, and a wrong game for the files named stops it before anything is written.
   const missing = spawnSync(process.execPath, [resolve(project, 'packaging/build-full.mjs'), '--version', VERSION, '--packages', dir], {encoding: 'utf8'});
   assert.notEqual(missing.status, 0);

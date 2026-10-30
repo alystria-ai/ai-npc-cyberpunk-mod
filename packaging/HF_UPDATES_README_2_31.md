@@ -1,6 +1,6 @@
 # Runtime updates for game 2.31
 
-This is the text for `updates/game-2.31/README.md` (moved from `game-2.31/updates/` on 2026-10-29) in `alystria-ai/ai-npc-cyberpunk-mod-packs`. Everything below the line is the file. These are the Runtime update zips for the older game 2.31, up to 0.3.3. **Since 0.3.4 they are not offered any more** (owner decision 2026-10-28): the update on Nexus Mods carries all of the code, and an older install takes the full install (`game-2.31/AI-NPC-LLM-Companions.zip`). A release adds no row here any more. The update zips of game 2.5, the default game, are in `updates/`, with their own README (`packaging/HF_UPDATES_README.md`).
+This is the text for `updates/game-2.31/README.md` (moved from `game-2.31/updates/` on 2026-10-29) in `alystria-ai/ai-npc-cyberpunk-mod-packs`. Everything below the line is the file. These are the Runtime update zips for the older game 2.31, up to 0.3.3. **Since 0.3.4 they are not offered any more** (owner decision 2026-10-28): the update on Nexus Mods carries all of the code, and an older install takes the full install (`game-2.31/AI-Companions-LLM.zip`). A release adds no row here any more. The update zips of game 2.5, the default game, are in `updates/`, with their own README (`packaging/HF_UPDATES_README.md`).
 
 ---
 
@@ -10,7 +10,7 @@ This is the text for `updates/game-2.31/README.md` (moved from `game-2.31/update
 
 These are the small zips that brought a Runtime up to date step by step, up to 0.3.3, for the older game version **2.31**. Game 2.5 is the default: if your game is 2.5, see the folder above, [`updates/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates).
 
-If you still want to use them: **apply the update zips from this folder one by one, starting from your version.** Extract each one into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime, then the next one, until you reach the newest. If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself: files a version no longer needs are removed by the mod the next time the game starts. The update zip for game 2.31 (`game-2.31/AI-NPC-LLM-Companions-Update.zip`) and any optional packs are downloaded as usual.
+If you still want to use them: **apply the update zips from this folder one by one, starting from your version.** Extract each one into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime, then the next one, until you reach the newest. If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself: files a version no longer needs are removed by the mod the next time the game starts. The update zip for game 2.31 (`game-2.31/AI-Companions-LLM-Update.zip`) and any optional packs are downloaded as usual.
 
 With Vortex, drop each update zip onto the Mods page one by one, oldest first, together with the new update zip. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. With Mod Organizer 2, extract each one into the Runtime mod's folder.
 

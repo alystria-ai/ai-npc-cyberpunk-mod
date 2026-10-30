@@ -1,6 +1,6 @@
 # Runtime updates
 
-This is the text for `updates/README.md` in `alystria-ai/ai-npc-cyberpunk-mod-packs`. Everything below the line is the file. These are the Runtime update zips for game 2.5, the default game, up to 0.3.3. **Since 0.3.4 they are not offered any more** (owner decision 2026-10-28): the update (`AI-NPC-LLM-Companions-Update.zip`) carries all of the code, and an install older than its Runtime base takes the full install (`AI-NPC-LLM-Companions.zip`). A release adds no row here any more. The folder stays on Hugging Face for old links. The update zips of the older game 2.31 are in `game-2.31/updates/`, with their own README (`packaging/HF_UPDATES_README_2_31.md`).
+This is the text for `updates/README.md` in `alystria-ai/ai-npc-cyberpunk-mod-packs`. Everything below the line is the file. These are the Runtime update zips for game 2.5, the default game, up to 0.3.3. **Since 0.3.4 they are not offered any more** (owner decision 2026-10-28): the update (`AI-Companions-LLM-Update.zip`) carries all of the code, and an install older than its Runtime base takes the full install (`AI-Companions-LLM.zip`). A release adds no row here any more. The folder stays on Hugging Face for old links. The update zips of the older game 2.31 are in `game-2.31/updates/`, with their own README (`packaging/HF_UPDATES_README_2_31.md`).
 
 ---
 

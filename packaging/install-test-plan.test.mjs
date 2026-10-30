@@ -11,8 +11,8 @@ import {RETIRED_DLLS} from './lib/code-payload.mjs';
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 // What a 0.3.4 package folder holds (2.5), and what an older one holds.
-const NEW_25 = ['AI-NPC-LLM-Companions-0.3.4.zip', 'AI-NPC-LLM-Companions-0.3.4.files.json', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip',
-  'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.files.json', 'Runtime-0.3.4.zip', 'Runtime-0.3.4.files.json', 'patch-report-2.5.json'];
+const NEW_25 = ['AI-Companions-LLM-0.3.4.zip', 'AI-Companions-LLM-0.3.4.files.json', 'AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip',
+  'AI-Companions-LLM-Update-0.3.3-to-0.3.4.files.json', 'Runtime-0.3.4.zip', 'Runtime-0.3.4.files.json', 'patch-report-2.5.json'];
 const NEW_231 = NEW_25.map(name => name.replace(/(\.zip|\.files\.json|\.json)$/, (end, _, at) => (name.startsWith('patch') ? end : `-for-2.31${end}`)));
 const OLD_25 = ['AI-NPC-Cyberpunk-Mod-Scripts-0.3.3.zip', 'Runtime-0.3.3.zip', 'Runtime-Update-0.3.2-to-0.3.3.zip', 'Runtime-0.3.3.files.json'];
 
@@ -25,7 +25,7 @@ test('the 0.3.4 packages hold no Runtime update zip, so --update-from means the 
   assert.equal(chooseMode({previous: true, names: NEW_25, version: '0.3.4'}), MODES.codeUpgrade);
   assert.equal(chooseMode({previous: true, names: NEW_231, version: '0.3.4', suffix: '-for-2.31'}), MODES.codeUpgrade);
   // The Update zip named with --update-zip is a code Update zip, not a Runtime update.
-  assert.equal(chooseMode({previous: true, names: NEW_25, version: '0.3.4', updateZipArgument: 'C:\\x\\AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip'}), MODES.codeUpgrade);
+  assert.equal(chooseMode({previous: true, names: NEW_25, version: '0.3.4', updateZipArgument: 'C:\\x\\AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip'}), MODES.codeUpgrade);
 });
 
 test('a real Runtime update zip among the packages (older releases) keeps the Runtime update checks', () => {
@@ -48,23 +48,23 @@ test('--upgrade-path picks path a, path b or both (the default), in that order',
 });
 
 test('each upgrade path finds its zip, and the Full zip its listing, for both games', () => {
-  const update25 = 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip';
+  const update25 = 'AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip';
   const zips25 = upgradeZips({names: NEW_25, version: '0.3.4', game: '2.5', updateName: update25});
-  assert.deepEqual(zips25, {update: update25, full: 'AI-NPC-LLM-Companions-0.3.4.zip', fullListing: 'AI-NPC-LLM-Companions-0.3.4.files.json'});
+  assert.deepEqual(zips25, {update: update25, full: 'AI-Companions-LLM-0.3.4.zip', fullListing: 'AI-Companions-LLM-0.3.4.files.json'});
   assert.deepEqual(packagesForPath('update', zips25), {zip: update25, listing: null, missing: []});
-  assert.deepEqual(packagesForPath('full', zips25), {zip: 'AI-NPC-LLM-Companions-0.3.4.zip', listing: 'AI-NPC-LLM-Companions-0.3.4.files.json', missing: []});
+  assert.deepEqual(packagesForPath('full', zips25), {zip: 'AI-Companions-LLM-0.3.4.zip', listing: 'AI-Companions-LLM-0.3.4.files.json', missing: []});
 
-  const update231 = 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4-for-2.31.zip';
+  const update231 = 'AI-Companions-LLM-Update-0.3.3-to-0.3.4-for-2.31.zip';
   const zips231 = upgradeZips({names: NEW_231, version: '0.3.4', game: '2.31', updateName: update231});
   assert.equal(zips231.update, update231);
-  assert.equal(zips231.full, 'AI-NPC-LLM-Companions-0.3.4-for-2.31.zip');
-  assert.equal(zips231.fullListing, 'AI-NPC-LLM-Companions-0.3.4-for-2.31.files.json');
+  assert.equal(zips231.full, 'AI-Companions-LLM-0.3.4-for-2.31.zip');
+  assert.equal(zips231.fullListing, 'AI-Companions-LLM-0.3.4-for-2.31.files.json');
   // The 2.5 Full zip is not taken for the 2.31 run.
   assert.equal(upgradeZips({names: NEW_25, version: '0.3.4', game: '2.31', updateName: update231}).full, null);
 });
 
 test('a path with a missing zip says what is missing, a missing listing is not a missing package', () => {
-  const half = upgradeZips({names: ['AI-NPC-LLM-Companions-0.3.4.zip'], version: '0.3.4', game: '2.5', updateName: 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip'});
+  const half = upgradeZips({names: ['AI-Companions-LLM-0.3.4.zip'], version: '0.3.4', game: '2.5', updateName: 'AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip'});
   assert.deepEqual(packagesForPath('update', half).missing, ['the Update zip']);
   assert.deepEqual(packagesForPath('full', half).missing, [], 'the Full zip without its .files.json is enough: the list is worked out from the zip');
   const none = upgradeZips({names: [], version: '0.3.4', game: '2.5', updateName: undefined});
@@ -125,12 +125,12 @@ test('the install test wires the plan in: both paths by default, the old Runtime
 });
 
 test('a file list comes from the .files.json, else from the zip itself, and is missing only when neither is there', () => {
-  const stage = {dir: 'full-v2', names: ['Runtime-0.3.4.zip', 'Runtime-0.3.4.files.json', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip']};
-  const packages = {dir: 'packages', names: ['AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.files.json']};
+  const stage = {dir: 'full-v2', names: ['Runtime-0.3.4.zip', 'Runtime-0.3.4.files.json', 'AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip']};
+  const packages = {dir: 'packages', names: ['AI-Companions-LLM-Update-0.3.3-to-0.3.4.zip', 'AI-Companions-LLM-Update-0.3.3-to-0.3.4.files.json']};
   // The list file beside the zip is used.
   assert.deepEqual(listingSource({bases: ['Runtime-0.3.4'], folders: [stage]}), {kind: 'listing', dir: 'full-v2', base: 'Runtime-0.3.4', file: 'Runtime-0.3.4.files.json'});
   // The staging folder (the 0.3.4 release) held the Update zip without its list: the list beside the zip's other copy is found, or else the zip is read.
-  const update = ['AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4'];
+  const update = ['AI-Companions-LLM-Update-0.3.3-to-0.3.4'];
   assert.equal(listingSource({bases: update, folders: [stage, packages]}).dir, 'packages');
   assert.deepEqual(listingSource({bases: update, folders: [stage]}), {kind: 'zip', dir: 'full-v2', base: update[0], file: update[0] + '.zip'});
   // A list file anywhere beats a zip, whatever the folder order.

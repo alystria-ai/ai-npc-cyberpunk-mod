@@ -107,7 +107,7 @@ export async function missingRuntimeFiles(project, files = RUNTIME_DATA_FILES, {
 
 /** What a missing Runtime file is called in the log: the one line the player and the support report read. */
 export const incompleteMessage = names => `The Runtime is incomplete: ${[].concat(names).join(', ')} ${[].concat(names).length === 1 ? 'is' : 'are'} missing. `
-  + 'Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again, then restart the game.';
+  + 'Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder again, then restart the game.';
 
 /**
  * The Mod Organizer 2 case of a missing module (report c44c3c95, 30 Oct 2026): the bridge's `--import` of the stat fallbacks (launcher/usvfs-compat.mjs) did not
@@ -118,11 +118,11 @@ export const incompleteMessage = names => `The Runtime is incomplete: ${[].conca
 export const USVFS_COMPAT_FILE = 'launcher/usvfs-compat.mjs';
 export const USVFS_FILE_REASON = 'mo2-hidden-file';
 export const usvfsFileMessage = () => `Mod Organizer 2 does not show ${USVFS_COMPAT_FILE} to the program, although the file is there. `
-  + 'Close the game and Mod Organizer 2, extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder by hand, then start the game.';
+  + 'Close the game and Mod Organizer 2, extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder by hand, then start the game.';
 
 /** The line for files of two versions (versionMismatchInLog): the full install zip again (it holds the Runtime and the code of one version). */
 export const mismatchMessage = name => `The Runtime does not match the mod's Scripts: ${name} comes from a different version. `
-  + 'Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again, then restart the game.';
+  + 'Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder again, then restart the game.';
 
 export class RuntimeIncomplete extends Error {
   constructor(file) {

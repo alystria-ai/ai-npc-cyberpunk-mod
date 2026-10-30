@@ -7,8 +7,8 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-LLM-Companions-<v>.zip` | Nexus Mods (the main file for game 2.5) and Hugging Face (`AI-NPC-LLM-Companions.zip`) | The FULL INSTALL (0.3.4, owner decision 2026-10-28): the update and the Runtime base below in ONE zip, extracted into the game folder. The main file for a new player. Not built by `build-release.mjs`: `build-full.mjs` makes it from the two zips ("The Full install package" below). |
-| `AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip` (the former `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip`; package id `scripts`) | Nexus Mods (the update file) and Hugging Face (`AI-NPC-LLM-Companions-Update.zip`) | The CET Lua mod, redscript, the four JSON catalogs the Lua reads, one static `runtime/README.txt` (no file the game rewrites ships, see "Files the game rewrites" below), `README.txt` and `release.json`, all text; and from 0.3.4 ALL of the mod's own code in `red4ext/plugins/AiNpcCyberpunkCode/`: the launcher and native DLLs, `install-code.mjs` and the code copy in `app/` ("Code in the Scripts" below). |
+| `AI-Companions-LLM-<v>.zip` | Nexus Mods (the main file for game 2.5) and Hugging Face (`AI-Companions-LLM.zip`) | The FULL INSTALL (0.3.4, owner decision 2026-10-28): the update and the Runtime base below in ONE zip, extracted into the game folder. The main file for a new player. Not built by `build-release.mjs`: `build-full.mjs` makes it from the two zips ("The Full install package" below). |
+| `AI-Companions-LLM-Update-<from>-to-<v>.zip` (the former `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip`; package id `scripts`) | Nexus Mods (the update file) and Hugging Face (`AI-Companions-LLM-Update.zip`) | The CET Lua mod, redscript, the four JSON catalogs the Lua reads, one static `runtime/README.txt` (no file the game rewrites ships, see "Files the game rewrites" below), `README.txt` and `release.json`, all text; and from 0.3.4 ALL of the mod's own code in `red4ext/plugins/AiNpcCyberpunkCode/`: the launcher and native DLLs, `install-code.mjs` and the code copy in `app/` ("Code in the Scripts" below). |
 | `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder. **No longer offered since 0.3.4** (the folder stays, nothing new goes in, no text points to it): an install below the update's `<from>` takes the full install instead. Before 0.3.4 every step was kept (before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
 | `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the Hugging Face repository as `runtime/Runtime.zip` (0.3.4 moved it from the root: it is the second input of the full install and stays for old two-mod Vortex and Mod Organizer 2 setups, but no text advertises it to new installs) | From 0.3.4 the Runtime BASE, installed once ("Code in the Scripts" below): no launcher, native plugin or code of ours any more (a do-nothing marker plugin keeps Vortex accepting it). Bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the Pocket voice and lip-sync models, the embedding model of the memory search (`app/models/embed/`, 115 MiB), voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
 | `OmniPack-OmniVoice-0.6B-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip (about 5.3 GB since 0.2.9): CUDA Python environment, the VoiceStudio adapter, the OmniVoice model (the language model as float16) and the OmniVoice references the Runtime does not carry ("The OmniVoice pack" below). |
@@ -18,9 +18,9 @@ How the player release is built, what it contains and how it starts. Players rea
 | `MicPack-European-Parakeet-TDT-0.6B-v3-<v>.zip`, `MicPack-Asian-SenseVoice-Small-234M-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
 | `Mature-Lite-Qwen3.5-4B-<v>.zip`, `Mature-Standard-Gemma-4-E4B-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`), the embedding model and the licence texts (the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone on the Runtime's engine (the Runtime of 0.2.7 or newer). |
 
-The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, sorted into folders: the full install and the update at the root (`AI-NPC-LLM-Companions.zip`, `AI-NPC-LLM-Companions-Update.zip`), `runtime/` (the Runtime alone),
+The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, sorted into folders: the full install and the update at the root (`AI-Companions-LLM.zip`, `AI-Companions-LLM-Update.zip`), `runtime/` (the Runtime alone),
 `local-ai/` (the two Local AI packs, and in `local-ai/vision/` the vision files of their models), `mature/` (the two Mature packs, and in `mature/vision/` the vision files of their models), `mic/` (the two microphone packs), `voice/` (the OmniVoice pack), `updates/` and `multilingual/`.
-On Hugging Face the file names carry no `AI-NPC-Cyberpunk-Mod-` prefix and no version (`AI-NPC-LLM-Companions.zip`, `AI-NPC-LLM-Companions-Update.zip`, `runtime/Runtime.zip`, `voice/OmniPack-OmniVoice-0.6B.zip`, `updates/Runtime-Update-<from>-to-<to>.zip`, `multilingual/Voices-<Language>.zip`, `multilingual/PocketTTS-Model-100M-<Language>.zip`): the version goes only in the commit message of the upload. The build keeps the version in the file name of its output folder (`OmniPack-OmniVoice-0.6B-<v>.zip`, `Runtime-<v>.zip`, with a `.files.json` of the same name), and `packaging/upload-packs.py` publishes each pack under its unversioned name in its folder. Each pack is ONE zip: no `-partNofM` zips
+On Hugging Face the file names carry no `AI-NPC-Cyberpunk-Mod-` prefix and no version (`AI-Companions-LLM.zip`, `AI-Companions-LLM-Update.zip`, `runtime/Runtime.zip`, `voice/OmniPack-OmniVoice-0.6B.zip`, `updates/Runtime-Update-<from>-to-<to>.zip`, `multilingual/Voices-<Language>.zip`, `multilingual/PocketTTS-Model-100M-<Language>.zip`): the version goes only in the commit message of the upload. The build keeps the version in the file name of its output folder (`OmniPack-OmniVoice-0.6B-<v>.zip`, `Runtime-<v>.zip`, with a `.files.json` of the same name), and `packaging/upload-packs.py` publishes each pack under its unversioned name in its folder. Each pack is ONE zip: no `-partNofM` zips
 and no `.partN` files inside. GitHub's 2 GiB per-file limit was the only reason for parts, and Hugging Face has no such limit. A model
 over 4 GiB (the standard Local AI model, the good Mature model) sits whole in a ZIP64 zip (`packaging/lib/zip.mjs` writes ZIP64 only
 where an entry or the archive needs it; Windows Explorer, PowerShell's Expand-Archive, 7-Zip and tar read it). The repository is private
@@ -46,17 +46,17 @@ Hugging Face both offer exactly two files, and a new player takes one.
 
 | File (a build) | On Hugging Face | Who takes it |
 |---|---|---|
-| `AI-NPC-LLM-Companions-<v>[-for-2.31].zip` | `AI-NPC-LLM-Companions.zip`, `game-2.31/AI-NPC-LLM-Companions.zip` | A new install, and an install older than the update's `<from>` (or where Settings > Help says the Runtime is too old). On Nexus the main file (2.5) and an optional file (2.31), titled "AI NPC LLM Companions". |
-| `AI-NPC-LLM-Companions-Update-<from>-to-<v>[-for-2.31].zip` | `AI-NPC-LLM-Companions-Update.zip`, `game-2.31/AI-NPC-LLM-Companions-Update.zip` | A manual install (extracted into the game folder) that already has the Runtime base `<from>` or newer. Never Vortex or Mod Organizer 2, which always take the full install. It is the former Scripts zip, byte for byte the same package (package id `scripts`, `release.json` `package: "scripts"`; the internal folder names `AiNpcCyberpunkCode` and so on are unchanged). Nexus title "Update `<from>` to `<v>`". |
+| `AI-Companions-LLM-<v>[-for-2.31].zip` | `AI-Companions-LLM.zip`, `game-2.31/AI-Companions-LLM.zip` | A new install, and an install older than the update's `<from>` (or where Settings > Help says the Runtime is too old). On Nexus the main file (2.5) and an optional file (2.31), titled "AI Companions using Large Language Models". |
+| `AI-Companions-LLM-Update-<from>-to-<v>[-for-2.31].zip` | `AI-Companions-LLM-Update.zip`, `game-2.31/AI-Companions-LLM-Update.zip` | A manual install (extracted into the game folder) that already has the Runtime base `<from>` or newer. Never Vortex or Mod Organizer 2, which always take the full install. It is the former Scripts zip, byte for byte the same package (package id `scripts`, `release.json` `package: "scripts"`; the internal folder names `AiNpcCyberpunkCode` and so on are unchanged). Nexus title "Update `<from>` to `<v>`". |
 
 `<from>` is `runtimeBase.required`, the oldest Runtime base the update runs on, when that is the release just before (0.3.3 for 0.3.4, so `Update-0.3.3-to-0.3.4`). When the base is older than the previous
-release (a later release on the same base) the update covers several releases and `<from>` is the base with `-and-up` (`Update-0.3.3-and-up-to-0.3.5`). The rule is `updateFrom` in `packaging/lib/full-package.mjs`;
+release (a later release on the same base) the update covers several releases and `<from>` is the base with `-and-up` (`Update-0.3.3-and-up-to-0.3.5`, which was published as `AI-NPC-LLM-Companions-Update-0.3.3-and-up-to-0.3.5`). The rule is `updateFrom` in `packaging/lib/full-package.mjs`;
 `runtimeBase.previousRelease` in `release.config.json` is the release before the one being built, set by the release script with every version (a build stops when it is missing or newer than `required`).
 The update is a full code copy, so it works from any install at or above `<from>`. Below it the full install replaces everything in one step: that is the answer for a Runtime of 0.3.2 or older, and the
 reason the Runtime update zips (`updates/`) are no longer offered (the 0.3.3 step is 1.5 MiB, but a chain of steps was the commonest source of mismatched installs, and the full install is one download).
 
 **The builder.** `node packaging/build-full.mjs --version <v> [--game 2.31] [--packages DIR]` reads the update zip and the Runtime base zip of the same version and game that `build-release.mjs --packages scripts,runtime`
-wrote into `dist/release/packages/` and writes `AI-NPC-LLM-Companions-<v>[-for-2.31].zip` and a `.files.json` of the same name beside them (and a `full` record in `release-manifest.json`). It reads only the two zips: no
+wrote into `dist/release/packages/` and writes `AI-Companions-LLM-<v>[-for-2.31].zip` and a `.files.json` of the same name beside them (and a `full` record in `release-manifest.json`). It reads only the two zips: no
 source tree, no download. What it checks (`planFull` in `packaging/lib/full-package.mjs`, run before anything is written, and the result is read back afterwards):
 
 - the two are what they say (`release.json` package `scripts` and `runtime` kind `base`), the same version and the same game, and the Runtime is at least `runtimeBase`;
@@ -67,10 +67,10 @@ source tree, no download. What it checks (`planFull` in `packaging/lib/full-pack
 - the zip stays under `limits.assetBytes` (one upload; the Runtime base is about 1.1 GB).
 
 Every entry is copied byte for byte (the same deflate level as the original builds, so the content is the same and the same inputs give the same zip). The **install note** exists once: the standard note (the same bytes in both
-packages, fixed because the optional packs carry it too) is dropped, and the Full zip carries `HOW TO INSTALL - AI NPC LLM Companions full install - extract into your Cyberpunk 2077 folder.txt` worded for it. It has its own file name so
+packages, fixed because the optional packs carry it too) is dropped, and the Full zip carries `HOW TO INSTALL - AI Companions using Large Language Models full install - extract into your Cyberpunk 2077 folder.txt` worded for it. It has its own file name so
 that extracting a pack or the update over a full install adds the standard note beside it and Windows never asks about one name with two texts. The note also says that Vortex and Mod Organizer 2 take this zip as one mod and never the small Update zip.
 
-**Mod managers: always the full install (owner decision 2026-10-28, "Managers: always full zip").** Vortex and Mod Organizer 2 players install the main file, `AI-NPC-LLM-Companions-<v>.zip`, as ONE mod and update it
+**Mod managers: always the full install (owner decision 2026-10-28, "Managers: always full zip").** Vortex and Mod Organizer 2 players install the main file, `AI-Companions-LLM-<v>.zip`, as ONE mod and update it
 each release like any other mod, with the newer full zip (about 1.1 GB, one click: Vortex "Replace the existing mod", Mod Organizer 2 "Merge" so packs added inside the mod's folder stay). The small Update zip is for
 manual installs only, extracted into the game folder. Why one mod works: the full install holds no file that our own code writes or deletes (the Vortex rule above), and the code copy `install-code.mjs` makes goes into the
 Runtime's `app/`, which the Full zip fills with nothing of code, so a deployed hardlink is never replaced. Under Mod Organizer 2 the Scripts half and the Runtime half are the same mod, so the real folder `install-code.mjs` reads the code
@@ -80,7 +80,9 @@ versions rows and to the Runtime missing or incomplete rows when a manager is de
 installs. (The standalone Runtime keeps `Runtime-<v>.zip` for the GitHub release.) **Live checks owed:** a full install as one mod in Vortex (deploy, update with a newer zip, external changes) and in Mod Organizer 2 (first start, update with Merge, packs in the folder), and the
 removal of the two old mods.
 
-**Hugging Face layout.** Before 0.3.4: `Scripts.zip`, `Runtime.zip`, `updates/` at the root and the same in `game-2.31/`. From 0.3.4: `AI-NPC-LLM-Companions.zip` and `AI-NPC-LLM-Companions-Update.zip` at the root, `runtime/Runtime.zip`,
+**Name of the full install and the update (owner decision 2026-10-31).** From 0.4.0 the zips are `AI-Companions-LLM-...`. Releases up to 0.3.5 published them as `AI-NPC-LLM-Companions-...` (and the HF files `AI-NPC-LLM-Companions.zip`, `AI-NPC-LLM-Companions-Update.zip`), and an install made under the old name keeps working: no code recognises an install by the zip name, and the old `HOW TO INSTALL - AI NPC LLM Companions full install - ...` note is only a text file.
+
+**Hugging Face layout.** Before 0.3.4: `Scripts.zip`, `Runtime.zip`, `updates/` at the root and the same in `game-2.31/`. From 0.3.4: `AI-Companions-LLM.zip` and `AI-Companions-LLM-Update.zip` at the root, `runtime/Runtime.zip`,
 `game-2.31/` the same three; `updates/` and `updates/game-2.31/` are left as they are (nothing is deleted) and no longer offered. `packaging/upload-packs.py --pack full|update|runtime [--game 2.31]` uploads them; `--also-old-name`
 also publishes the update at `Scripts.zip` and the Runtime at the root `Runtime.zip`, so the links of 0.3.3 and older texts keep working for a while (the same server-side copy trick as for the pack names). `packaging/hf-layout.test.mjs` and
 `packaging/build-full.test.mjs` guard all of it.
@@ -320,7 +322,7 @@ RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>
 (PluginSystem.cpp stops at depth 1), so the Python, torch and Chrome DLLs under `app/` are never
 loaded into the game. Keeping the application there also keeps paths short: the build refuses any
 entry whose game-relative path would exceed 255 characters under a 70-character game folder
-(the default Steam path is 61). Windows' built-in zip extractor fails beyond 260.
+(the default Steam path is 61), and any Runtime entry over 140 characters ("Path length" below). Windows' built-in zip extractor fails beyond 260.
 
 ## How it starts
 
@@ -695,6 +697,22 @@ What 0.3.5 carried, and what became of each:
 | `python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl` (zero bytes) | Pruned (`stray-wheel`). |
 
 All four paths are also in `packaging/runtime-removals.json`, so an install that has them loses them at its next start.
+
+**Path length (0.4.0, 2026-10-31).** Mod Organizer 2 names its mod folder after the Nexus title by default, and the title is now 41 characters ("AI Companions using Large Language Models", it was 21), so
+a player's paths look like `C:\Users\<name>\AppData\Local\ModOrganizer\Cyberpunk 2077\mods\AI Companions using Large Language Models\red4ext\plugins\...`. Vortex stages under
+`...\AppData\Roaming\Vortex\cyberpunk2077\mods\<archive name>`. The longest entry of the 0.3.5 Runtime was 154 characters inside the zip, which makes 273 under the second MO2 base above (20 character user
+name) against Windows' 259 (260 with the end mark); ten files were over 140. What the runtime itself needs: nothing, because it runs under the game's own folder (about 61 characters on Steam, and under
+Mod Organizer 2 the virtual game folder) and the native plugin and the launcher use the `\\?\` prefix, Node adds it for long paths, and `python.exe` carries the `longPathAware` manifest. The exposed step is the
+extraction and deployment by the mod manager (or Windows' own zip extractor, which fails beyond 260). So:
+- the build refuses a Runtime entry over **140** characters (`layout.maxRuntimeEntryPath` in `release.config.json`, `longRuntimePaths` in `packaging/lib/runtime-prune.mjs`): in `writeArchives` for the Runtime
+  package and in `planFull` (the Full zip) for the Runtime base's entries. 140 leaves room for a mod folder up to the 41 character title under the 77 character AppData base above;
+- seven torch files nothing imports were pruned (rules `torch-lightning-callbacks`, `torch-cutlass-extensions`, `torch-rpc-example`, `torch-shard-embedding-bag`, `torch-elastic-subprocess-handler`). After them
+  `torch.distributed._shard.sharded_tensor`, `torch.distributed.fsdp` and `torch.distributed.elastic.multiprocessing` no longer import (multi-GPU training and the torchrun launcher, none of it ours).
+  Checked on a scratch copy of the 0.3.5 Runtime Python with the files deleted: numpy, scipy, scipy.signal, torch, torch.nn, yaml, safetensors, sherpa_onnx, pocket_tts and bridge/pocket_voice_runtime import,
+  and the Pocket model loads and generates the same audio (same SHA-1 with a fixed seed) as with the files;
+- the three numpy licence texts that were over 140 (libdivide, pythoncapi-compat, x86-simd-sort, BSD or zlib notices that go with the binary) are NOT dropped: `pythonRenamed` moves each up its dist-info folder
+  (`numpy-2.5.3.dist-info/licenses/x86-simd-sort-LICENSE.md`), text unchanged. Nothing reads them; pip's RECORD, which only an uninstall reads, lists the old paths;
+- the ten old paths are in `packaging/runtime-removals.json`, so an install made from the 0.3.5 Runtime loses them at its next start (a Runtime update zip lists them anyway).
 
 ### The Python standard library (0.3.4, and the check for it)
 

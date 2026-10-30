@@ -4,12 +4,12 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf   (CI: CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET in the environment)
 //
 // Packages (dist/release/packages/):
-//   AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip  the UPDATE (package id "scripts", the former Scripts zip; <from> = runtimeBase.required, the oldest Runtime base it
+//   AI-Companions-LLM-Update-<from>-to-<v>.zip  the UPDATE (package id "scripts", the former Scripts zip; <from> = runtimeBase.required, the oldest Runtime base it
 //                                               runs on): CET Lua, redscript, JSON catalogs (text only), and from 0.3.4 ALL of the mod's code in
 //                                               red4ext/plugins/AiNpcCyberpunkCode/: the launcher and native DLLs, install-code.mjs and app/ (Nexus Mods)
 //   Runtime-<v>[...].zip                        the Runtime BASE: bundled Node/Python, llama.cpp, vgmstream, Playwright, models, voices,
 //                                               game archives (Hugging Face runtime/; GitHub). It is an input of the Full install zip, not a download of its own
-//                                               for most players. The FULL INSTALL zip (AI-NPC-LLM-Companions-<v>.zip, Update + Runtime in one) is made
+//                                               for most players. The FULL INSTALL zip (AI-Companions-LLM-<v>.zip, Update + Runtime in one) is made
 //                                               from these two by packaging/build-full.mjs, after this build.
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
@@ -80,7 +80,7 @@ import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {packFiles, packTitle} from './lib/pack-names.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, forGame, gameOverlay} from './lib/game-variants.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
-import {PYTHON_SKIP, nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
+import {PYTHON_SKIP, longRuntimePaths, nodePackagePruned, pocketShipped, pythonPruned, pythonRenamed} from './lib/runtime-prune.mjs';
 import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
@@ -203,8 +203,16 @@ class Package {
   file(name, source) { this.add(name, {source}); }
   text(name, text) { this.add(name, {buffer: Buffer.from(text, 'utf8')}); }
   json(name, value) { this.text(name, JSON.stringify(value, null, 2) + '\n'); }
-  async tree(prefix, directory, {skip} = {}) {
-    for (const rel of await walk(directory, {skip})) this.file(`${prefix}/${rel}`, join(directory, rel));
+  // `rename`: rel => a new rel, or null to keep the path (the file is read from where it is and added under the new name).
+  async tree(prefix, directory, {skip, rename} = {}) {
+    const rels = await walk(directory, {skip});
+    const taken = new Set(rels);
+    for (const rel of rels) {
+      const renamed = rename ? rename(rel) : null;
+      if (renamed && taken.has(renamed)) throw Error(`${prefix}/${rel} would be renamed to ${renamed}, which is already a file of the tree`);
+      if (renamed) taken.add(renamed);
+      this.file(`${prefix}/${renamed ?? rel}`, join(directory, rel));
+    }
   }
 }
 
@@ -535,7 +543,9 @@ async function runtimePackage(source, config, models, auth) {
   await installPython(tool.python, resolve(source.root, tool.python.lock), pythonDir, ['..\\bridge'], {unzipStdlib: true});
   // Besides PYTHON_SKIP, the Runtime leaves out what nothing loads (packaging/lib/runtime-prune.mjs): the sherpa-onnx wheel's second DLL copy, torch/bin's
   // duplicates and the packages' own tests folders.
-  await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel)});
+  // A licence text that would pass the Runtime's path limit (config.layout.maxRuntimeEntryPath) moves up its dist-info folder (pythonRenamed).
+  const pythonPrefix = `${app}/python/`.length, entryLimit = config.layout.maxRuntimeEntryPath;
+  await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel), rename: rel => pythonRenamed(rel, pythonPrefix, entryLimit)});
   // What the package now holds of the Python is exactly what a player gets: it must have every file the voice workers import (the skip and prune rules took nothing they load).
   assertPythonShipped([...pkg.entries.keys()].filter(name => name.startsWith(`${app}/python/`)).map(name => name.slice(`${app}/python/`.length)), {what: 'the Runtime'});
   notices.push(`Python ${tool.python.version} embeddable distribution - PSF License: app/python/LICENSE.txt - ${tool.python.url}`);
@@ -1211,6 +1221,9 @@ async function writeArchives(pkg, baseName, config, timestamp, {single = false} 
   const limitPath = config.layout.maxPathLength - config.layout.maxGameRootLength - 1;
   const tooLong = names.filter(name => name.length > limitPath);
   if (tooLong.length) throw Error(`${tooLong.length} paths are too long for a typical game folder, e.g. ${tooLong[0]}`);
+  // The Runtime's entries sit deeper than any other package's (the Python), and a mod manager folder named after the mod takes most of what is left of 260.
+  const longRuntime = pkg.id === 'runtime' ? longRuntimePaths(names, config.layout.maxRuntimeEntryPath) : [];
+  if (longRuntime.length) throw Error(`${longRuntime.length} Runtime path(s) are over ${config.layout.maxRuntimeEntryPath} characters (a Mod Organizer 2 or Vortex mod folder named after the mod would pass Windows' limit), e.g. ${longRuntime[0]}. Prune or rename them (packaging/lib/runtime-prune.mjs).`);
   const archives = [];
   let writer = null, index = 0;
   const open = async () => { index++; writer = await ZipWriter.create(resolve(directory, `${baseName}.${index}.tmp`), {timestamp}); };
@@ -1273,7 +1286,7 @@ async function main() {
     if (ARCHIVE_GUARDED_PACKAGES.includes(id)) await assertNoArchives(id, pkg.entries);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
-    // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> being the oldest
+    // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-Companions-LLM-Update-<from>-to-<version>, <from> being the oldest
     // Runtime base it runs on (packaging/lib/full-package.mjs). The others have no product prefix.
     const archiveBase = id === 'scripts' ? updateBaseNameFor(config, version, game) : `${titles[id]}-${version}${variant.suffix}`;
     const result = await writeArchives(pkg, archiveBase, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
