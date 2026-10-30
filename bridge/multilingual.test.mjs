@@ -611,7 +611,7 @@ test('the bridge loads the twins, gives memory their markers and decides the voi
   assert.match(bridge, /const convaiSpeaks = input => localVoice\.playbackEnabled !== false && localVoice\.convaiVoiceAllowed && !turnUsesLocal\(input\)/);
   // No setting: the poll neither reads one nor forces one off, and the twin is chosen per turn from the message.
   assert.doesNotMatch(bridge, /multilingualConversations|multilingual\.update\(|setTextProvider/);
-  assert.match(bridge, /selectProfile: \(profile, boundary, turn\) => relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\)\}\)/);
+  assert.match(bridge, /selectProfile: \(profile, boundary, turn\) => \{[\s\S]*?relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\), romance: romanceBond\.stateFor\(profile, boundary\)\}\)/);
   assert.match(bridge, /const twinForTurn = turn => !!turn && !keys\.singleSession && !mistral\.active && multilingual\.wantsTwin\(/);
   // Every per-turn voice check goes through the plan; only invitation readiness asks about the profile.
   const perTurn = bridge.slice(bridge.indexOf('async function synthesizeReply('), bridge.indexOf('async function pollMicrophone('));
