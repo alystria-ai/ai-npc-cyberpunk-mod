@@ -2,13 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
 import {PassThrough, Writable} from 'node:stream';
 import {tmpdir} from 'node:os';
 import {join, relative, resolve} from 'node:path';
 import {createServer} from 'node:http';
 import {LiveVoices, shippedVoicesReader, voicesOf, withPlayerVoice} from './live-voices.mjs';
-import {GameVoiceClips, applyReadyClips, applyStandIns, generatedReference, readManifest, readWords, standInDescriptors} from './voice-clips.mjs';
+import {GameVoiceClips, applyReadyClips, applyStandIns, clipVoiceConfigPaths, generatedReference, readManifest, readWords, standInDescriptors} from './voice-clips.mjs';
 import {EditorControl} from './character-editor-control.mjs';
 import {PlayerVoices, PLAYER_VOICES_FILE, PLAYER_VOICES_FOLDER} from './player-voices.mjs';
 import {PocketVoice} from './pocket-voice.mjs';
@@ -258,12 +259,14 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64), inputIdentity: 'e'.repeat(64), selectedStep: 1500}});
 
 /** A stand-in for bridge/pocket-voice-worker.py: it keeps the table of voices it holds, answers the protocol, and records which reference each reply used. */
-function scriptedPocket(settings, {refuseVoices = false} = {}) {
+function scriptedPocket(settings, {refuseVoices = false, readConfigFile = false} = {}) {
   const table = {...settings.voices}, prepared = [], log = {streams: [], voices: [], prepares: []};
   const spawned = [];
   const lists = () => ({profiles: Object.keys(table).filter(key => !table[key].status), preparedProfiles: [...prepared], unavailableProfiles: {}});
   const spawnImpl = (exe, args) => {
     const owner = args[args.indexOf('--owner') + 1];
+    // The real worker holds the voices of the configuration FILE it is started with, whatever the bridge holds in memory.
+    if (readConfigFile) { for (const key of Object.keys(table)) delete table[key]; Object.assign(table, JSON.parse(readFileSync(args[args.indexOf('--config') + 1], 'utf8')).voices); for (const [key, row] of Object.entries(table)) if (readConfigFile.missing?.has(row.reference)) delete table[key]; }
     const child = new EventEmitter();
     Object.assign(child, {pid: 700 + spawned.length, kill: () => true, stdout: new PassThrough(), stderr: new PassThrough()});
     const send = frame => child.stdout.write(JSON.stringify({owner, ...frame}) + '\n');
@@ -767,4 +770,79 @@ test('LiveVoices: a built character with no shipped row gets its three tables (P
       assert.equal(update.omni.long['aaron-mccarlson'].reference, generatedReference('omni-long', 'aaron-mccarlson'));
     }
   }
+});
+
+// ---- the workers read a file: the tables the clip service edited at start must be in it ----------------------------------------------
+
+test('whole chain (Pocket, installed shape): the voice worker reads its voices from the configuration file, so the clip edits made at start are written out and the characters are routed', async () => {
+  // Shaped like the older Runtime of the 30 Oct 2026 live test: the configuration file has the archetypes and the main cast but none of the side characters.
+  const keys = ['aaron-mccarlson', 'late-row'];
+  const manifest = readManifest(JSON.stringify({version: 1, voices: Object.fromEntries(keys.map((key, at) => [key,
+    {'omni-short': clipSpec(at * 2 + 1), 'omni-long': clipSpec(at * 2 + 2), pocket: {sameAs: 'omni-long'}}]))}));
+  const words = readWords(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {pocket: 'Aaron pocket.', short: 'Aaron short.', long: 'Aaron long.'}}}));
+  const standIns = {'resident-male': shipped('stand-in-male'), 'resident-female': shipped('stand-in-female')};
+  const onDisk = new Set(Object.values(standIns).map(row => row.reference));
+  const dir = await mkdtemp(join(tmpdir(), 'live-file-'));
+  const fileVoices = {'judy-alvarez': shipped('judy'), 'late-row': shipped('late'), ...standIns};
+  const original = pocketSettings(fileVoices);
+  const originalPath = join(dir, 'pocket-voices.autobest.json');
+  await writeFile(originalPath, JSON.stringify(original));
+  const clips = new GameVoiceClips({manifest, words, gameDirectory: join(dir, 'game'), referenceRoot: join(dir, 'references'), stateDirectory: join(dir, 'state'), python: 'python.exe',
+    script: 'build.py', manifestPath: 'manifest.json', run: async () => { throw Error('nothing is built here'); }, shippedPresentSync: reference => onDisk.has(reference)});
+  // What the bridge does at start: read the file, edit the tables in memory, with the clips of an earlier session built into them.
+  clips.index['aaron-mccarlson'] = Object.fromEntries(Object.values(KINDS_OF).map((kind, at) => [kind, {sha256: sha(`earlier ${kind}`), bytes: 60 + at, source: 'build'}]));
+  const config = JSON.parse(await readFile(originalPath, 'utf8'));
+  const tables = {pocket: config.voices, short: null, long: null};
+  assert.deepEqual(applyReadyClips(clips, tables), ['aaron-mccarlson']);
+  assert.deepEqual(applyStandIns(clips, tables, () => 'male'), ['late-row']);
+  const run = async configPath => {
+    const worker = scriptedPocket(config, {readConfigFile: {missing: new Set([fileVoices['late-row'].reference])}});   // a row whose clip is not on disk is not held
+    const states = [];
+    const voice = chain(config, worker, {configPath, onState: value => { states.push(value); }});
+    voice.request({voiceProvider: 'pocket'}); voice.applyWhenIdle(false);
+    await voice.start();
+    voice.applyWhenIdle(false); await tick();
+    return {worker, voice, states, close: async () => { const closing = voice.close(); await tick(); worker.spawned.forEach(child => child.emit('close', 0)); await closing; }};
+  };
+  // A worker started on the original file never holds the edited rows.
+  const before = await run(originalPath);
+  try {
+    assert.equal(before.voice.usesProfile('aaron-mccarlson'), false, 'the worker was started on a file that does not have him');
+    assert.equal(before.voice.usesProfile('late-row'), false, 'nor the stand-in rows: its shipped clip is not on disk');
+  } finally { await before.close(); }
+  // The edited tables are written out and the worker is started on that file.
+  const written = await clipVoiceConfigPaths({paths: {pocket: originalPath, omni: {short: null, long: null}}, configs: {pocket: config, short: null, long: null}, stateDirectory: join(dir, 'state')});
+  assert.deepEqual(written.warnings, []);
+  assert.notEqual(written.pocket, originalPath);
+  assert.equal(JSON.parse(await readFile(originalPath, 'utf8')).voices['aaron-mccarlson'], undefined, 'the shipped file is never changed');
+  const after = await run(written.pocket);
+  try {
+    for (const key of keys) assert.equal(after.voice.usesProfile(key), true, `${key} is routed to Pocket`);
+    assert.equal(after.worker.table['aaron-mccarlson'].reference, generatedReference('pocket', 'aaron-mccarlson'));
+    assert.equal(after.worker.table['late-row'].reference, standIns['resident-male'].reference);
+    assert.equal(after.worker.spawned.length, 1);
+    assert.ok(after.states.at(-1).routedProfiles.includes('aaron-mccarlson'), 'the manager can name the voice');
+    await after.voice.prepareProfile('aaron-mccarlson');
+    await after.voice.synthesizeStream('aaron-mccarlson', 'Hello.', {onPcm: () => {}});
+    assert.equal(after.worker.log.streams.at(-1).reference, generatedReference('pocket', 'aaron-mccarlson'));
+  } finally { await after.close(); await rm(dir, {recursive: true, force: true}); }
+});
+
+test('clipVoiceConfigPaths: nothing is written when nothing was edited, an engine without a configuration keeps its path, and a failed write keeps the original file', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'clip-paths-'));
+  try {
+    const paths = {pocket: 'p.json', omni: {short: 's.json', long: 'l.json'}};
+    const configs = {pocket: {voices: {a: 1}}, short: {voices: {b: 2}}, long: null};
+    const untouched = await clipVoiceConfigPaths({paths, configs, stateDirectory: dir, changed: false});
+    assert.equal(untouched.pocket, 'p.json');
+    assert.deepEqual(await readdir(dir), []);
+    const done = await clipVoiceConfigPaths({paths, configs, stateDirectory: dir});
+    assert.equal(done.pocket, join(dir, 'clips.pocket-voices.json'));
+    assert.equal(done.omni.short, join(dir, 'clips.omni-short-voices.json'));
+    assert.equal(done.omni.long, 'l.json', 'no long configuration: its path is as it was');
+    assert.deepEqual(JSON.parse(await readFile(done.pocket, 'utf8')), configs.pocket);
+    const failed = await clipVoiceConfigPaths({paths, configs, stateDirectory: dir, write: async () => { throw Object.assign(Error('no'), {code: 'EPERM'}); }});
+    assert.equal(failed.pocket, 'p.json');
+    assert.equal(failed.warnings.length, 2);
+  } finally { await rm(dir, {recursive: true, force: true}); }
 });

@@ -402,6 +402,31 @@ export function applyReadyClips(clips, tables) {
   return changed;
 }
 
+/**
+ * The voice workers read their voices from the configuration FILE they are started with, not from the tables the bridge holds. The tables are edited in memory at start
+ * (applyReadyClips, applyStandIns), so a worker started on the original file never knew those characters: the service believed it held them, the worker's answer listed only the
+ * file's voices, and the characters were never routed (30 Oct 2026, Aaron McCarlson). When anything was edited, this writes the edited configurations beside the others
+ * (<state>/clips.<name>.json) and returns the paths the workers should be started with: {pocket, omni: {short, long}, warnings}. `configs` = {pocket, short, long} (the parsed
+ * configurations, edited in place), `paths` = {pocket, omni: {short, long}}. A configuration that cannot be written keeps its original path (the live change still reaches a
+ * running worker later), and nothing is written when `changed` is false.
+ */
+export async function clipVoiceConfigPaths({paths, configs, stateDirectory, changed = true, write = atomicFile}) {
+  const out = {...paths, omni: {...paths?.omni}, warnings: []};
+  if (!changed || !stateDirectory) return out;
+  const targets = [['pocket', 'pocket', 'clips.pocket-voices.json'], ['short', 'omni-short', 'clips.omni-short-voices.json'], ['long', 'omni-long', 'clips.omni-long-voices.json']];
+  for (const [engine, , name] of targets) {
+    const config = configs?.[engine];
+    if (!plain(config) || !plain(config.voices)) continue;
+    const target = join(stateDirectory, name);
+    try {
+      await mkdir(stateDirectory, {recursive: true});
+      await write(target, JSON.stringify(config, null, 1));
+      if (engine === 'pocket') out.pocket = target; else out.omni[engine] = target;
+    } catch (error) { out.warnings.push(`${name} was not written (${error?.code ?? error?.message ?? 'error'}), the voice workers keep the original file`); }
+  }
+  return out;
+}
+
 /** The files of the builder in a Runtime (or a source checkout): {python, script, vgmstream}; a part that is not there is null. */
 export function builderFiles({project, runtimePython = null, exists = existsSync} = {}) {
   const pick = candidates => candidates.find(path => path && exists(path)) ?? null;
