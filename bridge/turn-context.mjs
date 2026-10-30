@@ -287,7 +287,9 @@ export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
 // The game sends no transfer and the mod moves no money, so the only signal is V's own words: when they speak of eddies, cash or paying, the turn
 // says in plain words who pays whom, and that what V says they gave is received.
 const MONEY_TALK = /\b(eddies|eddie|eurodollars?|euro\s?dollars?|creds?|credits?|cash|money|pay|pays|paid|paying|payment|tip|tipped|bribe|bribed|owe|owes)\b|[€$]\s?\d/i;
-export const MONEY_NOTE = 'Money: when V talks of eddies, V is the one paying you, not the other way round. If V says V gave or paid you eddies, you have them now: take it as done and thank V in your own way, '
+// V's words about money, buying or what V can afford: the turn hears V's money band (describeTurnContext).
+const MONEY_ASK = new RegExp(MONEY_TALK.source + String.raw`|\b(?:buy|buying|bought|afford|expensive|cheap|price|prices|cost|costs|broke|rich|poor|loaded|wealthy|spend|spending|shopping|treat you|my treat)\b`, 'i');
+export const MONEY_NOTE ='Money: when V talks of eddies, V is the one paying you, not the other way round. If V says V gave or paid you eddies, you have them now: take it as done and thank V in your own way, '
   + 'and never answer as if V were asking you for eddies or as if you were the one handing them over. If V tells you to take eddies for a job, V is paying you for it.';
 /**
  * The money note when V's words speak of money or paying, else ''. Not for an automatic reaction (a bark answers no remark of V's). With Eddies with characters on, a named
@@ -308,7 +310,9 @@ export function nuditySentences(gear, form, off = NO_KINDS, full = true) {
   const found = gearNudity(gear);
   if (!found) return [];
   const what = found.state === 'topless' ? NUDITY_WORDS.topless : found.bare ? NUDITY_WORDS.bare : `${NUDITY_WORDS.nude}, with only accessories or footwear on`;
-  if (!full) return [`V is still ${what}: the current truth, whatever was said about V's clothes earlier.`];
+  // The standing line (2026-10-30): the fact without a cue, and leave to drop it. Said as "the current truth" on every turn, it had Panam answer "how do you feel" and "thanks"
+  // with "you are going to freeze standing around like that" turn after turn; she reacts once, when it is new, and again when V brings it up.
+  if (!full) return [`V is still ${what} (you have already seen it: leave it unless V brings it up).`];
   if (form === 'ambient') {
     return [`V is ${what} right now, in plain view of you: the current truth. React as a stranger naturally would (a stare, a remark, a double take, shock, disapproval, or not caring).`];
   }
@@ -413,7 +417,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     sentences.push(`V is ${[sex, lifepath ? `lifepath ${lifepath}` : null].filter(Boolean).join(', ')}.`);
   }
   // Money is the least urgent fact, so it goes last and is the first to go in a budget cut. A companion in person only.
-  if (!ambient && !phone && MONEY[snapshot.money]) sentences.push(MONEY[snapshot.money]);
+  // Only when V's words are about money or buying (2026-10-30, docs/NATURAL_TALK_SAMPLES_2026-10-30.md): said on every turn, "V is rich." came back as "you big rich idiot" in
+  // answer to "like what you see" and "you look good". It is background then (the Background line of the turn, split mode), so the block itself stays the same.
+  if (!ambient && !phone && MONEY[snapshot.money] && !speaksUp(input) && MONEY_ASK.test(String(input.text ?? ''))) scene('money', MONEY[snapshot.money]);
   const background = scenery.length ? `${BACKGROUND} ${scenery.join(' ')}` : '';
   // An arranged meeting: a named companion's, on every channel (a stranger and Johnny in V's head have none). One sentence; on a phone or a call it also
   // lifts the "name no place of your own" rule for that one place.
