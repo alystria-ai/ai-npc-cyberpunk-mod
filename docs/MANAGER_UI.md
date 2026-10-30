@@ -101,7 +101,8 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   Smasher, one row each with **Invite**, **Add copy (n)** once a copy is in the party, or **Profile only** when the character has no
   model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in
   effect (speech, behavior, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
-  contacts and quest unlocks. There is no search box (NSUI has none); the list pages (see "How lists page").
+  contacts and quest unlocks. In MCM the list has a **Search characters** section (see "Searching the character lists"); NSUI has no text
+  box, so there the list keeps the page slider ("How lists page").
 - **Parties** (its first section is **Current party**; saved parties are under it, see "Parties" below): one row per actual or invited copy, "Name #number", with one action per state: **Dismiss** once it has joined, **Cancel invitation** while it is
   still being prepared, **Remove** if its preparation failed. A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
   gameplay resumes, and if the game refuses it the row returns with the reason on a line below it. A failed invitation is listed with its
@@ -300,6 +301,23 @@ search (one log line). The hint line on the page ("Type in the search box ...") 
 (`M.offerSearch`, set by `mcm-host.lua` while it is registered). **Native Settings UI has no text field**, so its Model browser keeps
 the letter group and the page slider.
 
+**Searching the character lists (2026-10-31, branch `feat/manager-search`).** Main characters to invite and Side characters to invite are searched
+with the same Search box of MCM as the Model browser (provider search mode, see above), but MCM draws that box dim until it is clicked and its
+public API has no text row and no way to focus the box, so the lists carry a section of their own above everything else (category id
+`character-search`, heading "Search characters", built by `M.searchCategory`, only where the host offers a text box, so never in NSUI):
+- No search: one button row, "Use the Search box, top right" with **How to search** (id `search:help`). Pressing it puts "Click the Search box at the top
+  right of this panel and type a name." on the status line under Back; the row's help says the same at length (the box is dim until it is clicked,
+  every match on every page and letter is shown, case and accents do not matter, every typed word must start a word of the name).
+- A search is on: the row reads "search: pan · 2 found" with **Clear search** (id `search:clear`, `M.clearSearch`), and the title of the list says the
+  same ("Main characters to invite · search: pan · 2 found · Page 1 / 1", from the `character-status` row; the query is cut after 18 width units).
+  Clear search empties the host's box through the function the host gave `M.offerSearch(offered, clearBox)` (`mcm-host.lua`: `api.ui.setSearch(key, '')`)
+  and the search itself; for one second the host ignores the old text still in MCM's context (`clearBoxUntil`), so the old words cannot bring the
+  search back before MCM takes the empty text.
+- The rule is the one of the phone's Chat search (`M.foldText`, `M.nameWords`, `profileMatches` in `manager-ui.lua`): case and accents ignored (accented
+  Latin letters are their plain letters, `ß` is `ss`), a word is a run of anything but spaces and punctuation, and every typed word has to be the start
+  of a word of the name or of the key. The words of a character are made once (a weak table), the typed words once per text, and the list is
+  filtered once per text (`searchedModels`), never per frame or per page build. A search puts the list on page 1 and the letter group out of the way.
+
 **Favorites (2026-10-28, branches `feat/favorites` and `feat/favorites-2`).** Characters to invite and the Model browser have **per-row
 buttons only**. The first version had a page-wide Add to favorites button beside Back that acted on the row the player was last on; the
 settings screens do not reliably tell which row is selected (Native Settings UI's hover event, MCM's private hovered row), so it was
@@ -310,7 +328,8 @@ of `mcm-host.lua`). The rows now (`manager-ui.lua` `entryRows`, `favoriteRows`, 
   right under it is **Add copy (n)** (id `invite:<key>`, the old button).
 - **A favorite**: no Add to favorites row. Her place in the list keeps its one Invite / Add copy row, and she is also in the **Favorites block**,
   a section of its own right under Back (category id `favorites`, heading "Favorites"): her Invite / Add copy row (id `invite:favorite:<key>`) and under
-  it a **Remove from favorites** row (id `favorite:remove:<key>`, button "Remove"). The block is on **page 1 only** (a favorite on any page is in
+  it a row that names her, **Remove Panam Palmer from favorites** (id `favorite:remove:<key>`, button "Remove"; a name that makes the label too wide
+  gets "Remove Panam Palmer", then a cut, so the row never reads as a character called "Remove from favorites"). The block is on **page 1 only** (a favorite on any page is in
   it; the Search text and the Model browser's letter group narrow it like the list), at most 30 favorites with a "{count} more favorites" line
   after them.
 - The Model browser uses the same rows. A model counts as invited when it is in the party (its button then also reads Add copy (n), which it did

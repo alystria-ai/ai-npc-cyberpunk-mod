@@ -3063,11 +3063,11 @@ test('Side characters to invite: a Home row of its own, twelve a page, a Starts 
     for _, key in ipairs(invites()) do assert(row('invite:' .. key).label:sub(1, 1) == 'B', key) end
     -- A search covers the whole list whatever the group, by words of the name or the key.
     assert(core.setSearch('PERSON 07')); loaded = registered.loadMod('manager')
-    assert(table.concat(invites(), ',') == 'side-7' and row('ui:group') == nil and row('character-status').label == '1 matching characters')
+    assert(table.concat(invites(), ',') == 'side-7' and row('ui:group') == nil and row('character-status').label == 'search: person 07 · 1 found', row('character-status').label)
     assert(core.setSearch('side-2')); loaded = registered.loadMod('manager')
     assert(#invites() == 11, 'side-2 and side-20 to side-29: ' .. #invites())
     assert(core.setSearch('nobody')); loaded = registered.loadMod('manager')
-    assert(#invites() == 0 and row('character-status').label == '0 matching characters')
+    assert(#invites() == 0 and row('character-status').label == 'search: nobody · 0 found', row('character-status').label)
     assert(core.setSearch('')); loaded = registered.loadMod('manager')
     assert(row('ui:group').value == 1 and #invites() == 12, 'a search puts the group back on All')
     -- Invite makes our own copy; the row then offers another copy.
@@ -3078,6 +3078,92 @@ test('Side characters to invite: a Home row of its own, twelve a page, a Starts 
     -- Leaving the page drops the search and the group.
     assert(invoke('side:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
     assert(#invites() == 12 and row('character-status').label == '30 matching characters')
+  `);
+});
+
+/// 2026-10-31 (owner): the lists have a Search section of their own (a host with a text box only), and the search follows the rule of the phone's Chat search:
+// case and accents ignored, every typed word the start of a word of the name, any page and letter.
+test('the character lists search by word starts, ignoring case and accents, across every page and letter, with a Search section that says how and a Clear search that empties the host box', () => {
+  run(`${nsuiFixture}
+    local list = {{key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}},
+      {key = 'jose-alvarez', name = 'José Álvarez', records = {'Character.jose'}},
+      {key = 'hanako-arasaka', name = 'Hanako Arasaka', records = {'Character.hanako'}},
+      {key = 'mueller', name = 'Müller Ñandú', records = {'Character.muller'}},
+      {key = 'strasse', name = 'Straße Weiß', records = {'Character.strasse'}}}
+    for index = 1, 30 do
+      list[#list + 1] = {key = 'side-' .. index, name = ({'Alan', 'Bea', 'Cora'})[(index - 1) % 3 + 1] .. ' Pana ' .. string.format('%02d', index), kind = 'named',
+        invite = true, minor = true, records = {'Character.side_' .. index}}
+    end
+    manager.configure(api, list)
+    local cleared = 0
+    local function invites()
+      local found = {}
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then found[#found + 1] = item.id:sub(8) end end
+      end
+      return table.concat(found, ',')
+    end
+    local function categoryIds()
+      local ids = {}
+      for _, category in ipairs(loaded.categories) do ids[#ids + 1] = category.id end
+      return table.concat(ids, ',')
+    end
+    -- A host without a text box (Native Settings UI): no Search section, the lists are as they were.
+    assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
+    assert(categoryIds() == 'navigation,characters', categoryIds())
+    -- The matcher: word starts only, case and accents folded, every word must match, the key counts too.
+    assert(core.setSearch('RITA')); loaded = registered.loadMod('manager')
+    assert(invites() == 'rita-wheeler', invites())
+    assert(core.setSearch('ita')); loaded = registered.loadMod('manager')
+    assert(invites() == '', 'the middle of a word is not a word start: ' .. invites())
+    assert(core.setSearch('jose alv')); loaded = registered.loadMod('manager')
+    assert(invites() == 'jose-alvarez', 'plain letters find accented ones: ' .. invites())
+    assert(core.setSearch('ÁLVAREZ josé')); loaded = registered.loadMod('manager')
+    assert(invites() == 'jose-alvarez', 'accented letters find plain ones, in any order: ' .. invites())
+    assert(core.setSearch('muller nandu')); loaded = registered.loadMod('manager')
+    assert(invites() == 'mueller', invites())
+    assert(core.setSearch('strasse weiss')); loaded = registered.loadMod('manager')
+    assert(invites() == 'strasse', 'a sharp s is ss: ' .. invites())
+    assert(core.setSearch('rita zzz')); loaded = registered.loadMod('manager')
+    assert(invites() == '', 'every typed word must match')
+    assert(core.setSearch('hanako-ara')); loaded = registered.loadMod('manager')
+    assert(invites() == 'hanako-arasaka', 'punctuation only separates words: ' .. invites())
+    assert(core.setSearch('')); loaded = registered.loadMod('manager')
+    -- A host with a text box: the section is the first after Back, on every page, with the row that says where to type.
+    core.offerSearch(true, function() cleared = cleared + 1 end)
+    loaded = registered.loadMod('manager')
+    assert(categoryIds() == 'navigation,character-search,characters', categoryIds())
+    local help = row('search:help')
+    assert(help and help.type == 'action' and help.value == 'How to search' and help.label == 'Use the Search box, top right', 'the row says where to type')
+    assert(help.description:find('Search box at the top right', 1, true))
+    local result = invoke('search:help')
+    assert(result.ok and core.feedback() == 'Click the Search box at the top right of this panel and type a name.', tostring(core.feedback()))
+    assert(row('character-status') == nil, 'no status line without a search')
+    -- A search: the section reads the query and the count, the title of the list says the same, Clear search empties the host box and the search.
+    assert(core.setSearch('Pana 1')); loaded = registered.loadMod('manager')
+    assert(row('search:help') == nil)
+    local clear = row('search:clear')
+    assert(clear and clear.value == 'Clear search' and clear.label == 'search: pana 1 · 0 found', clear and clear.label)
+    assert(core.setSearch('rita')); loaded = registered.loadMod('manager')
+    assert(row('search:clear').label == 'search: rita · 1 found' and row('character-status').label == 'search: rita · 1 found')
+    assert(invoke('search:clear').ok and cleared == 1 and core.search() == '', 'the host box was emptied: ' .. cleared)
+    assert(row('search:help') and row('search:clear') == nil and row('character-status') == nil)
+    -- The side list: the same section, the same rule, across all pages and letters, and the title reads the search.
+    assert(invoke('characters:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
+    assert(categoryIds() == 'navigation,character-search,side', categoryIds())
+    assert(row('character-status').label == '30 matching characters' and row('ui:page').max == 3)
+    assert(core.setSearch('pana 07')); loaded = registered.loadMod('manager')
+    assert(invites() == 'side-7' and row('character-status').label == 'search: pana 07 · 1 found' and row('ui:page') == nil and row('ui:group') == nil)
+    assert(core.setSearch('cora')); loaded = registered.loadMod('manager')
+    assert(row('character-status').label == 'search: cora · 10 found' and row('ui:page') == nil, row('character-status').label)
+    assert(invoke('search:clear').ok and cleared == 2)
+    assert(row('character-status').label == '30 matching characters' and row('ui:group').value == 1)
+    -- A long query is cut in the label, the full count stays.
+    assert(core.setSearch(('x'):rep(60))); loaded = registered.loadMod('manager')
+    assert(row('search:clear').label:find('^search: x+… · 0 found$') and #row('search:clear').label < 60, row('search:clear').label)
+    -- Leaving the list drops the search; the box is told only through the host (followSearch), not here.
+    assert(invoke('side:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
+    assert(row('search:help') and core.search() == '')
   `);
 });
 

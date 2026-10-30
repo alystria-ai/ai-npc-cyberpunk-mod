@@ -132,6 +132,14 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   assert(ns.find('Page').currentValue == 1)
 `));
 
+test('Native Settings UI has no text box, so the character lists draw no Search section and keep the page slider and the Starts with letters', () => run(`${harness()}
+  press('Main characters to invite')
+  assert(not ns.find('Search characters') and not ns.find('Use the Search box, top right') and not ns.find('How to search'), shownOutline())
+  assert(ns.find('Page') and #ns.sections() == 2, shownOutline())
+  press('Back to Companion Manager'); press('Side characters to invite')
+  assert(not ns.find('Search characters') and not ns.find('Use the Search box, top right'), shownOutline())
+`));
+
 test('the model browser reads the scan first, then a letter group and a page of rows; a row of a larger list is replaced alone when its state changes', () => run(`${harness()}
   press('Model browser')
   assert(ns.find('Reading installed models…') and not ns.find('Page'), 'only the status line while the models are read')
