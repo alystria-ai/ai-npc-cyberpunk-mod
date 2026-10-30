@@ -39,7 +39,8 @@ character and twin. A sweep row (`"minor": true`, `"invite": false`) names an or
 7. `compile.mjs apply`: dossier (`research/cyberpunk/dossiers/<key>.json`, `firstPersonNative: true`: no third-person text exists to rewrite, so
    there is no `first-person-profiles.json` entry), roster row, profile text, appearance, twin voice assignment, build report, coverage,
    knowledge pack `profileKeys` (the pack limit was raised from 256 to 1024 in `bridge/world-knowledge.mjs`), `cast-sweep-voices.json`.
-   Then `node scripts/Build-FacialGraphs.mjs --reds` (no change expected) and `node scripts/cast-sweep/name-pools.mjs` followed by
+   Then `node scripts/cast-sweep/finances.mjs` (a minor profile takes the money row of its fallback archetype, `MINOR_FINANCE_BASES` in
+   `bridge/eddies-finances.mjs`), `node scripts/Build-FacialGraphs.mjs --reds` (no change expected) and `node scripts/cast-sweep/name-pools.mjs` followed by
    `node scripts/Build-NpcNamePools.mjs` (generated names and street handles stay clear of the new names).
 8. `stems.py` and `voices.py`: voice stems that start with the person's full name (never a voice tag alone), `vo` folder only, news,
    radio, call and loading screen stems skipped, 3.5 to 9.5 s, at least six words, no clipping, at least 0.4 percent of the energy above
