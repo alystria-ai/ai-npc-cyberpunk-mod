@@ -26,7 +26,7 @@ def same_recipe(a: dict, b: dict) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--shards", required=True)
-    parser.add_argument("--extra", nargs="*", default=[], help="more manifest files (m_cast.json) to merge, each with its report beside it as r_<same>.json")
+    parser.add_argument("--extra", nargs="*", default=[], help="more manifest files (m_cast.json, retries) to merge, each with its report beside it as r_<same>.json")
     parser.add_argument("--out", default=str(REPO / "characters/voice-clips-manifest.json"))
     parser.add_argument("--coverage", default=str(REPO / "research/voice-extract/coverage.json"))
     args = parser.parse_args()
@@ -36,14 +36,22 @@ def main() -> int:
     for path in manifests:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         for key, kinds in data["voices"].items():
-            voices.setdefault(key, {}).update(kinds)
+            for kind, spec in kinds.items():          # a later run (a retry of a few voices) replaces an earlier result only when it is closer to the shipped clip
+                old = voices.setdefault(key, {}).get(kind)
+                if old is None or "sameAs" in old or ("sameAs" not in spec and (spec["maxDiff"], spec["differing"]) < (old["maxDiff"], old["differing"])):
+                    voices[key][kind] = spec
     failed = []
     for path in sorted(glob.glob(os.path.join(args.shards, "r_[0-9]*.json"))) + [str(Path(p).with_name("r_" + Path(p).name[2:])) for p in args.extra]:
         if os.path.exists(path):
             failed += json.loads(Path(path).read_text(encoding="utf-8")).get("failed", [])
     # a failure that a later retry fixed is not a failure
     failed = [row for row in failed if row.get("kind") == "all" or row["kind"] not in voices.get(row["key"], {})]
+    failed = list({(row["key"], row["kind"]): row for row in failed}.values())
 
+    for key, kinds in voices.items():       # an entry that points at another kind of the same voice counts as that kind
+        for kind, spec in list(kinds.items()):
+            if "sameAs" in spec:
+                kinds[kind] = {**kinds[spec["sameAs"]]}
     out: dict = {}
     for key in sorted(voices):
         row = {}
