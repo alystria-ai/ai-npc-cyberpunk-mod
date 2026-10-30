@@ -15,6 +15,9 @@
 //   --endpoint <file>: another endpoint file (player-custom-endpoint.txt for the Custom provider's model); --gap <ms> between requests (default 4500, the free Gemini plan).
 //   --local <file.gguf> --tier lite|standard [--mature] [--mmproj <projector.gguf>] [--device Vulkan1] [--port 18606]: Local AI instead, a llama-server of the Runtime on
 //              loopback, started and stopped by this script by its own handle (pass --gap 0).
+//   --set ab --variant A|B|C: the background framing A/B test (docs/BACKGROUND_FRAMING_AB_2026-10-30.md): 61 turns (46 where V's gear and money must stay out of the reply, 15 where V asks
+//              about them), V dressed on every turn. A = this checkout as it is (gear and money told only when V's words are about them), B = both always told in the Background line of the turn,
+//              framed as what she already knows and has noticed, C = both always told as a "what you are aware of" block at the start of the world part plus one instruction right after V's words.
 // The key: read inside this script from the player's Gemini endpoint file (CustomEndpoint), never printed, sent only to Google's address. At most one request per turn (the
 // host may retry a failed one once); 21 turns a run.
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
@@ -27,6 +30,7 @@ const option = (name, fallback) => { const i = argv.indexOf(`--${name}`); return
 const flag = name => argv.includes(`--${name}`);
 const root = resolve(option('root', project)), inputPath = option('input'), frames = option('frames'), label = option('label', 'run');
 const outDir = resolve(option('out', resolve(project, 'runtime/natural-talk'))), dump = flag('dump'), pictureMode = option('picture', 'auto');
+const turnSet = option('set', 'default'), variant = option('variant', 'A');
 const endpointFile = option('endpoint', resolve(process.env.LOCALAPPDATA ?? '', 'AiNpcCyberpunkMod/data/player-gemini-endpoint.txt'));
 if (!inputPath) { console.error('--input <last-input.json> is required'); process.exit(2); }
 const imp = name => import(pathToFileURL(resolve(root, 'bridge', name)).href);
@@ -36,7 +40,7 @@ const {PersonaBook, LIMITS, joinBlocks} = await imp('mistral-prompt.mjs'), {Mist
 const {TextProviderHost, customRoute} = await imp('text-provider-host.mjs'), {PromptProfiles} = await imp('prompt-profile-store.mjs'), {streamChat} = await imp('mistral-client.mjs');
 const {parseInput, archetypeContext} = await imp('protocol.mjs'), {conversationContextBlocks, FIRST_PERSON_REMINDER} = await imp('quest-context.mjs');
 const romance = await imp('romance-context.mjs'), {RELATIONSHIP_PROFILES} = await imp('relationship-routing.mjs');
-const {gearSeen} = await imp('player-gear.mjs'), {gearMemory} = await imp('gear-memory.mjs');
+const {gearSeen, parseGear} = await imp('player-gear.mjs'), {gearMemory} = await imp('gear-memory.mjs');
 const {CustomEndpoint} = await imp('custom-endpoint.mjs');
 const vision = await optional('vision-message.mjs');
 
@@ -44,6 +48,9 @@ const vision = await optional('vision-message.mjs');
 const GEAR = {version: 1, status: 'ready',
   clothing: [{slot: 'outerTorso', name: 'Armored Nomad Jacket'}, {slot: 'innerTorso', name: 'Black Tank Top'}, {slot: 'legs', name: 'Cargo Pants'}, {slot: 'feet', name: 'Combat Boots'}],
   weapons: [{slot: 'slot1', name: 'Overture'}, {slot: 'slot2', name: 'Lexington'}], cyberware: [{slot: 'eyes', name: 'Kiroshi Optics'}, {slot: 'os', name: 'Sandevistan'}]};
+const GEAR2 = {version: 1, status: 'ready', clothing: [{slot: 'outerTorso', name: 'Techtronika Suit Jacket'}, {slot: 'legs', name: 'Leather Pants'}, {slot: 'feet', name: 'Street Sneakers'}],
+  weapons: [{slot: 'slot1', name: 'Nue'}], cyberware: [{slot: 'eyes', name: 'Kiroshi Optics'}]};
+let gearSwapped = false; // --swap-gear-at <turn id>: from that turn on V wears GEAR2 (the prompt cache check of the A/B test)
 const NUDE = {version: 1, status: 'ready', clothing: [{slot: 'feet', name: 'Combat Boots'}], nudity: 'nude'};
 const RADIO = {radio: {source: 'car', station: '89.3 Radio Vexelstrom', track: 'Chippin In'}};
 const TV = {tv: {channel: 'N54 News', said: 'Militech denies any involvement in the Arroyo explosions.'}};
@@ -81,6 +88,29 @@ export const TURNS = [
   {id: 's2', who: 'stranger', kind: 'place', text: "where's a good bar around here"},
 ];
 
+// ---- The background framing A/B set (--set ab): ask-* = V's words are about V's gear or money (the reply must bring it up, correctly); the other turns must leave both out. V is dressed throughout.
+const AB_ROWS = [
+  ['panam', 'small', 'hey there'], ['panam', 'small', 'okay done'], ['panam', 'small', 'how do you feel these days'], ['panam', 'small', 'thanks'], ['panam', 'small', 'so hows life'],
+  ['panam', 'place', 'what do you think of this place'], ['panam', 'ask-gear', 'what am i wearing right now'], ['panam', 'small', 'i could really go for some coffee'],
+  ['panam', 'quest', 'wakako sent me something, think i should take the job?'], ['panam', 'small', 'do you ever get tired of the road'], ['panam', 'ask-gear', 'which guns am i carrying again'],
+  ['panam', 'small', 'tell me something about the Aldecaldos'], ['panam', 'small', 'i slept terribly last night'], ['panam', 'ask-money', 'do i have enough eddies to buy that car'],
+  ['panam', 'small', 'what should we do tonight'], ['panam', 'ask-gear', 'does this jacket suit me'], ['panam', 'small', 'you hungry?'],
+  ['judy', 'small', "hey judy, how's your day going", TV], ['judy', 'compliment', 'you look really good today', TV], ['judy', 'place', "what's this place like", TV], ['judy', 'small', 'have you been sleeping okay', TV],
+  ['judy', 'ask-gear', 'what do you think of my cyberware', TV], ['judy', 'small', 'tell me about your braindance work', TV], ['judy', 'small', 'i missed you', TV],
+  ['judy', 'ask-gear', "do you like what i'm wearing", TV], ['judy', 'small', 'what are you watching', TV], ['judy', 'ask-money', 'do you think i am loaded enough to buy a place in Japantown', TV], ['judy', 'small', 'want to get some noodles later', TV],
+  ['johnny', 'small', 'what do you think about corpos', RADIO], ['johnny', 'media', 'you like this song?', RADIO], ['johnny', 'small', 'i am tired johnny', RADIO], ['johnny', 'small', 'do you ever miss the stage', RADIO],
+  ['johnny', 'ask-gear', 'what am i rocking today, be honest', RADIO], ['johnny', 'small', "what's the worst thing arasaka ever did", RADIO], ['johnny', 'small', 'do you think we will make it out', RADIO],
+  ['johnny', 'ask-money', 'am i rich or what, you can see my wallet', RADIO], ['johnny', 'small', 'tell me about the Samurai days', RADIO], ['johnny', 'ask-gear', 'what do you make of my Sandevistan', RADIO], ['johnny', 'small', 'i need a drink', RADIO],
+  ['river', 'small', 'hey river, long time no see'], ['river', 'compliment', 'good to see you looking well'], ['river', 'quest', 'got any work for me'], ['river', 'small', "how's your sister"],
+  ['river', 'ask-gear', 'do i look armed to you'], ['river', 'small', "what's your take on the NCPD these days"], ['river', 'small', 'i am thinking of taking a few days off'],
+  ['river', 'ask-gear', 'which chrome do i have installed'], ['river', 'ask-money', 'can i pay you for the job or am i broke'], ['river', 'small', 'thanks for the talk'],
+  ['vendor', 'small', 'what are you selling'], ['vendor', 'small', "how's business"], ['vendor', 'ask-gear', 'do you like my jacket'], ['vendor', 'small', "what's good here"], ['vendor', 'place', 'any good place to sit nearby'], ['vendor', 'small', 'thanks, see you around'],
+  ['stranger', 'small', 'howdy there partner'], ['stranger', 'place', "where's a good bar around here"], ['stranger', 'small', 'long day huh'], ['stranger', 'ask-gear', 'what do you think of my outfit'],
+  ['stranger', 'place', 'is it safe around here at night'], ['stranger', 'small', 'take care'],
+];
+const abCount = {};
+export const TURNS_AB = AB_ROWS.map(([who, kind, text, media]) => ({id: `${who}${abCount[who] = (abCount[who] ?? 0) + 1}`, who, kind, text, ...(media ? {media} : {})}));
+
 const base = JSON.parse(await readFile(resolve(inputPath), 'utf8'));
 let counter = 2000;
 function turnInput(turn) {
@@ -89,7 +119,7 @@ function turnInput(turn) {
   const raw = structuredClone(base);
   for (const key of ['bonds', 'eddies', 'leaveOffer', 'battle', 'tacticUnavailable', 'driveUnavailable', 'reaction', 'leaseAt', 'archetype']) delete raw[key];
   const entity = cast.archetype || cast.key.startsWith('resident') ? `${20000000 + Object.keys(CAST).indexOf(turn.who)}ULL` : '11148354ULL';
-  Object.assign(raw, {profileKey: cast.key, name: cast.name, text: turn.text, requestId: `${counter}-9-${entity}`, generation: 9, entity, gear: turn.nude ? NUDE : GEAR});
+  Object.assign(raw, {profileKey: cast.key, name: cast.name, text: turn.text, requestId: `${counter}-9-${entity}`, generation: 9, entity, gear: turn.nude ? NUDE : gearSwapped ? GEAR2 : GEAR});
   if (cast.archetype) raw.archetype = cast.archetype;
   raw.turnContext = {...raw.turnContext, indoors: !!cast.indoors, ...(turn.media ? {media: turn.media} : {}),
     party: cast.archetype || cast.key.startsWith('resident') ? [] : [{key: cast.key, name: cast.name, activity: 'standing', near: true, holding: 'holstered', outfit: 'home'}]};
@@ -101,7 +131,8 @@ function turnInput(turn) {
 
 function contextFor(turn, input) {
   const cast = CAST[turn.who];
-  const blocks = conversationContextBlocks(input).map(block => ({...block}));
+  let blocks = conversationContextBlocks(input).map(block => ({...block}));
+  const ambientCast = !!cast.archetype || cast.key.startsWith('resident');
   if (cast.archetype || cast.key.startsWith('resident')) {
     blocks.splice(1, 0, {tier: 'world', text: archetypeContext(input)});
   } else {
@@ -114,6 +145,7 @@ function contextFor(turn, input) {
     if (selection && romance.romanceReminder) blocks.push({tier: 'closing', text: romance.romanceReminder(selection, 'private')});
   }
   blocks.push({tier: 'volatile', text: FIRST_PERSON_REMINDER});
+  blocks = applyVariant(blocks, input, ambientCast);
   const contextParts = Object.fromEntries(['now', 'notes', 'world', 'volatile', 'closing'].map(t => [t, joinBlocks(blocks.filter(item => item.tier === t).map(item => item.text))]));
   contextParts.worldBlocks = blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}));
   return {context: joinBlocks(blocks.map(item => item.text)), contextParts};
@@ -130,6 +162,50 @@ async function pictureFor(turn, history) {
   if (mode === 'none' || !frames) return {mode: 'none', images: null};
   const bytes = await readFile(resolve(frames, `${cast.frame}-${mode}.jpg`));
   return {mode, images: [{mime: 'image/jpeg', base64: bytes.toString('base64')}]};
+}
+
+// ---- The framing variants (--variant B|C). A leaves this checkout's own context alone. B and C drop the gated gear line and tell V's gear and money on EVERY turn, as plain sentences framed as
+// what she already knows. The money sentence is the one the Background line already uses (turn-context.mjs MONEY).
+const MONEY_SAID = {broke: 'V is nearly broke.', low: 'V is short on cash.', comfortable: 'V has plenty of eddies.', rich: 'V is rich.'};
+const GATED_GEAR = /^(?:V's current gear|What you can see of V right now) - /;
+const BACKGROUND_HEAD = 'Background (mention only if it matters or V asks):';
+const listOf = names => names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+function factSentences(input, ambient) {
+  const gear = parseGear(input.gear), out = [];
+  if (gear?.status === 'ready') {
+    const slot = row => `${row.name} (${row.slot === 'os' ? 'operating system' : row.slot.replace(/([A-Z])/g, ' $1').toLowerCase()})`;
+    if (gear.clothing?.length) out.push(`V is wearing ${listOf(gear.clothing.map(slot))}.`);
+    const hand = (gear.weapons ?? []).filter(row => row.slot === 'hand'), carried = (gear.weapons ?? []).filter(row => row.slot !== 'hand');
+    if (hand.length) out.push(`V has ${listOf(hand.map(row => row.name))} in hand.`);
+    if (!ambient && carried.length) out.push(`V carries ${listOf(carried.map(row => row.name))}.`);
+    if (!ambient && gear.cyberware?.length) out.push(`V has ${listOf(gear.cyberware.map(slot))} installed.`);
+  }
+  const money = MONEY_SAID[input.turnContext?.money];
+  if (!ambient && money) out.push(money);
+  return out;
+}
+const stripMoney = text => Object.values(MONEY_SAID).reduce((t, line) => t.replace(line, ''), text).replace(/\s+/g, ' ').trim();
+function applyVariant(blocks, input, ambient) {
+  if (variant === 'A') return blocks;
+  const facts = factSentences(input, ambient);
+  const kept = blocks.filter(block => !GATED_GEAR.test(block.text ?? '')).map(block => ({...block}));
+  if (!facts.length) return kept;
+  if (variant === 'B') {
+    // In the Background line of the turn (the volatile notes right before V's words), the scenery first.
+    const at = kept.findIndex(block => block.tier === 'volatile' && (block.text ?? '').startsWith(BACKGROUND_HEAD));
+    const scenery = at >= 0 ? stripMoney(kept[at].text.slice(BACKGROUND_HEAD.length)) : '';
+    const text = `Background (what you already know and have already noticed, so none of it is news to you: bring it up only when V's words make it relevant): ${[scenery, ...facts].filter(Boolean).join(' ')}`;
+    if (at >= 0) kept[at].text = text; else kept.splice(kept.findIndex(block => block.tier === 'notes'), 0, {tier: 'volatile', text});
+    return kept;
+  }
+  if (variant === 'C') {
+    // At the start of the world part (before the journal history): plain notes of what she is aware of. After V's words: one instruction that says what the notes are for.
+    for (const block of kept) if (block.tier === 'volatile' && (block.text ?? '').startsWith(BACKGROUND_HEAD)) { const rest = stripMoney(block.text); block.text = rest === BACKGROUND_HEAD ? '' : rest; }
+    kept.splice(1, 0, {tier: 'world', key: 'aware', text: `What you are aware of about V, quietly, the way anyone near V would be: ${facts.join(' ')} ${ambient ? 'You can see it.' : 'You can see all of it.'}`});
+    kept.push({tier: 'closing', text: 'Based on everything above, reply to what V just said. What you are aware of about V (what V has on, carries or owns) comes in only when V asks about it.'});
+    return kept;
+  }
+  throw Error(`unknown variant ${variant}`);
 }
 
 // ---- The run ---------------------------------------------------------------------------------------------------------------------
@@ -190,7 +266,8 @@ const host = new TextProviderHost({provider, memory: await MistralMemory.open({p
 const only = option('turns', '').split(',').filter(Boolean);
 const rows = [], started = Date.now(), said = {};
 try {
-  for (const turn of TURNS.filter(row => !only.length || only.includes(row.id))) {
+  for (const turn of (turnSet === 'ab' ? TURNS_AB : TURNS).filter(row => !only.length || only.includes(row.id))) {
+    if (turn.id === option('swap-gear-at')) gearSwapped = true;
     const input = turnInput(turn), cast = CAST[turn.who];
     const {context, contextParts} = contextFor(turn, input);
     const picture = await pictureFor(turn, said[turn.who] ?? []);
@@ -201,7 +278,7 @@ try {
         sessionId: `natural-${label}-${turn.who}`, ...(picture.images ? {visionImages: picture.images} : {})});
       gearSeen(input, gearMemory, {visible: !!cast.archetype || cast.key.startsWith('resident')});
       (said[turn.who] ??= []).push(turn.text);
-      rows.push({id: turn.id, who: turn.who, kind: turn.kind, v: turn.text, nude: !!turn.nude, picture: picture.mode, reply: result.text, ms: Date.now() - t0});
+      rows.push({id: turn.id, who: turn.who, kind: turn.kind, v: turn.text, nude: !!turn.nude, variant, picture: picture.mode, reply: result.text, ms: Date.now() - t0});
       if (!dump) console.log(`[${turn.id}] (${picture.mode}) V: ${turn.text}\n   -> ${result.text}`);
     } catch (error) {
       rows.push({id: turn.id, who: turn.who, kind: turn.kind, v: turn.text, picture: picture.mode, error: String(error?.kind ?? error?.name ?? error?.message ?? 'error').slice(0, 80)});
