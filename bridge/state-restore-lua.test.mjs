@@ -29,7 +29,7 @@ const clockLua = `
   end
   local function newRestore() return (function() ${restoreSource} end)() end
 `;
-const customised = {...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
+const customised = {...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 200, vVoiceVolume: 80,
   voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead'};
 
 // --------------------------------------------------------------------------------------------------------- the module

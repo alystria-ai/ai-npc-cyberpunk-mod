@@ -2484,10 +2484,13 @@ local function schema()
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
-            -- A slider, 50 to 200 in steps of 5; the page shows its number, so the unit is in the name. The bridge applies it to every voice
-            -- (companions, NPCs, add-ons and V's typed lines) as gain behind a peak limiter; it takes effect on the next reply.
+            -- Two sliders, 50 to 300 in steps of 5; the page shows the number, so the unit is in the name. The bridge applies Voice volume to every voice but
+            -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter; it takes effect on the next reply.
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
-                'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
+                'How loud the companions’ and characters’ voices are. 100 is the normal level, 150 the default.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. V’s voice has its own setting below, and the game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
+                nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
+            setting('vVoiceVolume', 'V’s voice volume (%)', 'int', snapshot.settings.vVoiceVolume, voiceRange.default,
+                'How loud V’s own voice is, for V’s typed and microphone lines. 100 is the normal level, 150 the default.\n\nAbove 100 the voice gets louder, with a limiter so it does not crackle. The companions’ voices and the game’s own dialogue and sounds do not change.\n\nThe next line uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
             -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
             -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
@@ -2920,8 +2923,11 @@ function M.apply(changes)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
             or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' or key == 'localOffload' then values[key] = change.value
         elseif key == 'voiceVolume' then
-            if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
+            if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 300 percent.') end
             values.voiceVolume = change.value
+        elseif key == 'vVoiceVolume' then
+            if type(change.value) ~= 'number' then return refused('Choose V’s voice volume from 50 to 300 percent.') end
+            values.vVoiceVolume = change.value
         elseif key == 'audioDelay' then
             local delays = manager.audioDelayChoices()
             if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

@@ -115,7 +115,7 @@ import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
 import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
-import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
+import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow, vVoiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
@@ -4026,8 +4026,8 @@ async function pollSettings(checkShutdown = true) {
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
       console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);
-    // Voice volume (Settings > Voices): every voice, V's included; the next poll of a playing line and the next phrase use it.
-    if (updateVoiceVolume(settings)) console.error(`Voice volume: ${voiceVolumePercentNow()}%`);
+    // Voice volume (every voice but V's) and V's voice volume (Settings > Voices): the next poll of a playing line and the next phrase use them.
+    if (updateVoiceVolume(settings)) console.error(`Voice volume: ${voiceVolumePercentNow()}%, V's voice volume: ${vVoiceVolumePercentNow()}%`);
     const relationshipState = await readFile(resolve(runtime, 'relationship-state.json'), 'utf8').catch(() => undefined);
     if (relationshipRoutes.update(settings, relationshipState,
         {boundary: currentBoundary(), busy: voiceBoundaryBusy() || voiceRouteReservation})) {
