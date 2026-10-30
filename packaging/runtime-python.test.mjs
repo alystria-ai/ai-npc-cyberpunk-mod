@@ -55,6 +55,16 @@ test('a complete tree passes, and the build refuses a Python without urllib or w
   assert.deepEqual(missingPythonFiles(noTorch), ['Lib/site-packages/torch/__init__']);
 });
 
+test('the imports of the voice clip builder are part of the file check: scipy.signal and torch.nn (torch.nn.functional)', () => {
+  assert(SITE_PACKAGES.includes('scipy') && SITE_PACKAGES.includes('scipy/signal') && SITE_PACKAGES.includes('torch/nn'));
+  assert.deepEqual(missingPythonFiles(completeTree()), []);
+  // The whole package gone is one entry; a package that is there without the part the builder imports names the part.
+  assert.deepEqual(missingPythonFiles(completeTree().filter(path => !path.includes('/scipy/'))), ['Lib/site-packages/scipy/__init__']);
+  assert.deepEqual(missingPythonFiles(completeTree().filter(path => !path.includes('/scipy/signal/'))), ['Lib/site-packages/scipy/signal/__init__']);
+  assert.deepEqual(missingPythonFiles(completeTree().filter(path => !path.includes('/torch/nn/'))), ['Lib/site-packages/torch/nn/__init__']);
+  assert.throws(() => assertPythonShipped(completeTree().filter(path => !path.includes('/scipy/'))), /Runtime's Python lacks 1 file\(s\).*scipy\/__init__/);
+});
+
 test('a Python that keeps the standard library in python312.zip is asked for its site-packages only', () => {
   const zipped = completeTree().filter(path => !path.startsWith('Lib/') || path.startsWith('Lib/site-packages/'));
   assert.deepEqual(missingPythonFiles(zipped, {zipped: true}), []);

@@ -13,7 +13,11 @@ export function missingPythonFiles(paths, {zipped = false} = {}) {
   const set = paths instanceof Set ? paths : new Set(paths);
   const missing = [];
   if (!zipped) for (const file of STDLIB_FILES) if (!pycOrPy(set, `Lib/${file}`)) missing.push(`Lib/${file}`);
-  for (const name of SITE_PACKAGES) if (!set.has(`Lib/site-packages/${name}/__init__.py`)) missing.push(`Lib/site-packages/${name}/__init__`);
+  for (const name of SITE_PACKAGES) {
+    // A part of a package (torch/nn, scipy/signal) is not named again when the whole package is gone.
+    if (name.includes('/') && missing.includes(`Lib/site-packages/${name.split('/')[0]}/__init__`)) continue;
+    if (!set.has(`Lib/site-packages/${name}/__init__.py`)) missing.push(`Lib/site-packages/${name}/__init__`);
+  }
   if (set.has(`Lib/site-packages/${DISTUTILS_PTH}`) && !set.has(`Lib/site-packages/${DISTUTILS_PACKAGE}/__init__.py`)) missing.push(`Lib/site-packages/${DISTUTILS_PACKAGE}/__init__`);
   return missing;
 }
