@@ -11,7 +11,7 @@
 // Cost: ordinary talk pays nothing. A typed line is screened by a few regular expressions (well under a millisecond); only a line about money, a
 // character with an open debt, or a rare initiative roll gets a note. A spoken line's words are not known when its context is made, so an own copy's
 // spoken turn carries one short "standing" note (what the character would lend), and the words are screened when the transcript arrives.
-import {FINANCES} from './eddies-finances.mjs';
+import {FINANCES, MINOR_FINANCE_BASES} from './eddies-finances.mjs';
 import {MIC_PLACEHOLDER} from './call-meet.mjs';
 import {screenForeign, warmFor, mentionsMoneyAnywhere} from './eddies-languages.mjs';
 
@@ -74,6 +74,8 @@ export function parseEddies(value, profileKey) {
 export function financeOf(profileKey) {
   if (typeof profileKey !== 'string') return null;
   if (Object.hasOwn(FINANCES, profileKey)) return FINANCES[profileKey];
+  // A minor profile (docs/CAST_SWEEP.md) takes the money row of its fallback archetype.
+  if (Object.hasOwn(MINOR_FINANCE_BASES, profileKey)) return FINANCES['npc-' + MINOR_FINANCE_BASES[profileKey]] ?? null;
   const base = /^npc-(.+)-(?:male|female)$/.exec(profileKey)?.[1];
   return base && Object.hasOwn(FINANCES, 'npc-' + base) ? FINANCES['npc-' + base] : null;
 }

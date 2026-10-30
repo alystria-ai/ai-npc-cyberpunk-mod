@@ -280,7 +280,7 @@ export async function credentialSecrets(stateDirectory) {
   let custom = false;
   try {
     for (const name of await readdir(stateDirectory)) {
-      // Every saved key file (player-convai-key.txt, player-mistral-key.txt, and player-inworld-key.txt, a leftover of a removed feature on old installs), also one the service did not load.
+      // Every saved key file (player-convai-key.txt, player-mistral-key.txt, player-inworld-key.txt), also one the service did not load.
       if (/^huggingface-.*\.txt$/i.test(name) || (/-key\.txt$/i.test(name) && !names.includes(name))) names.push(name);
       if (name.toLowerCase() === CUSTOM_ENDPOINT_FILE) custom = name;
     }

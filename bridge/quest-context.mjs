@@ -8,7 +8,7 @@ import {topicWords} from './topic-words.mjs';
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
-import {gearContext, visibleGearContext, gearChangeContext, gearFresh} from './player-gear.mjs';
+import {gearContext, visibleGearContext, gearChangeContext, gearFresh, asksAboutGear} from './player-gear.mjs';
 import {freshBlock} from './fresh-facts.mjs';
 import {asksAboutClothes, asksAboutSelf} from './scenery-memory.mjs';
 import {gearMemory} from './gear-memory.mjs';
@@ -170,18 +170,10 @@ export const turnContextOptions = (input, ambient = false) => ({ambient, split: 
   gap: dynamicInfo.on('lastTalk') && !ambient ? lastTalkSentence(input) : ''});
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
-// (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
-// may carry a `key` (knowledge, recency, history, jobs, journal, gear): a text provider whose context is too small cuts the blocks
+// (quest, journal, relationship: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only, V's gear among it when V asks). A world block
+// may carry a `key` (knowledge, recency, history, jobs, journal): a text provider whose context is too small cuts the blocks
 // that have one, the lowest-priority first (bridge/prompt-budget.mjs); a block without one is never cut by itself. (`authority` is only a place
 // mark: the world facts of a text provider's prompt go just before it, bridge/mistral-prompt.mjs worldBlocksInCacheOrder; it is never cut.)
-// The gear block of a named character's turn. V's own turns carry the gear and set the block; a reaction repeats the last one (bridge/gear-memory.mjs), so the system message reads the same.
-const gearBlock = input => {
-  if (input?.head) return gearContext(input);
-  if (input?.reaction) return gearMemory.recall(input.profileKey);
-  const text = gearContext(input);
-  if (input?.gear !== undefined) gearMemory.remember(input.profileKey, text);
-  return text;
-};
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
@@ -196,12 +188,16 @@ export function conversationContextBlocks(input) {
   // What changed or what V asks about, as plain facts for the two places a small model reads last (bridge/fresh-facts.mjs): the end of the system message and right before V's words.
   const asked = asksAboutClothes(input?.text) || asksAboutSelf(input?.text);
   const fresh = freshBlock([on('gear') ? gearFresh(input, gearMemory, {visible: ambient, asked}) : null, modsFresh], {asked});
+  // V's gear is said only when V's words are about it (2026-10-30, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): told on every turn, a model narrated it ("you're wearing that suit
+  // like a second skin" in answer to "I wouldn't mind coffee"). A turn that asks gets it in its own notes; a change still comes as the change note, and V topless or naked as the
+  // right-now note. Out of the world part, the system message no longer changes when V changes clothes, so the prompt cache keeps it.
+  const gearWanted = on('gear') && (asked || asksAboutGear(input?.text));
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
     return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory, {visible: true}) : ''},
       {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
-      {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? visibleGearContext(input) : ''},
+      {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'volatile', text: gearWanted ? visibleGearContext(input) : ''},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
   }
   const attached = input[TRUSTED_KNOWLEDGE];
@@ -222,7 +218,7 @@ export function conversationContextBlocks(input) {
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
     // The job briefing is for this turn only (volatile), so it never moves the stable blocks a prefix cache keeps.
     {tier: 'volatile', text: quest ? trusted?.briefingContext : ''}, {tier: 'volatile', text: dialogue},
-    {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearBlock(input) : ''},
+    {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'volatile', text: gearWanted ? gearContext(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
 }

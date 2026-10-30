@@ -371,7 +371,7 @@ test('the bridge finds the packs once at start, hands them to both voices, re-sc
   assert.match(bridge, /const languagePacks = new VoiceLanguagePacks\(\{roots: referenceRoots,/);
   assert.match(bridge, /await languagePacks\.scan\(\)/);
   assert.match(bridge, /referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices\.folder, languagePacks,/);
-  assert.match(bridge, /voxtral:voxtralVoice,languagePacks,/);
+  assert.match(bridge, /voxtral:voxtralVoice,inworld:inworldVoice,languagePacks,/);
   assert.match(bridge, /languagePacks, keepsReference: vModKeepsReference,/);
   assert.match(bridge, /pocketLanguages,keepsReference:vModKeepsReference,/);
   assert.match(bridge, /const vModKeepsReference = key => \{ const gender = vGenderOfKey\(key\); return gender !== null && String\(vVoiceReferences\.voices\[gender\]\?\.source \?\? ''\)\.startsWith\('mod:'\); \};/);

@@ -30,7 +30,7 @@ export function pluginVersions(text) {
 
 // Values that must be scrubbed from every line, besides the ones collectReport already reads (convai-key.txt, the Hugging Face and Kaggle
 // tokens, the custom model servers' keys): every other key file of the data folder (player-convai-key.txt, player-mistral-key.txt,
-// and player-inworld-key.txt, a leftover an old install may still have from a removed feature), the Custom (OpenAI-compatible) provider's key (the api-key line of player-custom-endpoint.txt), the sign-in
+// and player-inworld-key.txt, the Inworld voice's key), the Custom (OpenAI-compatible) provider's key (the api-key line of player-custom-endpoint.txt), the sign-in
 // file's secret (or CYBERPUNK_CONVAI_AUTH_SECRET) and the two secrets a release ships (app/defaults/convai-auth.json, the sign-in request secret, and
 // app/defaults/error-reports.json, the error reports' own). They are only returned to the redactor; nothing here writes, logs or prints one.
 export async function dataFolderSecrets({stateDirectory, project, env = {}}) {

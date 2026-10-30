@@ -5917,6 +5917,27 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
     end
+    -- Google Gemini: seven failures the bridge names, in Google's own terms (the same sentences as mod/custom-provider.lua's notice(), which a test keeps equal).
+    if reply.errorCode == 'gemini-key' then
+        return 'gemini-key', ui.t('Google did not accept your Gemini key. Check it in Google AI Studio and add it again.')
+    elseif reply.errorCode == 'gemini-daily' then
+        -- The free allowance of the day: when it comes back on this computer's clock (the bridge sends "HH:MM", Google resets at midnight Pacific).
+        local at = reply.errorResetTime
+        if type(at) == 'string' and at:match('^%d%d:%d%d$') then
+            return 'gemini-daily', ui.t('Your free Gemini allowance for today is used up. It resets at {time}. Use Convai or Local AI.', {time = at})
+        end
+        return 'gemini-daily', ui.t('Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.')
+    elseif reply.errorCode == 'gemini-limit' then
+        return 'gemini-limit', ui.t('Google Gemini is rate limiting you. Wait a minute, then try again.')
+    elseif reply.errorCode == 'gemini-region' then
+        return 'gemini-region', ui.t('Google Gemini is not available in your region. Use Convai or Local AI.')
+    elseif reply.errorCode == 'gemini-server' then
+        return 'gemini-server', ui.t('Google Gemini is busy or had an error. Wait a minute, then try again.')
+    elseif reply.errorCode == 'gemini-unreachable' then
+        return 'gemini-unreachable', ui.t('Google Gemini could not be reached. Check your internet connection, then try again.')
+    elseif reply.errorCode == 'gemini-model' then
+        return 'gemini-model', ui.t('The Gemini model is not available right now. Try again later or use Local AI.')
+    end
     -- Local AI is chosen and could not start: its own reason, and the next turn tries again. No other provider ever takes the turn over
     -- (bridge/convai-bridge.mjs providerFailureCode).
     if reply.errorCode == 'local-no-memory' then
@@ -8250,6 +8271,21 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'custom-reasoning', keyText) end
                         elseif keyId == 'custom-unreachable' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
+                        -- Google Gemini failures: the same rule.
+                        elseif keyId == 'gemini-key' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-key', keyText) end
+                        elseif keyId == 'gemini-daily' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-daily', keyText) end
+                        elseif keyId == 'gemini-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-limit', keyText) end
+                        elseif keyId == 'gemini-region' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-region', keyText) end
+                        elseif keyId == 'gemini-server' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-server', keyText) end
+                        elseif keyId == 'gemini-unreachable' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-unreachable', keyText) end
+                        elseif keyId == 'gemini-model' then
+                            if not pending.reaction then convaiNotices.send(player, 'gemini-model', keyText) end
                         -- The browser for the conversation page would not start: the same rule, with the browser named.
                         elseif keyId == 'browser-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'browser-failed', keyText) end

@@ -8,10 +8,37 @@
 /** The picture a text turn carries: 768 px wide at JPEG quality 80 (about 45 KB), taken by the helper (bridge/vision-capture.mjs). Convai's is 1024 px at 88. */
 export const TEXT_PICTURE = Object.freeze({maxWidth: 768, quality: 80});
 
-/** What the model is told about the picture, in the same message as V's words (Convai gets the same facts in its context update, bridge/convai-vision.mjs). */
-export const VISION_NOTE = '[PICTURE: what V can see around V right now, taken from the game window a few seconds ago. It may show V\'s vehicle, the interface or you. '
-  + 'Mention what you see only when it fits what V says or asks. Never describe the interface. If the picture is dark or unclear, say so instead of guessing. '
-  + 'Whether V is indoors or outdoors comes from the text below when it says so, never from the name of a district.]';
+/**
+ * What the model is told about the picture, in the same message as V's words. Framed as the character's own view (2026-10-30, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): the
+ * old note called it a picture "from the game window" that "may show the interface", and with the HUD in it a model read it as V "staring at a screen", narrated the neon in
+ * every reply and nagged V about the quest notice it showed. Measured on Gemini Flash-Lite: the framing alone did not stop that (the cut and the gate below did), but it
+ * keeps a picture that is sent from being talked about as a picture. No word here names a screen, an image or an interface.
+ */
+export const VISION_NOTE = '[What you see around you right now, with your own eyes. It is there so you know where you are: bring up something in view only when V asks about it '
+  + 'or it truly matters to what V just said. Words and symbols floating over the view are not part of the place. Whether you are indoors or outdoors comes from the text below '
+  + 'when it says so. If it is too dark to tell, say so instead of guessing.]';
+
+// "Companions can see" sends the view only when V's words are about what is around them (2026-10-30). Sent with every turn, the view became the topic of every turn: in the
+// owner's live test and in scripts/Eval-NaturalTalk.mjs a companion answered "how is biz" and "so hows life" with remarks about the neon, the screen and the message V had
+// not read. With it only on these turns the replies answered V again, and a question about the place still got its answer from what she sees. A stem of a few common
+// languages is listed as well; a turn without any of them goes without the picture (the text of the turn still says where V is).
+const VIEW_WORDS = new RegExp([
+  String.raw`\b(?:look|looking|looks|see|seeing|saw|seen|view|watch|notice[ds]?|check (?:this|that|it|them) out)\b`,
+  String.raw`\b(?:this|that|the) (?:place|spot|bar|club|room|street|view|building|car|ride|bike|crowd|sign|billboard|guy|girl|man|woman|kid|person|thing|stuff)\b`,
+  String.raw`\b(?:around (?:here|us|you)|in here|out here|over there|out there|outside|surroundings|where (?:are|were) we|where is this|what is (?:this|that)|what's (?:this|that)|who is (?:this|that)|who's (?:this|that))\b`,
+  String.raw`\b(?:weather|rain(?:ing)?|sky|sunset|sunrise|neon|lights)\b`,
+  // es, pt, fr, de, it, ru, pl, ja, zh, ko (the seeing verbs and "this place" / "here")
+  String.raw`\b(?:mira|miras|ves|lugar|aqui|olha|v[eê]s|regarde|vois|endroit|schau|siehst|sieh|guarda|vedi|posto|smotri)\b`,
+  'aquí|смотри|видишь|место|здесь|patrz|widzisz|miejsce|見て|見える|ここ|景色|看|这里|這裡|봐|보여|여기',
+].join('|'), 'iu');
+// V about V's own look ("like what you see?"), a goodbye ("see you later") or a greeting ("long time no see") is not about the surroundings.
+// Nor is a compliment ("you look good"): her look is her own, not something in view.
+const NOT_VIEW = /\b(?:like|love|enjoy)(?:s|d)? what (?:you|ya) see\b|\bsee (?:you|ya)\b|\bno see\b|\bi see\b|\blet'?s see\b|\b(?:you|ya|u) look\b|\blook(?:s|ing)? (?:good|great|nice|fine|beautiful|pretty|hot|amazing|tired|sad|happy|well|forward|after|for)\b|\bhow (?:do|does) (?:i|this|it) look\b/giu;
+/** True when V's words are about what is around them, so the turn takes the companion's view with it. */
+export function pictureForTurn({text} = {}) {
+  if (typeof text !== 'string' || !text.trim()) return false;
+  return VIEW_WORDS.test(text.replace(NOT_VIEW, ' '));
+}
 
 const dataUrl = image => `data:${image.mime};base64,${image.base64}`;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);

@@ -279,7 +279,7 @@ test('a line that is spoken: audible once the renderer holds audio, blocks the r
   assert.equal(made.holds(), false);
   await made.finished;
   assert.equal(host.state.played, true);
-  assert.deepEqual(host.state.controls.at(-1), {allow: true, paused: false, volume: 0.6, pan: 0}, 'played at the game\'s dialogue volume, with no spatial pan');
+  assert.deepEqual(host.state.controls.at(-1), {allow: true, paused: false, volume: 0.6, pan: 0, makeupDb: 20 * Math.log10(1.5)}, 'played at the game\'s dialogue volume plus the default V\'s voice volume (150%), with no spatial pan');
   assert.equal(host.state.config.text, 'Hello Judy.');
   assert.match(host.state.config.token, /^v-[0-9a-f]{16}$/);
   assert.equal(summaries.length, 1);
@@ -472,7 +472,7 @@ test('end to end on the real local renderer host: the Pocket-format packets are 
   await until(() => players[0]?.sealed, 'the renderer to be sealed');
   await until(() => made.state === 'playing', 'the line to be audible');
   assert.equal(made.holds(), true);
-  assert.deepEqual(players[0].controls.at(-1), {allow: true, paused: false, volume: 0.37, pan: 0});
+  assert.deepEqual(players[0].controls.at(-1), {allow: true, paused: false, volume: 0.37, pan: 0, makeupDb: 20 * Math.log10(1.5)});
   players[0].finish();
   await made.clear; await made.finished;
   assert.equal(made.state, 'done');

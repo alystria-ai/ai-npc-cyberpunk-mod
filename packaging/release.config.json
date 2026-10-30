@@ -364,7 +364,7 @@
   "catalogs": [
     {"source": "characters/world-knowledge.json", "target": "world-knowledge.json"},
     {"source": "characters/manager-characters.json", "target": "manager-characters.json"},
-    {"source": "characters/roster.json", "target": "conversation-characters.json"},
+    {"source": "characters/game-roster.json", "target": "conversation-characters.json"},
     {"source": "characters/phone-contacts.json", "target": "phone-contacts.json"}
   ],
   "appData": [

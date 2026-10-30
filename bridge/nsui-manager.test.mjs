@@ -210,14 +210,20 @@ test('a change is applied for real after a moment, as one transaction; rows the 
 test('a slider is applied once, after it stops moving, and the page is not drawn again while it is held', () => run(`${harness()}
   press('Settings')
   local volume = ns.find('Voice volume (%)')
-  assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 200 and volume.step == 5)
+  assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 300 and volume.step == 5)
+  local vVolume = ns.find('V’s voice volume (%)')
+  assert(vVolume.type == 'rangeInt' and vVolume.min == 50 and vVolume.max == 300 and vVolume.step == 5 and vVolume.currentValue == 150 and volume.currentValue == 150, "V's own slider, same range, default 150")
   ns.resetCalls()
-  for _, value in ipairs({105, 110, 120, 135, 150}) do ns.interact.slide(volume, value); frames(2, 0.1) end
-  assert(manager.snapshot(player).settings.voiceVolume == 100, 'nothing saved while it moves')
+  for _, value in ipairs({155, 160, 180, 235, 300}) do ns.interact.slide(volume, value); frames(2, 0.1) end
+  assert(manager.snapshot(player).settings.voiceVolume == 150, 'nothing saved while it moves')
   frames(10)
-  assert(saved.voiceVolume == 150, tostring(saved.voiceVolume))
-  assert(ns.find('Voice volume (%)') == volume and volume.currentValue == 150)
+  assert(saved.voiceVolume == 300 and saved.vVoiceVolume == 150, tostring(saved.voiceVolume) .. ' / ' .. tostring(saved.vVoiceVolume))
+  assert(ns.find('Voice volume (%)') == volume and volume.currentValue == 300)
   assert(ns.callCount('removeOption') == 0, 'the slider was not rebuilt')
+  -- V's slider is applied the same way and leaves the other one alone.
+  ns.interact.slide(vVolume, 250); frames(10)
+  assert(saved.vVoiceVolume == 250 and saved.voiceVolume == 300, tostring(saved.vVoiceVolume) .. ' / ' .. tostring(saved.voiceVolume))
+  assert(ns.find('V’s voice volume (%)') == vVolume and vVolume.currentValue == 250 and ns.callCount('removeOption') == 0)
   -- Several quick drags in a row never wait for ever: the wait is capped.
   for value = 100, 160, 5 do ns.interact.slide(volume, value); frames(1, 0.5) end
   frames(10)
@@ -350,16 +356,16 @@ test('Restore defaults goes through the same validated path, only on the Setting
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
+  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 200, vVoiceVolume = 80, voiceProvider = 'convai',
     naturalSpeech = false}))
   frames(20)
   assert(ns.find('React to battles').state == false and ns.find('Subtitles').selectedElementIndex == 3)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
+  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
-  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
+  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 150 and ns.find('V’s voice volume (%)').currentValue == 150 and ns.find('Battle reactions') == nil)
   assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.
@@ -921,15 +927,24 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on Settings any more') end
   -- The Google Gemini key and its connection test are rows of Settings (a second instance of the same module, on its own files). Add sends preset-gemini, a saved key shows its last four characters.
   assert(ns.find('Mistral API key') == nil and ns.find('Google Gemini (free)') == nil)
-  assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection').buttonText == 'Test')
+  assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection') == nil, 'Google Gemini has the key row only: no Test connection')
   press('Google Gemini API key'); assert(geminiCommand().action == 'preset-gemini', tostring(geminiCommand() and geminiCommand().action))
   assert(files['runtime/custom-provider-command.json'] == '', 'the Custom endpoint channel is not used')
+  -- The key just added is tried once by the service: the row says so while it runs, then what Google answered, on the key row itself.
+  local addId = geminiCommand().id
+  local savedState = {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'wxyz', preset = 'gemini'}
+  local function withCheck(check) local value = {}; for key, item in pairs(savedState) do value[key] = item end; value.check = check; return value end
+  geminiService('checking', withCheck({id = addId, state = 'checking'}))
+  assert(ns.find('Google Gemini API key (Checking…)'), shownOutline())
+  geminiService('accepted', withCheck({id = addId, state = 'ok'}))
+  assert(ns.find('Google Gemini API key (…wxyz)').desc:find('Google accepted the key.', 1, true), shownOutline())
+  geminiService('refused', withCheck({id = addId, state = 'failed', code = 'key', status = 400}))
+  assert(ns.find('Google Gemini API key (…wxyz)').desc:find('Google did not accept this key. Check it in Google AI Studio, then Remove it and Add the right one.', 1, true), shownOutline())
   geminiService('saved', {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'wxyz', preset = 'gemini'})
   assert(ns.find('Google Gemini API key (…wxyz)').buttonText == 'Remove', shownOutline())
   press('Google Gemini API key (…wxyz)'); assert(geminiCommand().action == 'clear-preset-gemini', tostring(geminiCommand() and geminiCommand().action))
   geminiService('removed', {version = 1, ready = false, keySaved = false})
   assert(ns.find('Google Gemini API key').buttonText == 'Add')
-  press('Test connection'); assert(geminiCommand().action == 'test', tostring(geminiCommand() and geminiCommand().action))
   press('Custom endpoint')
   assert(managerUi.inspect().view == 'custom-endpoint')
   local sections = ns.sections()

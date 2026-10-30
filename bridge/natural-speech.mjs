@@ -179,7 +179,8 @@ const deviceName = id => DEVICE_NAMES[id] ?? `[${id}]`;
 const CHOOSE = 'Choose by who you are. From your own profile and sample dialogue, work out what a realistic human with '
   + 'your personality would actually do when talking, even if your sample dialogue contains no such sounds. '
   + 'A fluent, confident speaker rarely hesitates; a cold, controlled or formal person rarely laughs or sighs; '
-  + 'a nervous, warm or thoughtful person may hesitate, trail off or laugh more. When in doubt, use nothing.';
+  + 'a nervous, warm or thoughtful person may hesitate, trail off or laugh more, but only when something earns it: a laugh '
+  + 'needs something actually funny, a sigh needs a real reason. When in doubt, use nothing.';
 // How often and where was measured against the real characters (scripts/Probe-NaturalSpeech.mjs, 20 varied prompts each,
 // one Convai session per character). A text that only asks for rarity does not control the rate: with OmniVoice's tag
 // list the model answered Judy with a device in 85-95% of replies whatever the wording (about half of them as the
@@ -188,7 +189,7 @@ const CHOOSE = 'Choose by who you are. From your own profile and sample dialogue
 // by the bridge, which offers the devices on only some turns (OFFER_RATE, below); the model still decides whether
 // and which one fits.
 const CHOOSE_SHORT = 'Choose by who you are: a fluent, confident speaker rarely pauses like this, a hesitant, warm or '
-  + 'emotional one more. When in doubt, use none.';
+  + 'emotional one more, and only when there is a real reason to hesitate. When in doubt, use none.';
 const WHERE = 'Put it where a real person would make that sound, and vary where from reply to reply: sometimes before a '
   + 'sentence, sometimes right after one ends, and quite often in the middle of a sentence at a natural break (after a '
   + 'comma, between two clauses, before "but" or "and"), for example "I told him no, [laughter] and he still showed up." '
@@ -215,7 +216,8 @@ const pickPlace = random => {
   return last;
 };
 const placeText = place => PLACES[place] ? `For this reply, if you use a sound, place it exactly here: ${PLACES[place]}. Write the sentence so the sound sits there naturally.` : '';
-const OMNI_TAGS_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit. Your voice engine is '
+const OMNI_TAGS_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit, but most replies need '
+  + 'none and speaking plainly is the normal choice. Your voice engine is '
   + 'OmniVoice, which can voice a few non-verbal sounds written as tags: [laughter], [sigh], [confirmation-en] (a short '
   + 'sound of agreement), [question-en] (a short questioning sound), [question-ah] and [question-oh] (a short, rising "ah?" '
   + 'or "oh?" of doubt or curiosity), [surprise-ah] and [surprise-oh] (short sounds of surprise), and [dissatisfaction-hnn] '
@@ -226,8 +228,14 @@ const CJK_TAGS_TEXT = 'Because this reply is in Chinese or Japanese you also hav
   + 'moment is a surprise or a puzzled question.';
 const OMNI_PAUSES_TEXT = 'In plain words it can also voice a pause written as "..." or " — ", and a spoken hesitation such as '
   + '"hm", "uh" or "I mean" if that is how you would really talk.';
+// A sound has to be earned. Players found a character that laughed at every joke and sighed at every turn grating, so the
+// text says what each sound needs before it may be used (the bridge also offers sounds rarely and never twice close together).
+const EARNED = 'A sound must be earned by something real in what V just said or did. A laugh needs something that is actually '
+  + 'funny, never a polite laugh at a joke that is not funny, and never a laugh to fill a silence. A sigh needs a real reason: '
+  + 'tiredness, exasperation or sadness. A surprise or a question sound needs something genuinely surprising or unclear. '
+  + 'If the moment does not clearly call for it, speak plainly with no sound at all.';
 const OMNI_RULES_TEXT = 'Use at most one in this reply, only if this exact moment and your personality would really produce it; '
-  + 'if not, use none. Never the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' '
+  + 'if not, use none. ' + EARNED + ' Never the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' '
   + CHOOSE + ' Write a tag exactly as shown, in square brackets, as its own word. A tag is a voice sound, not a stage '
   + 'direction: never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". '
   + 'Tags are removed from the subtitles. Keep the same length and content you would give otherwise.';
@@ -244,19 +252,25 @@ const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE 
 
 // The share of turns on which the devices are offered, by how expressive the character is (bridge/emotion-analysis.mjs
 // traitFor). This is the chance on a turn that is allowed to offer at all: the turn right after an offered one never
-// offers, so the share of offered turns comes out lower (about 37% warm, 33% neutral, 26% dry, 13% cold). The model uses
-// an offer in about 90% of cases with OmniVoice's tags and about half with Pocket's punctuation. The first tuning
-// (.36/.30/.22/.08, October 8) was too quiet: a player chatting for six lines heard nothing.
-export const OFFER_RATE = Object.freeze({warm: .6, neutral: .5, dry: .35, cold: .15});
-// A warm or neutral character is offered the devices at least once in any PITY_TURNS spoken turns, so a short chat
-// always shows the effect (a dry or cold character stays rare on purpose).
-export const PITY_TURNS = 4;
-// A few characters sit away from what their trait alone gives (measured with scripts/Probe-NaturalSpeech.mjs, 40 lines each).
-// An entry here replaces the trait's rate for that profile only; the pity counter still follows the trait.
-export const OFFER_RATE_BY_PROFILE = Object.freeze({'judy-alvarez': .5, 'panam-palmer': .35, 'johnny-silverhand': .42});
+// offers, and neither does a turn soon after a sound tag (SOUND_GAP), so the share of offered turns comes out lower. The model
+// uses an offer in about 90% of cases with OmniVoice's tags and about half with Pocket's punctuation.
+// History: .36/.30/.22/.08 (October 8) was too quiet for a short chat, so it went to .6/.5/.35/.15 with a pity counter that
+// forced an offer every 4 turns. A player then found the characters repetitive, "constantly sighing or giggling at jokes that
+// are not funny" (Nexus, 30 October), so sounds are now rare and earned: .25/.2/.12/.05, no pity counter.
+export const OFFER_RATE = Object.freeze({warm: .25, neutral: .2, dry: .12, cold: .05});
+// A few characters sit away from what their trait alone gives (measured with scripts/Probe-NaturalSpeech.mjs): the model takes
+// nearly every offer for Judy and Panam, so they sit below their trait's rate. An entry here replaces the trait's rate for
+// that profile only.
+export const OFFER_RATE_BY_PROFILE = Object.freeze({'judy-alvarez': .15, 'panam-palmer': .15, 'johnny-silverhand': .1});
 const offerRate = (trait, profile) => OFFER_RATE_BY_PROFILE[profile] ?? OFFER_RATE[trait] ?? OFFER_RATE.neutral;
-const PITY_TRAITS = Object.freeze(['warm', 'neutral']);
 const VOICED_SOUNDS = Object.freeze([...OMNI_TAGS, ...CJK_TAGS, 'cough', 'yawn', 'clear-throat']);
+// A character remembers its recent replies, not only the last one. At most one sound tag in any SOUND_GAP replies (a reply
+// with a sound tag blocks the offers of the next SOUND_GAP - 1 turns), and the same sound tag is not used again within
+// SAME_SOUND_WINDOW replies (it is listed as "do not use" in the block of every turn in that window).
+export const SOUND_GAP = 4;
+export const SAME_SOUND_WINDOW = 6;
+const soundsOf = devices => devices.filter(id => VOICED_SOUNDS.includes(id));
+
 
 /**
  * The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine.
@@ -273,7 +287,7 @@ export function naturalSpeechContext({engine, recent = [], profile, name, trait,
     : ['ellipsis', 'dash'];
   const used = recent.filter(id => offered.includes(id));
   return used.length
-    ? `${base} Your previous reply already used ${used.map(deviceName).join(', ')}: do not use ${used.length > 1 ? 'those' : 'it'} in this reply.`
+    ? `${base} Your recent replies already used ${used.map(deviceName).join(', ')}: do not use ${used.length > 1 ? 'those' : 'it'} in this reply.`
     : base;
 }
 
@@ -282,48 +296,49 @@ export function naturalSpeechContext({engine, recent = [], profile, name, trait,
  * unreadable file leaves it as it was). `process` is applied to every reply that leaves the Convai transport.
  */
 export class NaturalSpeech {
-  constructor() { this.enabled = false; this.last = new Map(); this.decisions = new Map(); this.offerState = new Map(); }
+  constructor() { this.enabled = false; this.last = new Map(); this.decisions = new Map(); this.offerState = new Map(); this.sounds = new Map(); }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.naturalSpeech === true;
     const changed = next !== this.enabled;
     this.enabled = next;
-    if (!next) { this.last.clear(); this.decisions.clear(); this.offerState.clear(); }
+    if (!next) { this.last.clear(); this.decisions.clear(); this.offerState.clear(); this.sounds.clear(); }
     return changed;
   }
+  /** The sound tags of each of this conversation's last SAME_SOUND_WINDOW replies, oldest first (one list per reply). */
+  recentSounds(sessionId) { return this.sounds.get(sessionId) ?? []; }
   /**
    * The context block for one turn. `engine` is the voice that will speak it ('omni', 'pocket' or 'convai'); text-only
    * turns (phone chat, silent playback) and automatic reactions get none. The devices are OFFERED on a share of turns
    * (OFFER_RATE[trait]); see `offers` for what blocks an offer. The decision is made once per `turn` (the request id),
    * so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
+   * The "already used" list is the last reply's devices plus every sound tag used in the last SAME_SOUND_WINDOW replies.
    */
   contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', profile, name, language, random = Math.random} = {}) {
     if (!this.enabled || !spoken || (engine !== 'omni' && engine !== 'pocket')) return '';
     const decision = this.offers(turn, trait, sessionId, random, profile);
     if (!decision.offered) return '';
-    return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? [], profile, name, trait, language, place: decision.place});
+    const recent = [...new Set([...(this.last.get(sessionId) ?? []), ...this.recentSounds(sessionId).flat()])];
+    return naturalSpeechContext({engine, recent, profile, name, trait, language, place: decision.place});
   }
   /**
-   * Whether this turn is one where the devices are offered, as {offered, reason}. The reason is 'rate' (the dice),
-   * 'pity' (a warm or neutral character is due), or, when not offered, 'rate' or 'after-device'.
-   * Only an OFFERED turn blocks the next offer (never two in a row), or a voiced sound tag in the last reply. The
-   * pauses and fillers an ordinary reply has on its own do not block anything. The pity counter forces an offer on the
-   * PITY_TURNS-th spoken turn without one (it outranks the sound-tag block, not the offered-turn block, which cannot
-   * coincide with it).
+   * Whether this turn is one where the devices are offered, as {offered, reason}. The reason is 'rate' (the dice), or,
+   * when not offered, 'rate', 'after-device' (the previous turn was offered) or 'sound-cooldown' (a sound tag was voiced
+   * in the last SOUND_GAP - 1 replies, so there is at most one sound tag in any SOUND_GAP replies).
+   * The pauses and fillers an ordinary reply has on its own do not block anything. There is no pity counter: a short
+   * chat may well hear nothing, which is the point.
    */
   offers(turn, trait, sessionId, random = Math.random, profile) {
     if (turn !== undefined && this.decisions.has(turn)) return this.decisions.get(turn);
-    const state = this.offerState.get(sessionId) ?? {offeredLast: false, tagLast: false, since: 0};
-    const pity = PITY_TRAITS.includes(trait) && state.since >= PITY_TURNS - 1;
+    const state = this.offerState.get(sessionId) ?? {offeredLast: false};
     let decision;
     if (state.offeredLast) decision = {offered: false, reason: 'after-device'};
-    else if (pity) decision = {offered: true, reason: 'pity'};
-    else if (state.tagLast) decision = {offered: false, reason: 'after-device'};
+    else if (this.recentSounds(sessionId).slice(-(SOUND_GAP - 1)).some(list => list.length)) decision = {offered: false, reason: 'sound-cooldown'};
     else decision = random() < offerRate(trait, profile) ? {offered: true, reason: 'rate'} : {offered: false, reason: 'rate'};
     if (decision.offered) decision = {...decision, place: pickPlace(random)};
     if (typeof sessionId === 'string' && sessionId) {
       this.offerState.delete(sessionId);
-      this.offerState.set(sessionId, {...state, offeredLast: decision.offered, since: decision.offered ? 0 : state.since + 1});
+      this.offerState.set(sessionId, {offeredLast: decision.offered});
       while (this.offerState.size > 64) this.offerState.delete(this.offerState.keys().next().value);
     }
     if (turn !== undefined) {
@@ -332,20 +347,19 @@ export class NaturalSpeech {
     }
     return decision;
   }
-  /** The reason the devices were or were not offered on a turn already decided ('rate', 'pity', 'after-device'). */
+  /** The reason the devices were or were not offered on a turn already decided ('rate', 'after-device', 'sound-cooldown'). */
   reasonFor(turn) { return turn === undefined ? undefined : this.decisions.get(turn)?.reason; }
-  /** Remembers the devices of a finished reply for its conversation (bounded). */
+  /** Remembers the devices of a finished reply for its conversation (bounded), and its sound tags for the last few replies. */
   record(sessionId, raw) {
     if (!this.enabled || typeof sessionId !== 'string' || !sessionId) return;
     const devices = devicesUsed(raw);
     this.last.delete(sessionId);
     this.last.set(sessionId, devices);
     while (this.last.size > 64) this.last.delete(this.last.keys().next().value);
-    // A voiced sound tag blocks the next offer (no sound tag twice in a row).
-    const tagLast = devices.some(id => VOICED_SOUNDS.includes(id));
-    const state = this.offerState.get(sessionId);
-    if (state) state.tagLast = tagLast;
-    else if (tagLast) this.offerState.set(sessionId, {offeredLast: false, tagLast, since: 0});
+    const sounds = [...(this.sounds.get(sessionId) ?? []), soundsOf(devices)].slice(-SAME_SOUND_WINDOW);
+    this.sounds.delete(sessionId);
+    this.sounds.set(sessionId, sounds);
+    while (this.sounds.size > 64) this.sounds.delete(this.sounds.keys().next().value);
   }
   /**
    * A reply as it comes back from Convai: its display text never carries a tag (subtitles, phone chat, memory,

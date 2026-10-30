@@ -1,0 +1,28 @@
+{
+  "note": "Decisions of the cast sweep (2026-10-30) applied to staging/cast-sweep/people.json by finalize.py. Names are the canonical names of the person check.",
+  "excludeReal": {
+    "reason": "A real person's cameo in the game (a developer or composer). No persona is written for a real person.",
+    "names": ["Marcin Iwiński", "Michał Kiciński", "Michal Glowinski"]
+  },
+  "excludePlaceholder": {
+    "reason": "A test or system label, not a character (placeholder name, news ticker, shop label, corporate system).",
+    "names": ["Jane Doe", "John Doe", "Stanley Media", "The Cheesevendor", "Cynosure AI", "Drake#6471", ">>Slice543<<"]
+  },
+  "excludeAddon": {
+    "reason": "Has its own add-on (Delamain, Skippy): the add-on owns the character, the main mod does not.",
+    "names": ["Delamain", "Skippy"]
+  },
+  "mergeInto": {
+    "reason": "The same person as a character who is already on the roster or has a fuller entry: the records join that entry (roster rows keep their own records here only when listed in mergeRosterRecords).",
+    "Boris": "Boris Ribakov",
+    "Certo Esquerdo": "Esquerdo Certo",
+    "Jae-Hyun": "Jae-Hyun Lee"
+  },
+  "dropAsRosterDuplicate": {
+    "reason": "A short display name of a character who is already on the roster (Evelyn Parker, Solomon Reed, Muamar Reyes).",
+    "names": ["Evelyn", "Reed", "Reyes"]
+  },
+  "ambiguousSingleNames": {
+    "reason": "A single first name that several different people carry in the game (or that is also the first name of another profile). The profile lookup matches a display name exactly, so one such profile would answer for all of them. They keep the archetype talk of their role."
+  }
+}

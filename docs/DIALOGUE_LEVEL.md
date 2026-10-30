@@ -95,18 +95,32 @@ read by the bridge every settings poll (no restart):
 
 There is no Settings-menu row for this level (it needs the label in all 18 UI languages). The player's own trim is a different row, below.
 
-## Voice volume (Settings > Voices)
+## Voice volume and V's voice volume (Settings > Voices)
 
-A slider, 50 to 200 percent (steps of 5, default 100), saved as `voiceVolume` in `runtime/settings.json` and read by the bridge on every
-settings poll (`updateVoiceVolume`, `bridge/dialogue-level.mjs`). It is added, in dB, to the makeup above (`activeMakeupDb`), so it reaches
-every spoken voice through the two paths that already exist, and V's typed-line voice through its renderer control:
+Two sliders, each 50 to 300 percent (steps of 5, default 150 since 2026-10-30, it was 100), saved as `voiceVolume` and `vVoiceVolume` in
+`runtime/settings.json` and read by the bridge on every settings poll (`updateVoiceVolume`, `bridge/dialogue-level.mjs`). They are separate:
 
-- **Browser renderer** (Pocket, Voxtral, Convai): `makeupDb` rides in the playback control the bridge answers on every renderer
-  poll (`ConvaiContinuousSpeech.control`; for V's line `VLine.onFrame`, which has no dialogue makeup, so it carries the volume alone and
-  nothing at all at 100). The player sets its gain stage and switches the limiter in whenever the total is not 0 dB. Boosting runs
-  through the same limiter as the dialogue level, so 200% on top of +6 dB never reaches full scale (real Edge, offline render: peaks of
-  0.90 to 0.95 for full-scale speech at +12 and +18 dB). Below 100 it is a plain attenuation. With no limiter node (an old browser) a
-  boost is skipped, as before, and an attenuation still applies.
+- **Voice volume** is added, in dB, to the makeup above (`activeMakeupDb`), so it reaches every spoken voice but V's (companions, NPCs,
+  add-ons) through the paths that already exist.
+- **V's voice volume** (`vVoiceVolumeDb`) is V's spoken lines alone, typed and microphone lines on every engine (Pocket, Voxtral, OmniVoice,
+  with the reference from the player's V voice mod or the shipped one). V has no dialogue makeup, so it carries this volume alone through
+  its renderer control, and nothing at all at 100.
+
+Neither moves the other. A bridge that reads a file without `vVoiceVolume` gives V the Voice volume. The manager (`mod/manager.lua`) moves
+a file saved with the old default 100 to 150 once (marker `voiceVolume150Given`, the pattern of `speakUpOftenGiven`), keeps every other
+value, and starts a missing `vVoiceVolume` from the migrated `voiceVolume`, so V keeps its loudness relative to the companions. Values the
+bridge reads from outside 50 to 300 are clamped, and anything that is not a number reads as 150.
+
+Where each goes:
+
+- **Browser renderer** (Pocket, Voxtral, Convai, OmniVoice): `makeupDb` rides in the playback control the bridge answers on every renderer
+  poll (`ConvaiContinuousSpeech.control` for the companions, which is the dialogue makeup plus Voice volume, and for V's line `VLine.onFrame`,
+  which carries V's voice volume alone and nothing at all at 100). The player sets its gain stage and switches the limiter in whenever the
+  total is not 0 dB. Boosting runs through the same limiter as the dialogue level, so 300% on top of +12 dB (+21.54 dB, the most the
+  renderer accepts) never reaches full scale for speech (real Edge, offline render: peaks of 0.89 to 0.97 for full-scale sine and
+  square-burst speech at +9.5, +15.5 and +21.5 dB). Only a single full-scale sample (a synthetic click) can overshoot,
+  as it already did before (1.55 at the old maximum of +18 dB), and the output then clips that one sample. Below 100 it is a plain attenuation. With no
+  limiter node (an old browser) a boost is skipped, as before, and an attenuation still applies.
 - **Audioware slot WAVs** (superseded on 2026-10-22, OmniVoice phrases now ride the browser renderer above): `storeSpeech` wrote the same
   total with the look-ahead limiter (ceiling -1 dBFS), timing compensated. A total of exactly 0 dB wrote the original bytes.
 

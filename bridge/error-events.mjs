@@ -457,6 +457,8 @@ export function installCrashCapture({stateDirectory, runtime, processRef = proce
 // allowance, the player's own server or account, a player who cancelled. Local AI that could not start because it is not installed,
 // does not fit the graphics memory ('local-no-memory'), has no graphics card to run on or needs Mature content is the player's setup too.
 const OWN_DOING = new Set(['mistral-key', 'mistral-limit', 'custom-key', 'custom-credits', 'custom-limit', 'custom-model', 'custom-unreachable',
+  // Google Gemini's own failures: the key, Google's free allowance (a day or a minute), a country it is not offered in, its servers or the connection.
+  'gemini-key', 'gemini-daily', 'gemini-limit', 'gemini-region', 'gemini-server', 'gemini-unreachable', 'gemini-model',
   'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace', 'local-no-memory',
   // The player's own model server only thinks (also when asked not to) or has a context too small for the character: what to change is in its settings.
   'local-thinking', 'local-context',

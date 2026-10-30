@@ -31,6 +31,58 @@ export function editorClient() {
     return node;
   };
   const $ = id => document.getElementById(id);
+  // ---- icons. Lucide (lucide.dev, ISC licence, see THIRD_PARTY_NOTICES.md): only the few shapes the page uses, written out here so nothing is fetched. The markup is
+  // parsed once with DOMParser (never written into the page as markup), and every use is a copy of the parsed node.
+  const ICONS = {
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    chevronDown: '<path d="m6 9 6 6 6-6"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
+    book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    mic: '<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+    sliders: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+    save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+    undo: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+    trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+    arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    arrowDown: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    alertCircle: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+    fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    listChecks: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+    bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+    shirt: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+    power: '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>',
+    play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  };
+  const iconNodes = {};
+  // The SVG namespace is a name for the kind of markup, not an address anything is fetched from (it is built here so the page has no web address written in it).
+  const SVG_NAMESPACE = ['http:', '', 'www.w3.org', '2000', 'svg'].join('/');
+  const icon = name => {
+    if (!iconNodes[name]) {
+      const parsed = new DOMParser().parseFromString('<svg xmlns="' + SVG_NAMESPACE + '" viewBox="0 0 24 24">' + ICONS[name] + '</svg>', 'image/svg+xml');
+      iconNodes[name] = document.importNode(parsed.documentElement, true);
+    }
+    const node = iconNodes[name].cloneNode(true);
+    node.setAttribute('class', 'icon');
+    node.setAttribute('aria-hidden', 'true');
+    node.setAttribute('focusable', 'false');
+    return node;
+  };
+  // A button with an icon in front of its words (the words stay the button's name for the screen reader).
+  const withIcon = (name, text) => [icon(name), h('span', {class: 'lbl'}, text)];
   const count = text => Array.from(text).length;
   const FIELDS = ['bio', 'style', 'rules', 'examples', 'memories'];
   // The Voice tab is only for the characters that can have a clip (story characters, not everyday people); its one "field" is the clip.
@@ -45,17 +97,21 @@ export function editorClient() {
   // world: the world rules page ({draft: {worldRules}}) while it is open, else null; it belongs to no character, so `data` is null then.
   // prompting: the Prompting page (the options, the open one and its draft) while it is open, else null; it belongs to no character either.
   // look: the Look and moves choices of the open character ({key, draft}); null when it has none (everyday people, V's voices, a character not saved yet).
-  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, look: null, world: null, prompting: null, tab: 'bio', filter: '', note: null};
+  // The picker: `chip` is the role filter ('all', a role, or 'edited'), `recent` the keys saved in this session (newest first), `facing` the key of the character V was facing.
+  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, look: null, world: null, prompting: null, tab: 'bio', filter: '', note: null, chip: 'all', recent: [], facing: ''};
   let noteTimer = 0, pickSeq = 0;
 
+  // The toast: a short message that stays a few seconds (a problem a little longer) and can be dismissed. #note keeps the message as its only text.
   const say = (text, bad) => {
     model.note = {text, bad: !!bad};
     const live = $('note');
-    live.textContent = text; live.className = 'note ' + (bad ? 'bad' : 'good') + ' show';
+    live.replaceChildren(icon(bad ? 'alertCircle' : 'checkCircle'), h('span', {class: 'msg'}, text),
+      h('button', {type: 'button', class: 'dismiss', 'aria-label': T('Close'), title: T('Close'), onclick: () => hush()}, icon('x')));
+    live.className = 'note ' + (bad ? 'bad' : 'good') + ' show';
     clearTimeout(noteTimer);
     noteTimer = setTimeout(() => { live.className = 'note'; }, bad ? 9000 : 3500);
   };
-  const hush = () => { clearTimeout(noteTimer); $('note').className = 'note'; $('note').textContent = ''; };
+  const hush = () => { clearTimeout(noteTimer); $('note').className = 'note'; $('note').replaceChildren(); };
   const problem = error => {
     const first = (error.errors || [])[0];
     if (error.status === 404) return T('That character was not found.');
@@ -159,20 +215,31 @@ export function editorClient() {
           ctx.changed();
         });
         return h('div', {class: 'row'}, input, meter,
-          h('button', {type: 'button', class: 'quiet', onclick: () => { ctx.draft[field].splice(index, 1); draw(); ctx.changed(); }}, T('Delete')));
+          h('button', {type: 'button', class: 'quiet icon-btn', 'aria-label': T('Delete'), title: T('Delete'), onclick: () => { ctx.draft[field].splice(index, 1); draw(); ctx.changed(); }}, icon('trash')));
       }));
       add.disabled = ctx.draft[field].length >= max;
     };
     const add = h('button', {type: 'button', class: 'secondary', onclick: () => {
       ctx.draft[field].push(''); draw(); ctx.changed();
       const inputs = box.querySelectorAll('input'); inputs[inputs.length - 1]?.focus();
-    }}, addLabel);
+    }}, withIcon('plus', addLabel));
     draw();
     return h('div', {class: 'field'}, h('h3', {}, label), h('p', {class: 'help'}, help), box, h('div', {class: 'actions'}, add));
   };
 
   // ---- saving and resetting
-  let buttons = [];
+  let buttons = [], flags = [];
+  // "Unsaved changes" beside the Save button: shown while anything on the open page differs from what is saved. It follows every key press and choice on the page.
+  const updateFlag = (node, dirty) => {
+    if ((node.dataset.dirty === '1') === dirty) return;
+    node.dataset.dirty = dirty ? '1' : '0';
+    node.className = 'state' + (dirty ? ' dirty' : '');
+    node.replaceChildren(...(dirty ? [icon('pencil'), h('span', {}, T('Unsaved changes'))] : []));
+  };
+  const refreshFlags = () => { if (!flags.length) return; const dirty = dirtyFields().length > 0; for (const node of flags) updateFlag(node, dirty); };
+  const flag = () => { const node = h('span', {class: 'state', role: 'status', 'data-dirty': '0'}); flags.push(node); updateFlag(node, dirtyFields().length > 0); return node; };
+  // The characters saved in this page, newest first: the picker offers them at the top.
+  const markRecent = key => { if (key) model.recent = [key, ...model.recent.filter(item => item !== key)].slice(0, 12); };
   const refreshButtons = () => {
     if (model.custom || !model.data || model.data.voiceOnly) return;
     const dirty = dirtyFields();
@@ -216,7 +283,7 @@ export function editorClient() {
     const patch = {};
     for (const field of fields) if (!same(model.draft[field], model.data.values[field])) patch[field] = model.draft[field];
     if (!Object.keys(patch).length) return;
-    try { hush(); apply(await api('PUT', '/api/character/' + encodeURIComponent(model.key), patch)); say(T('Saved.')); }
+    try { hush(); apply(await api('PUT', '/api/character/' + encodeURIComponent(model.key), patch)); markRecent(model.key); say(T('Saved.')); }
     catch (error) { say(problem(error), true); }
   };
   const reset = async (fields, everything) => {
@@ -226,10 +293,10 @@ export function editorClient() {
     catch (error) { say(problem(error), true); }
   };
   const actions = fields => {
-    const keep = h('button', {type: 'button', class: 'primary', onclick: () => save(fields)}, T('Save'));
-    const undo = h('button', {type: 'button', class: 'secondary', onclick: () => reset(fields)}, T('Reset to default'));
+    const keep = h('button', {type: 'button', class: 'primary', onclick: () => save(fields)}, withIcon('save', T('Save')));
+    const undo = h('button', {type: 'button', class: 'secondary', onclick: () => reset(fields)}, withIcon('undo', T('Reset to default')));
     buttons.push({node: keep, fields, kind: 'save'}, {node: undo, fields, kind: 'reset'});
-    return h('div', {class: 'actions bar'}, keep, undo);
+    return h('div', {class: 'actions bar'}, keep, undo, flag());
   };
 
   // ---- memories
@@ -239,21 +306,21 @@ export function editorClient() {
     const after = reply => apply(reply, custom);
     const rows = memory.records.map(record => {
       const input = h('input', {type: 'text', value: record.text, 'aria-label': T('Memory'), maxlength: String(model.state.limits.record * 3)});
-      return h('div', {class: 'row'}, input,
+      return h('div', {class: 'row memory'}, input,
         h('button', {type: 'button', class: 'secondary', onclick: async () => {
           try { hush(); after(await api('PUT', '/api/character/' + encodeURIComponent(model.key) + '/memory/' + encodeURIComponent(record.id), {text: input.value})); say(T('Saved.')); }
           catch (error) { say(error.status === 422 ? T('A memory cannot be empty.') : problem(error), true); }
         }}, T('Save')),
-        h('button', {type: 'button', class: 'quiet', onclick: async () => {
+        h('button', {type: 'button', class: 'quiet icon-btn', 'aria-label': T('Delete'), title: T('Delete'), onclick: async () => {
           if (!confirm(T('Delete this memory?'))) return;
           try { hush(); after(await api('DELETE', '/api/character/' + encodeURIComponent(model.key) + '/memory/' + encodeURIComponent(record.id))); say(T('Deleted.')); }
           catch (error) { say(problem(error), true); }
-        }}, T('Delete')));
+        }}, icon('trash')));
     });
     const picked = h('div', {class: 'field'}, h('h3', {}, T('Picked up in your talks')),
       h('p', {class: 'help'}, memory.learns ? T('Facts the character noticed while you talked. Change or delete the ones that are wrong.')
         : T('The Local AI pack finds these. It is not installed or not ready, so none are collected now.')),
-      rows.length ? h('div', {class: 'list'}, rows) : h('p', {class: 'empty'}, T('Nothing yet.')));
+      rows.length ? h('div', {class: 'list'}, rows) : h('p', {class: 'empty'}, icon('info'), h('span', {}, T('Nothing yet.'))));
     const area = h('textarea', {id: 'f-summary', rows: 5, maxlength: String(model.state.limits.summary * 3)});
     area.value = memory.summary;
     const meter = h('div', {class: 'meter'}, counter(area.value, model.state.limits.summary));
@@ -303,6 +370,7 @@ export function editorClient() {
       const data = key ? await api('PUT', '/api/custom/' + encodeURIComponent(key), mine.draft) : await api('POST', '/api/custom', mine.draft);
       model.key = data.key;
       apply(data);
+      markRecent(data.key);
       say(T('Saved.'));
     } catch (error) { say(problem(error), true); }
   };
@@ -398,6 +466,7 @@ export function editorClient() {
     };
     const landed = reply => {
       if (model.data && model.data.key === key) { dropVoice(); apply(reply, true); } else { syncEntry(reply); drawList(); }
+      markRecent(key);
     };
     const saveClip = async () => {
       if (count(voice.words) > spec.transcript) { say(T('The words said in the clip are too long. Keep them under {max} characters.', {max: spec.transcript}), true); return; }
@@ -429,7 +498,7 @@ export function editorClient() {
       area.value = voice.words;
       const meter = h('div', {class: 'meter'}, counter(area.value, spec.transcript));
       area.addEventListener('input', () => { voice.words = area.value; meter.replaceChildren(counter(area.value, spec.transcript)); refresh(); });
-      save = h('button', {type: 'button', class: 'primary', onclick: saveClip}, T('Save clip'));
+      save = h('button', {type: 'button', class: 'primary', onclick: saveClip}, withIcon('save', T('Save clip')));
       const chosen = voice.chosen;
       const chosenText = chosen ? (chosen.seconds !== null ? T('Chosen file: {name}, {seconds} seconds.', {name: chosen.name, seconds: chosen.seconds})
         : T('Chosen file: {name} ({size}). It is checked when you save it.', {name: chosen.name, size: bytesText(chosen.size)})) : '';
@@ -444,7 +513,7 @@ export function editorClient() {
         clip
           ? h('div', {}, h('p', {class: 'status', role: 'status'}, T('Saved clip: {seconds} seconds.', {seconds: clip.seconds})),
             voice.saved ? h('audio', {class: 'saved', controls: true, preload: 'metadata', 'aria-label': T('Saved clip: {seconds} seconds.', {seconds: clip.seconds})})
-              : h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: playSaved}, T('Play saved clip'))))
+              : h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: playSaved}, withIcon('play', T('Play saved clip')))))
           : h('p', {class: 'status', role: 'status'}, T('No clip yet.') + ' ' + (info.fallback === 'v' ? T('V speaks with the voice of your installed V voice mod, or the shipped V voice.')
           : info.fallback === 'shipped' ? T('This character speaks with the shipped voice.') : T('This character speaks with a generic voice that fits the gender.'))),
         h('div', {class: 'field'}, h('label', {for: 'f-clip'}, T('Add voice clip')), input),
@@ -452,7 +521,7 @@ export function editorClient() {
         h('div', {class: 'field'}, h('label', {for: 'f-voiceText'}, T('Words said in the clip')),
           h('p', {class: 'help', id: 'h-voiceText'}, T('Type what the clip says, as spoken. OmniVoice needs it to copy the voice.')), area, meter),
         h('p', {class: 'help'}, T('A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.')),
-        h('div', {class: 'actions'}, save, clip ? h('button', {type: 'button', class: 'secondary', onclick: removeClip}, T('Remove clip')) : null)].filter(node => node));
+        h('div', {class: 'actions'}, save, clip ? h('button', {type: 'button', class: 'secondary', onclick: removeClip}, withIcon('trash', T('Remove clip'))) : null)].filter(node => node));
       // The sources are set as properties after the nodes exist: the page has no markup with an address in it.
       const saved = box.querySelector('audio.saved'), preview = box.querySelector('audio.preview');
       if (saved) saved.src = voice.saved;
@@ -510,7 +579,7 @@ export function editorClient() {
     const saveLook = async () => {
       const patch = lookPatch(look.draft, data.options.values);
       if (!Object.keys(patch).length) return;
-      try { hush(); model.look = null; apply(await api('PUT', '/api/character/' + encodeURIComponent(key) + '/options', patch), true); say(T('Saved.')); }
+      try { hush(); model.look = null; apply(await api('PUT', '/api/character/' + encodeURIComponent(key) + '/options', patch), true); markRecent(key); say(T('Saved.')); }
       catch (error) { model.look = look; say(problem(error), true); }
     };
     const resetLook = async () => {
@@ -518,8 +587,8 @@ export function editorClient() {
       try { hush(); model.look = null; apply(await api('POST', '/api/character/' + encodeURIComponent(key) + '/options/reset', {}), true); say(T('Back to the usual look and moves.')); }
       catch (error) { model.look = look; say(problem(error), true); }
     };
-    save = h('button', {type: 'button', class: 'primary', onclick: saveLook}, T('Save'));
-    undo = h('button', {type: 'button', class: 'secondary', onclick: resetLook}, T('Reset to default'));
+    save = h('button', {type: 'button', class: 'primary', onclick: saveLook}, withIcon('save', T('Save')));
+    undo = h('button', {type: 'button', class: 'secondary', onclick: resetLook}, withIcon('undo', T('Reset to default')));
     const words = spec.words;
     box.replaceChildren(
       h('p', {class: 'help'}, T('Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.')),
@@ -537,7 +606,7 @@ export function editorClient() {
       choice('length', T('Reply length'), T('The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai.'),
         [['', T('Normal')], ['short', T('Shorter: up to about {words} words', {words: words.short})], ['brief', T('Very short: up to about {words} words', {words: words.brief})]]),
       h('p', {class: 'help'}, T('A saved choice counts within a few seconds. Clothes change when nobody is looking.')),
-      h('div', {class: 'actions bar'}, save, undo));
+      h('div', {class: 'actions bar'}, save, undo, flag()));
     refresh();
     return box;
   };
@@ -548,7 +617,7 @@ export function editorClient() {
       h('option', {value: ''}, T('Choose a gender')), ...genders.map(([value, label]) => h('option', {value}, label)));
     gender.value = draft.gender;
     gender.addEventListener('change', () => { draft.gender = gender.value; });
-    const facing = model.state.facing !== false ? h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: facingFill}, T('Use the character I’m facing'))) : null;
+    const facing = model.state.facing !== false ? h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: facingFill}, withIcon('crosshair', T('Use the character I’m facing')))) : null;
     return h('div', {},
       h('p', {class: 'help'}, T('Your own characters talk only with Google Gemini, Local AI or Custom. With Convai they speak as an ordinary person.')),
       textField('name', T('Name'), T('The name the character goes by. They give it when somebody asks who they are.'), ctx),
@@ -564,8 +633,8 @@ export function editorClient() {
       listField('memories', T('Things they always know'), T('Short facts you write yourself, such as a name or a promise. The character knows them in every talk.'), T('Add a memory'), T('For example: V has a sister called Lena.'), ctx, 'memory'),
       isNew || !model.voice ? h('p', {class: 'help'}, T('Save the character first. Then it can have a voice clip, and it starts to remember your talks.')) : voiceSection(true),
       !isNew && model.look ? h('div', {class: 'field'}, h('h3', {}, T('Look and moves')), lookSection()) : null,
-      h('div', {class: 'actions bar'}, h('button', {type: 'button', class: 'primary', onclick: saveCustom}, T('Save')),
-        isNew ? null : h('button', {type: 'button', class: 'quiet', onclick: removeCustom}, T('Delete character'))),
+      h('div', {class: 'actions bar'}, h('button', {type: 'button', class: 'primary', onclick: saveCustom}, withIcon('save', T('Save'))),
+        isNew ? null : h('button', {type: 'button', class: 'quiet danger', onclick: removeCustom}, withIcon('trash', T('Delete character'))), flag()),
       isNew ? null : h('div', {}, ...learnedPanel()));
   };
   const newCharacter = () => {
@@ -574,7 +643,7 @@ export function editorClient() {
     model.data = {key: '', name: '', group: 'custom', custom: blankCustom(), memory: {available: false, learns: false, summary: '', records: []}, voice: null};
     model.custom = {draft: blankCustom()};
     dropVoice();
-    drawList(); drawMain();
+    closePicker(false); drawMain();
     $('main').focus({preventScroll: true});
   };
 
@@ -588,13 +657,13 @@ export function editorClient() {
     const keep = h('button', {type: 'button', class: 'primary', onclick: async () => {
       try { hush(); const reply = await api('PUT', '/api/world-rules', {text: world.draft.worldRules}); model.state.worldRules = reply; world.draft.worldRules = reply.text; drawMain(); say(T('Saved.')); }
       catch (error) { say(problem(error), true); }
-    }}, T('Save'));
-    const back = h('button', {type: 'button', class: 'secondary', onclick: () => { world.draft.worldRules = spec.text; drawMain(); }}, T('Revert changes'));
-    const wipe = h('button', {type: 'button', class: 'quiet', onclick: async () => {
+    }}, withIcon('save', T('Save')));
+    const back = h('button', {type: 'button', class: 'secondary', onclick: () => { world.draft.worldRules = spec.text; drawMain(); }}, withIcon('undo', T('Revert changes')));
+    const wipe = h('button', {type: 'button', class: 'quiet danger', onclick: async () => {
       if (!confirm(T('Clear the world rules?'))) return;
       try { hush(); const reply = await api('DELETE', '/api/world-rules'); model.state.worldRules = reply; world.draft.worldRules = reply.text; drawMain(); say(T('Cleared.')); }
       catch (error) { say(problem(error), true); }
-    }}, T('Clear'));
+    }}, withIcon('trash', T('Clear')));
     const refresh = () => { const dirty = worldDirty(); keep.disabled = !dirty || count(world.draft.worldRules) > limit; back.disabled = !dirty; wipe.disabled = !spec.text && !world.draft.worldRules; };
     area.addEventListener('input', () => { world.draft.worldRules = area.value; meter.replaceChildren(counter(area.value, limit)); refresh(); });
     refresh();
@@ -603,7 +672,7 @@ export function editorClient() {
         h('p', {class: 'help', id: 'h-worldRules'}, T('Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.')),
         area, meter),
       h('p', {class: 'help'}, T('Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.')),
-      h('div', {class: 'actions bar'}, keep, back, wipe),
+      h('div', {class: 'actions bar'}, keep, back, wipe, flag()),
       // Content packs (add-ons, bridge/addon-content.mjs): their rules come after the player's, read-only here. The player turns a pack off in the game's settings.
       ...(spec.packs || []).length ? [h('p', {class: 'help'}, T('Content packs add rules after yours. You cannot edit them here: turn a pack off under Settings > Content packs in the game.')),
         ...spec.packs.map((pack, index) => h('div', {class: 'field'}, h('label', {for: 'f-pack-' + index}, T('From the content pack {name}', {name: pack.name})),
@@ -613,7 +682,7 @@ export function editorClient() {
     if (model.world || !leave()) return;
     model.key = ''; model.data = null; model.draft = null; model.custom = null; model.look = null; dropVoice(); clearTimeout(model.prompting?.timer); model.prompting = null;
     model.world = {draft: {worldRules: model.state.worldRules.text}};
-    chrome(); drawList(); drawMain();
+    closePicker(false); drawMain();
     $('main').focus({preventScroll: true});
   };
 
@@ -740,7 +809,7 @@ export function editorClient() {
     if (!data) return top;
     p.ui = {errs: {}, top: h('div', {class: 'errs', role: 'alert'}), preview: h('div', {class: 'previewbody'}), save: null, revert: null, totals: null};
     const heading = h('div', {class: 'head'}, h('h2', {}, profileName(row)), badges(row),
-      h('button', {type: 'button', class: 'quiet', disabled: !Object.keys(data.override).length, onclick: () => resetPrompting()}, T('Reset everything')));
+      h('button', {type: 'button', class: 'quiet', disabled: !Object.keys(data.override).length, onclick: () => resetPrompting()}, withIcon('undo', T('Reset everything'))));
     // Content packs (add-ons, bridge/addon-content.mjs) that change this profile: the effective profile below already has their wording; the player's changes stay on top of it.
     const packNote = data.packs && data.packs.length ? h('p', {class: 'help'}, T('Content packs that change this prompt: {names}. Your own changes stay on top of theirs, and Reset to default goes back to the pack’s wording.', {names: data.packs.join(', ')})) : null;
     return h('div', {}, top, h('hr'), heading, packNote, p.ui.top, h('div', {class: 'pcols'}, h('div', {class: 'pedit'}, ...promptingSections(), promptingBar()), promptingPreview()));
@@ -755,16 +824,16 @@ export function editorClient() {
   };
   const promptingBar = () => {
     const p = model.prompting;
-    p.ui.save = h('button', {type: 'button', class: 'primary', onclick: savePrompting}, T('Save'));
-    p.ui.revert = h('button', {type: 'button', class: 'secondary', onclick: revertPrompting}, T('Revert changes'));
+    p.ui.save = h('button', {type: 'button', class: 'primary', onclick: savePrompting}, withIcon('save', T('Save')));
+    p.ui.revert = h('button', {type: 'button', class: 'secondary', onclick: revertPrompting}, withIcon('undo', T('Revert changes')));
     p.ui.save.disabled = p.ui.revert.disabled = !promptingDirty();
-    return h('div', {class: 'actions bar sticky'}, p.ui.save, p.ui.revert);
+    return h('div', {class: 'actions bar sticky'}, p.ui.save, p.ui.revert, flag());
   };
   const section = (field, title, help, ...children) => {
     const p = model.prompting;
     const errs = h('div', {class: 'errs', role: 'alert'});
     p.ui.errs[field] = errs;
-    const undo = h('button', {type: 'button', class: 'quiet', disabled: !(field in p.data.override), onclick: () => resetPrompting(field)}, T('Reset to default'));
+    const undo = h('button', {type: 'button', class: 'quiet', disabled: !(field in p.data.override), onclick: () => resetPrompting(field)}, withIcon('undo', T('Reset to default')));
     return h('section', {class: 'psec', 'data-field': field}, h('div', {class: 'phead'}, h('h3', {}, title), undo), help ? h('p', {class: 'help'}, help) : null, ...children, errs);
   };
   const textBox = (id, label, value, max, mark, set, rows = 3) => {
@@ -810,9 +879,9 @@ export function editorClient() {
         const move = by => () => { const [item] = d.rules.splice(index, 1); d.rules.splice(index + by, 0, item); draw(); promptingChanged(); };
         return h('div', {class: 'rule'},
           h('div', {class: 'rulehead'}, h('strong', {}, T('Rule {n}', {n})), h('span', {class: 'grow'}), body.meter,
-            h('button', {type: 'button', class: 'quiet', disabled: index === 0, 'aria-label': T('Move rule {n} up', {n}), onclick: move(-1)}, T('Move up')),
-            h('button', {type: 'button', class: 'quiet', disabled: index === d.rules.length - 1, 'aria-label': T('Move rule {n} down', {n}), onclick: move(1)}, T('Move down')),
-            h('button', {type: 'button', class: 'quiet', 'aria-label': T('Delete rule {n}', {n}), onclick: () => { d.rules.splice(index, 1); draw(); promptingChanged(); }}, T('Delete'))),
+            h('button', {type: 'button', class: 'quiet icon-btn', disabled: index === 0, 'aria-label': T('Move rule {n} up', {n}), title: T('Move up'), onclick: move(-1)}, icon('arrowUp')),
+            h('button', {type: 'button', class: 'quiet icon-btn', disabled: index === d.rules.length - 1, 'aria-label': T('Move rule {n} down', {n}), title: T('Move down'), onclick: move(1)}, icon('arrowDown')),
+            h('button', {type: 'button', class: 'quiet icon-btn', 'aria-label': T('Delete rule {n}', {n}), title: T('Delete'), onclick: () => { d.rules.splice(index, 1); draw(); promptingChanged(); }}, icon('trash'))),
           body.area,
           h('details', {class: 'variants', open: !!(rule.talk || rule.mature)}, h('summary', {}, T('Other versions of this rule')),
             h('p', {class: 'help'}, T('Leave a version empty to use the rule text.')),
@@ -829,7 +898,7 @@ export function editorClient() {
       d.rules.push({id: 'own-' + number, text: '', talk: '', mature: ''});
       draw(); promptingChanged();
       [...box.querySelectorAll('.rule')].pop()?.querySelector('textarea')?.focus();
-    }}, T('Add a rule'));
+    }}, withIcon('plus', T('Add a rule')));
     draw();
     return [box, total, h('div', {class: 'actions'}, add)];
   };
@@ -849,14 +918,14 @@ export function editorClient() {
           meter.className = 'count' + (count(input.value) > maxEach ? ' over' : '');
           promptingChanged();
         });
-        return h('div', {class: 'row' + (rows > 1 ? ' tall' : '')}, input, meter, h('button', {type: 'button', class: 'quiet', onclick: () => { d[key].splice(index, 1); draw(); promptingChanged(); }}, T('Delete')));
+        return h('div', {class: 'row' + (rows > 1 ? ' tall' : '')}, input, meter, h('button', {type: 'button', class: 'quiet icon-btn', 'aria-label': T('Delete'), title: T('Delete'), onclick: () => { d[key].splice(index, 1); draw(); promptingChanged(); }}, icon('trash')));
       }));
       add.disabled = d[key].length >= maxCount;
     };
     const add = h('button', {type: 'button', class: 'secondary', onclick: () => {
       d[key].push(''); draw(); promptingChanged();
       const fields = box.querySelectorAll('input,textarea'); fields[fields.length - 1]?.focus();
-    }}, addLabel);
+    }}, withIcon('plus', addLabel));
     draw();
     return [box, h('div', {class: 'actions'}, add)];
   };
@@ -996,7 +1065,7 @@ export function editorClient() {
     for (const node of $('main').querySelectorAll('[data-err]')) { if (keys.has(node.dataset.err)) node.setAttribute('aria-invalid', 'true'); else node.removeAttribute('aria-invalid'); }
   }
 
-  const keepScroll = draw => { const main = $('main'), top = main.scrollTop; draw(); main.scrollTop = top; };
+  const keepScroll = draw => { const top = window.scrollY; draw(); window.scrollTo(0, top); };
   // A reply of the server about the open option: remember it and draw again. `only`: the one field whose draft is replaced (a reset of one part), the other edits stay.
   const promptingLanded = (data, only) => {
     const p = model.prompting, fresh = toDraft(data.effective);
@@ -1048,12 +1117,13 @@ export function editorClient() {
       model.key = ''; model.data = null; model.draft = null; model.custom = null; model.look = null; model.world = null; dropVoice();
       model.prompting = {profiles, id: first.id, data, draft: toDraft(data.effective), errors: [], preview: null, stale: false, seq: 0, timer: 0, ui: null,
         sample: {name: 'Judy', talk: false, words: 30, mature: first.id.startsWith('mature')}};
-      chrome(); drawList(); drawMain();
+      closePicker(false); drawMain();
       $('main').focus({preventScroll: true});
     } catch (error) { say(promptingProblem(error), true); }
   };
 
   // ---- the page
+  const TAB_ICONS = {bio: 'fileText', style: 'message', rules: 'listChecks', memories: 'bookmark', voice: 'mic', look: 'shirt'};
   const panel = tab => {
     buttons = [];
     if (tab === 'bio') return h('div', {}, blockField('bio', T('Bio'), T('Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.'), 18), actions(['bio']));
@@ -1065,49 +1135,177 @@ export function editorClient() {
     if (tab === 'look' && model.look) return h('div', {}, lookSection());
     return memoriesPanel();
   };
+
+  // ---- who is who: the role of a character (the server names it for the shipped ones), and the little badge that stands for them
+  const ROLES = ['own', 'romance', 'companion', 'story', 'side', 'minor', 'v'];
+  const ROLE_ICONS = {own: 'userPlus', romance: 'heart', companion: 'users', story: 'book', side: 'user', minor: 'user', v: 'mic'};
+  const roleOf = item => item.group === 'custom' ? 'own' : item.group === 'v' ? 'v' : ROLES.includes(item.role) ? item.role : item.group === 'story' ? 'story' : 'side';
+  const roleTitles = () => ({own: T('Your characters'), romance: T('Romances'), companion: T('Companions'), story: T('Story'), side: T('Side characters'), minor: T('Minor characters'), v: T('V’s voice')});
+  const roleNames = () => ({own: T('Your character'), romance: T('Romance'), companion: T('Companion'), story: T('Story character'), side: T('Side character'), minor: T('Minor character'), v: T('V’s voice')});
+  const initialsOf = item => {
+    if (item.group === 'v') return 'V';
+    const words = String(item.name || item.key || '?').replace(/[()]/g, ' ').split(/[\s._-]+/).filter(Boolean);
+    const first = Array.from(words[0] || '?')[0], last = words.length > 1 ? Array.from(words[words.length - 1])[0] : '';
+    return (first + last).toUpperCase();
+  };
+  const toneOf = key => { let sum = 0; for (const letter of String(key)) sum = (sum * 31 + letter.charCodeAt(0)) >>> 0; return sum % 6; };
+  const avatar = (item, big) => h('span', {class: 'avatar tone-' + toneOf(item.key) + (big ? ' big' : ''), 'aria-hidden': 'true'}, initialsOf(item));
+  const norm = text => String(text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  // ---- the picker: a panel with search, filter chips and a compact list. It opens under the top bar (the button with the open character's name, or / or Ctrl+K), and
+  // stays open on the page while no character is chosen yet.
+  const isIdle = () => !model.data && !model.world && !model.prompting;
+  const pickerIsPopover = () => !$('picker').hidden && !$('picker').classList.contains('docked');
+  const pickItem = item => {
+    const role = roleOf(item), here = item.key === model.key;
+    return h('button', {type: 'button', class: 'pick' + (here ? ' on' : ''), 'aria-current': here ? 'true' : null, 'data-key': item.key, onclick: () => pickKey(item.key)},
+      avatar(item), h('span', {class: 'text'}, h('span', {class: 'name'}, item.name), h('span', {class: 'sub'}, roleNames()[role])),
+      h('span', {class: 'marks'},
+        item.voice ? h('span', {class: 'mark voice', role: 'img', 'aria-label': T('Custom voice'), title: T('Custom voice')}, icon('mic')) : null,
+        item.edited ? h('span', {class: 'mark edited', role: 'img', 'aria-label': T('Edited'), title: T('Edited')}, icon('pencil')) : null));
+  };
+  function drawList() {
+    const picker = $('picker');
+    if (picker.hidden) return;
+    const all = model.state.characters, query = norm(model.filter.trim());
+    // The minor characters (the cast sweep's 575 ordinary people, docs/CAST_SWEEP.md) have their own chip. They stay out of All and of the other chips until the search
+    // box has text, so the list is not endless, and a search still finds them.
+    const isMinor = item => roleOf(item) === 'minor';
+    const counts = {all: all.filter(item => !isMinor(item)).length, edited: all.filter(item => item.edited).length};
+    for (const item of all) counts[roleOf(item)] = (counts[roleOf(item)] || 0) + 1;
+    const titles = roleTitles();
+    const chips = [['all', T('All'), null], ['romance', titles.romance, 'heart'], ['companion', titles.companion, 'users'], ['story', titles.story, 'book'], ['side', titles.side, 'user'],
+      ['minor', titles.minor, 'user'], ['own', titles.own, 'userPlus'], ['edited', T('Edited'), 'pencil']].filter(([id]) => id === 'all' || counts[id]);
+    if (!chips.some(([id]) => id === model.chip)) model.chip = 'all';
+    $('chips').replaceChildren(...chips.map(([id, text, glyph]) => h('button', {type: 'button', class: 'fchip' + (model.chip === id ? ' on' : ''), 'aria-pressed': String(model.chip === id), 'data-chip': id,
+      onclick: () => { model.chip = id; drawList(); $('chips').querySelector('[data-chip="' + id + '"]')?.focus(); }},
+      glyph ? icon(glyph) : null, h('span', {}, text), h('span', {class: 'n'}, String(counts[id])))));
+    const shown = all.filter(item => (model.chip === 'all' ? (query || !isMinor(item)) : model.chip === 'edited' ? item.edited : roleOf(item) === model.chip) && (!query || norm(item.name).includes(query)));
+    const nodes = [];
+    const section = (title, glyph, rows, extra) => nodes.push(h('section', {class: 'sect' + (extra ? ' ' + extra : '')}, h('h3', {class: 'group'}, glyph ? icon(glyph) : null, h('span', {}, title), h('span', {class: 'n'}, String(rows.length))),
+      h('div', {class: 'grid'}, rows.map(pickItem))));
+    if (!query && model.chip === 'all') {
+      const facing = all.find(item => item.key === model.facing);
+      if (facing) section(T('In front of you'), 'crosshair', [facing], 'quick');
+      const seen = [...model.recent, ...all.filter(item => item.edited).map(item => item.key)];
+      const recent = [...new Set(seen)].map(key => all.find(item => item.key === key)).filter(item => item && (item.edited || model.recent.includes(item.key))).slice(0, 6);
+      if (recent.length) section(T('Recently edited'), 'clock', recent, 'quick');
+    }
+    for (const role of ROLES) {
+      const rows = shown.filter(item => roleOf(item) === role);
+      if (rows.length) section(titles[role], ROLE_ICONS[role], rows);
+    }
+    $('list').replaceChildren(...(shown.length ? nodes : [h('p', {class: 'empty'}, icon('search'), h('span', {}, T('No match.')))]));
+    $('resultcount').textContent = T('{count} of {max}', {count: shown.length, max: query || model.chip === 'minor' ? all.length : counts.all});
+    $('clear').hidden = !model.filter;
+  }
+  function syncPicker() {
+    const picker = $('picker'), idle = isIdle();
+    if (idle) {
+      picker.hidden = false; picker.classList.add('docked'); $('scrim').hidden = true; $('who').setAttribute('aria-expanded', 'false');
+      drawList();
+    } else if (picker.classList.contains('docked')) {
+      picker.hidden = true; picker.classList.remove('docked');
+    }
+    $('main').hidden = idle;
+  }
+  function openPicker() {
+    if (!model.state) return;
+    if (isIdle()) { $('search').focus(); return; }
+    if (pickerIsPopover()) { $('search').focus(); return; }
+    $('picker').hidden = false; $('scrim').hidden = false; $('who').setAttribute('aria-expanded', 'true');
+    drawList();
+    $('list').querySelector('.pick.on')?.scrollIntoView({block: 'nearest'});
+    $('search').focus(); $('search').select();
+  }
+  function closePicker(restoreFocus) {
+    if (!pickerIsPopover()) return;
+    $('picker').hidden = true; $('scrim').hidden = true; $('who').setAttribute('aria-expanded', 'false');
+    if (restoreFocus) $('who').focus();
+  }
+  async function pickKey(key) {
+    closePicker(false);
+    model.filter = ''; $('search').value = '';   // the next time the picker opens it starts fresh
+    await choose(key);
+  }
+  // Arrow keys inside the picker: Down and Up move to the row below or above in the grid, Left and Right to the neighbour, and Up from the first row goes back to the search box.
+  const moveFocus = (from, direction) => {
+    const items = [...$('list').querySelectorAll('button.pick')], at = items.indexOf(from);
+    if (at < 0) return;
+    if (direction === 'right') { items[Math.min(items.length - 1, at + 1)].focus(); return; }
+    if (direction === 'left') { if (at > 0) items[at - 1].focus(); return; }
+    const top = from.offsetTop, left = from.offsetLeft, down = direction === 'down';
+    const pool = down ? items.slice(at + 1) : items.slice(0, at).reverse();
+    const rowTop = pool.find(item => down ? item.offsetTop > top : item.offsetTop < top)?.offsetTop;
+    if (rowTop === undefined) { if (!down) $('search').focus(); return; }
+    const row = pool.filter(item => item.offsetTop === rowTop);
+    row.sort((a, b) => Math.abs(a.offsetLeft - left) - Math.abs(b.offsetLeft - left))[0].focus();
+  };
+  const onPickerKey = event => {
+    if (event.key === 'Escape' && pickerIsPopover()) { event.preventDefault(); closePicker(true); return; }
+    const onItem = event.target.matches && event.target.matches('button.pick');
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (event.target === $('search')) { if (event.key === 'ArrowDown') { const first = $('list').querySelector('button.pick'); if (first) { event.preventDefault(); first.focus(); } } return; }
+      if (onItem) { event.preventDefault(); moveFocus(event.target, event.key === 'ArrowDown' ? 'down' : 'up'); }
+    } else if ((event.key === 'ArrowRight' || event.key === 'ArrowLeft') && onItem) { event.preventDefault(); moveFocus(event.target, event.key === 'ArrowRight' ? 'right' : 'left'); }
+    else if (event.key === 'Enter' && event.target === $('search')) { const first = $('list').querySelector('button.pick'); if (first) { event.preventDefault(); first.click(); } }
+  };
+  // The top bar's button: who is open now (or what page), and the way to the picker.
+  function drawWho() {
+    const who = $('who'), data = model.data;
+    const entry = data && (model.state.characters.find(item => item.key === data.key) || data);
+    // (The world rules and the prompting are pages of their own: the button then offers the way back to the characters.)
+    const body = data ? [avatar(entry), h('span', {class: 'name'}, data.group === 'custom' && model.custom ? (model.custom.draft.name || data.name || T('New character')) : data.name || T('New character'))]
+      : [icon('users'), h('span', {class: 'name dim'}, T('Choose a character'))];
+    who.replaceChildren(h('span', {class: 'sr'}, T('Characters') + ': '), ...body, icon('chevronDown'));
+    $('world').classList.toggle('on', !!model.world);
+    $('prompting').classList.toggle('on', !!model.prompting);
+    $('world').setAttribute('aria-current', model.world ? 'page' : 'false');
+    $('prompting').setAttribute('aria-current', model.prompting ? 'page' : 'false');
+  }
+  const headOf = (entry, title, badges, ...actions) => h('div', {class: 'head'}, avatar(entry, true), h('div', {class: 'titles'}, h('h2', {}, title), h('div', {class: 'badges'}, ...badges)), ...actions);
+  const roleBadge = role => h('span', {class: 'badge role-' + role}, icon(ROLE_ICONS[role]), h('span', {}, roleNames()[role]));
+  const pageHead = (glyph, title, ...badges) => h('div', {class: 'head'}, h('span', {class: 'avatar big tile', 'aria-hidden': 'true'}, icon(glyph)), h('div', {class: 'titles'}, h('h2', {}, title), h('div', {class: 'badges'}, ...badges)));
   function drawMain() {
+    flags = [];
+    paintMain();
+    drawWho();
+    syncPicker();
+  }
+  function paintMain() {
     const main = $('main');
     drawBanner();
-    if (model.prompting) { main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, T('Prompting'))), h('div', {class: 'panel wide'}, promptingPanel())); return; }
-    if (model.world) { main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, T('World rules')), model.state.worldRules.text ? h('span', {class: 'chip edited'}, T('Edited')) : null), h('div', {class: 'panel'}, worldPanel())); return; }
-    if (!model.data) { main.replaceChildren(h('p', {class: 'empty big'}, T('Choose a character on the left.'))); return; }
-    const data = model.data;
+    if (model.prompting) { main.replaceChildren(pageHead('sliders', T('Prompting')), h('div', {class: 'panel wide'}, promptingPanel())); return; }
+    if (model.world) { main.replaceChildren(pageHead('globe', T('World rules'), model.state.worldRules.text ? h('span', {class: 'chip edited'}, T('Edited')) : null), h('div', {class: 'panel'}, worldPanel())); return; }
+    if (!model.data) { main.replaceChildren(); return; }
+    const data = model.data, entry = model.state.characters.find(item => item.key === data.key) || data;
     if (data.group === 'custom') {
       const title = data.key ? (model.custom.draft.name || data.name) : T('New character');
-      main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, title), h('span', {class: 'chip edited'}, T('Your character'))), h('div', {class: 'panel'}, customPanel()));
+      main.replaceChildren(headOf(entry, title, [h('span', {class: 'chip edited'}, T('Your character')), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null]), h('div', {class: 'panel'}, customPanel()));
       return;
     }
     if (data.voiceOnly) {
-      main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, data.name)), h('div', {class: 'panel'}, model.voice ? voiceSection(false) : null));
+      main.replaceChildren(headOf(entry, data.name, [roleBadge('v'), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null]), h('div', {class: 'panel'}, model.voice ? voiceSection(false) : null));
       return;
     }
     const edited = FIELDS.some(field => data.edited[field]);
     const labels = {bio: T('Bio'), style: T('Speaking style'), rules: T('Speaking rules'), memories: T('Memories'), voice: T('Voice'), look: T('Look and moves')};
-    const tabs = h('div', {role: 'tablist', class: 'tabs', 'aria-label': T('Parts of the character')}, TABS.filter(([id]) => (id !== 'voice' || model.voice) && (id !== 'look' || model.look)).map(([id]) => h('button', {
-      type: 'button', role: 'tab', 'data-tab': id, id: 'tab-' + id, 'aria-selected': String(model.tab === id), class: model.tab === id ? 'on' : '',
+    const shownTabs = TABS.filter(([id]) => (id !== 'voice' || model.voice) && (id !== 'look' || model.look)).map(([id]) => id);
+    const tabs = h('div', {role: 'tablist', class: 'tabs', 'aria-label': T('Parts of the character')}, shownTabs.map(id => h('button', {
+      type: 'button', role: 'tab', 'data-tab': id, id: 'tab-' + id, 'aria-selected': String(model.tab === id), 'aria-controls': 'tabpanel', tabindex: model.tab === id ? '0' : '-1', class: model.tab === id ? 'on' : '',
       onclick: () => { model.tab = id; drawMain(); },
-    }, labels[id])));
+    }, icon(TAB_ICONS[id]), h('span', {}, labels[id]))));
+    tabs.addEventListener('keydown', event => {
+      const at = shownTabs.indexOf(model.tab), next = {ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: shownTabs.length - 1}[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      model.tab = shownTabs[(next + shownTabs.length) % shownTabs.length]; drawMain(); $('tab-' + model.tab)?.focus();
+    });
     main.replaceChildren(
-      h('div', {class: 'head'}, h('h2', {}, data.name), h('span', {class: 'chip' + (edited ? ' edited' : '')}, edited ? T('Edited') : T('As shipped')),
-        h('button', {type: 'button', class: 'quiet', disabled: !edited, onclick: () => reset(FIELDS, true)}, T('Reset everything'))),
-      tabs, h('div', {role: 'tabpanel', 'aria-labelledby': 'tab-' + model.tab, class: 'panel'}, panel(model.tab)));
+      headOf(entry, data.name, [roleBadge(roleOf(entry)), entry.voice ? h('span', {class: 'badge'}, icon('mic'), h('span', {}, T('Custom voice'))) : null, h('span', {class: 'chip' + (edited ? ' edited' : '')}, edited ? T('Edited') : T('As shipped'))],
+        h('button', {type: 'button', class: 'quiet', disabled: !edited, onclick: () => reset(FIELDS, true)}, withIcon('undo', T('Reset everything')))),
+      tabs, h('div', {role: 'tabpanel', id: 'tabpanel', 'aria-labelledby': 'tab-' + model.tab, class: 'panel'}, panel(model.tab)));
     refreshButtons();
-  }
-  function drawList() {
-    $('world').classList.toggle('on', !!model.world);
-    $('prompting').classList.toggle('on', !!model.prompting);
-    const query = model.filter.trim().toLowerCase();
-    const groups = [['custom', T('Your characters')], ['v', T('V’s voice')], ['story', T('Story characters')], ['everyday', T('Everyday people')]];
-    const nodes = [];
-    for (const [group, title] of groups) {
-      const rows = model.state.characters.filter(item => item.group === group && (!query || item.name.toLowerCase().includes(query)));
-      if (!rows.length) continue;
-      nodes.push(h('h3', {class: 'group'}, title), h('ul', {}, rows.map(item => h('li', {}, h('button', {
-        type: 'button', class: 'pick' + (item.key === model.key ? ' on' : ''), 'aria-current': item.key === model.key ? 'true' : null,
-        onclick: () => choose(item.key),
-      }, h('span', {}, item.name), item.edited ? h('span', {class: 'dot', title: T('Edited')}) : null)))));
-    }
-    $('list').replaceChildren(...(nodes.length ? nodes : [h('p', {class: 'empty'}, T('No match.'))]));
   }
   async function choose(key) {
     if (key === model.key || !leave()) return;
@@ -1115,168 +1313,344 @@ export function editorClient() {
       const data = await api('GET', '/api/character/' + encodeURIComponent(key));
       model.key = key; model.tab = 'bio'; apply(data);
       $('main').focus({preventScroll: true});
+      window.scrollTo(0, 0);
     } catch (error) { say(problem(error), true); }
   }
   const chrome = () => {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').textContent = T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.');
-    $('close').textContent = T('Close editor');
+    $('sub').replaceChildren(icon('info'), h('span', {}, T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.')));
+    $('close').replaceChildren(...withIcon('power', T('Close editor')));
+    $('logo').replaceChildren(icon('users'));
+    $('searchicon').replaceChildren(icon('search'));
+    $('clear').replaceChildren(icon('x'));
     $('search').placeholder = T('Search characters');
     $('search').setAttribute('aria-label', T('Search characters'));
+    $('picker').setAttribute('aria-label', T('Characters'));
+    $('clear').setAttribute('aria-label', T('Clear search')); $('clear').title = T('Clear search');
+    $('chips').setAttribute('aria-label', T('Characters'));
+    $('pickerhead').replaceChildren(icon('users'), h('span', {}, T('Choose a character to start editing.')));
     $('foot').textContent = T('Changes are saved on this computer and used from the next reply.');
-    const make = $('new');
-    make.textContent = T('New character');
-    make.hidden = !model.state.custom;
-    const world = $('world');
-    world.textContent = T('World rules');
-    world.hidden = !model.state.worldRules;
-    const prompting = $('prompting');
-    prompting.textContent = T('Prompting');
-    prompting.hidden = !model.state.prompting;
+    for (const [id, glyph, text] of [['new', 'userPlus', T('New character')], ['world', 'globe', T('World rules')], ['prompting', 'sliders', T('Prompting')], ['close', 'power', T('Close editor')]]) {
+      const node = $(id);
+      node.replaceChildren(...withIcon(glyph, text)); node.title = text;
+    }
+    $('new').hidden = !model.state.custom;
+    $('world').hidden = !model.state.worldRules;
+    $('prompting').hidden = !model.state.prompting;
     drawBanner();
   };
   // The warning that Convai is answering. Not on the world rules page: Convai gets those as context, and that page says so.
   function drawBanner() {
     const banner = $('banner');
     // The Look and moves tab has its own sentence about Convai (most of its choices work with it), so the warning about the text edits is left out there.
-    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.'); }
+    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.replaceChildren(icon('alert'), document.createTextNode(T('Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.'))); }
     else banner.hidden = true;
   }
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });
+  // The unsaved-changes marks follow every key press, choice and click on the page (the handlers of the controls have already run when these are called).
+  for (const type of ['input', 'change', 'click']) document.addEventListener(type, refreshFlags);
   $('search').addEventListener('input', event => { model.filter = event.target.value; drawList(); });
+  $('clear').addEventListener('click', () => { model.filter = ''; $('search').value = ''; drawList(); $('search').focus(); });
+  $('picker').addEventListener('keydown', onPickerKey);
+  $('picker').addEventListener('focusout', event => { if (pickerIsPopover() && event.relatedTarget && !$('picker').contains(event.relatedTarget) && event.relatedTarget !== $('who')) closePicker(false); });
+  $('scrim').addEventListener('click', () => closePicker(true));
+  $('who').addEventListener('click', () => { if (pickerIsPopover()) closePicker(true); else openPicker(); });
+  document.addEventListener('keydown', event => {
+    const typing = event.target.matches && event.target.matches('input,textarea,select,[contenteditable]');
+    if (((event.key === '/' && !typing) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')) && !event.altKey && model.state && $('picker')) { event.preventDefault(); openPicker(); }
+  });
   $('new').addEventListener('click', newCharacter);
   $('world').addEventListener('click', openWorld);
   $('prompting').addEventListener('click', openPrompting);
   $('close').addEventListener('click', async () => {
     if (!leave()) return;
     try { await api('POST', '/api/close', {}); } catch { /* the page is closing anyway */ }
-    document.body.replaceChildren(h('main', {class: 'gone'}, h('p', {}, T('The editor is closed. You can close this tab.'))));
+    document.body.replaceChildren(h('main', {class: 'gone', id: 'gone'}, icon('power'), h('p', {}, T('The editor is closed. You can close this tab.'))));
   });
   (async () => {
     try {
       model.state = await api('GET', '/api/state');
       strings = model.state.strings || {};
       for (const item of model.state.characters) if (item.voiceOnly) item.name = vName(item.key, item.name);
-      chrome(); drawList(); drawMain();
+      chrome(); drawMain();
     } catch (error) {
       document.body.replaceChildren(h('main', {class: 'gone'}, h('p', {}, 'The editor could not start. Open it again from the game settings.')));
+      return;
     }
+    // The character V was facing when the editor was opened (the game says it by name): the picker offers it at the top. Nothing breaks when there is none.
+    try {
+      const {facing} = await api('GET', '/api/facing');
+      const name = facing && norm(facing.name || '');
+      const found = name && model.state.characters.find(item => item.group !== 'custom' && item.group !== 'v' && norm(item.name) === name);
+      if (found) { model.facing = found.key; drawList(); }
+    } catch { /* the page works without it */ }
   })();
 }
 
+
+// The look: one refined dark theme (and a light one for light systems) with a single accent, a 4-point spacing scale, a small type scale and soft elevation. No inline styles are used
+// anywhere (the page policy allows this one style element only), so everything the script needs from the look is a class.
 const STYLE = `
-:root{color-scheme:dark light;--bg:#0e1116;--panel:#161b22;--line:#2a313c;--text:#e6e9ee;--dim:#98a2b0;--accent:#f3e600;--accent-ink:#14130a;--cyan:#4fd6e8;--bad:#ff6b6b;--good:#6fe39a;--field:#0b0e13}
-@media (prefers-color-scheme:light){:root{--bg:#f4f5f7;--panel:#fff;--line:#d5d9e0;--text:#1b1f27;--dim:#5b6573;--accent:#b8a900;--accent-ink:#fff;--cyan:#007c8c;--bad:#b3261e;--good:#17753c;--field:#fbfbfc}}
+:root{color-scheme:dark light;--bar-h:56px;
+--bg:#0c0e11;--surface:#14181d;--surface-2:#1a1f26;--field:#0e1115;--line:#242a33;--line-2:#303844;--hover:rgba(255,255,255,.055);
+--text:#e9ecf0;--text-2:#aeb7c3;--text-3:#8893a1;
+--accent:#f0d440;--accent-ink:#171407;--accent-text:#f0d440;--accent-soft:rgba(240,212,64,.11);--accent-line:rgba(240,212,64,.42);--ring:#f0d440;
+--bad:#ff8a84;--bad-soft:rgba(255,138,132,.12);--good:#74dca0;
+--bar-bg:rgba(12,14,17,.86);--float-bg:rgba(26,31,38,.94);--scrim:rgba(4,6,9,.55);
+--warn-bg:rgba(240,212,64,.10);--warn-text:#f1e4a6;--warn-line:rgba(240,212,64,.34);
+--shadow-1:0 1px 2px rgba(0,0,0,.35);--shadow-2:0 18px 44px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);
+--r-sm:8px;--r-md:12px;--r-lg:16px;--t:140ms;--ease:cubic-bezier(.2,.7,.2,1);
+--tone-0-bg:#243246;--tone-0-fg:#a4bde0;--tone-1-bg:#223a37;--tone-1-fg:#9fd6c8;--tone-2-bg:#35294a;--tone-2-fg:#c9aee6;
+--tone-3-bg:#40352a;--tone-3-fg:#e0c39e;--tone-4-bg:#3d2a31;--tone-4-fg:#e3adba;--tone-5-bg:#2b3138;--tone-5-fg:#bcc4cf}
+@media (prefers-color-scheme:light){:root{--bg:#f2f3f5;--surface:#fff;--surface-2:#f6f7f9;--field:#fbfbfc;--line:#e1e4e9;--line-2:#cdd2da;--hover:rgba(15,20,30,.055);
+--text:#14181f;--text-2:#455062;--text-3:#5c6777;
+--accent:#f0d440;--accent-ink:#171407;--accent-text:#745a00;--accent-soft:rgba(160,125,0,.11);--accent-line:rgba(130,100,0,.5);--ring:#6b5300;
+--bad:#b3261e;--bad-soft:rgba(179,38,30,.09);--good:#17753c;
+--bar-bg:rgba(242,243,245,.88);--float-bg:rgba(255,255,255,.96);--scrim:rgba(20,26,36,.34);
+--warn-bg:#fff4c4;--warn-text:#4d3d00;--warn-line:#d8c25a;
+--shadow-1:0 1px 2px rgba(20,28,40,.12);--shadow-2:0 18px 44px rgba(20,28,40,.2),0 2px 8px rgba(20,28,40,.12);
+--tone-0-bg:#dce7f6;--tone-0-fg:#2c4a74;--tone-1-bg:#d6eee8;--tone-1-fg:#1d5a4d;--tone-2-bg:#e8defa;--tone-2-fg:#4d3178;
+--tone-3-bg:#f3e6d2;--tone-3-fg:#6b4a1c;--tone-4-bg:#f7dfe5;--tone-4-fg:#7a2f43;--tone-5-bg:#e3e7ec;--tone-5-fg:#3d4756}}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;min-height:100vh}
-header.top{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
-header.top h1{font-size:19px;margin:0;letter-spacing:.02em}
-header.top .grow{flex:1}
-header.top p{margin:2px 0 0;color:var(--dim);font-size:13px}
-#banner{margin:0;padding:10px 24px;background:#3a2e00;color:#ffe9a0;border-bottom:1px solid #6b5700}
-@media (prefers-color-scheme:light){#banner{background:#fff4c4;color:#4d3d00;border-color:#d8c25a}}
-.layout{display:grid;grid-template-columns:300px 1fr;flex:1;min-height:0}
-aside{border-right:1px solid var(--line);padding:16px;overflow:auto;max-height:calc(100vh - 120px);background:var(--panel)}
-aside input[type=search]{width:100%}
-aside #new,aside #world,aside #prompting{width:100%;margin-bottom:12px}
-aside #world.on,aside #prompting.on{border-color:var(--accent)}
-#list ul{list-style:none;margin:0;padding:0}
-.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:18px 0 6px}
-.pick{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:none;border:1px solid transparent;color:var(--text);padding:7px 10px;border-radius:6px;cursor:pointer;font:inherit}
-.pick:hover{background:var(--field)}
-.pick.on{border-color:var(--accent);background:var(--field)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
-main#main{padding:24px 32px 48px;overflow:auto;max-height:calc(100vh - 120px);outline:none}
-.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.head h2{margin:0;font-size:24px}
-.head .quiet{margin-left:auto}
-.chip{font-size:12px;padding:2px 10px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
-.chip.edited{border-color:var(--accent);color:var(--accent)}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px;flex-wrap:wrap}
-.tabs button{background:none;border:none;border-bottom:3px solid transparent;color:var(--dim);padding:9px 14px;font:inherit;cursor:pointer}
-.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
-.tabs button.dirty::after{content:" *";color:var(--accent)}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;min-height:100vh;-webkit-font-smoothing:antialiased}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.icon{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+
+/* top bar */
+header.top{position:sticky;top:0;z-index:30;height:var(--bar-h);display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bar-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink)}
+.logo .icon{width:17px;height:17px}
+header.top h1{font-size:15px;font-weight:650;margin:0;letter-spacing:.01em;white-space:nowrap}
+.who{flex:1 1 auto;max-width:400px;min-width:0;height:38px;justify-content:flex-start;padding:0 10px 0 6px;background:var(--surface);border-color:var(--line-2);border-radius:10px;font-size:14px}
+.who .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550}
+.who .name.dim{color:var(--text-2);font-weight:400;padding-left:4px}
+.who>.sr+.icon{margin-left:6px}
+.who>.icon:last-child{margin-left:auto;color:var(--text-3);transition:transform var(--t) var(--ease)}
+.who[aria-expanded=true]{border-color:var(--accent-line)}
+.who[aria-expanded=true]>.icon:last-child{transform:rotate(180deg)}
+.tools{margin-left:auto;display:flex;gap:8px;flex:none}
+.tools button.on{border-color:var(--accent-line);background:var(--accent-soft)}
+.tools button[hidden]{display:none}
+
+/* buttons */
+button{font:inherit;font-size:13.5px;line-height:1;height:36px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--r-sm);cursor:pointer;
+border:1px solid var(--line-2);background:var(--surface-2);color:var(--text);transition:background var(--t),border-color var(--t),color var(--t),transform 80ms,filter var(--t)}
+button:hover:not(:disabled){background:var(--hover);border-color:var(--text-3)}
+button:active:not(:disabled){transform:translateY(1px)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:650}
+button.primary:hover:not(:disabled){background:var(--accent);border-color:var(--accent);filter:brightness(1.08)}
+button.quiet{background:transparent;border-color:transparent;color:var(--text-2)}
+button.quiet:hover:not(:disabled){background:var(--hover);border-color:transparent;color:var(--text)}
+button.quiet.danger:hover:not(:disabled){background:var(--bad-soft);color:var(--bad)}
+button.icon-btn{width:34px;padding:0}
+button:disabled{opacity:.42;cursor:not-allowed}
+
+/* page */
+.shell{width:100%;max-width:1080px;margin:0 auto;padding:20px 24px 72px;flex:1}
+#sub{display:flex;gap:8px;align-items:flex-start;margin:0 0 16px;color:var(--text-2);font-size:13px}
+#sub .icon{width:15px;height:15px;margin-top:2px;color:var(--text-3)}
+#banner{display:flex;gap:10px;align-items:center;margin:0;padding:10px 24px;background:var(--warn-bg);color:var(--warn-text);border-bottom:1px solid var(--warn-line);font-size:13.5px}
+#banner[hidden]{display:none}
+main#main{outline:none}
+main#main[hidden]{display:none}
+footer{padding:14px 24px;color:var(--text-3);font-size:12.5px;border-top:1px solid var(--line);text-align:center}
+.gone{display:grid;place-items:center;gap:12px;padding:96px 24px;text-align:center;font-size:17px;color:var(--text-2)}
+.gone .icon{width:32px;height:32px;color:var(--text-3)}
+
+/* the picker */
+.scrim{position:fixed;inset:var(--bar-h) 0 0 0;z-index:35;background:var(--scrim);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.scrim[hidden],.picker[hidden]{display:none}
+.picker{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-lg);overflow:hidden}
+.picker:not(.docked){position:fixed;z-index:40;top:calc(var(--bar-h) + 12px);left:50%;transform:translateX(-50%);width:min(780px,calc(100vw - 24px));max-height:calc(100vh - var(--bar-h) - 28px);
+box-shadow:var(--shadow-2);animation:pop 150ms var(--ease)}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-6px)}}
+.picker.docked{box-shadow:var(--shadow-1);margin:4px 0 8px}
+.picker-head{display:none;align-items:center;gap:10px;margin:0;padding:22px 22px 4px;font-size:19px;font-weight:650}
+.picker-head .icon{width:20px;height:20px;color:var(--accent-text)}
+.picker.docked .picker-head{display:flex}
+.searchbox{display:flex;align-items:center;gap:10px;padding:0 10px 0 16px;margin:12px 14px 10px;height:44px;background:var(--field);border:1px solid var(--line-2);border-radius:var(--r-md);transition:border-color var(--t),box-shadow var(--t)}
+.searchbox:focus-within{border-color:var(--ring);box-shadow:0 0 0 3px var(--accent-soft)}
+#searchicon{display:grid;place-items:center;color:var(--text-3)}
+#searchicon .icon{width:18px;height:18px}
+.searchbox input[type=search]{flex:1;min-width:0;height:100%;padding:0;border:0;border-radius:0;background:transparent;font-size:15px;color:var(--text);outline:none;box-shadow:none}
+.searchbox input::-webkit-search-cancel-button{display:none}
+.searchbox button{width:28px;height:28px;padding:0;flex:none}
+.searchbox button[hidden]{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;border-bottom:1px solid var(--line)}
+.fchip{height:30px;padding:0 11px;gap:6px;font-size:12.5px;border-radius:99px;background:transparent;border-color:var(--line-2);color:var(--text-2)}
+.fchip .icon{width:13px;height:13px}
+.fchip .n{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.fchip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--text)}
+.fchip.on .icon{color:var(--accent-text)}
+.results{overflow:auto;padding:4px 8px 10px;min-height:140px;max-height:min(56vh,540px);flex:1 1 auto;position:relative}
+.picker.docked .results{max-height:min(62vh,640px)}
+.sect{margin-top:4px}
+h3.group{display:flex;align-items:center;gap:8px;margin:14px 8px 6px;font-size:11.5px;font-weight:650;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
+h3.group .icon{width:13px;height:13px}
+h3.group .n{font-weight:500;letter-spacing:0}
+.sect.quick h3.group .icon{color:var(--accent-text)}
+.panel h3.group{margin:18px 0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 6px}
+.pick{width:100%;min-height:44px;height:auto;padding:5px 8px;justify-content:flex-start;gap:10px;text-align:left;background:transparent;border-color:transparent;border-radius:10px;font-size:14px;color:var(--text)}
+.pick .text{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.2}
+.pick .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick .sub{font-size:11.5px;color:var(--text-3)}
+.sect:not(.quick) .pick .sub{display:none}
+.pick.on{background:var(--accent-soft);border-color:var(--accent-line)}
+.marks{margin-left:auto;display:flex;gap:6px;flex:none;color:var(--text-3)}
+.mark{display:inline-flex}
+.mark .icon{width:13px;height:13px}
+.mark.edited{color:var(--accent-text)}
+.picker-foot{display:flex;justify-content:flex-end;padding:8px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.results .empty{margin:16px 8px}
+
+/* avatars and badges */
+.avatar{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:9px;font-size:11.5px;font-weight:650;letter-spacing:.02em;background:var(--tone-5-bg);color:var(--tone-5-fg)}
+.avatar.big{width:56px;height:56px;border-radius:15px;font-size:19px}
+.tone-0{background:var(--tone-0-bg);color:var(--tone-0-fg)}.tone-1{background:var(--tone-1-bg);color:var(--tone-1-fg)}.tone-2{background:var(--tone-2-bg);color:var(--tone-2-fg)}
+.tone-3{background:var(--tone-3-bg);color:var(--tone-3-fg)}.tone-4{background:var(--tone-4-bg);color:var(--tone-4-fg)}.tone-5{background:var(--tone-5-bg);color:var(--tone-5-fg)}
+.avatar.tile{background:var(--accent-soft);color:var(--accent-text);border:1px solid var(--accent-line)}
+.avatar.big .icon{width:24px;height:24px}
+.who .avatar{width:26px;height:26px;border-radius:8px;font-size:10.5px}
+.head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:4px 0 18px}
+.head .titles{min-width:0;flex:1 1 220px}
+.head h2{margin:0;font-size:25px;line-height:1.2;font-weight:650;letter-spacing:-.005em;overflow-wrap:anywhere}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.badges:empty{display:none}
+.badge,.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1;padding:5px 10px;border-radius:99px;border:1px solid var(--line-2);color:var(--text-2);background:transparent}
+.badge{background:var(--surface-2)}
+.badge .icon{width:12px;height:12px}
+.chip.edited{border-color:var(--accent-line);color:var(--accent-text);background:var(--accent-soft)}
+.head>button.quiet{margin-left:auto}
+
+/* tabs */
+.tabs{position:sticky;top:var(--bar-h);z-index:20;display:flex;gap:2px;margin:0 0 20px;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:thin}
+.tabs button{height:44px;border-radius:0;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-2);padding:0 14px;white-space:nowrap;font-size:14px}
+.tabs button:hover:not(:disabled){background:var(--hover);color:var(--text);border-color:transparent;border-bottom-color:var(--line-2)}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.tabs button.on .icon{color:var(--accent-text)}
+.tabs button.dirty::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:2px}
+
+/* forms */
 .panel{max-width:860px}
-.field{margin:0 0 28px}
-.field .field{margin:12px 0 0}
-.field label,.field h3{display:block;font-size:16px;font-weight:600;margin:0 0 2px}
-.help{color:var(--dim);margin:2px 0 8px;font-size:13.5px}
-textarea,input[type=text],input[type=search],select{width:100%;background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:9px 11px;font:inherit}
-select{width:auto;min-width:220px}
-input[type=file]{width:100%;color:var(--text);font:inherit}
-audio{display:block;width:100%;max-width:460px;margin:6px 0 10px}
-.field p.status{margin:6px 0;font-weight:600}
+.panel.wide{max-width:none}
+.panel>div>.field,.panel>.field,.panel>div>div>.field{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:20px 22px;margin:0 0 16px;box-shadow:var(--shadow-1)}
+.field{margin:0 0 24px}
+.field .field{margin:16px 0 0}
+.field label,.field h3{display:block;font-size:15px;font-weight:600;margin:0 0 2px}
+.help{color:var(--text-2);margin:2px 0 10px;font-size:13px;max-width:72ch}
+textarea,input[type=text],input[type=number],input[type=search],select{width:100%;background:var(--field);color:var(--text);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:9px 12px;font:inherit;font-size:14.5px;transition:border-color var(--t),box-shadow var(--t)}
+textarea:hover,input[type=text]:hover,input[type=number]:hover,select:hover{border-color:var(--text-3)}
+textarea:focus,input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea::placeholder,input::placeholder{color:var(--text-3)}
+textarea{resize:vertical;line-height:1.55}
+select{width:auto;min-width:240px;max-width:100%}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;margin:0;flex:none}
+input[type=file]{width:100%;color:var(--text);font:inherit;font-size:13.5px}
+input[type=file]::file-selector-button{font:inherit;font-size:13px;height:32px;padding:0 12px;margin-right:12px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface-2);color:var(--text);cursor:pointer}
+audio{display:block;width:100%;max-width:460px;margin:8px 0 10px}
+.field p.status{margin:8px 0;font-weight:600}
 .field .check{display:flex;align-items:center;gap:10px}
-.field .check input{width:18px;height:18px;margin:0}
-.field .check label{margin:0}
-textarea{resize:vertical;line-height:1.5}
-textarea:focus,input:focus,select:focus,button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
-.meter{display:flex;justify-content:flex-end;margin-top:3px}
-.count{font-size:12px;color:var(--dim);white-space:nowrap}
-.count.over{color:var(--bad);font-weight:600}
-.list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
-.row input{min-width:0}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-.actions.bar{padding-top:16px;border-top:1px solid var(--line)}
-.actions.bar + div{margin-top:28px}
-button{font:inherit;border-radius:6px;padding:8px 16px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--text)}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-button.secondary:hover,button.quiet:hover{border-color:var(--cyan)}
-button.quiet{background:none;color:var(--dim)}
-button:disabled{opacity:.4;cursor:default}
-.empty{color:var(--dim)}
-.empty.big{margin-top:40px;font-size:17px}
-.note{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;padding:10px 18px;border-radius:8px;background:var(--panel);border:1px solid var(--line);max-width:90vw}
-.note.show{opacity:1;transform:translateX(-50%)}
-.note.good{border-color:var(--good)}
-.note.bad{border-color:var(--bad);color:var(--bad)}
-footer{padding:10px 24px;color:var(--dim);font-size:13px;border-top:1px solid var(--line);background:var(--panel)}
-.gone{padding:60px 24px;text-align:center;font-size:18px}
-.panel.wide{max-width:1280px}
-.profiles{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
-.profiles .pick.profile{width:auto;gap:8px;border-color:var(--line);flex-wrap:wrap}
-.profiles .pick.profile.on{border-color:var(--accent)}
-hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+.field .check label{margin:0;font-weight:500}
+label.check{display:flex;gap:10px;align-items:center;margin:6px 0 10px;cursor:pointer}
+.meter{display:flex;justify-content:flex-end;margin-top:4px}
+.count{font-size:12px;color:var(--text-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.count.over{color:var(--bad);font-weight:650}
+.list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
+.row.tall{align-items:start}
+.row input,.row textarea{min-width:0}
+.empty{display:flex;align-items:center;gap:10px;margin:8px 0;padding:14px 16px;color:var(--text-2);border:1px dashed var(--line-2);border-radius:var(--r-md);font-size:13.5px}
+.empty .icon{color:var(--text-3)}
+
+/* the save bar */
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.actions.bar{position:sticky;bottom:12px;z-index:15;margin:24px 0 0;padding:10px 12px;background:var(--float-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line-2);border-radius:var(--r-md);box-shadow:var(--shadow-2)}
+.actions.bar+div{margin-top:28px}
+.state{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:550;color:var(--accent-text)}
+.state .icon{width:13px;height:13px}
+.state:empty{display:none}
+
+/* toast */
+.note{position:fixed;z-index:60;top:calc(var(--bar-h) + 12px);right:20px;display:flex;align-items:center;gap:10px;max-width:min(460px,calc(100vw - 24px));padding:10px 8px 10px 14px;border-radius:var(--r-md);
+background:var(--float-bg);border:1px solid var(--line-2);box-shadow:var(--shadow-2);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px);
+transition:opacity 160ms var(--ease),transform 160ms var(--ease),visibility 0s linear 160ms}
+.note.show{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition-delay:0s}
+.note .msg{font-size:14px;line-height:1.4}
+.note.good .icon{color:var(--good)}
+.note.bad{border-color:var(--bad)}
+.note.bad .icon{color:var(--bad)}
+.note .dismiss{width:28px;height:28px;padding:0;flex:none;border-color:transparent;background:transparent;color:var(--text-3)}
+
+/* prompting */
+.profiles{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.profiles .pick.profile{width:auto;min-height:36px;height:36px;padding:0 14px;gap:8px;border-color:var(--line-2);background:var(--surface-2);font-size:13.5px}
+.profiles .pick.profile.on{border-color:var(--accent-line);background:var(--accent-soft)}
+.profiles .chip{padding:3px 8px;font-size:11px}
+hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 .pcols{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
-@media (min-width:1100px){.pcols{grid-template-columns:minmax(0,1fr) minmax(300px,420px)}.ppreview{position:sticky;top:0;max-height:calc(100vh - 160px);overflow:auto}}
-.psec{margin:0 0 26px;padding:0 0 4px}
-.phead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.phead h3{margin:0;font-size:17px}
-.phead .quiet{margin-left:auto}
-.rule{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--field)}
-.rulehead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.psec{margin:0 0 16px;padding:18px 22px 20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-1)}
+.phead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:2px}
+.phead h3{margin:0;font-size:16px;font-weight:600}
+.phead .quiet{margin-left:auto;height:32px}
+.rule{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;background:var(--field)}
+.rulehead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .rulehead .grow{flex:1}
-.rulehead button{padding:4px 10px}
-.rule textarea{background:var(--panel)}
-.variants{margin-top:8px}
-.variants summary{cursor:pointer;color:var(--dim);font-size:13.5px}
+.rulehead button{height:30px}
+.rulehead button.icon-btn{width:30px}
+.rule textarea{background:var(--surface)}
+.variants{margin-top:10px}
+.variants summary{cursor:pointer;color:var(--text-2);font-size:13px;padding:2px 0}
 .variants .sub{margin-top:8px;display:flex;flex-direction:column;gap:3px}
 .variants .sub .count{align-self:flex-end}
 .numrow{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .field.num{margin:0 0 14px;max-width:340px;flex:1 1 220px}
 .field.num input[type=number]{width:100%}
-label.check{display:flex;gap:8px;align-items:center;margin:6px 0 10px;cursor:pointer}
-.numrow label.check{margin-top:26px}
-.row.tall{align-items:start}
-.row textarea{min-width:0}
+.numrow label.check{margin-top:28px}
 .errs:empty{display:none}
-.err{margin:6px 0 0;color:var(--bad);font-size:13.5px}
+.err{margin:6px 0 0;color:var(--bad);font-size:13px}
 [aria-invalid=true]{border-color:var(--bad)!important}
-.ppreview{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--panel)}
-.ppreview h3{margin:0 0 4px;font-size:17px}
-.ppreview h4{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.ppreview{border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;background:var(--surface);box-shadow:var(--shadow-1)}
+.ppreview h3{margin:0 0 4px;font-size:16px}
+.ppreview h4{margin:16px 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
 .json textarea{font:13px/1.45 ui-monospace,Consolas,monospace}
-.ppreview pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:10px}
+.ppreview pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--field);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px}
 .ppreview .stale{color:var(--bad)}
 .ppreview .field{margin:0 0 10px}
-.actions.sticky{position:sticky;bottom:0;background:var(--bg);padding:12px 0;z-index:2}
-@media (max-width:760px){.layout{grid-template-columns:1fr}aside{max-height:240px;border-right:0;border-bottom:1px solid var(--line)}main#main{max-height:none;padding:18px 16px}.row{grid-template-columns:1fr auto auto}.rulehead .count{display:inline}.profiles .pick.profile{width:100%}.row .count{display:none}}
-@media (prefers-reduced-motion:reduce){.note{transition:none}}
+@media (min-width:1100px){.pcols{grid-template-columns:minmax(0,1fr) minmax(300px,420px)}.ppreview{position:sticky;top:calc(var(--bar-h) + 16px);max-height:calc(100vh - var(--bar-h) - 40px);overflow:auto}}
+
+/* narrower windows */
+@media (max-width:980px){.appbtn .lbl{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.tools button{width:36px;padding:0}.who{max-width:none}}
+@media (max-width:640px){
+header.top{padding:0 10px;gap:8px}
+.brand h1{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tools{gap:4px}
+.shell{padding:14px 12px 64px}
+#banner{padding:10px 12px}
+.picker:not(.docked){left:8px;right:8px;width:auto;transform:none;animation:none;max-height:calc(100vh - var(--bar-h) - 20px)}
+.picker-head{padding:18px 16px 2px;font-size:17px}
+.grid{grid-template-columns:1fr}
+.head{gap:12px}
+.head h2{font-size:21px}
+.avatar.big{width:46px;height:46px;border-radius:13px;font-size:16px}
+.panel>div>.field,.panel>.field,.psec{padding:16px 14px}
+.row{grid-template-columns:minmax(0,1fr) auto}
+.row .count{display:none}
+.row.memory{grid-template-columns:minmax(0,1fr) auto auto}
+.actions.bar{bottom:8px;margin-top:20px}
+.state{margin-left:0;width:100%}
+.profiles .pick.profile{width:100%;justify-content:space-between}
+.rulehead .count{display:inline}
+.note{left:12px;right:12px;max-width:none}
+select{min-width:0;width:100%}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 `;
+
 
 const escapeAttribute = value => String(value).replace(/[&"<>]/g, char => ({'&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;'}[char]));
 
@@ -1297,11 +1671,23 @@ export function renderEditorPage({nonce, token, language = 'en'}) {
 <style nonce="${nonce}">${STYLE}</style>
 </head>
 <body>
-<header class="top"><div class="grow"><h1 id="title">Character editor</h1><p id="sub"></p></div><button type="button" id="close" class="secondary">Close editor</button></header>
+<header class="top">
+<div class="brand"><span class="logo" id="logo"></span><h1 id="title">Character editor</h1></div>
+<button type="button" id="who" class="who" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker"></button>
+<div class="tools"><button type="button" id="new" class="primary appbtn" hidden>New character</button><button type="button" id="world" class="secondary appbtn" hidden>World rules</button><button type="button" id="prompting" class="secondary appbtn" hidden>Prompting</button><button type="button" id="close" class="quiet appbtn">Close editor</button></div>
+</header>
+<div id="scrim" class="scrim" hidden></div>
 <p id="banner" role="status" hidden></p>
-<div class="layout">
-<aside><button type="button" id="prompting" class="secondary" hidden>Prompting</button><button type="button" id="world" class="secondary" hidden>World rules</button><button type="button" id="new" class="primary" hidden>New character</button><input type="search" id="search" autocomplete="off"><nav id="list" aria-label="Characters"></nav></aside>
-<main id="main" tabindex="-1"></main>
+<div class="shell">
+<p id="sub"></p>
+<section id="picker" class="picker" role="dialog" aria-label="Characters" hidden>
+<p id="pickerhead" class="picker-head"></p>
+<div class="searchbox"><span id="searchicon" class="sr-icon"></span><input type="search" id="search" autocomplete="off" spellcheck="false"><button type="button" id="clear" class="quiet" hidden></button></div>
+<div id="chips" class="chips" role="group"></div>
+<div id="list" class="results"></div>
+<div class="picker-foot"><span id="resultcount"></span></div>
+</section>
+<main id="main" tabindex="-1" hidden></main>
 </div>
 <footer id="foot"></footer>
 <div id="note" class="note" role="status" aria-live="polite"></div>

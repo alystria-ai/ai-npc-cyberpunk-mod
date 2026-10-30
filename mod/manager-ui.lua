@@ -532,7 +532,8 @@ local function profileDescription(profile, snapshot, shared, count)
     -- The voice that really speaks this character's replies, or text when none does (manager.characterVoiceLabel). It names the Convai
     -- voice only when that voice speaks, not when a local voice or the Mistral voice could not run.
     local voice = manager.characterVoiceLabel(profile,
-        {settings = settings, localVoice = snapshot.localVoice, mistralSaved = (snapshot.mistral or {}).saved == true}, shared.pack)
+        {settings = settings, localVoice = snapshot.localVoice, mistralSaved = (snapshot.mistral or {}).saved == true,
+            inworldSaved = ((snapshot.mistral or {}).inworld or {}).saved == true}, shared.pack)
     local conversing = settings.enabledByKey[profile.key] ~= false
     local lines = {(profile.summary or profile.name) .. '\n', ui.t('Voice: {voice}',{voice=voice}),
         ui.t('Conversation: {state}',{state=ui.t(conversing and 'On' or 'Off')})}
@@ -562,7 +563,7 @@ end
 -- The select's labels, in menu order.
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
-local function voiceMenuLabels(pack, mistral, matureOn)
+local function voiceMenuLabels(pack, mistral, matureOn, savedProvider)
     -- Entry 1 is Off (the old Voice playback switch), so each voice sits one place after its position in VOICE_CHOICES; `disabled` is keyed by the entry's place.
     local elements, disabled = {ui.t('Off')}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
@@ -570,7 +571,15 @@ local function voiceMenuLabels(pack, mistral, matureOn)
         -- what the pack and the keys are. The Mistral cloud voice has a menu name of its own: the full one ("Mistral cloud voice
         -- (Voxtral)") stays for sentences.
         local label
-        if choice.provider == 'voxtral' then
+        if choice.provider == 'inworld' then
+            -- The Inworld cloud voice is listed last, and only once its key is saved (or while it is the saved choice, so the row never shows another voice than the saved one).
+            if ((mistral or {}).inworld or {}).saved then
+                if matureOn then
+                    label = ui.t('Inworld · not with Mature')
+                    disabled[#elements + 1] = ui.t('Inworld is not used with Mature content.')
+                else label = ui.t('Inworld · Cloud voice') end
+            elseif savedProvider == 'inworld' then label = ui.t('Inworld · needs key') end
+        elseif choice.provider == 'voxtral' then
             -- Not beside Mature content (the entry is greyed out and M.apply refuses it, whatever the key): the label says so, for hosts that cannot grey it.
             if matureOn then
                 label = ui.t('Voxtral · not with Mature')
@@ -582,7 +591,7 @@ local function voiceMenuLabels(pack, mistral, matureOn)
             label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
             if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
         end
-        elements[#elements + 1] = label
+        if label then elements[#elements + 1] = label end
     end
     voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
@@ -740,7 +749,8 @@ local function stageMature(changes, snapshot)
             -- Only a voice that can be chosen now: Voxtral needs the Mistral key, OmniVoice its pack (M.apply refuses either without, and the
             -- refusal would keep Mature content on). Otherwise the voice stays where it is.
             local choice = back and VOICE_CHOICES[back]
-            local usable = choice and (choice.provider ~= 'voxtral' or keySaved) and (choice.provider ~= 'omni' or manager.omniPack().installed == true)
+            local usable = choice and (choice.provider ~= 'voxtral' or keySaved) and (choice.provider ~= 'inworld' or ((snapshot.mistral or {}).inworld or {}).saved == true)
+                and (choice.provider ~= 'omni' or manager.omniPack().installed == true)
             if current == voiceIndexOf(part.set) and usable then
                 stage('voiceProvider', back); names[#names + 1] = ui.t('Companion voices')
             end
@@ -793,7 +803,7 @@ local function stageMature(changes, snapshot)
             -- No Voxtral voice beside it (any provider): the companions and V move to Pocket, named below, and come back when it is turned off.
             local voiceNow = now('voiceProvider', savedVoiceIndex(saved))
             local voiceChoice = VOICE_CHOICES[voiceNow]
-            if voiceChoice and voiceChoice.provider == 'voxtral' then
+            if voiceChoice and (voiceChoice.provider == 'voxtral' or voiceChoice.provider == 'inworld') then
                 stage('voiceProvider', 1)
                 record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(1)}
                 local chosen = VOICE_CHOICES[1]
@@ -983,7 +993,44 @@ local function customEndpointRows()
     return rows
 end
 
--- Settings > Voices > Custom voices: the Remote OmniVoice switch (a saved setting like any other), what it is doing now, the server address and the connection test.
+-- Settings > Voices > Custom voices, last section: the Inworld cloud voice (docs/INWORLD.md). Its API key (added from the clipboard, saved only on this
+-- computer, only its last four characters shown), a connection test and one line saying whether the voice can be chosen. The voice itself is chosen in
+-- Settings > Voices > Companion voices, where Inworld is the last entry once a key is saved. Nothing here asks Inworld for anything until a button is pressed.
+local function inworldRows(snapshot)
+    local inworld = (snapshot.mistral or {}).inworld or {}
+    local result, saved = inworld.result, inworld.saved == true
+    local message
+    if result == 'invalid' then message = ui.t('Inworld did not accept that key.')
+    elseif result == 'unreadable' then message = ui.t('The clipboard could not be read.')
+    elseif result == 'failed' then message = ui.t('The key could not be saved.') end
+    local rows = {}
+    rows[#rows + 1] = keyRow('Inworld API key',
+        'Needs your own Inworld key, from inworld.ai. Inworld’s free plan is a one-time trial of about 70 minutes of speech, then you pay as you go.\n\nCopy your key first, then press Add. It is read from the clipboard once, checked with Inworld and saved on this computer.',
+        'Deletes the saved key. If Inworld is your Companion voice, replies show as text until you add a key again.',
+        'inworld-key', {saved = saved, tail = inworld.tail, checking = result == 'checking', message = message, add = true},
+        function() return manager.pasteInworldKey() end, function() return manager.removeInworldKey() end)
+    local testValue = ui.t('Test')
+    if result == 'checking' then testValue = ui.t('Checking…')
+    elseif result == 'connected' then testValue = ui.t('Connected')
+    elseif result == 'refused' then testValue = ui.t('Key refused')
+    elseif result == 'unreachable' then testValue = ui.t('Not reachable')
+    elseif result == 'no-key' then testValue = ui.t('Add a key first') end
+    rows[#rows + 1] = action('inworld-test', 'Test connection', testValue,
+        'Asks Inworld whether your saved key is accepted. It costs nothing and no speech is made.',
+        function() return manager.testInworldConnection() end, saved, {value = true})
+    local status
+    if snapshot.settings.matureContent == true then status = ui.t('Not used with Mature content')
+    elseif snapshot.settings.voiceProvider == 'inworld' then status = ui.t('Chosen as the Companion voice')
+    elseif saved then status = ui.t('Ready to choose in Companion voices')
+    else status = ui.t('Add a key to choose it') end
+    rows[#rows + 1] = readonly('inworld-voice', 'Inworld voice', status,
+        'Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.',
+        {value = true})
+    return rows
+end
+
+-- Settings > Voices > Custom voices: the Remote OmniVoice switch (a saved setting like any other), what it is doing now, the server address and the connection test,
+-- then the Inworld cloud voice's key (inworldRows).
 -- The address and test rows and their texts come from mod/remote-omni.lua; the page is empty without that file.
 local function customVoicesRows(snapshot)
     local rows = {}
@@ -1015,6 +1062,7 @@ local function customVoicesRows(snapshot)
                 {label = true, value = true, description = true})
         end
     end
+    for _, row in ipairs(inworldRows(snapshot)) do rows[#rows + 1] = row end
     return rows
 end
 
@@ -1069,8 +1117,9 @@ local function omniAmdRows(snapshot)
     return rows
 end
 
--- The Google Gemini key as one row of the provider page (the Add reads the key from the clipboard and fills in the fixed endpoint and model; Remove deletes the key), then the connection test.
--- Everything they say comes from mod/custom-provider.lua (the second instance, kind 'gemini'); empty without it.
+-- The Google Gemini key as one row of the provider page (the Add reads the key from the clipboard, fills in the fixed endpoint and model and has the service try the key once with a tiny
+-- request, which the row itself tells; Remove deletes the key). There is no Test connection row.
+-- Everything it says comes from mod/custom-provider.lua (the second instance, kind 'gemini'); empty without it.
 local function geminiRows(lastParagraph)
     local rows = {}
     local instance = geminiProvider.instance
@@ -1081,20 +1130,17 @@ local function geminiRows(lastParagraph)
     local message
     if state.result and state.result.state == 'unreadable' then message = ui.t('The clipboard could not be read.')
     elseif state.result and state.result.state == 'failed' then message = ui.t('The key could not be saved.')
-    elseif state.result and state.result.state == 'invalid' then message = state.result.reason == 'empty' and ui.t('The clipboard is empty. Copy your key first.') or ui.t('The clipboard does not hold an API key.') end
+    elseif state.result and state.result.state == 'invalid' then message = state.result.reason == 'empty' and ui.t('The clipboard is empty. Copy your key first.') or ui.t('The clipboard does not hold an API key.')
+    elseif saved and state.check then
+        -- The one-time check of the key just added: accepted, refused (with what to do) or not possible now.
+        local sentenced, sentence = pcall(instance.keyCheckSentence, state.check)
+        message = sentenced and sentence or nil
+    end
     rows[#rows + 1] = keyRow('Google Gemini API key',
         'Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.',
         'Deletes the saved key.',
-        'gemini-key', {saved = saved, tail = state.tail, message = message, add = true},
+        'gemini-key', {saved = saved, tail = state.tail, message = message, add = true, checking = saved and state.check ~= nil and state.check.state == 'checking'},
         function() return instance.request('preset-gemini') end, function() return instance.request('clear-preset-gemini') end, lastParagraph)
-    local made, items = pcall(instance.rows)
-    if made and type(items) == 'table' then
-        for _, item in ipairs(items) do
-            if item.id == 'gemini-test' then
-                rows[#rows + 1] = action('gemini-test', item.label, item.value, item.help, function() return instance.request(item.action) end, item.enabled, {label = true, value = true, description = true})
-            end
-        end
-    end
     return rows
 end
 
@@ -1285,14 +1331,14 @@ local function ownKeyRows(snapshot)
     -- Custom (OpenAI-compatible): its endpoint URL, API key, model ID and the connection test are a page of their own (customEndpointRows,
     -- opened from this one button), right under the Google Gemini rows, like the Convai paid tier below. Shown whenever the module is there.
     do
-        -- Google Gemini: its key (Add / Remove) and the connection test, right under the localOffload row (where the Mistral key row was).
+        -- Google Gemini: its key (Add / Remove), right under the localOffload row (where the Mistral key row was).
         local at = #rows + 1
         for index, item in ipairs(rows) do if item.id == 'localOffload' then at = index + 1 end end
         for offset, row in ipairs(geminiRows(limitHelp)) do table.insert(rows, at + offset - 1, row) end
     end
     if customProvider.instance then
         local at = #rows + 1
-        for _, anchor in ipairs({'localOffload', 'gemini-key', 'gemini-test'}) do
+        for _, anchor in ipairs({'localOffload', 'gemini-key'}) do
             for index, item in ipairs(rows) do if item.id == anchor then at = index + 1 end end
         end
         table.insert(rows, at, action('custom-endpoint', 'Custom endpoint', 'Open', 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.',
@@ -1494,6 +1540,8 @@ local function pageSignature(snapshot)
         local read, signature = pcall(remoteOmni.instance.signature)
         local remote = manager.remoteOmniVoice()
         add('remote-page:' .. (read and signature or '') .. '|' .. tostring(remote.set) .. tostring(remote.connected) .. tostring(remote.requested) .. tostring(remote.fresh))
+        local inworldState = (snapshot.mistral or {}).inworld or {}
+        add('inworld:' .. tostring(inworldState.saved) .. '|' .. (inworldState.tail or '') .. '|' .. (inworldState.result or ''))
         add(settingsDigest(snapshot.settings))
     end
     if view == 'omni-amd' and omniAmd.instance then
@@ -1527,6 +1575,8 @@ local function pageSignature(snapshot)
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
+        -- The Companion voices list shows the Inworld entry once its key is saved.
+        add('inworld-key:' .. tostring(((mistral.inworld) or {}).saved))
         -- The Microphone row lists the inputs the service reported (the answer arrives a moment after the page opens).
         add('mics:' .. table.concat(manager.microphoneInputs().inputs, '\n'))
         -- The Local AI model row lists what is installed.
@@ -2546,7 +2596,7 @@ local function schema()
             setting('voiceProvider', voiceName, 'select', snapshot.settings.voice == false and 1 or voiceIndex + 1, 2,
                 ui.t('Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.') .. '\n\n'
                     .. ui.t('Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.'),
-                voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true), {elements = true, label = true, description = true}),
+                voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true, snapshot.settings.voiceProvider), {elements = true, label = true, description = true}),
             -- Shown with Companion voices Off too, greyed by its own words: the description says it only counts while voices are on.
             setting('replyLanguage', 'Voice language', 'select', replyIndex, 1,
                 'The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.',
@@ -2559,10 +2609,13 @@ local function schema()
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
-            -- A slider, 50 to 200 in steps of 5; the page shows its number, so the unit is in the name. The bridge applies it to every voice
-            -- (companions, NPCs, add-ons and V's typed lines) as gain behind a peak limiter; it takes effect on the next reply.
+            -- Two sliders, 50 to 300 in steps of 5; the page shows the number, so the unit is in the name. The bridge applies Voice volume to every voice but
+            -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter; it takes effect on the next reply.
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
-                'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
+                'How loud the companions’ and characters’ voices are. 100 is the normal level, 150 the default.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. V’s voice has its own setting below, and the game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
+                nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
+            setting('vVoiceVolume', 'V’s voice volume (%)', 'int', snapshot.settings.vVoiceVolume, voiceRange.default,
+                'How loud V’s own voice is, for V’s typed and microphone lines. 100 is the normal level, 150 the default.\n\nAbove 100 the voice gets louder, with a limiter so it does not crackle. The companions’ voices and the game’s own dialogue and sounds do not change.\n\nThe next line uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
             -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
             -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
@@ -2995,8 +3048,11 @@ function M.apply(changes)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
             or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' or key == 'localOffload' then values[key] = change.value
         elseif key == 'voiceVolume' then
-            if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
+            if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 300 percent.') end
             values.voiceVolume = change.value
+        elseif key == 'vVoiceVolume' then
+            if type(change.value) ~= 'number' then return refused('Choose V’s voice volume from 50 to 300 percent.') end
+            values.vVoiceVolume = change.value
         elseif key == 'audioDelay' then
             local delays = manager.audioDelayChoices()
             if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then
@@ -3078,6 +3134,10 @@ function M.apply(changes)
             -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
             if choice.provider == 'voxtral' and not manager.mistral().saved then
                 return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
+            end
+            -- And the Inworld cloud voice needs the player's own Inworld key.
+            if choice.provider == 'inworld' and not manager.mistral().inworld.saved then
+                return refused('Requires an Inworld key (add it in Settings > Voices > Custom voices)')
             end
             values.voiceProvider = choice.provider
             if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
@@ -3176,6 +3236,9 @@ function M.apply(changes)
     if matureFinal == nil then matureFinal = snapshot.settings.matureContent == true end
     if matureFinal == true and (values.voiceProvider == 'voxtral' or values.vVoiceEngine == 'voxtral') then
         return refused('Voxtral is not used with Mature content.')
+    end
+    if matureFinal == true and values.voiceProvider == 'inworld' then
+        return refused('Inworld is not used with Mature content.')
     end
     -- Turning Mature content on in this batch: what that staged is kept in the settings, so turning it off can undo it.
     if values.matureContent == true and record then values.matureRestore = record end

@@ -11,7 +11,8 @@ import {VLine} from './v-voice.mjs';
 import {TurnClock} from './turn-clock.mjs';
 
 // The whole chain on the real renderer page (real Edge, muted, all PCM a quiet sine, no sound reaches a device): the Voice volume the bridge
-// sends in the playback control must be what the page's graph really applies, for the companion's stream and for V's line, at every setting.
+// sends in the playback control must be what the page's graph really applies, for the companion's stream (the Voice volume) and for V's line
+// (V's voice volume, a setting of its own), at every setting from 50 to 300 percent, each with the other one set far away.
 // A live report (2026-10-16: "volume doesn't change") made this the question to keep answered by a test.
 const LIMITER_MAKEUP_DB = 0.6 * 4 * (1 - 1 / 20);
 const dbOf = ratio => 20 * Math.log10(ratio);
@@ -31,7 +32,7 @@ test('real renderer page: the companion stream and V line apply the Voice volume
   try {
     const owner = {requestId: 'reply-1', entity: '11307774ULL', generation: 2};
     const companion = async percent => {
-      updateVoiceVolume({voiceVolume: percent});
+      updateVoiceVolume({voiceVolume: percent, vVoiceVolume: percent === 50 ? 300 : 50});
       let sequence = 0, level;
       const id = `continuous-${percent}`;
       const speech = new ConvaiContinuousSpeech({input: owner, profile: {key: 'alex'}, token: id, signal: new AbortController().signal,
@@ -43,7 +44,7 @@ test('real renderer page: the companion stream and V line apply the Voice volume
       return level;
     };
     const voiceLine = async percent => {
-      updateVoiceVolume({voiceVolume: percent});
+      updateVoiceVolume({voiceVolume: percent === 50 ? 300 : 50, vVoiceVolume: percent});
       let level;
       const made = new VLine({input: {requestId: 'v', profileKey: 'alex', text: 'Hello.'}, key: 'v-male', text: 'Hello.', plan: {engine: 'pocket', language: 'en'},
         volume: .7, clock: new TurnClock(), log: () => {},
@@ -54,9 +55,10 @@ test('real renderer page: the companion stream and V line apply the Voice volume
       return level;
     };
     const companions = {}, voices = {};
-    for (const percent of [50, 80, 100, 150, 200]) { companions[percent] = await companion(percent); voices[percent] = await voiceLine(percent); }
+    const percents = [50, 80, 100, 150, 200, 300];
+    for (const percent of percents) { companions[percent] = await companion(percent); voices[percent] = await voiceLine(percent); }
     t.diagnostic(JSON.stringify({companions, voices}));
-    for (const percent of [50, 80, 100, 150, 200]) {
+    for (const percent of percents) {
       const db = 20 * Math.log10(percent / 100);
       const c = companions[percent], v = voices[percent];
       assert.ok(c && v, `a level was reported at ${percent}%`);
@@ -66,10 +68,10 @@ test('real renderer page: the companion stream and V line apply the Voice volume
       if (percent === 100) assert.equal(v.limited, false, 'V at 100% is the unchanged unity path');
       assert.ok(Math.abs(dbOf(v.gain / .7) - (percent === 100 ? 0 : db - LIMITER_MAKEUP_DB)) < .05, `V gain at ${percent}%: ${v.gain}`);
     }
-    // The spread the player asked for really reaches the graph: 50% to 200% is 12 dB for the companion and V alike.
-    assert.ok(Math.abs(dbOf(companions[200].gain / companions[50].gain) - 12.04) < .1);
-    assert.ok(Math.abs(dbOf(voices[200].gain / voices[50].gain) - 12.04) < .1);
-    assert.ok(lines.length >= 10 && lines.every(line => /limiter (in the path|idle)/.test(line) || /gain 0\.7/.test(line)), `one honest log line per reply: ${lines.join(' | ')}`);
+    // The spread the player asked for really reaches the graph: 50% to 300% is 15.56 dB for the companion and V alike.
+    assert.ok(Math.abs(dbOf(companions[300].gain / companions[50].gain) - 15.56) < .1);
+    assert.ok(Math.abs(dbOf(voices[300].gain / voices[50].gain) - 15.56) < .1);
+    assert.ok(lines.length >= 12 && lines.every(line => /limiter (in the path|idle)/.test(line) || /gain 0\.7/.test(line)), `one honest log line per reply: ${lines.join(' | ')}`);
     assert.ok(!lines.some(line => line.includes('MISSING')));
   } finally {
     console.error = origError; updateVoiceVolume({}); updateDialogueLevel('');

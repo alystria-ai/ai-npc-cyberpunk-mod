@@ -1,7 +1,7 @@
 // Developer mode: keeps the audio of the last spoken reply and which reference voice spoke it, so a test can compare the speaker with the reference offline
 // (the in-game check of the multilingual packs: the Mandarin reply must sound like the character, not like another one).
 //
-//   <state>/debug/last-reply-<engine>.wav    the reply, 24 kHz mono 16-bit (engine: omni | voxtral | pocket); every phrase of the reply, in order
+//   <state>/debug/last-reply-<engine>.wav    the reply, 24 kHz mono 16-bit (engine: omni | voxtral | inworld | pocket); every phrase of the reply, in order
 //   <state>/debug/last-reply-<engine>.json   {version, engine, voiceKey, language, reference, referenceUsed, seconds, sampleRate, phrases, updated}
 //                                            `reference` is the voice-routing line's ref (multilingual/zh-cn/picked/panam-palmer, or the English set);
 //                                            no words of the reply, no ids
@@ -13,7 +13,7 @@ import {resolve} from 'node:path';
 import {decodeWav, encodeWav16} from './voxtral-reference.mjs';
 
 export const CAPTURE_FOLDER = 'debug';
-export const CAPTURE_ENGINES = Object.freeze(['omni', 'voxtral', 'pocket']);
+export const CAPTURE_ENGINES = Object.freeze(['omni', 'voxtral', 'inworld', 'pocket']);
 export const MAX_SECONDS = 120;
 
 class CapturedReply {

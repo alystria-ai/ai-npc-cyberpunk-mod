@@ -670,8 +670,11 @@ end
 function M.protectedReason(catalog, actor)
     if type(catalog) ~= 'table' or type(actor) ~= 'table' then return nil end
     local facts = type(actor.facts) == 'table' and actor.facts or {}
-    if (actor.record and catalog.records[actor.record]) or (type(facts.recordName) == 'string' and catalog.records[facts.recordName])
-        or catalog.names[normalized(actor.name)] then return 'named' end
+    local found = (actor.record and catalog.records[actor.record]) or (type(facts.recordName) == 'string' and catalog.records[facts.recordName])
+        or catalog.names[normalized(actor.name)]
+    -- A minor profile (the 2026-10-30 cast sweep, docs/CAST_SWEEP.md) names an ordinary person: the game's own copy stays what it was
+    -- before the profile existed (not protected as a story character), so recruiting and the other systems behave exactly as they did.
+    if found and found.minor ~= true then return 'named' end
     if STORY_BOUND[facts.quest or ''] then return 'quest' end
     if M.storyRecord(facts.recordName) then return 'story-record' end
     return nil
@@ -762,6 +765,9 @@ function M.resolve(catalog, actor)
     local facts = type(actor.facts) == 'table' and actor.facts or nil
     local profile = catalog.records[actor.record] or (facts and type(facts.recordName) == 'string' and catalog.records[facts.recordName])
         or catalog.names[normalized(actor.name)]
+    -- A minor profile answers for the game's own copy only while "Talk to story characters" is on. With it off the person keeps the
+    -- archetype conversation they had before the profile existed (the lookup below), so the setting does not take talk away from anybody.
+    if profile and profile.minor == true and actor.world == true and actor.story ~= true then profile = nil end
     if profile then
         -- actor.world: a character the game placed in the world, not our spawned copy. A named roster character there
         -- is the game's own (a quest or scene may drive it): only the copy the mod spawned talks. Name lookups that

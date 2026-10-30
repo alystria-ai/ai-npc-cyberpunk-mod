@@ -120,7 +120,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
   - Gameplay (a section of its own since 2026-10-28; the rows moved here with their saved values untouched, only the page changed): Street reputation (was in Conversations, off by default), NPCs react to threats and commands (was in Conversations, off), Companions change outfits (was in Companion behavior, off), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page (both were in Companion behavior and still go Back to Settings), and the new Revenge ambushes (off by default, `docs/AMBUSHES.md`). Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
   - Voices (0.3.4): Companion voices (the first entry is Off, the old Voice playback switch: it keeps the voice that was chosen), Voice language, Subtitles (Off, Cinematic subtitles, Above the speaker: the old switch and
-    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
+    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%) and V’s voice volume (%) (two sliders, 50 to 300, default 150: the first for every voice but V's, the second for V's spoken lines), Natural speech (off by default),
     V's voice for typed lines and V's voice for microphone lines (two rows of one kind: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; typed default Pocket, microphone default Off,
     one engine for both, `docs/V_VOICE.md`). React to battles and React to collected loot (both on by default since 2026-10-26) moved to Gameplay, and the Subtitles and Automatic reactions sections are gone.
   - One section per installed add-on that has settings
@@ -128,7 +128,8 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
   OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
-  · Cloud voice**. Without the optional OmniVoice pack the
+  · Cloud voice**, then **Inworld · Cloud voice** as the last entry once an Inworld key is saved (docs/INWORLD.md: the key, its connection test
+  and a status line are the last section of Settings > Voices > Custom voices). Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
   The Voice status row was removed on 2026-10-20: the voice state shows through the fallback notices (when the chosen voice cannot run, one gameplay
   notice names the voice, e.g. "OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.") and the Help page.

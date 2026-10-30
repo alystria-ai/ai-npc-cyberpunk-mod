@@ -119,9 +119,9 @@ function warmTalkTargetsWith(stand) {
     if (bridge[at] === '}' && --depth === 0) { end = at + 1; break; }
   }
   const source = bridge.slice(start, end);
-  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual',
+  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual', 'mistralMemory', 'memoryNamespace',
     `${source}\nreturn warmTalkTargets;`)(stand.stopped ?? false, stand.ids, stand.localVoice, stand.mistral, stand.mistralHost,
-    stand.profileFor, [], stand.multilingual ?? {fixed: null});
+    stand.profileFor, [], stand.multilingual ?? {fixed: null}, stand.mistralMemory ?? {warmFor: () => false}, {keyFor: key => key});
 }
 
 test('warmTalkTargets prepares an OmniVoice voice and a local persona for the people V talks to, and nothing otherwise', () => {
@@ -143,6 +143,23 @@ test('warmTalkTargets prepares an OmniVoice voice and a local persona for the pe
   log.length = 0;
   warm(['judy-alvarez'], {persona: false});
   assert.deepEqual(log, [['voice', 'judy-alvarez']], 'a turn that has begun must not queue a prefill in front of its own request');
+  // The memory embedder starts with a private talk (one target) on a text route, never for a group and never for a turn that has begun.
+  stand.mistralMemory = {warmFor: key => { log.push(['memory', key]); return true; }};
+  const warmWithMemory = warmTalkTargetsWith(stand);
+  log.length = 0;
+  warmWithMemory(['judy-alvarez']);
+  assert.deepEqual(log, [['memory', 'judy-alvarez'], ['voice', 'judy-alvarez'], ['persona', 'judy-alvarez', 'JUDY-ALVAREZ']]);
+  log.length = 0;
+  warmWithMemory(['judy-alvarez', 'panam-palmer']);
+  assert.equal(log.some(item => item[0] === 'memory'), false, 'a group retrieves nothing');
+  log.length = 0;
+  warmWithMemory(['judy-alvarez'], {persona: false});
+  assert.equal(log.some(item => item[0] === 'memory'), false);
+  stand.mistral.active = false;
+  log.length = 0;
+  warmWithMemory(['judy-alvarez']);
+  assert.equal(log.some(item => item[0] === 'memory'), false, 'Convai answering keeps its own memory');
+  stand.mistral.active = true;
   log.length = 0;
   stand.localVoice.preparesOnGpu = false; stand.mistral.route = 'mistral';
   warm(['judy-alvarez']);

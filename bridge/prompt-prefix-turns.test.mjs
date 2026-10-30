@@ -55,41 +55,39 @@ test('two consecutive talks with a character share the whole system message and 
   assert(common(a, b) / b.length > 0.8, `most of the second prompt is shared (${(100 * common(a, b) / b.length).toFixed(0)}%)`);
 });
 
-test('a reaction after a talk, and a talk after a reaction, keep the same system message (the bond line and the gear are repeated)', () => {
+test('a reaction after a talk, and a talk after a reaction, keep the same system message (the bond line is repeated, the gear goes only when V asks)', () => {
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   const first = messagesOf(bonds, talk('Hey, how are you holding up?'));
   const reaction = messagesOf(bonds, speakUp());
   assert.match(reaction[0].content, /How close you are to V/, 'the reaction has the character\'s bond line');
-  assert.match(reaction[0].content, /Leather Jacket/, 'and the gear of the last talk');
+  // V's gear goes only with V's words about it (fix/natural-talk, 2026-10-30), so neither the talk nor the reaction carries it here.
+  assert.doesNotMatch(reaction[0].content, /Leather Jacket/, 'no gear: V did not ask');
   assert.equal(reaction[0].content, first[0].content);
   const third = messagesOf(bonds, talk('Where are we going?'), {history: [{v: 'Hey, how are you holding up?', r: 'Fine, V.'}]});
   assert.equal(third[0].content, first[0].content);
   assert(common(flat(first), flat(reaction)) >= first[0].content.length);
 });
 
-test('before any talk a reaction has no bond line and no gear, as before; the setting off, or Forget, ends the repeat', () => {
+test('before any talk a reaction has no bond line and no gear, a reaction never repeats the gear, and Forget ends the bond line repeat', () => {
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   const cold = messagesOf(bonds, speakUp());
   assert.doesNotMatch(cold[0].content, /How close you are to V|Leather Jacket/);
   messagesOf(bonds, talk('Hi.'));
-  assert.match(messagesOf(bonds, speakUp())[0].content, /Leather Jacket/);
-  gearMemory.clear();
-  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /Leather Jacket/, 'a new world forgets the gear');
+  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /Leather Jacket/, 'a reaction never repeats the gear');
   bonds.forget({all: true});
   assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /How close you are to V/, 'Forget forgets the line');
 });
 
-test('new gear on the next talk replaces the one a reaction repeats; Johnny in V\'s head never gets either', () => {
+test('the gear goes with a talk only when V asks about it, a reaction never repeats it, and Johnny in V\'s head gets no bond line', () => {
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   messagesOf(bonds, talk('Hi.'));
   const changed = {...GEAR, clothing: [{slot: 'outerTorso', name: 'Samurai Jacket'}]};
-  messagesOf(bonds, talk('Hi again.', {gear: changed}));
-  const reaction = messagesOf(bonds, speakUp())[0].content;
-  assert.match(reaction, /Samurai Jacket/);
-  assert.doesNotMatch(reaction, /Leather Jacket/);
+  assert.match(flat(messagesOf(bonds, talk('Like my new jacket?', {gear: changed}))), /Samurai Jacket/, 'V asks: the gear is told');
+  assert.doesNotMatch(flat(messagesOf(bonds, talk('Hi again.', {gear: changed}))), /Samurai Jacket/, 'small talk: no gear');
+  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /Samurai Jacket|Leather Jacket/, 'a reaction: no gear');
   const head = {...speakUp(), profileKey: 'johnny-silverhand', head: {version: 1, stage: 'wary', milestones: []}};
   assert.doesNotMatch(messagesOf(bonds, head)[0].content, /Samurai Jacket|How close you are to V/);
 });

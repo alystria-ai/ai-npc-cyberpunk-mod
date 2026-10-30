@@ -186,7 +186,7 @@ test('a Custom voices button sits right under the voice list; the page has the s
   for _, category in ipairs(loaded.categories) do
     if category.id == 'custom-voices' then for _, item in ipairs(category.settings) do pageIds[#pageIds + 1] = item.id end end
   end
-  assert(table.concat(pageIds, ',') == 'remoteOmni,remote-status,remote-address,remote-test', table.concat(pageIds, ','))
+  assert(table.concat(pageIds, ',') == 'remoteOmni,remote-status,remote-address,remote-test,inworld-key,inworld-test,inworld-voice', table.concat(pageIds, ','))
   assert(row('remoteOmni').type == 'bool' and row('remoteOmni').value == false and row('remoteOmni').label == 'Remote OmniVoice')
   assert(row('remote-status').value == 'Off. OmniVoice runs on this PC.')
   assert(row('remote-address').type == 'action' and row('remote-test').type == 'action' and row('remote-test').disabled == true)

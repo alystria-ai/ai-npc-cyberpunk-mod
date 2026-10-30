@@ -35,6 +35,16 @@ const NOTICES = {
   'custom-no-setup': 'The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.',
   'custom-voice': 'Custom provider replies are spoken by a local voice instead of the Convai cloud voice.',
 };
+// The Google Gemini failures (their own wording, not the Custom provider's); gemini-daily is the sentence without a reset time.
+const GEMINI_NOTICES = {
+  'gemini-key': 'Google did not accept your Gemini key. Check it in Google AI Studio and add it again.',
+  'gemini-daily': 'Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.',
+  'gemini-limit': 'Google Gemini is rate limiting you. Wait a minute, then try again.',
+  'gemini-region': 'Google Gemini is not available in your region. Use Convai or Local AI.',
+  'gemini-server': 'Google Gemini is busy or had an error. Wait a minute, then try again.',
+  'gemini-unreachable': 'Google Gemini could not be reached. Check your internet connection, then try again.',
+  'gemini-model': 'The Gemini model is not available right now. Try again later or use Local AI.',
+};
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // mod/custom-provider.lua on its own
@@ -148,14 +158,15 @@ test('the Mistral preset comes first: one press sends its command, the service s
   assert(provider.state().result == nil)
 `));
 
-test('the Google Gemini page (second instance, kind gemini): its own channel, a key row with Add and Remove, a Test row, and the notes and notices of the provider', () => run(`${moduleFixture}
+test('the Google Gemini page (second instance, kind gemini): its own channel, one key row with Add and Remove and no Test row, and the notes and notices of the provider', () => run(`${moduleFixture}
   local sentTo
   local gemini = factory.new({ui = ui, kind = 'gemini', clock = function() return clock end, session = function() return 'sess-1' end,
     readJSON = function(path) assert(path == 'runtime/gemini-provider-state.json', path); return nil end,
     writeCommand = function(path, value) sentTo = path; written[#written + 1] = value; return true end})
+  local GEMINI_NOTICES = {${Object.keys(GEMINI_NOTICES).map(id => `['${id}'] = ${JSON.stringify(GEMINI_NOTICES[id])}`).join(', ')}}
   local rows = {}
   for _, item in ipairs(gemini.rows()) do rows[item.id] = item end
-  assert(#gemini.rows() == 2 and gemini.rows()[1].id == 'gemini-key' and gemini.rows()[2].id == 'gemini-test')
+  assert(#gemini.rows() == 1 and gemini.rows()[1].id == 'gemini-key' and rows['gemini-test'] == nil, 'the key row only: Test connection is gone')
   assert(rows['gemini-key'].label == 'Google Gemini API key' and rows['gemini-key'].value == 'Add' and rows['gemini-key'].action == 'preset-gemini')
   for _, part in ipairs({'Google AI Studio', 'aistudio.google.com/apikey', 'no card', 'read from the clipboard once', 'about 1,000 replies', 'not offered in every country', 'improve its products'}) do
     assert(rows['gemini-key'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
@@ -163,11 +174,69 @@ test('the Google Gemini page (second instance, kind gemini): its own channel, a 
   assert(not rows['gemini-key'].help:lower():find('recommend', 1, true))
   local ok = gemini.request('preset-gemini')
   assert(ok == true and lastCommand().action == 'preset-gemini' and sentTo == 'runtime/gemini-provider-command.json', tostring(sentTo))
-  assert(gemini.geminiNoteFor('rate') == 'Google Gemini: limit reached for now' and gemini.geminiNoteFor('daily') == 'Google Gemini: limit reached for now'
-    and gemini.geminiNoteFor('invalid') == 'Google Gemini: key not accepted' and gemini.geminiNoteFor('model') == 'Google Gemini: model unavailable' and gemini.geminiNoteFor('credits') == nil and gemini.geminiNoteFor(nil) == nil)
+  -- A page that cannot test: the Test command is refused and nothing is written for it.
+  local before = #written
+  assert(gemini.request('test') == false and #written == before)
+  assert(gemini.geminiNoteFor('rate') == 'Google Gemini: rate limited for a minute' and gemini.geminiNoteFor('daily') == 'Google Gemini: free allowance used up for today'
+    and gemini.geminiNoteFor('invalid') == 'Google Gemini: key not accepted' and gemini.geminiNoteFor('region') == 'Google Gemini: not available in your region'
+    and gemini.geminiNoteFor('model') == 'Google Gemini: model unavailable' and gemini.geminiNoteFor('credits') == nil and gemini.geminiNoteFor(nil) == nil)
   assert(gemini.notice('gemini-no-key') == 'Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
   assert(gemini.notice('gemini-voice') == 'Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.')
-  assert(#factory.GEMINI_NOTICE_IDS == 2)
+  assert(#factory.GEMINI_NOTICE_IDS == 9)
+  for id, text in pairs(GEMINI_NOTICES) do assert(gemini.notice(id) == text, id .. ': ' .. tostring(gemini.notice(id))) end
+  assert(gemini.notice('gemini-daily', '02:30') == 'Your free Gemini allowance for today is used up. It resets at 02:30. Use Convai or Local AI.')
+  assert(gemini.notice('gemini-daily', 'soon') == GEMINI_NOTICES['gemini-daily'])
+  -- Not the Custom wording: none of the Gemini failures says "custom provider".
+  for id, text in pairs(GEMINI_NOTICES) do assert(not text:lower():find('custom', 1, true), id) end
+`));
+
+test('the key just added is tried once: the row says checking, then what Google answered, from the answer to the latest Add only', () => run(`${moduleFixture}
+  local shown
+  local gemini = factory.new({ui = ui, kind = 'gemini', clock = function() return clock end, session = function() return 'sess-1' end,
+    readJSON = function() return shown end, writeCommand = function(_, value) written[#written + 1] = value; return true end})
+  local function gstate(extra)
+    local value = {version = 1, updated = 1, ready = true, host = 'generativelanguage.googleapis.com', secure = true, ['local'] = false,
+      model = 'gemini-flash-lite-latest', keySaved = true, tail = 'wxyz', preset = 'gemini'}
+    for key, item in pairs(extra or {}) do value[key] = item end
+    return value
+  end
+  local function key() return gemini.rows()[1] end
+  -- Nothing was added in this session: a check in the file is not shown (it belongs to no command of this page).
+  shown = gstate({check = {id = 'sess-1:cust:1', state = 'failed', code = 'key'}}); clock = clock + 2
+  assert(gemini.state(true).check == nil and key().label == 'Google Gemini API key (…wxyz)' and key().value == 'Remove')
+  assert(gemini.request('preset-gemini') == true)
+  local id = written[#written].id
+  -- Checking: the label says so and there is no sentence yet.
+  shown = gstate({check = {id = id, state = 'checking'}}); clock = clock + 2
+  assert(gemini.state(true).check.state == 'checking' and key().label == 'Google Gemini API key (Checking…)')
+  -- An answer for an older Add is not shown.
+  shown = gstate({check = {id = 'sess-1:cust:999', state = 'ok'}}); clock = clock + 2
+  assert(gemini.state(true).check == nil)
+  -- Accepted.
+  shown = gstate({check = {id = id, state = 'ok'}}); clock = clock + 2
+  assert(first(key().help) == 'Google accepted the key.' and key().label == 'Google Gemini API key (…wxyz)', key().help)
+  -- Refused: what to do.
+  shown = gstate({check = {id = id, state = 'failed', code = 'key', status = 400}}); clock = clock + 2
+  assert(first(key().help) == 'Google did not accept this key. Check it in Google AI Studio, then Remove it and Add the right one.', key().help)
+  assert(key().value == 'Remove', 'the key stays saved: it can be removed')
+  shown = gstate({check = {id = id, state = 'failed', code = 'daily'}}); clock = clock + 2
+  assert(first(key().help) == 'Google accepted the key, but the free allowance is used up for now.', key().help)
+  shown = gstate({check = {id = id, state = 'failed', code = 'limit'}}); clock = clock + 2
+  assert(first(key().help) == 'Google accepted the key, but the free allowance is used up for now.', key().help)
+  shown = gstate({check = {id = id, state = 'failed', code = 'region'}}); clock = clock + 2
+  assert(first(key().help) == 'The key is saved, but Google Gemini is not available in your region.', key().help)
+  shown = gstate({check = {id = id, state = 'failed', code = 'unreachable'}}); clock = clock + 2
+  assert(first(key().help) == 'The key is saved, but Google could not be reached to check it.', key().help)
+  shown = gstate({check = {id = id, state = 'failed', code = 'server', status = 503}}); clock = clock + 2
+  assert(first(key().help) == 'The key is saved, but Google could not be reached to check it.', key().help)
+  -- The signature changes with the check, so the page redraws.
+  shown = gstate({check = {id = id, state = 'checking'}}); clock = clock + 2
+  local one = gemini.signature()
+  shown = gstate({check = {id = id, state = 'ok'}}); clock = clock + 2
+  assert(gemini.signature() ~= one)
+  -- A stale check (the service stopped under it) is no longer shown as running.
+  shown = gstate({check = {id = id, state = 'checking'}}); clock = clock + 300
+  assert(gemini.state(true).check == nil)
 `));
 
 test('saved values: the host, the last four characters or Added, the model; an unencrypted address says so; Test is enabled', () => run(`${moduleFixture}
@@ -582,6 +651,8 @@ test('the default reader and writer: a byte-order mark, a damaged file and a mis
 
 // The failures of a turn V asked for: the notices a reply's error code selects (the other two are one-time notices on a first reply).
 const FAILED_TURN = ['custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-daily', 'custom-reasoning', 'custom-unreachable'];
+// Google Gemini's seven failures of a turn (their own sentences; the daily one ends "It resets at {time}." when the service sent a time).
+const GEMINI_FAILED_TURN = Object.keys(GEMINI_NOTICES);
 
 test('the notices: nine ids with the contract’s sentences, the same ones the game and Phone Chat show', () => {
   const ids = Object.keys(NOTICES);
@@ -614,16 +685,27 @@ test('the notices: nine ids with the contract’s sentences, the same ones the g
   const statuses = Object.fromEntries([...chat.matchAll(/\['(custom-[a-z-]+)'\] = '((?:[^'\\]|\\.)*)',/g)].map(m => [m[1], m[2]]));
   for (const id of FAILED_TURN) assert.equal(statuses[id], NOTICES[id], id);
   assert.deepEqual(Object.keys(statuses).sort(), [...FAILED_TURN].sort(), 'Phone Chat has no status for the one-time notices');
+  const geminiStatuses = Object.fromEntries([...chat.matchAll(/\['(gemini-[a-z-]+)'\] = '((?:[^'\\]|\\.)*)',/g)].map(m => [m[1], m[2]]));
+  assert.deepEqual(geminiStatuses, GEMINI_NOTICES, 'Phone Chat words the Gemini failures differently');
+  const fromInitGemini = Object.fromEntries([...init.matchAll(/return '(gemini-[a-z-]+)', ui\.t\('((?:[^'\\]|\\.)*)'\)/g)].map(m => [m[1], m[2]]));
+  delete fromInitGemini['gemini-no-key']; delete fromInitGemini['gemini-voice'];   // the one-time notices
+  assert.deepEqual(fromInitGemini, GEMINI_NOTICES, 'init.lua words the Gemini failures differently from the module');
   const style = read('phone-chat-style.lua');
   for (const id of FAILED_TURN) assert(style.includes(`['${NOTICES[id]}'] = true`), `phone-chat-style.lua does not translate ${id}`);
+  for (const id of GEMINI_FAILED_TURN) assert(style.includes(`['${GEMINI_NOTICES[id]}'] = true`), `phone-chat-style.lua does not translate ${id}`);
   const catalogue = read('notices.lua');
   const REPEAT = {'custom-key': 60, 'custom-credits': 60, 'custom-model': 60, 'custom-limit': 60, 'custom-daily': 60, 'custom-reasoning': 60, 'custom-unreachable': 60, 'custom-no-setup': 86400, 'custom-voice': 86400};
   for (const [id, seconds] of Object.entries(REPEAT)) {
     assert(new RegExp(`\\['${id}'\\] = \\{class = PLAYER, repeatS = ${seconds}\\}`).test(catalogue), `${id}: class or window`);
     assert(readFileSync(new URL('../docs/NOTIFICATIONS.md', import.meta.url), 'utf8').includes(`| \`${id}\` | Player | ${NOTICES[id]} |`), `${id}: not in docs/NOTIFICATIONS.md`);
   }
+  const GEMINI_REPEAT = Object.fromEntries(GEMINI_FAILED_TURN.map(id => [id, 60]));
+  for (const [id, seconds] of Object.entries(GEMINI_REPEAT)) {
+    assert(new RegExp(`\\['${id}'\\] = \\{class = PLAYER, repeatS = ${seconds}\\}`).test(catalogue), `${id}: class or window`);
+    assert(readFileSync(new URL('../docs/NOTIFICATIONS.md', import.meta.url), 'utf8').includes(`| \`${id}\` | Player | ${GEMINI_NOTICES[id]} |`), `${id}: not in docs/NOTIFICATIONS.md`);
+  }
   // The same mapping as Mistral's: a failed turn V asked for shows the notice, an automatic reaction (battle, loot) just stops.
-  for (const id of FAILED_TURN) {
+  for (const id of [...FAILED_TURN, ...GEMINI_FAILED_TURN]) {
     assert(new RegExp(`keyId == '${id}' then\\s+if not pending\\.reaction then convaiNotices\\.send\\(player, '${id}', keyText\\) end`).test(init), `${id}: not skipped for an automatic reaction`);
   }
 });
@@ -644,6 +726,19 @@ test('the reply notices of init.lua: seven failed-turn codes and two one-time no
       assert(id == code and text == expected[code], code .. ': ' .. tostring(text))
       -- A failed turn carries no key notice of the same name, and a first reply carries no error code of it.
       assert(notice({keyNotice = code, text = 'Hello'}) == nil, code .. ' as a key notice')
+    end
+    -- Google Gemini's seven failures have their own sentences; the daily one names the reset time when the service sent one.
+    local geminiExpected = {${GEMINI_FAILED_TURN.map(id => `['${id}'] = ${JSON.stringify(GEMINI_NOTICES[id])}`).join(', ')}}
+    for code, expectedText in pairs(geminiExpected) do
+      local id, text = notice({errorCode = code, error = 'x'})
+      assert(id == code and text == expectedText, code .. ': ' .. tostring(text))
+      assert(notice({keyNotice = code, text = 'Hello'}) == nil, code .. ' as a key notice')
+    end
+    local gid, gtext = notice({errorCode = 'gemini-daily', errorResetTime = '02:30', error = 'x'})
+    assert(gid == 'gemini-daily' and gtext == 'Your free Gemini allowance for today is used up. It resets at 02:30. Use Convai or Local AI.', tostring(gtext))
+    for _, bad in ipairs({'', 'soon', '2:30', 7, true, {}}) do
+      local _, bt = notice({errorCode = 'gemini-daily', errorResetTime = bad, error = 'x'})
+      assert(bt == geminiExpected['gemini-daily'], tostring(bad))
     end
     -- The daily limit says when it resets, on this computer's clock, when the service sent a time ("HH:MM"); anything else is the sentence without one.
     local id, text = notice({errorCode = 'custom-daily', errorResetTime = '02:30', error = 'x'})
@@ -699,13 +794,13 @@ const stateFixture = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custom endpoint button sits right under the Google Gemini rows and opens a page with the four rows', () => run(`${pageFixture()}${stateFixture}
+test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custom endpoint button sits right under the Google Gemini key row and opens a page with the four rows', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
     and provider.elements[3] == 'Google Gemini (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
   assert(provider.value == 1 and provider.defaultValue == 1)
-  assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', providerIds())
+  assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', providerIds())
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
   assert(row('custom-endpoint').type == 'action' and row('custom-endpoint').value == 'Open' and row('custom-endpoint').label == 'Custom endpoint')
   assert(not (row('custom-endpoint').description .. row('custom-endpoint').label):lower():find('recommend', 1, true))
@@ -1025,7 +1120,7 @@ test('release plumbing: the module ships like the paid tier one, the catalogue r
   assert(readFileSync(new URL('../scripts/Extract-UiCatalog.mjs', import.meta.url), 'utf8').includes("'mod/custom-provider.lua'"));
   const catalogue = JSON.parse(readFileSync(new URL('../localization/en.json', import.meta.url), 'utf8'));
   assert(catalogue.scope.files.includes('mod/custom-provider.lua'));
-  for (const text of ['Custom (OpenAI-compatible)', 'Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection', ...Object.values(NOTICES)]) {
+  for (const text of ['Custom (OpenAI-compatible)', 'Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection', ...Object.values(NOTICES), ...Object.values(GEMINI_NOTICES)]) {
     assert(text in catalogue.strings, `not in localization/en.json: ${text}`);
   }
   // The strings of the module are all catalogued: every literal given to ui.t in it.

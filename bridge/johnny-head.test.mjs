@@ -390,7 +390,10 @@ test('right now: he is in V\'s head with no body, knows what V sees and feels, a
   const text = turnContext(input);
   assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath. V is somewhere in Watson; exactly where is not given."), text);
   assert.match(text, /Also with V: Judy Alvarez\. /, 'he sees who is with V');
-  assert.match(text, /V is hurt\. The police are after V\. .*V is short on cash\./);
+  assert.match(text, /V is hurt\. The police are after V\./);
+  // V's money band only when V's words are about money (fix/natural-talk, 2026-10-30).
+  assert.doesNotMatch(text, /V is short on cash/);
+  assert.match(turnContext(parseInput(raw({text: 'Can we even afford that?'}))), /V is short on cash\./);
   assert.match(text, /you have no body here and go wherever V goes/);
   assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors|You are somewhere in|under their breath; V is/);
   assert.ok(text.length <= 900);

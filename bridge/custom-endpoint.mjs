@@ -300,6 +300,8 @@ export function describeFailure(error) {
   if (kind === 'key') return {code: 'key', status, detail};
   if (kind === 'credits') return {code: 'credits', status, detail};
   if (kind === 'model') return {code: 'model', status, detail};
+  // Google Gemini's free plan is not offered in the player's country.
+  if (kind === 'region') return {code: 'region', status, detail};
   if (kind === 'limit') return {code: 'limit', status, ...(error.retryAfterMs > 0 ? {waitS: Math.max(1, Math.ceil(error.retryAfterMs / 1000))} : {}), detail};
   // A daily allowance that is used up (OpenRouter's free models): when it resets on this computer's clock, if the server said.
   if (kind === 'daily') return {code: 'daily', status, ...(resetClock(error.resetAt) ? {resetTime: resetClock(error.resetAt)} : {}), detail};
@@ -354,7 +356,7 @@ export function parseCustomCommand(raw, now = Date.now()) {
 
 const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model',
   'preset-gemini': 'preset', 'clear-preset-gemini': 'preset', 'preset-mistral': 'preset', 'clear-preset-mistral': 'preset'};
-const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
+const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits', 'region']);
 
 /**
  * File IPC for the settings page's commands and the status file it reads (runtime/custom-provider-state.json). The key itself never enters
@@ -365,6 +367,7 @@ export class CustomControl {
   /**
    *   presets   the one-press setups (PRESETS names) this page answers: the Custom page has `mistral`, the Google Gemini page `gemini`; a command for any other is refused
    *   route     the provider route this page belongs to ('custom' or 'gemini'): a limit is shown on the page only while that route answers
+   *   (the Google Gemini page, route 'gemini', has no Test connection: Add checks the key once, in the background, and the status carries the answer as `check`)
    *   onPreset  (name, key) after a one-press setup saved; onClearPreset (name) after one was removed (the Mistral preset keeps the key of the cloud voice in step)
    */
   constructor({custom, provider, commandPath, publish, readClipboard = readClipboardText, test, read = file => readFile(file, 'utf8'), now = Date.now,
@@ -372,7 +375,7 @@ export class CustomControl {
     if (!custom || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid custom provider configuration');
     Object.assign(this, {custom, provider, commandPath, publish, readClipboard, read, now, log, presets, route, onPreset, onClearPreset});
     this.test = test ?? (() => testConnection(custom));
-    this.observed = ''; this.result = null; this.testResult = null; this.busy = false; this.testing = false; this.writing = Promise.resolve();
+    this.observed = ''; this.result = null; this.testResult = null; this.checkResult = null; this.checkId = null; this.busy = false; this.testing = false; this.writing = Promise.resolve();
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
   async open() {
@@ -384,7 +387,7 @@ export class CustomControl {
     const c = this.custom, limit = this.provider?.applied === this.route ? this.provider.limit?.kind : null;
     return {version: 1, updated: this.now(), ready: c.ready, host: c.host, secure: c.secure, local: c.local, model: c.model,
       keySaved: !!c.key, tail: c.tail, preset: c.preset, ...(c.keyForgotten && !c.key ? {keyForgotten: true} : {}),
-      ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}),
+      ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}), ...(this.checkResult ? {check: this.checkResult} : {}),
       limit: LIMITS.has(limit) ? limit : null};
   }
   publishStatus() {
@@ -400,7 +403,11 @@ export class CustomControl {
     if (!command) return;
     this.busy = true;
     try {
-      if (command.action === 'test') { await this.#startTest(command); return; }
+      if (command.action === 'test') {
+        // The Google Gemini page has no Test connection (a stale command of an older page is not run).
+        if (this.route !== 'gemini') await this.#startTest(command);
+        return;
+      }
       this.result = {id: command.id, field: FIELD_OF[command.action], state: 'checking'};
       await this.publishStatus();
       this.result = {id: command.id, field: FIELD_OF[command.action], ...await this.run(command)};
@@ -409,8 +416,9 @@ export class CustomControl {
     await this.publishStatus();
   }
   /** One command that changes what is saved: {state: 'saved' | 'cleared' | 'invalid' | 'unreadable', reason?}. */
-  async run({action}) {
+  async run({action, id}) {
     const c = this.custom;
+    this.checkId = null; this.checkResult = null;
     if (action === 'clear-url') { await c.clearUrl(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-key') { await c.clearKey(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-model') { await c.clearModel(); this.testResult = null; return {state: 'cleared'}; }
@@ -440,6 +448,7 @@ export class CustomControl {
       await c.setModel(preset.model);
       await c.setKey(key);
       try { await this.onPreset?.(PRESET_OF[action], key); } catch (error) { this.log(`saving the ${PRESET_OF[action]} setup: ${error?.code ?? 'failed'}`); }
+      if (this.route === 'gemini') this.#startCheck(id);
       return {state: 'saved'};
     }
     let text;
@@ -465,6 +474,20 @@ export class CustomControl {
     if (!model || (c.key && model === c.key)) return {state: 'invalid', reason: 'not-a-model'};
     await c.setModel(model);
     return {state: 'saved'};
+  }
+  // The key just added for Google Gemini is tried once with a tiny request, in the background (the same request as the Custom page's Test connection), so a key Google refuses is told on the
+  // key row at once and not on the first turn. Only the answer to the latest Add counts; the answer carries a code and a status, never Google's words or the key.
+  #startCheck(id) {
+    this.checkId = id;
+    this.checkResult = {id, state: 'checking'};
+    void (async () => {
+      let outcome;
+      try { outcome = await this.test(); } catch { outcome = {state: 'failed', code: 'unreachable'}; }
+      if (this.checkId !== id) return;
+      this.checkResult = outcome.state === 'ok' ? {id, state: 'ok'} : {id, state: 'failed', code: outcome.code ?? 'request', ...(Number.isInteger(outcome.status) ? {status: outcome.status} : {})};
+      this.log(`Gemini key check: ${outcome.state}${outcome.code ? ` (${outcome.code}${outcome.status ? ` ${outcome.status}` : ''})` : ''}`);
+      await this.publishStatus().catch(() => {});
+    })();
   }
   // The request itself runs after the poll has returned: the settings poll also applies the provider, and must not wait up to 30 s for a server.
   // A press while a test runs sends no second request, but the running test now answers to it: the page shows only the answer to its latest

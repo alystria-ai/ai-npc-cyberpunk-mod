@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {readFileSync} from 'node:fs';
 import {NaturalSpeech, OMNI_TAGS, CJK_TAGS, PLACES, omniTagsFor, splitsWord, OFFER_RATE, OFFER_RATE_BY_PROFILE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
-  hasSpeechTags, parseTagged, speechPhrases, devicesUsed, PITY_TURNS} from './natural-speech.mjs';
+  hasSpeechTags, parseTagged, speechPhrases, devicesUsed, SOUND_GAP, SAME_SOUND_WINDOW} from './natural-speech.mjs';
 import {talkLine} from './natural-speech-talk.mjs';
 import {splitSpeechText} from './speech-phrases.mjs';
 import {createOmniPcmVoice, OMNI_RATE} from './omni-pcm.mjs';
@@ -55,6 +55,9 @@ test('the OmniVoice block lists its tags and pauses and tells the character to c
     'who you are', 'personality', 'even if your sample dialogue contains no such sounds',
     'fluent, confident speaker rarely hesitates', 'cold, controlled or formal person rarely laughs',
     'When in doubt, use nothing', 'not a stage direction', 'removed from the subtitles']) assert.ok(text.includes(phrase), phrase);
+  // A sound has to be earned: a laugh needs something actually funny, a sigh a real reason, otherwise plain speech.
+  for (const phrase of ['speaking plainly is the normal choice', 'must be earned', 'actually funny', 'never a polite laugh at a joke that is not funny',
+    'A sigh needs a real reason: tiredness, exasperation or sadness', 'speak plainly with no sound at all']) assert.ok(text.includes(phrase), phrase);
   assert.ok(!text.includes('Pocket'));
 });
 
@@ -75,10 +78,10 @@ test('no block for the Convai cloud voice or an unknown engine, and the previous
   assert.equal(naturalSpeechContext({engine: 'something'}), '');
   assert.equal(naturalSpeechContext({}), '');
   const omni = naturalSpeechContext({engine: 'omni', recent: ['laughter', 'ellipsis']});
-  assert.ok(omni.endsWith('Your previous reply already used [laughter], an ellipsis ("..."): do not use those in this reply.'), omni);
+  assert.ok(omni.endsWith('Your recent replies already used [laughter], an ellipsis ("..."): do not use those in this reply.'), omni);
   // A device the engine cannot render is never mentioned, even if an older reply happened to contain it.
   const pocket = naturalSpeechContext({engine: 'pocket', recent: ['laughter', 'filler', 'dash']});
-  assert.ok(pocket.endsWith('Your previous reply already used a dash ("—"): do not use it in this reply.'), pocket);
+  assert.ok(pocket.endsWith('Your recent replies already used a dash ("—"): do not use it in this reply.'), pocket);
   assert.equal(naturalSpeechContext({engine: 'pocket', recent: ['laughter']}), naturalSpeechContext({engine: 'pocket'}));
 });
 
@@ -99,8 +102,12 @@ test('contextFor gates on the setting, spoken turns and the engine, and remember
   speech.process({text: 'Heh [laughter] well... fine.', sessionID: 'a'});
   assert.equal(ask({sessionId: 'a'}), '');
   assert.equal(ask({sessionId: 'b'}), naturalSpeechContext({engine: 'omni', place: 'mid'}), 'another conversation is unaffected');
-  speech.process({text: 'A plain reply.', sessionID: 'a'});
-  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni', place: 'mid'}));
+  // The sound tag also blocks the offers of the next three turns (at most one sound tag in any four replies).
+  for (let n = 0; n < 3; n++) {
+    speech.process({text: 'A plain reply.', sessionID: 'a'});
+    if (n < 2) assert.equal(ask({sessionId: 'a'}), '', `reply ${n + 2} after the sound tag`);
+  }
+  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni', recent: ['laughter'], place: 'mid'}), 'free again, and the sound is still listed as used');
   for (let n = 0; n < 100; n++) speech.record(`s${n}`, 'Hm.');
   assert.ok(speech.last.size <= 64, 'bounded');
   for (let n = 0; n < 100; n++) ask({sessionId: `t${n}`});
@@ -123,6 +130,7 @@ test('only an offered turn or a voiced sound tag blocks the next offer: ordinary
   // A voiced sound tag in the last reply does block (no sound tag twice in a row), whatever the dice say.
   speech.process({text: 'Hey [sigh] okay.', sessionID: 'tag'});
   assert.equal(turn('tag', ALWAYS), '');
+  for (let n = 0; n < 2; n++) { speech.process({text: 'Fine.', sessionID: 'tag'}); assert.equal(turn('tag', ALWAYS), '', 'still within four replies'); }
   speech.process({text: 'Fine.', sessionID: 'tag'});
   assert.ok(turn('tag', ALWAYS));
   // Reasons are kept for the log line.
@@ -134,42 +142,76 @@ test('only an offered turn or a voiced sound tag blocks the next offer: ordinary
   assert.equal(speech.reasonFor('never-asked'), undefined);
 });
 
-test('a warm or neutral character is offered the devices at least once in any four spoken turns; a dry or cold one is not forced', () => {
-  assert.equal(PITY_TURNS, 4);
+test('there is no pity counter: a character the dice never pick is never offered anything, however long the chat', () => {
   const speech = new NaturalSpeech();
   speech.update({naturalSpeech: true});
-  const run = (trait, count = 60) => {
-    const flags = [];
-    for (let n = 0; n < count; n++) {
-      flags.push(speech.contextFor({engine: 'omni', spoken: true, sessionId: trait, trait, random: NEVER, turn: `${trait}-${n}`}) !== '');
+  for (const trait of ['warm', 'neutral', 'dry', 'cold']) {
+    for (let n = 0; n < 60; n++) {
+      assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: trait, trait, random: NEVER, turn: `${trait}-${n}`}), '', `${trait} turn ${n}`);
       speech.process({text: 'A plain reply.', sessionID: trait});
     }
-    return flags;
-  };
-  for (const trait of ['warm', 'neutral']) {
-    const flags = run(trait);
-    for (let n = 0; n + 4 <= flags.length; n++) assert.ok(flags.slice(n, n + 4).includes(true), `${trait} window at ${n}`);
-    for (let n = 1; n < flags.length; n++) assert.ok(!(flags[n] && flags[n - 1]), 'never two offered turns in a row');
-    assert.equal(speech.reasonFor(`${trait}-3`), 'pity', 'forced by the pity counter, not the dice');
   }
-  for (const trait of ['dry', 'cold']) assert.ok(!run(trait).includes(true), `${trait} depends on the dice alone`);
-  // Even when a sound tag was the last thing said, the pity counter still gets its offer.
-  speech.process({text: 'Oh [laughter] fine.', sessionID: 'late'});
-  let last;
-  for (let n = 0; n < 4; n++) {
-    last = speech.contextFor({engine: 'omni', spoken: true, sessionId: 'late', trait: 'warm', random: NEVER, turn: `late-${n}`});
-    speech.process({text: 'Plain.', sessionID: 'late'});
+});
+
+test('a character remembers its recent replies: at most one sound tag in any four, and the same tag never twice within six', () => {
+  assert.equal(SOUND_GAP, 4);
+  assert.equal(SAME_SOUND_WINDOW, 6);
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  const ask = (sessionId, turn) => speech.contextFor({engine: 'omni', spoken: true, sessionId, trait: 'warm', random: ALWAYS, turn});
+  let count = 0;
+  // Dice that always say yes, and a model that always writes a sound tag when it is offered one: the tag lands as rarely as the
+  // rules allow, never more than once in four replies, and the same tag is always on the "do not use" list for six replies.
+  const tags = ['laughter', 'sigh', 'question-ah', 'surprise-oh', 'laughter', 'sigh', 'laughter'];
+  const replies = [];   // the sound tag of each reply or null
+  let next = 0;
+  for (let n = 0; n < 60; n++) {
+    const block = ask('chat', `chat-${count++}`);
+    let tag = null;
+    if (block) {
+      // The block lists what to avoid: every tag used in the last six replies.
+      const avoided = replies.slice(-6).filter(Boolean);
+      for (const used of avoided) assert.ok(block.includes(`already used`) && block.split('already used')[1].includes(`[${used}]`), `${used} is listed as used at ${n}`);
+      tag = tags[next++ % tags.length];
+      if (avoided.includes(tag)) tag = ['confirmation-en', 'question-en', 'surprise-ah', 'dissatisfaction-hnn'].find(other => !avoided.includes(other));
+    }
+    speech.process({text: tag ? `Well [${tag}] fine.` : 'A plain reply.', sessionID: 'chat'});
+    replies.push(tag);
+    // Never two offered turns in a row either, so after an offer the next turn is empty.
+    if (block) assert.equal(ask('chat', `chat-${count++}`), '', 'not twice in a row');
+    if (block) { speech.process({text: 'A plain reply.', sessionID: 'chat'}); replies.push(null); }
   }
-  assert.ok(last, 'pity outranks the tag block');
+  assert.ok(replies.filter(Boolean).length > 8, 'tags did land');
+  for (let n = 0; n < replies.length; n++) {
+    if (!replies[n]) continue;
+    assert.ok(!replies.slice(Math.max(0, n - 3), n).some(Boolean), `no other sound tag in the 3 replies before reply ${n}`);
+    assert.ok(!replies.slice(Math.max(0, n - 6), n).includes(replies[n]), `${replies[n]} not repeated within six replies at ${n}`);
+  }
+  // The reason is kept for the log line.
+  speech.process({text: 'Oh [sigh] fine.', sessionID: 'why'});
+  speech.contextFor({engine: 'omni', spoken: true, sessionId: 'why', turn: 'why-1', random: ALWAYS});
+  assert.equal(speech.reasonFor('why-1'), 'sound-cooldown');
+  // A sound tag from seven replies ago is forgotten, and other conversations never share a memory.
+  const other = new NaturalSpeech();
+  other.update({naturalSpeech: true});
+  other.process({text: 'Heh [laughter].', sessionID: 'x'});
+  for (let n = 0; n < 6; n++) other.process({text: 'Plain.', sessionID: 'x'});
+  assert.deepEqual(other.recentSounds('x').flat(), []);
+  assert.deepEqual(other.recentSounds('never-seen'), []);
+  other.process({text: 'Heh [laughter].', sessionID: 'y'});
+  assert.ok(!other.contextFor({engine: 'omni', spoken: true, sessionId: 'z', random: ALWAYS}).includes('already used'));
+  assert.ok(other.sounds.size <= 64);
+  // Pocket never gets a bracket tag, and never hears about sound tags in its list.
+  assert.equal(naturalSpeechContext({engine: 'pocket', recent: ['laughter', 'sigh']}), naturalSpeechContext({engine: 'pocket'}));
 });
 
 test('The devices are offered on a share of turns that follows how expressive the character is, decided once per turn', () => {
   assert.ok(OFFER_RATE.warm > OFFER_RATE.neutral && OFFER_RATE.neutral > OFFER_RATE.dry && OFFER_RATE.dry > OFFER_RATE.cold);
-  assert.ok(OFFER_RATE.warm >= .55 && OFFER_RATE.cold <= .2, 'clearly audible for warm characters, still rare for cold ones');
+  assert.ok(OFFER_RATE.warm <= .3 && OFFER_RATE.cold <= .08, 'sounds are rare even for warm characters (a player found them repetitive), and rarer still for cold ones');
   const speech = new NaturalSpeech();
   speech.update({naturalSpeech: true});
   // A seeded generator and a conversation of ordinary replies: the turn after an offered one never offers, so the share of
-  // offered turns is rate / (1 + rate) from the dice alone (the pity counter raises it a little for warm and neutral).
+  // offered turns is rate / (1 + rate) from the dice alone.
   let state = 12345;
   const random = () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
   const share = trait => {
@@ -180,13 +222,13 @@ test('The devices are offered on a share of turns that follows how expressive th
     }
     return offered / 2000;
   };
-  const expected = {warm: .6 / 1.6, neutral: .5 / 1.5, dry: .35 / 1.35, cold: .15 / 1.15};
+  const expected = {warm: .25 / 1.25, neutral: .2 / 1.2, dry: .12 / 1.12, cold: .05 / 1.05};
   const shares = {};
   for (const trait of Object.keys(OFFER_RATE)) {
     shares[trait] = share(trait);
-    assert.ok(Math.abs(shares[trait] - expected[trait]) < .05, `${trait} ${shares[trait]}`);
+    assert.ok(Math.abs(shares[trait] - expected[trait]) < .03, `${trait} ${shares[trait]}`);
   }
-  assert.ok(shares.warm > .33 && shares.neutral > .3 && shares.cold < .16, JSON.stringify(shares));
+  assert.ok(shares.warm < .25 && shares.neutral < .2 && shares.cold < .07, JSON.stringify(shares));
   // One decision per turn: a context rebuilt for the same request agrees with the one already sent.
   const first = speech.contextFor({engine: 'omni', spoken: true, turn: 'same', trait: 'warm', random: ALWAYS});
   assert.ok(first);
@@ -609,7 +651,7 @@ test('the spot for a sound is picked per offered turn by the dice, varied, and s
   let state = 777;
   const random = () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
   const seen = {};
-  for (let turn = 0; turn < 600; turn++) {
+  for (let turn = 0; turn < 4000; turn++) {
     const text = speech.contextFor({engine: 'omni', spoken: true, sessionId: `s${turn}`, turn: `t${turn}`, trait: 'warm', random});
     if (!text) continue;
     const place = Object.keys(PLACES).find(key => text.includes(`place it exactly here: ${PLACES[key]}.`));

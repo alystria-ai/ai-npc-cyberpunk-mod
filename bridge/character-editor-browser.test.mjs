@@ -28,7 +28,9 @@ const executable = process.env.CYBERPUNK_CONVAI_BROWSER
 const skip = !executable && 'no Chromium browser found';
 const shots = process.env.EDITOR_SHOTS_DIR;
 
-async function bench({route = 'local', options = false} = {}) {
+// crowd: that many extra everyday people with made-up names, so the picker can be looked at with a roster far longer than the shipped one.
+async function bench({route = 'local', options = false, crowd = 0} = {}) {
+  const everyone = crowd ? [...rows, ...Array.from({length: crowd}, (_, index) => ({...rows.at(-1), key: 'crowd-' + index, name: 'Crowd Person ' + String(index).padStart(3, '0'), records: [], aliases: []}))] : rows;
   const dir = await mkdtemp(join(tmpdir(), 'character-editor-browser-'));
   await mkdir(join(dir, 'local-memory', 'player'), {recursive: true});
   await writeFile(join(dir, 'local-memory', 'player', 'judy-alvarez.json'), JSON.stringify({version: 1, profileKey: 'judy-alvarez', updated: 5,
@@ -38,20 +40,20 @@ async function bench({route = 'local', options = false} = {}) {
   const overrides = await CharacterOverrides.open({dir: join(dir, 'character-overrides')});
   const memory = await MemoryStore.open({dir: join(dir, 'local-memory')});
   await mkdir(join(dir, 'runtime'), {recursive: true});
-  const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)});
+  const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(everyone)});
   const voices = await PlayerVoices.open({dir: join(dir, 'state')});
   const worldRules = await WorldRules.open({dir: join(dir, 'state')});
   // The Look and moves choices (bridge/character-options.mjs) only for the test that is about them: the other tests see the tabs they always saw.
   const choices = options ? await CharacterOptions.open({dir: join(dir, 'state')}) : null;
-  const personas = new PersonaBook(rows, {overrides, custom, worldRules, options: choices});
+  const personas = new PersonaBook(everyone, {overrides, custom, worldRules, options: choices});
   const state = {route};
   // The prompt profiles: the next turn would be Local AI, Standard, with a Custom endpoint configured (so its profile is listed too).
   const profiles = await PromptProfiles.open({dir: join(dir, 'prompt-overrides'), active: () => ({route: 'local', tier: 'standard', mature: false, custom: {origin: 'https://openrouter.ai', model: 'qwen3-8b'}})});
   const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices, worldRules, promptProfiles: profiles, options: choices})});
   return {dir, overrides, memory, server, state, custom, voices, personas, worldRules, profiles, choices, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
 }
-async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null, options = false} = {}) {
-  const b = await bench({route, options});
+async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null, options = false, crowd = 0} = {}) {
+  const b = await bench({route, options, crowd});
   const browser = await chromium.launch({executablePath: executable, headless: true, args: ['--mute-audio']});
   t.after(async () => { await browser.close(); await b.done(); });
   const url = await b.server.start({strings, language, facing});
@@ -67,6 +69,11 @@ async function open(t, {route, strings = {}, language = 'en', viewport = {width:
   return {...b, page, requests, problems, dialogs, url, async shot(name) { if (shots) { await mkdir(shots, {recursive: true}); await page.screenshot({path: join(shots, name + '.png')}); } }};
 }
 const toast = page => page.locator('#note.show');
+// The picker is open on the page while no character is chosen, and opens from the character button in the top bar otherwise.
+const openList = async page => { if (await page.locator('#picker').isHidden()) await page.locator('#who').click(); };
+const find = async (page, query) => { await openList(page); await page.fill('#search', query); };
+const pick = async (page, query, index = 0) => { await find(page, query); await page.locator('#list button.pick').nth(index).click(); };
+const groupTitles = page => page.locator('#list h3.group > span:not(.n)').allTextContents();
 
 test('the whole path: pick a character, edit and save each part, reset, and nothing leaves this computer', {skip, timeout: 180000}, async t => {
   const e = await open(t);
@@ -74,13 +81,21 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   assert.equal(await page.title(), 'Character editor');
   assert.equal(await page.locator('#banner').isHidden(), true, 'no warning when a text provider answers');
   assert.match(await page.locator('#sub').textContent(), /Google Gemini, Local AI and Custom\. They do not apply to Convai\./);
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['V’s voice', 'Story characters', 'Everyday people']);
-  assert.equal(await page.locator('#list button.pick').count(), rows.length + 2);
+  assert.equal(await page.locator('#picker').isVisible(), true, 'with nobody chosen yet the picker is open on the page');
+  assert.equal(await page.locator('#pickerhead').textContent(), 'Choose a character to start editing.');
+  assert.deepEqual(await groupTitles(page), ['Romances', 'Companions', 'Story', 'Side characters', 'V’s voice']);
+  assert.deepEqual(await page.locator('#chips .fchip').evaluateAll(nodes => nodes.map(node => node.firstElementChild.tagName === 'svg' ? node.children[1].textContent : node.firstElementChild.textContent)),
+    ['All', 'Romances', 'Companions', 'Story', 'Side characters', 'Minor characters'], 'a chip is shown only when there is something under it');
+  // The cast sweep's minor characters (docs/CAST_SWEEP.md) are not in the default list: they have their own chip and a search still finds them.
+  const minors = rows.filter(row => row.minor === true).length, listed = rows.length - minors + 2;
+  assert(minors > 500, 'the roster holds the minor characters: ' + minors);
+  assert.equal(await page.locator('#list button.pick').count(), listed);
+  assert.equal(await page.locator('#resultcount').textContent(), `${listed} of ${listed}`);
   await e.shot('01-start');
 
   // Search narrows the list; choosing a character shows the shipped bio and a counter.
   await page.fill('#search', 'judy');
-  assert.deepEqual(await page.locator('#list button.pick').allTextContents(), ['Judy Alvarez']);
+  assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Judy Alvarez']);
   await page.locator('#list button.pick').click();
   await page.waitForSelector('#f-bio');
   assert.equal(await page.locator('#main h2').textContent(), 'Judy Alvarez');
@@ -103,7 +118,10 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   await page.getByRole('button', {name: 'Save'}).click();
   await page.waitForFunction(() => document.querySelector('.chip')?.textContent === 'Edited');
   assert.match(e.overrides.get('judy-alvarez').bio, /quiet clinic/);
-  assert.equal(await page.locator('#list button.pick .dot').count(), 1);
+  await find(page, 'judy');
+  assert.equal(await page.locator('#list button.pick .mark.edited').count(), 1, 'the picker marks the edited character');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#picker').isHidden(), true, 'Escape closes the picker');
   await e.shot('03-saved');
 
   // Speaking style and example lines.
@@ -167,8 +185,7 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   assert.match(e.dialogs.at(-1), /All your changes to this character are removed\./);
 
   // Everyday people have no memories of talks.
-  await page.fill('#search', 'food vendor');
-  await page.locator('#list button.pick').first().click();
+  await pick(page, 'food vendor');
   await page.getByRole('tab', {name: 'Memories'}).click();
   assert.match(await page.locator('#main').textContent(), /Everyday people do not keep memories of your talks\./);
   assert.equal(await page.locator('#f-summary').count(), 0);
@@ -184,19 +201,17 @@ test('text from a bio is shown as text, never as markup, and unsaved text asks b
   await e.overrides.set('panam-palmer', {bio: trap});
   await page.reload();
   await page.waitForSelector('#list button.pick');
-  await page.fill('#search', 'panam');
-  await page.locator('#list button.pick').click();
+  await pick(page, 'panam');
   await page.waitForSelector('#f-bio');
   assert.equal(await page.inputValue('#f-bio'), trap);
   assert.equal(await page.evaluate(() => window.pwned), undefined);
   assert.equal(await page.locator('#main img, #main script').count(), 0);
 
   await page.fill('#f-bio', trap + ' More text.');
-  await page.fill('#search', 'judy');
   e.dialogs.length = 0;
   page.removeAllListeners('dialog');
   page.on('dialog', async dialog => { e.dialogs.push(dialog.message()); await dialog.dismiss(); });
-  await page.locator('#list button.pick').click();
+  await pick(page, 'judy');
   await page.waitForTimeout(150);
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
   assert.equal(await page.locator('#main h2').textContent(), 'Panam Palmer', 'dismissing the question stays on the page');
@@ -206,7 +221,7 @@ test('text from a bio is shown as text, never as markup, and unsaved text asks b
 
 test('with Convai answering the page says the changes do not apply yet, and the strings the game sent are used', {skip, timeout: 120000}, async t => {
   const e = await open(t, {route: 'convai', language: 'de', strings: {'Character editor': 'Charakter-Editor', 'Close editor': 'Editor schließen', 'Search characters': 'Charaktere suchen',
-    'Story characters': 'Story-Charaktere', 'Choose a character on the left.': 'Wähle links einen Charakter.'}});
+    'Romances': 'Romanzen', 'Choose a character to start editing.': 'Wähle einen Charakter zum Bearbeiten aus.', 'Unsaved changes': 'Nicht gespeicherte Änderungen', 'Close': 'Schließen'}});
   const {page} = e;
   assert.equal(await page.locator('#banner').isVisible(), true);
   assert.match(await page.locator('#banner').textContent(), /Convai is answering right now, so these changes have no effect yet\./);
@@ -214,24 +229,32 @@ test('with Convai answering the page says the changes do not apply yet, and the 
   assert.equal(await page.locator('html').getAttribute('lang'), 'de');
   assert.equal(await page.locator('#close').textContent(), 'Editor schließen');
   assert.equal(await page.getAttribute('#search', 'placeholder'), 'Charaktere suchen');
-  assert.equal((await page.locator('#list h3').nth(1).textContent()), 'Story-Charaktere');
-  assert.equal(await page.locator('#main .empty').textContent(), 'Wähle links einen Charakter.');
+  assert.equal((await groupTitles(page))[0], 'Romanzen');
+  assert.equal(await page.locator('#chips .fchip').nth(1).textContent(), 'Romanzen4');
+  assert.equal(await page.locator('#pickerhead').textContent(), 'Wähle einen Charakter zum Bearbeiten aus.');
   assert.equal(await page.locator('#foot').textContent(), 'Changes are saved on this computer and used from the next reply.', 'a sentence without a translation is shown in English');
   await e.shot('06-convai-banner-german');
   await page.locator('#list button.pick').nth(2).click();
   await page.waitForSelector('#f-bio');
   await e.shot('07-convai-bio');
-  // A saved edit still works (it is used the moment a text provider answers).
-  await page.fill('#f-style', 'x').catch(() => {});
+  // The unsaved-changes mark and the toast's close button use the game's words too.
+  await page.fill('#f-bio', 'x');
+  assert.equal(await page.locator('.actions.bar .state').textContent(), 'Nicht gespeicherte Änderungen');
   assert.deepEqual(e.problems, []);
 });
 
 test('Close editor stops the server and says so; the page works at phone width and in the light theme', {skip, timeout: 120000}, async t => {
   const e = await open(t, {viewport: {width: 390, height: 844}, scheme: 'light'});
   const {page} = e;
+  await e.shot('08-phone-light-start');
   await page.locator('#list button.pick').nth(2).click();
   await page.waitForSelector('#f-bio');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'no sideways scrolling at phone width');
+  await page.locator('#who').click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'nor with the picker open');
+  assert.equal(await page.evaluate(() => { const box = document.getElementById('picker').getBoundingClientRect(); return box.left >= 0 && box.right <= window.innerWidth; }), true, 'the picker fits the screen');
+  await e.shot('08-phone-light-picker');
+  await page.keyboard.press('Escape');
   await e.shot('08-phone-light');
   await page.locator('#close').click();
   await page.getByText('The editor is closed. You can close this tab.').waitFor();
@@ -296,8 +319,11 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   assert.doesNotMatch(await page.locator('#main .voice').textContent(), /\bnull\b|undefined/, 'no missing part is written out as a word');
   assert.equal(await page.locator('#main .voice h3').textContent(), 'Voice');
   const key = e.custom.list()[0].key;
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Your characters', 'V’s voice', 'Story characters', 'Everyday people']);
-  assert.equal(await page.locator('#list button.pick').first().textContent(), 'Rebecca');
+  await openList(page);
+  assert.deepEqual(await groupTitles(page), ['Recently edited', 'Your characters', 'Romances', 'Companions', 'Story', 'Side characters', 'V’s voice']);
+  assert.equal(await page.locator('#list .sect:not(.quick) button.pick .name').first().textContent(), 'Rebecca');
+  assert.equal(await page.locator('#list .sect.quick button.pick .name').first().textContent(), 'Rebecca', 'a character saved in this page is offered at the top');
+  await page.keyboard.press('Escape');
   assert.equal(e.personas.persona(key).name, 'Rebecca', 'the prompt reads it from the next reply');
   await e.shot('11-saved');
 
@@ -329,14 +355,14 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   await page.locator('#new').click();
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
   await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'New character');
-  await page.locator('#list button.pick').first().click();
+  await pick(page, 'Rebecca');
   await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'Rebecca');
   e.dialogs.length = 0;
   await page.getByRole('button', {name: 'Delete character'}).click();
   await page.waitForFunction(() => !document.getElementById('f-name'));
   assert.deepEqual(e.dialogs, ['Delete Rebecca? The character, its voice clip and what it remembers of you are removed.']);
   assert.equal(e.custom.size, 0);
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['V’s voice', 'Story characters', 'Everyday people']);
+  assert.deepEqual(await groupTitles(page), ['Romances', 'Companions', 'Story', 'Side characters', 'V’s voice'], 'nobody is chosen any more: the picker is open on the page again');
   // The only console lines are the browser's own note of the refusals the test provoked (422): no script error, no outside request.
   assert.deepEqual(e.problems.filter(text => !/status of 422/.test(text)), []);
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
@@ -345,12 +371,10 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
 test('a story character gets a Voice tab: choose a clip, see its length and a preview, save it, play it back, change the words, remove it; everyday people have none', {skip, timeout: 180000}, async t => {
   const e = await open(t);
   const {page} = e;
-  await page.fill('#search', 'food vendor');
-  await page.locator('#list button.pick').first().click();
+  await pick(page, 'food vendor');
   await page.waitForSelector('#f-bio');
   assert.equal(await page.getByRole('tab', {name: 'Voice'}).count(), 0, 'everyday people have no voice tab');
-  await page.fill('#search', 'judy');
-  await page.locator('#list button.pick').click();
+  await pick(page, 'judy');
   await page.waitForSelector('#f-bio');
   assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Bio', 'Speaking style', 'Speaking rules', 'Memories', 'Voice']);
   await page.getByRole('tab', {name: 'Voice'}).click();
@@ -381,11 +405,10 @@ test('a story character gets a Voice tab: choose a clip, see its length and a pr
   assert.equal(await page.inputValue('#f-voiceText'), WORDS, 'the typed words stay when a file is chosen');
   await e.shot('15-voice-chosen');
   // Leaving with the chosen clip unsaved asks first.
-  await page.fill('#search', 'panam');
   e.dialogs.length = 0;
   page.removeAllListeners('dialog');
   page.on('dialog', async dialog => { e.dialogs.push(dialog.message()); await dialog.dismiss(); });
-  await page.locator('#list button.pick').click();
+  await pick(page, 'panam');
   await page.waitForTimeout(150);
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
   assert.equal(await page.locator('#main h2').textContent(), 'Judy Alvarez');
@@ -401,7 +424,10 @@ test('a story character gets a Voice tab: choose a clip, see its length and a pr
   assert.equal(await page.locator('#note').textContent(), 'Saved.');
   assert.equal(await main.locator('audio.preview').count(), 0, 'the chosen file is the saved clip now');
   assert.equal(await page.getByRole('tab', {name: 'Voice'}).evaluate(node => node.classList.contains('dirty')), false);
-  assert.equal(await page.locator('#list button.pick .dot').count(), 0, 'a clip is not an edit of the text');
+  await find(page, 'judy');
+  assert.equal(await page.locator('#list button.pick .mark.edited').count(), 0, 'a clip is not an edit of the text');
+  assert.equal(await page.locator('#list button.pick .mark.voice').count(), 1, 'but the picker marks the character as having a voice clip of its own');
+  await page.keyboard.press('Escape');
   await e.shot('16-voice-saved');
 
   // Play the saved clip: the page fetches it with the session code and plays a blob address.
@@ -466,11 +492,10 @@ test('V has two voice-only rows: no tabs, no reset, a clip is saved and removed,
   const {page} = e;
   const main = page.locator('#main');
   // The V rows are in the list at once, in a group of their own, before the story characters.
-  const groups = await page.locator('#list h3.group').allTextContents();
-  assert.deepEqual(groups.slice(0, 2), ['V’s voice', 'Story characters']);
-  assert.deepEqual(await page.locator('#list ul').first().locator('button').allTextContents(), ['V (female voice)', 'V (male voice)']);
-  await page.fill('#search', 'V (male');
-  await page.locator('#list button.pick').click();
+  const groups = await groupTitles(page);
+  assert.equal(groups.at(-1), 'V’s voice');
+  assert.deepEqual(await page.locator('#list .sect').last().locator('button.pick .name').allTextContents(), ['V (female voice)', 'V (male voice)']);
+  await pick(page, 'V (male');
   await page.waitForSelector('#f-clip');
   assert.equal(await page.locator('#main h2').textContent(), 'V (male voice)');
   for (const gone of ['[role=tab]', '#f-bio', '#f-name', '#f-gender']) assert.equal(await page.locator(gone).count(), 0, gone + ' is not on a V row');
@@ -490,11 +515,10 @@ test('V has two voice-only rows: no tabs, no reset, a clip is saved and removed,
   assert.equal(e.voices.has('v-female'), false);
   assert.equal(await page.locator('#main h2').textContent(), 'V (male voice)');
   // Leaving to the other V row and back works, and the other row has no clip.
-  await page.fill('#search', '');
-  await page.getByRole('button', {name: 'V (female voice)'}).click();
+  await pick(page, 'V (female');
   await page.waitForFunction(() => document.querySelector('#main h2')?.textContent === 'V (female voice)');
   await page.getByText('No clip yet.').waitFor();
-  await page.getByRole('button', {name: 'V (male voice)'}).click();
+  await pick(page, 'V (male');
   await page.getByText('Saved clip: 11 seconds.').waitFor();
   // Remove it: the page says what V goes back to.
   e.dialogs.length = 0;
@@ -544,8 +568,7 @@ test('World rules: a page of its own, saved, reverted and cleared, in force on t
   // Unsaved words warn before leaving for a character.
   await page.fill('#f-worldRules', 'Everyone speaks casually.');
   e.dialogs.length = 0;
-  await page.fill('#search', 'judy');
-  await page.locator('#list button.pick').click();
+  await pick(page, 'judy');
   await page.waitForSelector('#f-bio');
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
   assert.equal(e.worldRules.get(), 'Nobody in Night City knows V’s name unless V tells them.', 'nothing was saved by leaving');
@@ -871,8 +894,7 @@ test('Prompting: in the light theme, wide, the preview sits beside the form; Con
   assert.equal(await page.locator('#banner').isHidden(), false, 'the warning stays: these changes have no effect while Convai answers');
   assert.equal(await page.evaluate(() => { const form = document.querySelector('.pedit').getBoundingClientRect(), side = document.querySelector('.ppreview').getBoundingClientRect(); return side.left >= form.right - 1; }), true, 'two columns on a wide screen');
   await e.shot('25-prompting-light');
-  await page.fill('#search', 'judy');
-  await page.locator('#list button.pick').click();
+  await pick(page, 'judy');
   await page.waitForSelector('#f-bio');
   assert.equal(await page.locator('.pcols').count(), 0);
   assert.equal(await page.locator('#prompting').evaluate(node => node.classList.contains('on')), false);
@@ -881,8 +903,7 @@ test('Prompting: in the light theme, wide, the preview sits beside the form; Con
 test('Look and moves: the outfit and the moves of a story character are chosen, saved and reset; a character with one look says so; Convai answering keeps the text warning off this tab', {skip, timeout: 180000}, async t => {
   const e = await open(t, {options: true, route: 'convai', strings: {'Look and moves': 'Aspect et mouvements', 'Automatic': 'Automatique', 'Usual look': 'Aspect habituel', 'Outfit': 'Tenue'}});
   const {page} = e;
-  await page.fill('#search', 'judy');
-  await page.locator('#list button.pick').click();
+  await pick(page, 'judy');
   await page.waitForSelector('#f-bio');
   assert.equal(await page.locator('#banner').isVisible(), true, 'the text tabs still warn that Convai ignores them');
   assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Bio', 'Speaking style', 'Speaking rules', 'Memories', 'Voice', 'Aspect et mouvements']);
@@ -928,8 +949,7 @@ test('Look and moves: the outfit and the moves of a story character are chosen, 
   await page.getByRole('tab', {name: 'Bio'}).click();
   await page.getByRole('tab', {name: 'Aspect et mouvements'}).click();
   assert.equal(await page.locator('#f-look-talk').inputValue(), 'lively', 'the unsaved choice is still there after a look at another tab');
-  await page.fill('#search', 'viktor');
-  await page.locator('#list button.pick').first().click();
+  await pick(page, 'viktor');
   await page.waitForFunction(() => document.querySelector('#main h2')?.textContent === 'Viktor Vektor');
   assert.equal(e.dialogs.length, asked + 1, 'leaving with an unsaved choice asks first');
   assert.match(e.dialogs.at(-1), /You have changes that are not saved/);
@@ -939,12 +959,137 @@ test('Look and moves: the outfit and the moves of a story character are chosen, 
   assert.match(await page.locator('.panel').textContent(), /only one look in the game files/);
   assert.equal(await page.locator('#f-look-talk').inputValue(), '', 'the other character did not get the unsaved choice');
   // Everyday people have no such tab.
+  await openList(page);
   await page.fill('#search', '');
-  const everyday = page.locator('#list h3.group', {hasText: 'Everyday people'}).locator('xpath=following-sibling::ul[1]//button').first();
-  await everyday.click();
+  await page.locator('#chips').getByRole('button', {name: /^Side characters/}).click();
+  await page.locator('#list button.pick').first().click();
   await page.waitForSelector('#f-bio');
   assert.equal(await page.getByRole('tab', {name: 'Aspect et mouvements'}).count(), 0);
   assert.deepEqual(e.problems, []);
   const origin = e.url.slice(0, e.url.indexOf('/editor'));
   assert(e.requests.every(url => url.startsWith(origin)), 'nothing left this computer');
+});
+
+// ---- the picker (the redesign of 2026-10-30): no endless sidebar, a panel with search, chips and a compact list
+test('the picker with a roster of 300+ characters: the facing character and the edited ones on top, filter chips, search, and the keyboard all the way', {skip, timeout: 240000}, async t => {
+  const crowd = 130, total = rows.length + crowd + 2, side = rows.filter(row => row.kind !== 'named').length + crowd;
+  const minors = rows.filter(row => row.minor === true).length, listed = total - minors;
+  const e = await open(t, {crowd, facing: {record: 'Character.Rogue', name: 'Rogue Amendiares', gender: 'female'}});
+  const {page} = e;
+  assert(total >= 300, 'a long roster: ' + total);
+  await e.overrides.set('jackie-welles', {bio: 'Jackie is loud, loyal and always the first one through the door, and he never leaves a friend behind.'});
+  await page.reload();
+  await page.waitForSelector('#list button.pick');
+  // On top: the character V was facing (found by name), then the edited ones; below, every character once, by role.
+  await page.locator('#list .sect.quick').first().waitFor();
+  assert.deepEqual(await page.locator('#list .sect.quick h3.group > span:not(.n)').allTextContents(), ['In front of you', 'Recently edited']);
+  assert.deepEqual(await page.locator('#list .sect.quick button.pick .name').allTextContents(), ['Rogue Amendiares', 'Jackie Welles']);
+  assert.equal(await page.locator('#list .sect:not(.quick) button.pick').count(), listed, 'every character once, the minor characters aside');
+  assert.equal(await page.locator('#resultcount').textContent(), `${listed} of ${listed}`);
+  assert.deepEqual(await page.locator('#chips .fchip').evaluateAll(nodes => nodes.map(node => node.querySelector('span:not(.n)').textContent + ' ' + node.querySelector('.n').textContent)),
+    ['All ' + listed, 'Romances 4', 'Companions 22', 'Story ' + (rows.filter(row => row.kind === 'named' && row.minor !== true).length - 4 - 22), 'Side characters ' + side, 'Minor characters ' + minors, 'Edited 1']);
+  await e.shot('30-picker-many');
+
+  // A chip narrows the list to one role, and says so in its state.
+  await page.locator('#chips').getByRole('button', {name: /^Side characters/}).click();
+  assert.equal(await page.locator('#chips .fchip.on').getAttribute('aria-pressed'), 'true');
+  assert.deepEqual(await page.locator('#list h3.group > span:not(.n)').allTextContents(), ['Side characters']);
+  assert.equal(await page.locator('#list button.pick').count(), side);
+  assert.equal(await page.locator('#list .sect.quick').count(), 0, 'the top sections belong to the unfiltered list');
+  // The minor characters have a chip of their own and are found by search from the default list.
+  await page.locator('#chips').getByRole('button', {name: /^Minor characters/}).click();
+  assert.deepEqual(await page.locator('#list h3.group > span:not(.n)').allTextContents(), ['Minor characters']);
+  assert.equal(await page.locator('#list button.pick').count(), minors);
+  await page.locator('#chips').getByRole('button', {name: /^All/}).click();
+  await page.fill('#search', 'mateo lorenzo');
+  assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Mateo Lorenzo']);
+  assert.equal(await page.locator('#resultcount').textContent(), `1 of ${total}`);
+  await page.fill('#search', '');
+  await page.locator('#chips').getByRole('button', {name: /^Edited/}).click();
+  assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Jackie Welles']);
+  await page.locator('#chips').getByRole('button', {name: /^All/}).click();
+
+  // Search as you type, and Enter opens the first result.
+  await page.fill('#search', 'crowd person 042');
+  assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Crowd Person 042']);
+  assert.equal(await page.locator('#resultcount').textContent(), `1 of ${total}`);
+  await page.fill('#search', 'zzzz');
+  assert.equal(await page.locator('#list .empty').textContent(), 'No match.');
+  await page.fill('#search', 'crowd person 042');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('#main h2')?.textContent === 'Crowd Person 042');
+  assert.equal(await page.locator('#picker').isHidden(), true, 'choosing closes the picker');
+  assert.equal(await page.locator('#search').inputValue(), '', 'and the next opening starts fresh');
+  assert.match(await page.locator('#main .head .badge').first().textContent(), /Side character/);
+
+  // The keyboard: / opens the picker anywhere outside a text box, Down goes into the list, the arrows move through it, Escape gives the focus back.
+  await page.locator('#main').focus();
+  await page.keyboard.press('/');
+  assert.equal(await page.locator('#picker').isVisible(), true);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'search');
+  assert.equal(await page.locator('#who').getAttribute('aria-expanded'), 'true');
+  await page.keyboard.type('jackie');
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.key), 'jackie-welles');
+  await page.fill('#search', 'crowd person 04');
+  await page.locator('#search').focus();
+  await page.keyboard.press('ArrowDown');
+  const first = await page.evaluate(() => document.activeElement.querySelector('.name').textContent);
+  await page.keyboard.press('ArrowDown');
+  assert.notEqual(await page.evaluate(() => document.activeElement.querySelector('.name').textContent), first, 'Down moves on');
+  await page.keyboard.press('ArrowUp');
+  assert.equal(await page.evaluate(() => document.activeElement.querySelector('.name').textContent), first, 'Up undoes Down');
+  await page.keyboard.press('ArrowRight');
+  assert.notEqual(await page.evaluate(() => document.activeElement.querySelector('.name').textContent), first, 'Right moves to the neighbour');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#picker').isHidden(), true);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'who', 'the focus goes back to the character button');
+  assert.equal(await page.locator('#who').getAttribute('aria-expanded'), 'false');
+  await page.keyboard.press('Control+k');
+  assert.equal(await page.locator('#picker').isVisible(), true, 'Ctrl+K opens it as well');
+  await page.mouse.click(5, 300);
+  assert.equal(await page.locator('#picker').isHidden(), true, 'a click outside closes it');
+
+  // Opening it with hundreds of characters is quick.
+  const opened = await page.evaluate(() => { const start = performance.now(); document.getElementById('who').click(); return performance.now() - start; });
+  assert(opened < 600, 'the picker opened in ' + Math.round(opened) + ' ms');
+  assert.equal(await page.locator('#picker').getAttribute('role'), 'dialog');
+  await page.keyboard.press('Escape');
+
+  // The tabs follow the arrow keys, and only the open one is in the tab order.
+  await pick(page, 'judy');
+  await page.waitForSelector('#f-bio');
+  assert.deepEqual(await page.locator('[role=tab]').evaluateAll(nodes => nodes.map(node => node.tabIndex)), [0, -1, -1, -1, -1]);
+  await page.getByRole('tab', {name: 'Bio'}).focus();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.getByRole('tab', {name: 'Speaking style'}).getAttribute('aria-selected'), 'true');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-style');
+  await page.keyboard.press('End');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-voice');
+  assert.deepEqual(e.problems, []);
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer');
+});
+
+test('the unsaved-changes mark and the toast: the mark shows while the page differs from what is saved and goes after Save, the toast can be closed, and every control has a name', {skip, timeout: 120000}, async t => {
+  const e = await open(t);
+  const {page} = e;
+  await pick(page, 'judy');
+  await page.waitForSelector('#f-bio');
+  const mark = page.locator('.actions.bar .state');
+  assert.equal(await mark.textContent(), '');
+  await page.fill('#f-bio', 'Judy runs a quiet clinic on the edge of Watson and fixes people for free, no questions asked. She hates corpos.');
+  assert.equal(await mark.textContent(), 'Unsaved changes');
+  assert.equal(await page.locator('.actions.bar').evaluate(node => getComputedStyle(node).position), 'sticky', 'the Save bar stays in view');
+  await page.getByRole('button', {name: 'Save'}).click();
+  await toast(page).waitFor();
+  assert.equal(await toast(page).textContent(), 'Saved.');
+  assert.equal(await mark.textContent(), '');
+  await toast(page).getByRole('button', {name: 'Close'}).click();
+  assert.equal(await page.locator('#note.show').count(), 0, 'the toast closes at once when asked');
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('note')).visibility === 'hidden');   // (after its short fade: a closed toast is out of the tab order too)
+  // Every control of the editor has a name for a screen reader: labelled fields, named buttons, tab roles.
+  const unnamed = await page.evaluate(() => [...document.querySelectorAll('button, input, textarea, select')].filter(node => !node.hidden && node.type !== 'hidden' && !node.disabled
+    && !(node.getAttribute('aria-label') || node.title || (node.labels && node.labels.length) || node.textContent.trim())).map(node => node.outerHTML.slice(0, 80)));
+  assert.deepEqual(unnamed, []);
+  assert.deepEqual(e.problems, []);
 });

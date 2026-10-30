@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {basename, dirname, join} from 'node:path';
-import {MemoryStore, STORE_LIMITS} from './memory-store.mjs';
+import {MemoryStore, STORE_LIMITS, retrievalRuleFor, cutoffFor, isPureSmallTalk} from './memory-store.mjs';
 import {MEMORY_LIMITS} from './mistral-memory.mjs';
 
 const T0 = 1_700_000_000_000;
@@ -87,7 +87,7 @@ function seedFile(files, key, records, {embedder = fakeEmbedder(), summary = '',
     version: 1, profileKey: key, updated, summary, overflow: [], channels: {private: [], phone: [], group: []},
     embedder: {id: embedder.id, dim: embedder.dim}, pending,
     records: records.map((record, i) => ({id: record.id ?? 'r' + i, kind: record.kind ?? 'fact', text: record.text, created: T0, updated: record.updated ?? T0,
-      importance: record.importance ?? 0.5, pinned: !!record.pinned, source: 'chat', v: encode(vectorOf(record.text, embedder.dim))})),
+      importance: record.importance ?? 0.5, pinned: !!record.pinned, source: 'chat', v: encode(record.vec ?? vectorOf(record.text, embedder.dim))})),
   });
 }
 const exchange = (store, key, count, extra = {}) => { for (let i = 0; i < count; i++) store.record({profileKey: key, v: `question ${i}`, r: `answer ${i}`, ...extra}); };
@@ -893,4 +893,101 @@ test('an extractor with a route check that says yes runs as before, and a real f
   assert.equal(calls.length, 1);
   assert.equal(logs.length, 1);
   assert.match(logs[0], /memory extract failed \(boom\); retrying in 60 s/);
+});
+
+// ---- the cut-off belongs to the embedder (docs/COHERE_RETRIEVAL_EVAL_2026-10-30.md, "Follow-up: the cut-off")
+const GRANITE = 'granite-embedding-107m-multilingual-q8_0', GEMMA = 'embeddinggemma-300m-q8_0';
+// Three memories on the three axes; a query is a vector whose cosines to them are the numbers given (up to the unit length of the query itself).
+const AXES = {whiskey: [1, 0, 0], car: [0, 1, 0], saul: [0, 0, 1]};
+const QUERIES = {
+  'tell me about the whiskey': [0.9, 0.3, 0.2],        // one memory is the answer: cosines 0.93 0.31 0.21
+  'you remember the whiskey and the car': [0.8, 0.72, 0.1], // two memories are close: 0.74 0.67 0.09
+  'what a strange night it is': [0.62, 0.60, 0.58],     // small talk: every memory looks about as close (0.60 0.58 0.56), the granite case
+};
+function axisEmbedder(id) {
+  const norm = vec => { const length = Math.hypot(...vec); return Float32Array.from(vec.map(x => x / length)); };
+  return {id, dim: 3, calls: [], available: () => true, async embed(texts) { this.calls.push([...texts]); return texts.map(text => norm(QUERIES[text])); }};
+}
+function axisMemories(embedder) {
+  const files = {};
+  seedFile(files, 'judy-alvarez', Object.entries(AXES).map(([id, vec]) => ({id, text: 'V ' + id, vec: Float32Array.from(vec)})), {embedder});
+  return files;
+}
+const askAxes = async (embedderId, query, options) => {
+  const embedder = axisEmbedder(embedderId);
+  const {store} = await setup({files: axisMemories(embedder), embedder});
+  return (await store.retrieve({profileKey: 'judy-alvarez', query, ...options})).map(hit => hit.id);
+};
+
+test('granite: small talk that scores 0.56 to 0.60 against every memory brings none, a real question brings the best, within a margin of it', async () => {
+  assert.deepEqual(await askAxes(GRANITE, 'what a strange night it is'), []);
+  assert.deepEqual(await askAxes(GRANITE, 'tell me about the whiskey'), ['whiskey']);
+  assert.deepEqual(await askAxes(GRANITE, 'you remember the whiskey and the car'), ['whiskey', 'car'], 'both within 0.10 of the best');
+});
+
+test('EmbeddingGemma keeps its own cut-off of 0.40, so the same cosines give another answer than granite', async () => {
+  assert.deepEqual(await askAxes(GEMMA, 'what a strange night it is'), ['whiskey', 'car', 'saul'], 'these cosines are only small talk to granite');
+  assert.deepEqual(await askAxes(GEMMA, 'tell me about the whiskey'), ['whiskey']);
+});
+
+test('an embedder with no calibration keeps the old cut-off of 0.40, and a caller may still set its own minScore', async () => {
+  assert.deepEqual(await askAxes('some-new-embedder', 'you remember the whiskey and the car'), ['whiskey', 'car']);
+  assert.deepEqual(await askAxes('some-new-embedder', 'what a strange night it is'), ['whiskey', 'car', 'saul']);
+  assert.deepEqual(await askAxes(GRANITE, 'what a strange night it is', {minScore: 0.5}), ['whiskey', 'car', 'saul'], 'minScore replaces the embedder rule');
+  assert.deepEqual(await askAxes(GRANITE, 'tell me about the whiskey', {minScore: 0.95}), []);
+});
+
+test('retrievalRuleFor matches a model by the start of its id, so another quantisation of the same model keeps its rule', () => {
+  assert.deepEqual(retrievalRuleFor('granite-embedding-107m-multilingual-q8_0'), {floor: 0.70, margin: 0.10});
+  assert.deepEqual(retrievalRuleFor('granite-embedding-107m-multilingual-f16'), {floor: 0.70, margin: 0.10});
+  assert.deepEqual(retrievalRuleFor('embeddinggemma-300m-q8_0'), {min: 0.40});
+  assert.deepEqual(retrievalRuleFor('anything-else'), {min: 0.40});
+  assert.deepEqual(retrievalRuleFor(undefined), {min: 0.40});
+});
+
+test('cutoffFor: the best must reach the floor, memories must be within the margin of it and above the minimum', () => {
+  const rule = {floor: 0.70, margin: 0.10};
+  assert.equal(cutoffFor(rule, [0.69, 0.5, 0.2]), null);
+  assert.equal(cutoffFor(rule, []), null);
+  assert.equal(cutoffFor(rule, [Number.NaN]), null);
+  assert.ok(Math.abs(cutoffFor(rule, [0.85, 0.7, 0.2]) - 0.75) < 1e-12);
+  assert.equal(cutoffFor({min: 0.40}, [0.39]), null);
+  assert.equal(cutoffFor({min: 0.40}, [0.41, 0.2]), 0.40);
+  assert.equal(cutoffFor({min: 0.70, margin: 0.3}, [0.9, 0.5]), 0.70, 'the minimum wins when it is higher than best minus margin');
+});
+
+test('a line of only greeting, thanks or yes/no words is small talk; anything with a question or a subject is not', () => {
+  for (const line of ['hey', 'Hey!', 'ok', 'Okay, thanks.', 'thank you', 'see you later', 'good night', 'never mind', 'hello there', 'Got it', 'yeah sure', 'gracias', 'merci', 'danke']) {
+    assert.equal(isPureSmallTalk(line), true, line);
+  }
+  for (const line of ['', '   ', '...', 'how are you doing today', 'hey, remember the whiskey?', 'thanks for the car', 'ok so about Saul', 'hey there how are you', 'good night and good luck with it',
+    'hey hey hey hey hey hey', 'what', 'you remember Saul']) {
+    assert.equal(isPureSmallTalk(line), false, line);
+  }
+  assert.equal(isPureSmallTalk(null), false);
+});
+
+test('a bare greeting is answered with nothing and costs no embed call; the same words inside a longer line are searched', async () => {
+  const files = {}, embedder = fakeEmbedder();
+  seedFile(files, 'judy-alvarez', [{id: 'thanks', text: 'thanks'}, {id: 'whiskey', text: 'V likes whiskey'}], {embedder});
+  const {store} = await setup({files, embedder});
+  assert.deepEqual(await store.retrieve({profileKey: 'judy-alvarez', query: 'Thanks!'}), []);
+  assert.equal(embedder.calls.length, 0, 'no embed call for a pure greeting');
+  assert.equal((await store.retrieve({profileKey: 'judy-alvarez', query: 'thanks V likes whiskey'})).some(hit => hit.id === 'whiskey'), true);
+  assert.equal(embedder.calls.length, 1);
+});
+
+test('warmFor starts the embedder only for a character that has memories stored under it', async () => {
+  const embedder = Object.assign(fakeEmbedder(), {warms: 0, warm() { this.warms++; return Promise.resolve(true); }});
+  const files = {};
+  seedFile(files, 'judy-alvarez', [{text: 'V likes whiskey'}], {embedder});
+  seedFile(files, 'panam-palmer', [], {embedder});
+  seedFile(files, 'johnny-silverhand', [{text: 'V likes whiskey'}], {embedder: fakeEmbedder({id: 'older-embedder'})});
+  const {store} = await setup({files, embedder});
+  assert.equal(store.warmFor('judy-alvarez'), true);
+  assert.equal(embedder.warms, 1);
+  for (const key of ['panam-palmer', 'unknown-person', 'johnny-silverhand']) assert.equal(store.warmFor(key), false, key);
+  assert.equal(embedder.warms, 1, 'nothing was started for them');
+  embedder.ok = false;
+  assert.equal(store.warmFor('judy-alvarez'), false, 'an unavailable embedder is not started');
 });

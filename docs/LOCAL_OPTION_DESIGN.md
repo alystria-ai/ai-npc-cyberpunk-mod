@@ -197,16 +197,16 @@ Fallbacks:
 
 ### Store
 
-- Records: `<state folder>/local-memory/<player>.json`.
-  - Each record is `{id, character, kind, text, created, updated, gameTime, importance, source, pinned}`.
-  - `kind` is `fact`, `event`, `preference`, `relationship`, `promise` or `summary`.
+- Records: one JSON file per player and character, `<state folder>/local-memory/<player>/<profile key>.json` (bridge/memory-store.mjs).
+  - Each record is `{id, kind, text, created, updated, importance, pinned, source, v}`.
+  - `kind` is `fact`, `event`, `preference`, `relationship` or `promise`. The summary is a separate field of the file.
   - `<player>` is the same player identity the Convai memory uses.
-- Vectors: `<player>.f32`, row order matching the records, plus a header naming the embedding model and dimension. A model change
-  re-embeds everything in the background, which takes about 14 ms per record.
-- In memory: one Float32Array per player (normalised), and a character-to-rows map. Saves are atomic and debounced off the speech
+- Vectors: the `v` field of each record, a base64 Float32 vector (little endian). The file names the embedding model and dimension. A model change
+  re-embeds everything in the background, 8 records at a time, which takes about 14 ms per record.
+- In memory: one Float32Array matrix per character (normalised). Saves are atomic and debounced off the speech
   path, like `mistral-memory.json`.
-- Caps: 2,000 records per character, 20,000 per player, 5 MB file. When over a cap, the oldest unpinned records with the lowest
-  importance are folded into the character's summary.
+- Caps: 600 records per character, 120 remembered characters per player, 3 MB per character file. When over a cap, the oldest unpinned records with the lowest
+  importance are folded away.
 - Options 2 and 3 share this store. On the cloud route (option 3) the extraction prompt below runs on Mistral (it also ran on Groq, removed 2026-10-14). The
   embeddings stay local in both. `mistral-memory.json` (8 exchanges plus a summary) becomes the store's "recent history and
   summary" part, migrated once.
@@ -216,7 +216,9 @@ Fallbacks:
 **Every turn (hot path, about 15 ms in total):**
 1. Embed V's line (14 ms). On voice turns, start this as soon as the final transcript exists.
 2. Score every row of this character: cosine + 0.05 x recency (decays over about 30 in-game days) + 0.03 x importance + 0.1 if
-   pinned. Keep the top 4 above about 0.40.
+   pinned. Keep the top 4 that pass the embedder's cut-off. The cut-off belongs to the embedding model (`RETRIEVAL_RULES` in `bridge/memory-store.mjs`):
+   granite needs its best memory to reach 0.70 and keeps those within 0.10 of it, EmbeddingGemma keeps 0.40 or more, any other model 0.40 until it is calibrated.
+   A line made only of greeting or thanks words searches nothing (docs/COHERE_RETRIEVAL_EVAL_2026-10-30.md, "Follow-up: the cut-off").
 3. Add them to the prompt as "WHAT YOU REMEMBER OF V" (at most about 300 tokens), together with the character's summary.
 4. Ordinary NPCs (ambient keys) keep only the short in-session history, as now. Vendors keep the existing vendor memory.
 
@@ -309,7 +311,7 @@ New value: **`local`**.
 | `bridge/local-llm-server.mjs` (new) | Supervises `llama-server`. |
 | `bridge/text-provider-host.mjs` (from `mistral-host.mjs`) | The common host: prompt, stream, clean, retry, memory hooks. Mistral keeps its pacing and zero-quota model skipping. Local turns pacing off and points `chat` at the supervisor's endpoint with its key. |
 | `bridge/text-provider.mjs` (from `mistral-key.mjs`) | The provider state for `convai`, `mistral` and `local`: setting, applied value, one-time notices. The switch waits until no conversation is running, as Mistral's does. |
-| `bridge/memory-store.mjs`, `bridge/local-embed.mjs` (new) | The store above and the embedding server (CPU build, `--embedding`, 1 thread, below-normal priority, exits 90 s after its last use like the STT worker). |
+| `bridge/memory-store.mjs`, `bridge/local-embed.mjs` (new) | The store above and the embedding server (CPU build, `--embedding`, 1 thread, below-normal priority, exits 300 s after its last use, since the turns of one talk are often minutes apart). |
 | `bridge/local-ai-pack.mjs` (new, like `omni-pack.mjs`) | Detects the pack and publishes `localPack: {installed, missing, tier}` in `runtime/mistral-state.json`, renamed to a provider state file. |
 | `bridge/mistral-prompt.mjs` | Gains the stable-to-volatile layout (shared by both routes). |
 | `bridge/convai-bridge.mjs` | Wires `attachTextProvider(host, {provider, hosts: {mistral, local}, speech})`. |

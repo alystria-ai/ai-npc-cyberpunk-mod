@@ -1,5 +1,7 @@
 # V's gear in the conversation context
 
+> **Update 2026-10-30 (branch `fix/natural-talk`):** the gear line is told only on a turn whose words are about V's clothes, weapons or cyberware (`asksAboutGear` in `bridge/player-gear.mjs`, `asksAboutClothes` and `asksAboutSelf` in `bridge/scenery-memory.mjs`), in the turn's own notes and no longer in the cached world part. Told on every turn it was narrated ("you're wearing that suit like a second skin" to "I wouldn't mind coffee"). A change of gear still comes as the change note, and V topless or naked as the right-now note (the later turns' standing line now says she has already seen it and can leave it unless V brings it up).
+
 The character you talk to knows, as background, what V is wearing and carrying. It is one line in the turn's dynamic
 context (`conversationContext` in `bridge/quest-context.mjs`), next to the journal, game-dialogue, battle and loot blocks.
 It is background only: the line tells the character not to mention V's gear unless it matters or V asks, so ordinary chat

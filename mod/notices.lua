@@ -75,6 +75,14 @@ M.catalog = {
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
     ['gemini-no-key'] = {class = PLAYER, repeatS = 86400},  -- Google Gemini is chosen but has no key, so Convai is used: once per game session
     ['gemini-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Google Gemini replies, once per game session
+    -- Google Gemini as the conversation provider: a turn V asked for fails (an automatic reaction just stops), each in Google's own terms
+    ['gemini-key'] = {class = PLAYER, repeatS = 60},        -- Google did not accept the saved key
+    ['gemini-daily'] = {class = PLAYER, repeatS = 60},      -- the free allowance for the day is used up (resets at midnight Pacific); says when it resets on this computer's clock
+    ['gemini-limit'] = {class = PLAYER, repeatS = 60},      -- the per-minute limit of the free plan is reached
+    ['gemini-region'] = {class = PLAYER, repeatS = 60},     -- the free plan is not offered in the player's country
+    ['gemini-server'] = {class = PLAYER, repeatS = 60},     -- Google's servers are busy or had an error
+    ['gemini-unreachable'] = {class = PLAYER, repeatS = 60}, -- Google could not be reached (no connection)
+    ['gemini-model'] = {class = PLAYER, repeatS = 60},      -- Google does not know the model (it was retired or renamed)
     ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket always, Voxtral for the languages it does not list): shown as text, OmniVoice speaks it; once per game session
     ['pocket-pack-fr'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
     ['pocket-pack-it'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session

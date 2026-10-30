@@ -16,7 +16,7 @@
 //                        Pocket also "no sounds, punctuation pauses only" on every turn;
 //               samples  every spoken turn, the clone's device lines from characters/natural-speech/<key>.json as
 //                        delivery examples (the memory-preserving alternative: no clone, original character)
-//               gated    the bridge's offer dice (OFFER_RATE by trait, pity counter); on a turn NOT offered, one short
+//               gated    the bridge's offer dice (OFFER_RATE by trait, sound-tag cooldown); on a turn NOT offered, one short
 //                        line asks for plain speech (for a clone whose own rate is too high)
 //               head     the block as it was at commit a47fed8 (7 tags, no per-character line), same dice: the baseline for
 //                        docs/NATURAL_SPEECH_BLOCK_V3.md

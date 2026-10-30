@@ -1515,7 +1515,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- entry in the reordered list (Voxtral directly after Pocket), so no one's voice changes with the order.
     local choices = dofile('voice-preview.lua')
     assert(choices.indexOf({voiceProvider = 'voxtral'}) == 2 and choices.indexOf({voiceProvider = 'pocket'}) == 1)
-    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and #choices.CHOICES == 7)
+    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and choices.indexOf({voiceProvider = 'inworld'}) == 8 and #choices.CHOICES == 8)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 3)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 4)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 5)
@@ -1673,52 +1673,74 @@ test('select option width: every option of every select fits the focused budget 
   `);
 });
 
-test('the removed Inworld voice: the list has seven entries with or without Developer mode, no Inworld key row, an Apply for it is refused, and a saved Inworld voice loads as Pocket TTS once, with the file corrected and no Apply loop', () => {
+test('the Inworld voice: listed last in Companion voices only once its key is saved (or while it is the saved voice), refused without a key, kept as saved, and read as Pocket beside Mature content', () => {
   run(`${nsuiFixture}
     local clock = 1000
     os.clock = function() return clock end
     os.time = function() return clock end
-    local function ids(category)
-      local list = {}
-      for _, item in ipairs(loaded.categories) do
-        if item.id == category then for _, setting in ipairs(item.settings) do list[#list + 1] = setting.id end end
-      end
-      return table.concat(list, ',')
+    local function published(tag, value)
+      jsonFixtures['mistral-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mistral-' .. tag
+      clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager')
     end
+    local NEEDS = 'Requires an Inworld key (add it in Settings > Voices > Custom voices)'
     assert(invoke('tab:settings').ok)
     local function menu() return row('voiceProvider').elements end
-    for _, developer in ipairs({false, true}) do
-      assert(manager.applySettings(player, {developerMode = developer}))
-      loaded = registered.loadMod('manager')
-      assert(#menu() == 8 and menu()[1] == 'Off' and menu()[8] == 'Convai · Cloud voice', table.concat(menu(), '|'))
-      for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
-      assert(row('inworld-key') == nil and ids('development') == 'developerMode', ids('development'))
-      assert(not row('voiceProvider').description:find('Inworld', 1, true))
-      -- A stale draft index past the end saves nothing, and the removed name is not a voice to choose.
-      local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
-      assert(result.ok == false and saved.voiceProvider == 'pocket', 'there is no eighth voice')
-      assert(manager.applySettings(player, {voiceProvider = 'inworld'}) == false and saved.voiceProvider == 'pocket')
-    end
-    -- A settings file that still names the removed voice loads as the default voice, with or without Developer mode, and is corrected
-    -- once: loading the corrected file saves nothing more, and the page shows the default voice as the saved one (nothing pending).
-    for _, developer in ipairs({true, false}) do
-      seed = {version = 2, voiceProvider = 'inworld', developerMode = developer, enabledByKey = {}, future = {keep = 'unchanged'}}
+    -- No key: Off and the seven voices, Convai last, nothing about Inworld in the list or in the voice help.
+    assert(#menu() == 8 and menu()[1] == 'Off' and menu()[8] == 'Convai · Cloud voice', table.concat(menu(), '|'))
+    for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
+    assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
+    -- The ninth place would be Inworld: refused without a key, in the page and in the manager.
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
+    assert(result.ok == false and result.error == NEEDS and saved.voiceProvider == 'pocket', tostring(result.error))
+    local refused, message = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(refused == false and message == NEEDS and saved.voiceProvider == 'pocket', tostring(message))
+    -- A Mistral key alone does not unlock it.
+    published('mistral', {provider = 'convai', effective = 'convai', saved = true})
+    assert(#menu() == 8 and manager.mistral().inworld.saved == false)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok == false)
+    -- The Inworld key is saved: the entry is the last one, a plain label, and it applies.
+    published('key', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = true, tail = 'wxyz'}})
+    assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
+    assert(#menu() == 9 and menu()[8] == 'Convai · Cloud voice' and menu()[9] == 'Inworld · Cloud voice', table.concat(menu(), '|'))
+    assert(not row('voiceProvider').description:lower():find('recommend', 1, true))
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
+    assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').value == 9, 'the saved Inworld voice is the ninth entry')
+    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'inworld'}) == 8 and #dofile('voice-preview.lua').CHOICES == 8)
+    -- The key is removed while the voice is chosen: the entry stays (the row never shows another voice than the saved one) and says it needs a key.
+    published('gone', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = false}})
+    assert(#menu() == 9 and menu()[9] == 'Inworld · needs key' and row('voiceProvider').value == 9, table.concat(menu(), '|'))
+    -- Another voice is chosen: without the key the entry goes again.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok and saved.voiceProvider == 'pocket')
+    loaded = registered.loadMod('manager')
+    assert(#menu() == 8)
+    -- A settings file that names Inworld loads as Inworld (a cloud voice loads no local model, key or not) and is not rewritten.
+    for _, key in ipairs({true, false}) do
+      published(key and 'with' or 'without', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = key}})
+      seed = {version = 2, voiceProvider = 'inworld', enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket', tostring(developer))
-      assert(saved.future.keep == 'unchanged' and manager.takeNaturalSpeechNotice() == nil)
-      seed, saved = saved, nil
-      files['runtime/settings.json'] = 'seed'
-      manager.configure(api, profiles); manager.prepare(player)
-      assert(saved == nil, 'the corrected file is saved again')
-      loaded = registered.loadMod('manager')
-      assert(row('voiceProvider').value == 2 and row('voiceProvider').defaultValue == 2 and #menu() == 8)
+      assert(manager.snapshot(player).settings.voiceProvider == 'inworld', tostring(key))
+      assert(saved == nil or saved.voiceProvider == 'inworld')
     end
-    -- A retired Multilingual value beside it changes nothing: the removed name still ends at the default voice.
-    seed = {version = 2, voiceProvider = 'inworld', multilingualConversations = true, enabledByKey = {}}
+    -- Mature content: Inworld is a cloud voice, so it is not used beside it. A file with both loads as Pocket (and is saved so),
+    -- turning Mature content on beside it moves the voice to Pocket, and choosing it while it stays on is refused.
+    seed = {version = 2, voiceProvider = 'inworld', matureContent = true, conversationProvider = 'local', enabledByKey = {}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket' and saved.multilingualConversations == nil)
+    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket')
+    published('mature', {provider = 'local', effective = 'local', saved = false, inworld = {saved = true, tail = 'wxyz'}})
+    local chosen, why = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(chosen == false and why == 'Inworld is not used with Mature content.' and saved.voiceProvider == 'pocket', tostring(why))
+    assert(#menu() == 9 and menu()[9] == 'Inworld · not with Mature' and row('voiceProvider').disabledElements and row('voiceProvider').disabledElements[9] ~= nil)
+    local blocked = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
+    assert(blocked.ok == false and blocked.error == 'Inworld is not used with Mature content.', tostring(blocked.error))
+    assert(manager.applySettings(player, {matureContent = false}))
+    assert(manager.applySettings(player, {voiceProvider = 'inworld'}) and saved.voiceProvider == 'inworld')
+    local ok, err, notice, reload = manager.applySettings(player, {conversationProvider = 'local', matureContent = true})
+    assert(ok and saved.voiceProvider == 'pocket' and reload == true, tostring(err))
   `);
 });
 
@@ -2146,7 +2168,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
   `);
 });
 
-test('a fallback reported from the removed Inworld voice is ignored: no notice is shown for a voice that is no longer offered', () => {
+test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
   run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
@@ -2155,9 +2177,10 @@ test('a fallback reported from the removed Inworld voice is ignored: no notice i
     files['runtime/local-voice-state.json'] = 'voice-runtime'
     popupTick(false); popupTick(false)
     popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Inworld cloud voice is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
     state.fallback.temporary = false
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 0, table.concat(popups, '|'))
+    assert(#popups == 2 and popups[2] == 'Inworld cloud voice is unavailable. Companions are using Pocket · Performance instead.', popups[2])
   `);
 });
 
@@ -2965,6 +2988,24 @@ test('the model browser leaves out the game\'s retired records ("!OBSOLETE ...")
   `);
 });
 
+// 2026-10-30 (cast sweep, docs/CAST_SWEEP.md): the minor profiles cannot be invited, so the Characters to invite list does not carry them. Lucy, a profile
+// only of another kind, is still listed.
+test('minor profiles stay out of the Characters list of the Companion Manager, and a profile only that is not minor is still listed', () => {
+  run(`${nsuiFixture}
+    local rita = {key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}}
+    local mateo = {key = 'mateo-lorenzo', name = 'Mateo Lorenzo', kind = 'named', invite = false, minor = true, records = {'Character.q000_kid_bar_patron_male_03'}}
+    manager.configure(api, {rita, mateo, {key = 'lucy-kushinada', name = 'Lucy Kushinada', invite = false, records = {'Character.EdgerunnersLucy_Merc'}}})
+    assert(defs['mateo-lorenzo'] == nil, 'a minor profile has no companion definition')
+    assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
+    assert(row('invite:rita-wheeler') and row('invite:rita-wheeler').value == 'Invite')
+    assert(row('invite:lucy-kushinada') and row('invite:lucy-kushinada').value == 'Profile only', 'a profile only that is not minor stays in the list')
+    assert(row('invite:mateo-lorenzo') == nil, 'a minor profile is not in the list')
+    local invitable = manager.snapshot(player).invitable
+    for _, profile in ipairs(invitable) do assert(profile.key ~= 'mateo-lorenzo', 'not in the invitable snapshot') end
+    assert(#manager.snapshot(player).profiles == 3, 'but the profile still exists for talk, memory and the editor')
+  `);
+});
+
 // 2026-10-25 (owner): our own Rita Wheeler is invitable like anyone else, even with Night City Allies installed. Lucy stays talk only.
 test('Rita Wheeler is invitable from the Characters page and the Model browser; the model shows her profile name, not the generic "Mox", and "mox" still finds her', () => {
   run(`${nsuiFixture}
@@ -3270,48 +3311,115 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
   `);
 });
 
-test('Voice volume is a Voices slider (50 to 200, steps of 5, 100 by default) saved for the bridge', () => {
+test("Voice volume and V's voice volume are two Voices sliders (50 to 300, steps of 5, 150 by default) saved for the bridge", () => {
   run(`${nsuiFixture}
-    assert(manager.snapshot(player).settings.voiceVolume == 100)
+    assert(manager.snapshot(player).settings.voiceVolume == 150 and manager.snapshot(player).settings.vVoiceVolume == 150)
     assert(invoke('tab:settings').ok)
-    local item = assert(row('voiceVolume'))
-    assert(item.type == 'int' and item.value == 100 and item.defaultValue == 100)
-    assert(item.min == 50 and item.max == 200 and item.step == 5, 'a slider range, not a list of steps')
-    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
-    assert(not item.description:lower():find('recommended', 1, true))
-    -- It sits in the Voices category, after the voice and delay rows.
-    local category
+    for _, id in ipairs({'voiceVolume', 'vVoiceVolume'}) do
+      local item = assert(row(id), id)
+      assert(item.type == 'int' and item.value == 150 and item.defaultValue == 150, id)
+      assert(item.min == 50 and item.max == 300 and item.step == 5, 'a slider range, not a list of steps')
+      assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
+      assert(not item.description:lower():find('recommended', 1, true))
+    end
+    assert(row('vVoiceVolume').label == 'V’s voice volume (%)')
+    assert(row('voiceVolume').description:find('companions', 1, true) and not row('voiceVolume').description:find('typed lines', 1, true), 'the Voice volume text names the companions, not V')
+    assert(row('vVoiceVolume').description:find('V’s own voice', 1, true))
+    -- Both sit in the Voices category, V's right under the Voice volume.
+    local category, at, vAt
     for _, c in ipairs(registered.loadMod('manager').categories or {}) do
-      for _, s in ipairs(c.settings) do if s.id == 'voiceVolume' then category = c.id end end
+      for index, s in ipairs(c.settings) do
+        if s.id == 'voiceVolume' then category, at = c.id, index end
+        if s.id == 'vVoiceVolume' then vAt = index; assert(c.id == 'voices') end
+      end
     end
     assert(category == 'voices', 'found in ' .. tostring(category))
+    assert(vAt == at + 1, "V's voice volume is the row right under the Voice volume: " .. tostring(at) .. ' and ' .. tostring(vAt))
     saved = nil
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 150}}).ok)
-    assert(manager.snapshot(player).settings.voiceVolume == 150)
-    assert(saved and saved.voiceVolume == 150, 'runtime/settings.json carries the value the bridge polls')
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 53}}).ok)
-    assert(manager.snapshot(player).settings.voiceVolume == 55, 'a value between steps lands on the nearest step')
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 200}}).ok and manager.snapshot(player).settings.voiceVolume == 200)
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 50}}).ok and manager.snapshot(player).settings.voiceVolume == 50)
-    for _, bad in ipairs({49, 201, 'loud', 0 / 0}) do
-      assert(not registered.applyBatch('manager', {{id = 'voiceVolume', value = bad}}).ok, 'refused: ' .. tostring(bad))
-      assert(not manager.applySettings(player, {voiceVolume = bad}))
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 120}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 150, 'the Voice volume leaves V alone')
+    assert(saved and saved.voiceVolume == 120 and saved.vVoiceVolume == 150, 'runtime/settings.json carries the values the bridge polls')
+    assert(registered.applyBatch('manager', {{id = 'vVoiceVolume', value = 250}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 250, "V's volume leaves the companions alone")
+    assert(saved.voiceVolume == 120 and saved.vVoiceVolume == 250)
+    for _, id in ipairs({'voiceVolume', 'vVoiceVolume'}) do
+      assert(registered.applyBatch('manager', {{id = id, value = 53}}).ok)
+      assert(manager.snapshot(player).settings[id] == 55, 'a value between steps lands on the nearest step')
+      assert(registered.applyBatch('manager', {{id = id, value = 300}}).ok and manager.snapshot(player).settings[id] == 300, 'the top is 300')
+      assert(registered.applyBatch('manager', {{id = id, value = 50}}).ok and manager.snapshot(player).settings[id] == 50)
+      assert(registered.applyBatch('manager', {{id = id, value = 100}}).ok and manager.snapshot(player).settings[id] == 100, 'a deliberate 100 is allowed')
+      for _, bad in ipairs({49, 301, 1000, 'loud', 0 / 0}) do
+        assert(not registered.applyBatch('manager', {{id = id, value = bad}}).ok, id .. ' refused: ' .. tostring(bad))
+        assert(not manager.applySettings(player, {[id] = bad}))
+      end
+      assert(manager.snapshot(player).settings[id] == 100, 'a refused value changes nothing')
     end
-    assert(manager.snapshot(player).settings.voiceVolume == 50, 'a refused value changes nothing')
+    -- Restore defaults puts both back on 150.
+    assert(registered.applyBatch('manager', core.defaults()).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 150 and manager.snapshot(player).settings.vVoiceVolume == 150)
   `);
 });
 
 test('a saved Voice volume survives loading, and a hand-edited value is brought back into range', () => {
-  for (const [stored, expected, rewritten] of [[130, 130, false], [999, 100, true], [133, 135, true]]) {
+  // [stored, expected, rewritten]: a hand-edited value goes back to the default or the nearest step (the old default 100 has its own test below).
+  for (const [stored, expected, rewritten] of [[130, 130, true], [300, 300, true], [999, 150, true], [301, 150, true], [133, 135, true], [49, 150, true], [150, 150, true]]) {
     run(`${managerFixture}
       seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, voiceVolume = ${stored}}
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
       files['runtime/settings.json'], saved = 'seed', nil
-      manager.reset(); manager.configure(api, profiles)
+      manager.reset(); manager.configure(api, profiles); manager.prepare(player)
       assert(manager.snapshot(player).settings.voiceVolume == ${expected}, 'loaded ' .. tostring(manager.snapshot(player).settings.voiceVolume))
-      if ${rewritten} then assert(saved ~= nil and saved.voiceVolume == ${expected}, 'a repaired value is written back') end
+      assert(manager.snapshot(player).settings.vVoiceVolume == ${expected}, "V starts from the player's Voice volume: " .. tostring(manager.snapshot(player).settings.vVoiceVolume))
+      if ${rewritten} then assert(saved ~= nil and saved.voiceVolume == ${expected} and saved.vVoiceVolume == ${expected}, 'a repaired value is written back') end
     `);
   }
+});
+
+test("the default Voice volume moved from 100 to 150: a saved 100 moves once, a later 100 and every other value stay, and V's voice volume starts from the Voice volume", () => {
+  run(`${managerFixture}
+    local function load(fields)
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      for key, value in pairs(fields) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      return manager.snapshot(player).settings
+    end
+    -- A file from before the move (no voiceVolume150Given): the old default 100 becomes 150, for V too, and the marker is saved.
+    local s = load({voiceVolume = 100})
+    assert(s.voiceVolume == 150 and s.vVoiceVolume == 150, 'old default: ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+    assert(saved.voiceVolume == 150 and saved.vVoiceVolume == 150 and saved.voiceVolume150Given == true and saved.future.keep == 'unchanged')
+    -- Any other saved value stays, whatever it is, and V starts from it.
+    for _, value in ipairs({50, 55, 95, 105, 120, 150, 200, 300}) do
+      s = load({voiceVolume = value})
+      assert(s.voiceVolume == value and s.vVoiceVolume == value, 'kept ' .. value .. ': ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+      assert(saved.voiceVolume == value and saved.vVoiceVolume == value and saved.voiceVolume150Given == true)
+    end
+    -- No voiceVolume at all (a new install, or a file from long ago): 150 for both, with the marker.
+    s = load({})
+    assert(s.voiceVolume == 150 and s.vVoiceVolume == 150 and saved.voiceVolume150Given == true)
+    -- A file that has been through it: a deliberate 100 is kept (and V's own value too), and nothing is rewritten.
+    s = load({voiceVolume = 100, voiceVolume150Given = true, vVoiceVolume = 100})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 100, 'a deliberate 100 stays: ' .. tostring(s.voiceVolume))
+    assert(saved == nil or (saved.voiceVolume == 100 and saved.vVoiceVolume == 100), 'a marked file is not changed')
+    s = load({voiceVolume = 100, voiceVolume150Given = true, vVoiceVolume = 220})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 220, "V's own value is kept: " .. tostring(s.vVoiceVolume))
+    -- A marked file with the Voice volume but no V value (a file written by a build in between): V starts from the Voice volume.
+    s = load({voiceVolume = 100, voiceVolume150Given = true})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 100 and saved.vVoiceVolume == 100, "V starts from the Voice volume: " .. tostring(s.vVoiceVolume))
+    -- V's value that is out of range or not a number is brought back to the Voice volume, not to 150.
+    for _, bad in ipairs({999, 49, 'loud', true}) do
+      s = load({voiceVolume = 80, voiceVolume150Given = true, vVoiceVolume = bad})
+      assert(s.voiceVolume == 80 and s.vVoiceVolume == 80 and saved.vVoiceVolume == 80, 'bad V value ' .. tostring(bad) .. ': ' .. tostring(s.vVoiceVolume))
+    end
+    -- The move happens one time only: the player puts the Voice volume on 100 after it, restarts, and it stays; V's own choice stays as well.
+    load({voiceVolume = 100})
+    assert(manager.applySettings(player, {voiceVolume = 100, vVoiceVolume = 75}) and saved.voiceVolume == 100 and saved.vVoiceVolume == 75)
+    assert(saved.voiceVolume150Given == true)
+    seed = saved; files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    s = manager.snapshot(player).settings
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 75, 'a later choice of 100 is kept: ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+  `);
 });
 
 test('Current party shows no Play or game voice row under Dismiss, in Developer mode or out of it', () => {
@@ -3967,8 +4075,8 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
     assert(manager.vVoiceActive() == true)
     -- A case is {saved vVoice, saved voice, expected vVoice, developer mode (default off), the voice it loads as (default: as saved)}.
     for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true},
-        -- The removed Inworld voice: a saved one loads as Pocket TTS, with or without developer mode.
-        {true, 'inworld', true, false, 'pocket'}, {true, 'inworld', true, true, 'pocket'}, {false, 'inworld', false, false, 'pocket', true},
+        -- The Inworld voice is kept as saved, whatever the key.
+        {true, 'inworld', true}, {false, 'inworld', false, false, nil, true},
         -- Only an explicit false stays off; a value that is not a boolean is the default (on).
         {false, 'pocket', false, false, nil, true}, {false, 'convai', false, false, nil, true}, {false, 'pocket', true}, {false, 'omni', true}, {false, 'convai', true},
         {'yes', 'pocket', true}, {1, 'pocket', true},
@@ -4510,7 +4618,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'gemini-key', 'gemini-test', 'custom-endpoint', 'own-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'gemini-key', 'custom-endpoint', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -4756,12 +4864,12 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('With Google Gemini, Local AI or Custom, Convai', 1, true), 'the voice paragraph names the options Local AI and Custom')
     assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
-    -- The Mistral key row left this page (the Mistral preset is a row of the Custom endpoint page now). Google Gemini has its key row and the connection test.
+    -- The Mistral key row left this page (the Mistral preset is a row of the Custom endpoint page now). Google Gemini has its key row only: the key is tried once when it is added, and there is no connection test.
     assert(row('mistral-key') == nil, 'the Mistral key row is gone')
     local gemini = row('gemini-key')
     assert(gemini and gemini.type == 'action' and gemini.label == 'Google Gemini API key' and gemini.value == 'Add', gemini and gemini.label)
     assert(gemini.description:find('aistudio.google.com/apikey', 1, true) and gemini.description:find('daily limit', 1, true) and not gemini.description:find('player-mistral-key.txt', 1, true))
-    assert(row('gemini-test') and row('gemini-test').type == 'action' and row('gemini-test').label == 'Test connection')
+    assert(row('gemini-test') == nil, 'the Test connection row of Google Gemini is gone')
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -4769,7 +4877,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state
@@ -4827,8 +4935,8 @@ test('The Conversation provider section offers the provider, Mature content, the
     answer('mistral-saved', {version = 1, provider = 'convai', effective = 'convai', saved = true, tail = 'mnop'})
     assert(manager.mistral().saved == true and manager.mistral().tail == 'mnop' and row('gemini-key').value == 'Add', 'the Mistral key (for Voxtral) does not fill the Google Gemini row')
     -- Limits and the waiting state are told in the first paragraph of the provider row's help.
-    for limit, text in pairs({rate = 'Google Gemini: limit reached for now', daily = 'Google Gemini: limit reached for now',
-      invalid = 'Google Gemini: key not accepted', model = 'Google Gemini: model unavailable'}) do
+    for limit, text in pairs({rate = 'Google Gemini: rate limited for a minute', daily = 'Google Gemini: free allowance used up for today',
+      invalid = 'Google Gemini: key not accepted', region = 'Google Gemini: not available in your region', model = 'Google Gemini: model unavailable'}) do
       answer('limit-' .. limit, {provider = 'gemini', effective = 'gemini', saved = true, tail = 'abcd', limit = limit})
       assert(note() == text, limit .. ': ' .. note())
     end
@@ -6404,7 +6512,7 @@ test('Custom endpoint is one button after the Google Gemini rows that opens a pa
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', table.concat(order, ','))
     for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is still on Settings') end
     local button = row('custom-endpoint')
     assert(button.type == 'action' and button.label == 'Custom endpoint' and button.value == 'Open', button.label)

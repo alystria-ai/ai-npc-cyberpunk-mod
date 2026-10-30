@@ -40,6 +40,38 @@ const EMBED_GAP_MS = 500;
 const DUPLICATE = 0.90;           // cosine at or above which a new fact updates an existing record
 const RECENCY_MS = 30 * 24 * 3600 * 1000;
 
+// Which memories a line may bring up depends on the embedding model, because models differ in how similar unrelated sentences look.
+// A rule has `min` (a memory must score at least this), `floor` (the best memory must score at least this, else nothing is returned: V's line
+// is about nothing stored) and `margin` (only memories within this of the best one are kept). Measured with scripts/eval-retrieval/calibrate-cutoff.mjs
+// (docs/COHERE_RETRIEVAL_EVAL_2026-10-30.md, "Follow-up: the cut-off"):
+//   granite-embedding-107m-multilingual: every line scores 0.45 to 0.74 against every memory, small talk included, so the old 0.40 let 4 memories into
+//     every prompt. A question about a memory scores 0.67 to 0.90 at its best, small talk 0.51 to 0.74: the best must reach 0.70.
+//   EmbeddingGemma-300M: small talk stays under 0.45 and questions about memories mostly reach 0.40 or more, so 0.40 is right.
+// The first entry whose name the embedder id starts with applies; any other model keeps 0.40 until it is calibrated.
+export const RETRIEVAL_RULES = Object.freeze([
+  ['granite-embedding-107m-multilingual', Object.freeze({floor: 0.70, margin: 0.10})],
+  ['embeddinggemma-300m', Object.freeze({min: 0.40})],
+]);
+export const DEFAULT_RETRIEVAL_RULE = Object.freeze({min: 0.40});
+export const retrievalRuleFor = id => RETRIEVAL_RULES.find(([name]) => String(id ?? '').startsWith(name))?.[1] ?? DEFAULT_RETRIEVAL_RULE;
+/** The lowest cosine a memory may have to be kept for this line, or null when no memory is close enough at all. One pass over the scores. */
+export function cutoffFor(rule, cosines) {
+  let best = -Infinity;
+  for (const cosine of cosines) if (cosine > best) best = cosine;
+  const min = rule.min ?? 0;
+  if (!(best >= Math.max(min, rule.floor ?? 0))) return null;
+  return rule.margin === undefined ? min : Math.max(min, best - rule.margin);
+}
+// A line made only of greeting, thanks, yes/no or goodbye words (at most 5): nothing in it can bear on a memory, so no memory is searched.
+// English first, with the common words of the other menu languages. Longer or other lines are left to the embedding rule above.
+const SMALL_TALK_WORDS = new Set(('hey hi hello hiya yo sup howdy morning afternoon evening night good goodnight goodbye bye later see you ya soon take care thanks thank thx ty ok okay k kk yeah yep yup yes ' +
+  'no nope nah sure cool nice fine alright alrighty right got it hmm hm huh oh ah uh um well sounds great never mind whatever lol haha again there buddy choom ' +
+  'hola buenas gracias vale adios adiós hasta luego salut bonjour bonsoir merci ouais oui non hallo danke tschüss tschuss ja nein ciao grazie olá ola obrigado sim não').split(' '));
+export function isPureSmallTalk(value) {
+  const words = String(value ?? '').toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  return words.length > 0 && words.length <= 5 && words.every(word => SMALL_TALK_WORDS.has(word));
+}
+
 const clean = (value, limit) => {
   const points = Array.from(String(value ?? '').replace(CONTROL, ' ').replace(/\s+/g, ' ').trim());
   return points.length <= limit ? points.join('') : points.slice(0, limit - 1).join('').trimEnd() + '…';
@@ -346,16 +378,22 @@ export class MemoryStore {
   #available() { try { return !!this.embedder && this.embedder.available() === true; } catch { return false; } }
   // An embedder without ready() is taken to answer at once (the old behaviour, and the tests' fake).
   #ready() { try { return typeof this.embedder?.ready !== 'function' || this.embedder.ready() === true; } catch { return false; } }
-  /** Starts the embedder ahead of the next retrieval (composer open, a cold retrieval). Never throws and never waits. */
+  /** Starts the embedder ahead of the next retrieval (a talk opening, a cold retrieval). Never throws and never waits. */
   warm() {
     if (!this.#available() || typeof this.embedder?.warm !== 'function') return false;
     try { void Promise.resolve(this.embedder.warm()).catch(() => {}); return true; } catch { return false; }
+  }
+  /** warm() for one character, and only when it has memories stored under the current embedder: nothing is started for a character with none. */
+  warmFor(profileKey) {
+    const row = this.rows.get(profileKey);
+    if (!row?.index?.recs.length || row.embedder?.id !== this.embedder?.id) return false;
+    return this.warm();
   }
   /**
    * The records worth remembering for this line, best first: [{id, kind, text}]. Empty for ordinary NPCs, the group channel, an
    * empty query, a missing embedder, or when embedding does not finish within `timeoutMs` (the late result is discarded).
    */
-  async retrieve({profileKey, query, channel = 'private', ambientKey, k = 4, budgetChars = 1200, minScore = 0.40, timeoutMs = 400, signal} = {}) {
+  async retrieve({profileKey, query, channel = 'private', ambientKey, k = 4, budgetChars = 1200, minScore, timeoutMs = 400, signal} = {}) {
     if (ambientKey || !CHANNELS.includes(channel) || channel === 'group' || !this.embedder) return [];
     const row = this.rows.get(profileKey), text = clean(query, 500);
     if (!row || !text || !row.index?.recs.length || signal?.aborted || !this.#available()) return [];
@@ -366,15 +404,25 @@ export class MemoryStore {
     // failing embedder waited the whole timeout (about 410 ms in the 2026-10-13 live records) for nothing.
     // The start itself (a process spawn, about 15 ms of this thread) waits until the turn has sent its request.
     if (!this.#ready()) { this.setTimer(() => this.warm(), 0)?.unref?.(); return []; }
+    // A bare greeting or thanks cannot bear on a memory: no embed call, no scan.
+    if (isPureSmallTalk(text)) return [];
     const generation = this.generation;
     const vec = await this.#embedQuery(text, timeoutMs, signal);
     if (!vec || vec.length !== embedder.dim || generation !== this.generation || this.rows.get(profileKey) !== row || signal?.aborted) return [];
     const {matrix, recs, dim} = row.index, at = this.now(), scored = [];
     if (dim !== vec.length) return [];
+    const cosines = new Float64Array(recs.length);
     for (let i = 0; i < recs.length; i++) {
       let cosine = 0;
       for (let j = 0, offset = i * dim; j < dim; j++) cosine += matrix[offset + j] * vec[j];
-      if (!(cosine >= minScore)) continue;
+      cosines[i] = cosine;
+    }
+    // The cut-off belongs to the embedder (see RETRIEVAL_RULES); a caller can still pass its own plain `minScore`.
+    const cutoff = cutoffFor(Number.isFinite(minScore) ? {min: minScore} : retrievalRuleFor(embedder.id), cosines);
+    if (cutoff === null) return [];
+    for (let i = 0; i < recs.length; i++) {
+      const cosine = cosines[i];
+      if (!(cosine >= cutoff)) continue;
       const record = recs[i];
       const recency = Math.max(0, 1 - (at - record.updated) / RECENCY_MS);
       scored.push({record, score: cosine + 0.05 * recency + 0.03 * record.importance + (record.pinned ? 0.1 : 0)});

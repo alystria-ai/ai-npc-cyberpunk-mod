@@ -207,9 +207,9 @@ test('every kind of row is one MCM can take: switches, selects, sliders, buttons
 test('a change is a draft that MCM keeps until Apply; Apply is one validated, saved transaction, and the page loads again', () => withScreen(`
   press('Settings')
   local before = manager.snapshot(player).settings
-  assert(before.subtitles == true and before.voiceVolume == 100)
+  assert(before.subtitles == true and before.voiceVolume == 150 and before.vVoiceVolume == 150)
   local loads = mcm.loads
-  assert(mcm.set('Subtitles', 3) and mcm.set('Voice volume (%)', 150))
+  assert(mcm.set('Subtitles', 3) and mcm.set('Voice volume (%)', 120) and mcm.set('V’s voice volume (%)', 250))
   frames(6)
   assert(manager.snapshot(player).settings.subtitleStyle == 'dialogue', 'nothing is saved before Apply')
   assert(mcm.loads == loads, 'the page is not drawn again under pending changes')
@@ -219,8 +219,8 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   local ok2, why2 = mcm.apply()
   assert(ok2, tostring(why2))
   local after = manager.snapshot(player).settings
-  assert(after.subtitles == true and after.voiceVolume == 150 and after.subtitleStyle == 'overhead', 'saved: ' .. tostring(after.subtitleStyle))
-  assert(mcm.row('Subtitles').value == 3 and mcm.row('Voice volume (%)').value == 150, 'the page shows what is saved')
+  assert(after.subtitles == true and after.voiceVolume == 120 and after.vVoiceVolume == 250 and after.subtitleStyle == 'overhead', 'saved: ' .. tostring(after.subtitleStyle))
+  assert(mcm.row('Subtitles').value == 3 and mcm.row('Voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 250, 'the page shows what is saved')
   assert(not next(mcm.drafts()), 'no draft is left')
   -- An invalid value is refused by the rules, MCM keeps the drafts and says why.
   local bad = mcm.set('Subtitles', 2)
@@ -236,11 +236,12 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   ${footer}
   press('Settings')
   mcm.set('Voice volume (%)', 120)
+  mcm.set('V’s voice volume (%)', 80)
   mcm.revert()
-  assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 100)
-  assert(manager.applySettings(player, {lootReactions = false, voiceVolume = 150, battleReactions = false}))
+  assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150)
+  assert(manager.applySettings(player, {lootReactions = false, voiceVolume = 120, vVoiceVolume = 80, battleReactions = false}))
   frames(10)
-  assert(mcm.row('React to collected loot').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
+  assert(mcm.row('React to collected loot').value == false and mcm.row('Voice volume (%)').value == 120 and mcm.row('V’s voice volume (%)').value == 80, 'an outside change is drawn')
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
   local layout = mcm.layout()
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
@@ -254,14 +255,14 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   press('Defaults')
   assert(footerLabels() == 'Confirm | Back', footerLabels())
   assert(mcm.status():find('Confirm', 1, true), mcm.status())
-  assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.voiceVolume == 150)
+  assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 80)
   -- Another button drops the first press (a page button; the Settings page has no status button any more).
   press('Memory'); press('Back to settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.voiceVolume == 100 and settings.battleReactions == true, 'defaults saved')
-  assert(mcm.row('React to collected loot').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
+  assert(settings.lootReactions == true and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true, 'defaults saved')
+  assert(mcm.row('React to collected loot').value == true and mcm.row('Voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150, 'the page shows them')
   frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
   assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
@@ -1471,8 +1472,8 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Settings')
   assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on Settings')
   for _, label in ipairs({${customRows.filter(label => label !== 'Test connection').map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
-  -- The Google Gemini key row and its own Test connection row are on Settings (the Gemini test row is not the Custom one).
-  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection'), 'the Gemini rows are on Settings')
+  -- The Google Gemini key row is on Settings; it has no Test connection row (Add tries the key once instead).
+  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection') == nil, 'the Gemini key row is on Settings, with no Test connection row')
   assert(mcm.row('Mistral API key') == nil, 'no Mistral key row on Settings any more')
   press('Custom endpoint')
   local config = mcm.config()

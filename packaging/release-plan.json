@@ -814,7 +814,7 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-characters.json"
         },
         {
-          "source": "characters/roster.json",
+          "source": "characters/game-roster.json",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/conversation-characters.json"
         },
         {
@@ -951,6 +951,8 @@
             "bridge/home-requests.mjs",
             "bridge/house-chat.mjs",
             "bridge/intrinsic-character-context.mjs",
+            "bridge/inworld-key.mjs",
+            "bridge/inworld-voice.mjs",
             "bridge/jali-face-model.mjs",
             "bridge/jali-face.mjs",
             "bridge/johnny-head.mjs",
