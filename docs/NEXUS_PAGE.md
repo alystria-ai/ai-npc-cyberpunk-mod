@@ -70,7 +70,7 @@ Pick a provider in Companion Manager > Settings > AI provider. Local is free and
 [*][b]Local stays local:[/b] if your local voice or Local AI fails, you get a message or text only. The mod never switches to a cloud voice or cloud text on its own.
 [/list][b]2. Cloud: fastest replies, light on your PC, no extra downloads[/b][list]
 [*][b]Convai (higher tier):[/b] already set up, nothing to do. The most complete option: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
-[*][b]Google Gemini (free key):[/b] about a second to the first words. Make a free key at [url=https://aistudio.google.com/apikey]Google AI Studio[/url] (a Google account is enough, no card), choose [b]Google Gemini (free plan)[/b] in Settings > AI provider and press [b]Add[/b]. About 1,000 replies a day, up to 15 a minute. Not offered in every country, and Google may use free-plan chats to improve its products.
+[*][b]Google Gemini (free key):[/b] about a second to the first words. Make a free key at [url=https://aistudio.google.com/apikey]Google AI Studio[/url] (a Google account is enough, no card), choose [b]Google Gemini (free plan)[/b] in Settings > AI provider and press [b]Add[/b]. About 500 replies a day, up to 15 a minute. Not offered in every country, and Google may use free-plan chats to improve its products.
 [*][b]Mistral:[/b] add a key with the [b]Mistral[/b] preset on the Custom page ([url=https://console.mistral.ai]console.mistral.ai[/url]). New accounts don't seem to get a free key any more.
 [*][b]Voice:[/b] Pocket TTS runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voice and microphone > Companion voices.
 [/list]
