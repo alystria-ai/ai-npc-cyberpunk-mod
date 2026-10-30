@@ -1308,10 +1308,13 @@ end
 local invitableCache, invitableFor
 local function invitableProfiles()
     if invitableCache and invitableFor == customSignature then return invitableCache end
-    if #customInvite == 0 then invitableCache = profiles
+    -- A minor profile (the cast sweep, docs/CAST_SWEEP.md) names an ordinary person and cannot be invited: it stays out of this list.
+    local all, minors = {}, false
+    for _, profile in ipairs(profiles) do
+        if profile.minor == true then minors = true else all[#all + 1] = profile end
+    end
+    if #customInvite == 0 then invitableCache = minors and all or profiles
     else
-        local all = {}
-        for _, profile in ipairs(profiles) do all[#all + 1] = profile end
         for _, profile in ipairs(customInvite) do all[#all + 1] = profile end
         table.sort(all, sortNames)
         invitableCache = all
@@ -2038,7 +2041,7 @@ local function rowsForTab()
         end
     elseif tab == 'characters' then
         for _, profile in ipairs(profiles) do
-            if profileMatches(profile) then
+            if profile.minor ~= true and profileMatches(profile) then
                 local definition = companions.definition(profile.key)
                 result[#result + 1] = {key = 'profile:' .. profile.key, name = profile.name,
                     note = (M.profileEnabled(profile.key) and 'Chat on' or 'Chat off')

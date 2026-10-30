@@ -2986,6 +2986,24 @@ test('the model browser leaves out the game\'s retired records ("!OBSOLETE ...")
   `);
 });
 
+// 2026-10-30 (cast sweep, docs/CAST_SWEEP.md): the minor profiles cannot be invited, so the Characters to invite list does not carry them. Lucy, a profile
+// only of another kind, is still listed.
+test('minor profiles stay out of the Characters list of the Companion Manager, and a profile only that is not minor is still listed', () => {
+  run(`${nsuiFixture}
+    local rita = {key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}}
+    local mateo = {key = 'mateo-lorenzo', name = 'Mateo Lorenzo', kind = 'named', invite = false, minor = true, records = {'Character.q000_kid_bar_patron_male_03'}}
+    manager.configure(api, {rita, mateo, {key = 'lucy-kushinada', name = 'Lucy Kushinada', invite = false, records = {'Character.EdgerunnersLucy_Merc'}}})
+    assert(defs['mateo-lorenzo'] == nil, 'a minor profile has no companion definition')
+    assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
+    assert(row('invite:rita-wheeler') and row('invite:rita-wheeler').value == 'Invite')
+    assert(row('invite:lucy-kushinada') and row('invite:lucy-kushinada').value == 'Profile only', 'a profile only that is not minor stays in the list')
+    assert(row('invite:mateo-lorenzo') == nil, 'a minor profile is not in the list')
+    local invitable = manager.snapshot(player).invitable
+    for _, profile in ipairs(invitable) do assert(profile.key ~= 'mateo-lorenzo', 'not in the invitable snapshot') end
+    assert(#manager.snapshot(player).profiles == 3, 'but the profile still exists for talk, memory and the editor')
+  `);
+});
+
 // 2026-10-25 (owner): our own Rita Wheeler is invitable like anyone else, even with Night City Allies installed. Lucy stays talk only.
 test('Rita Wheeler is invitable from the Characters page and the Model browser; the model shows her profile name, not the generic "Mox", and "mox" still finds her', () => {
   run(`${nsuiFixture}

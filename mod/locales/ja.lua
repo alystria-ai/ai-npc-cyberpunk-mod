@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "ロマンス",
     ["Side character"] = "サブキャラクター",
     ["Side characters"] = "サブキャラクター",
+    ["Minor character"] = "端役キャラクター",
+    ["Minor characters"] = "端役キャラクター",
     ["Story"] = "ストーリー",
     ["Story character"] = "ストーリーキャラクター",
     ["Unsaved changes"] = "未保存の変更",

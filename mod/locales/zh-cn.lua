@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "恋爱对象",
     ["Side character"] = "次要角色",
     ["Side characters"] = "次要角色",
+    ["Minor character"] = "次要角色",
+    ["Minor characters"] = "次要角色",
     ["Story"] = "剧情",
     ["Story character"] = "剧情角色",
     ["Unsaved changes"] = "未保存的更改",

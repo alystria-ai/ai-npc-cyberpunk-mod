@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Romance",
     ["Side character"] = "Vedlejší postava",
     ["Side characters"] = "Vedlejší postavy",
+    ["Minor character"] = "Epizodní postava",
+    ["Minor characters"] = "Epizodní postavy",
     ["Story"] = "Příběh",
     ["Story character"] = "Postava z příběhu",
     ["Unsaved changes"] = "Neuložené změny",
