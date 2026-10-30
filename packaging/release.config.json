@@ -209,6 +209,10 @@
       }
     }
   },
+  "voiceClips": {
+    "notes": "fromGame false: the Runtime and the OmniVoice pack carry the voice reference clips as before. true: they carry none, and the player's PC builds each character's clips from the game's own English voice files when the character is first invited or talked to (bridge/voice-clips.mjs, characters/voice-clips-manifest.json, docs/VOICE_EXTRACTION.md), or downloads them from the Hugging Face repository (voice-clips/<kind>/<key>.wav, the list is packaging/voice-clips-upload-list.json). Do not turn it on before that list is uploaded.",
+    "fromGame": false
+  },
   "omniPack": {
     "notes": "The OmniVoice pack (docs/PACKAGING.md, 'The OmniVoice pack'). `runtimeClips`: the reference clips the RUNTIME carries for the 60 voices added after the pack was frozen (path, size, CRC-32 of each). The Mistral voice (Voxtral) reads them for players without this pack, so they stay in the Runtime; the pack leaves them out, so the Runtime and the pack never ship the same file (packaging/check-pack-overlap.mjs). A build from scratch skips those paths and stops when the clip it would skip differs from the listed bytes.",
     "runtimeClips": "packaging/pack-listings/runtime-omni-clips-0.2.9.json"
