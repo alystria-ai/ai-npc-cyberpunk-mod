@@ -34,6 +34,13 @@ export const ENGINE_KINDS = Object.freeze({pocket: 'pocket', short: 'omni-short'
 const KINDS = Object.freeze(Object.values(ENGINE_KINDS));
 const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const SHA = /^[a-f0-9]{64}$/;
+/**
+ * The two archetype voices that always ship, with every package (packaging/build-release.mjs leaves them in when voiceClips.fromGame leaves the other clips out). A character
+ * whose own clips are not built yet speaks with the one of its gender (standInDescriptors) for any line it needs before they are, so a first talk never meets a missing
+ * voice and shows no error.
+ */
+export const STAND_IN_VOICES = Object.freeze({female: 'resident-female', male: 'resident-male'});
+export const standInKey = gender => STAND_IN_VOICES[String(gender ?? '').toLowerCase() === 'female' ? 'female' : 'male'];
 export const BUILD_TIMEOUT_MS = 180_000;
 export const EXIT_NO_ENGLISH_VOICE = 3;
 
@@ -108,15 +115,17 @@ export class GameVoiceClips {
    *   python, script, vgmstream   the Runtime's Python, bridge/voice_clip_build.py and vgmstream-cli.exe
    *   manifestPath     the manifest file the builder reads
    *   shippedPresent   async (reference path) => boolean: is that shipped clip on disk (default: a stat under referenceRoot)
+   *   shippedPresentSync  the same, synchronous, for the stand-in voices at start and per reply (default: existsSync under referenceRoot; a file check only)
    *   prefer           true: build the game's clips even when shipped ones exist (CYBERPUNK_CONVAI_GAME_CLIPS=1)
    *   download         false, or {fetch, repository}: fetch the clips from Hugging Face when the game cannot give them
    *   onBuilt          (key) => void: a character's clips are ready (the bridge makes the voice tables follow, bridge/live-voices.mjs)
    */
   constructor({manifest = {}, gameDirectory = null, referenceRoot, mirrorRoots = [], stateDirectory, python = null, script = null, vgmstream = null, manifestPath = null,
-    shippedPresent = null, prefer = false, download = false, onBuilt = () => {}, log = () => {}, run = runBuilder, now = Date.now,
+    shippedPresent = null, shippedPresentSync = null, prefer = false, download = false, onBuilt = () => {}, log = () => {}, run = runBuilder, now = Date.now,
     files = {readFile, writeFile, mkdir, rename, rm, stat, copyFile}} = {}) {
     Object.assign(this, {manifest, gameDirectory, referenceRoot, mirrorRoots: mirrorRoots.filter(root => typeof root === 'string' && root), stateDirectory, python, script, vgmstream, manifestPath, prefer, download, onBuilt, log, run, now, files});
-    this.shippedPresent = shippedPresent ?? (async reference => existsSync(join(referenceRoot, reference.slice(REFERENCE_NAMESPACE.length))));
+    this.shippedPresentSync = shippedPresentSync ?? (reference => existsSync(join(referenceRoot, reference.slice(REFERENCE_NAMESPACE.length))));
+    this.shippedPresent = shippedPresent ?? (async reference => this.shippedPresentSync(reference));
     this.index = Object.create(null);     // key -> {kind: {sha256, samples, source}}
     this.failed = new Map();              // key -> reason (this session: a character that could not be built is not tried again at every line)
     this.running = new Map();             // key -> promise
@@ -162,6 +171,11 @@ export class GameVoiceClips {
     await atomicFile(this.indexPath, JSON.stringify({version: 1, game: this.fingerprint, clips}, null, 1));
   }
 
+  /** True when this reference path of a table (runtime/voice-references/...) names a file that is on disk. A path outside the references folder counts as there (a player's clip). */
+  isShipped(reference) {
+    if (typeof reference !== 'string' || !reference.startsWith(REFERENCE_NAMESPACE)) return typeof reference === 'string' && reference !== '';
+    try { return this.shippedPresentSync(reference) === true; } catch { return false; }
+  }
   has(key) { return Object.hasOwn(this.manifest, key); }
   ready(key) { return Object.hasOwn(this.index, key); }
   /** The keys whose clips are built, for the voice tables to be made at start. */
@@ -310,6 +324,45 @@ export class GameVoiceClips {
     for (const row of Object.values(this.index)) sources[row.pocket?.source === 'download' ? 'download' : 'build']++;
     return {characters: Object.keys(this.manifest).length, ready: this.readyKeys().length, built: sources.build, downloaded: sources.download, failed: this.failed.size, running: this.running.size};
   }
+}
+
+/**
+ * What a character speaks with until its own clips are built: the descriptors of the stand-in voice of its gender (STAND_IN_VOICES), per engine, for each engine whose
+ * shipped clip of the character is not on disk. `shipped` = {pocket, short, long} descriptors of the character (as the shipped configurations have them), `tables` = {pocket,
+ * short, long} voices objects that hold the two stand-in voices. Null when the character is not in the manifest, is ready, is itself a stand-in, or no engine needs one
+ * (its shipped clips are there, so it keeps them), or the stand-in voice has no file either. Pure file checks, no process.
+ */
+export function standInDescriptors(clips, key, shipped, tables, gender = null) {
+  if (!clips.has(key) || clips.ready(key) || Object.values(STAND_IN_VOICES).includes(key)) return null;
+  const spareKey = standInKey(gender);
+  const out = {};
+  for (const engine of Object.keys(ENGINE_KINDS)) {
+    const own = shipped?.[engine], spare = tables?.[engine]?.[spareKey];
+    if (!plain(own) || !plain(spare) || clips.isShipped(own.reference)) continue;
+    if (!clips.isShipped(spare.reference) || typeof spare.sha256 !== 'string' || typeof spare.transcript !== 'string') continue;
+    out[engine] = {reference: spare.reference, sha256: spare.sha256, transcript: spare.transcript};
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
+ * At start, after applyReadyClips: a character of the manifest whose clips are not ready and whose shipped clip is not on disk (voiceClips.fromGame leaves them out)
+ * gets its stand-in voice in the tables, so the voice workers see a clip that exists and the character can speak at once. The tables are edited in place. `genderOf` =
+ * key => 'female' | 'male' | null. Returns the keys that were changed.
+ */
+export function applyStandIns(clips, tables, genderOf = () => null) {
+  const changed = [];
+  const spares = Object.fromEntries(Object.keys(ENGINE_KINDS).map(engine => [engine, {...tables[engine]}]));
+  for (const key of Object.keys(clips.manifest)) {
+    const shipped = Object.fromEntries(Object.keys(ENGINE_KINDS).map(engine => [engine, tables[engine]?.[key] ?? null]));
+    let gender = null;
+    try { gender = genderOf(key); } catch { gender = null; }
+    const named = standInDescriptors(clips, key, shipped, spares, gender);
+    if (!named) continue;
+    for (const engine of Object.keys(named)) tables[engine][key] = {...shipped[engine], ...named[engine]};
+    changed.push(key);
+  }
+  return changed;
 }
 
 /**
