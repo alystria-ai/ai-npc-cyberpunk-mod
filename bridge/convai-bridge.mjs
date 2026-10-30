@@ -3653,9 +3653,13 @@ async function pollLookahead() {
       // A held prepared line is dropped when V engages, when the plan or provider no longer allows it, or when its source turn is gone.
       if (await vEngaged(held.sourceRequestId) || !lookaheadAllowedFor(held.kind)) lookahead.cancel();
       else {
-        await lookahead.watchSource(entry => {
+        await lookahead.watchSource(async entry => {
           const source = lookahead.source;
-          return source?.input.requestId !== entry.sourceRequestId || source.signal?.aborted === true;
+          if (source?.input.requestId !== entry.sourceRequestId || source.signal?.aborted === true) return true;
+          // A speak-up whose lease the game withdrew is cancelled even when nothing aborted its controller: tick() aborts only the turn that is still
+          // active, and a turn that stopped by itself first ("Continuous speech owner changed") has left `active` already. Only a lease that is
+          // read and bad counts (reactionCurrent answers null for a file it could not read), and watchSource's grace still applies.
+          return source.input.reaction ? await reactionCurrent(source.input) === false : false;
         });
       }
     }
