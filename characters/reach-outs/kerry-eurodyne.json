@@ -144,7 +144,7 @@
       "id": "kh-fridge-run",
       "via": "call",
       "text": "I'm starving. Staff is asleep. Come sneak with me.",
-      "partnerText": "I'm starving. Staff is asleep. Come sneak with me, darling.",
+      "partnerText": "I'm starving. Staff is asleep. Come raid the kitchen with me.",
       "when": {"kind": "hours", "from": 0, "to": 2},
       "minBond": 5,
       "cooldownDays": 7,
