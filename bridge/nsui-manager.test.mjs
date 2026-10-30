@@ -47,19 +47,19 @@ test('every page builds on the tab and the tab always starts with the way back, 
       for _, option in ipairs(section.options) do assert(option.label ~= '', name .. ': a row without a label') end
     end
   end
-  -- Home: the six destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
+  -- Home: the seven destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
-  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 6)
-  for index, label in ipairs({'Characters to invite', 'Parties', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
+  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 7)
+  for index, label in ipairs({'Main characters to invite', 'Side characters to invite', 'Parties', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
-  for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'},
+  for _, page in ipairs({{'Main characters to invite', 'Main characters to invite'}, {'Side characters to invite', 'Side characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'},
       {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
     assert(ns.sections()[2].label == page[2], page[1] .. ': ' .. ns.sections()[2].label)
     press('Back to Companion Manager')
-    assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', 'back on Home')
+    assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite', 'back on Home')
   end
   -- Settings has its sub-pages: Memory, Relationships, Help, the paid tier and the Custom endpoint, each with its Back to Settings at the top.
   press('Settings')
@@ -84,7 +84,7 @@ test('every page builds on the tab and the tab always starts with the way back, 
 `));
 
 test('a long list is one page of rows: the page slider turns it, only the rows below it are replaced, and no page holds more than twelve rows', () => run(`${harness()}
-  press('Characters to invite')
+  press('Main characters to invite')
   local slider = assert(ns.find('Page'), 'a list of 22 characters has a page slider')
   assert(slider.type == 'rangeInt' and slider.min == 1 and slider.max == 2 and slider.currentValue == 1)
   local list = ns.sections()[2]
@@ -112,7 +112,7 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   local widgets = #ns.screen.children
   assert(widgets <= 1 + 1 + 1 + 1 + 1 + 2 + 12, 'widgets on screen: ' .. widgets)
   -- Going away and coming back starts on the first page of the list.
-  press('Back to Companion Manager'); press('Characters to invite')
+  press('Back to Companion Manager'); press('Main characters to invite')
   assert(ns.find('Page').currentValue == 1)
 `));
 
@@ -148,12 +148,12 @@ test('the manager opens on its first page: after leaving the tab, after closing 
   ns.leave(); frames(3)
   assert(managerUi.inspect().view == 'home', 'leaving the tab resets the page')
   ns.openScreen(TAB); frames(3); ns.verify()
-  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', shownOutline())
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite', shownOutline())
   -- The screen is closed on a sub-page and opened again by hand: the hook of the Settings screen makes the page ready before it builds.
   press('Settings')
   ns.closeScreen(); frames(3)
   ns.openScreen(TAB)
-  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', 'ready before the widgets were built: ' .. shownOutline())
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite', 'ready before the widgets were built: ' .. shownOutline())
   frames(3); ns.verify()
   -- Nothing was built for the game's own Settings screen.
   press('Settings'); ns.closeScreen(); ns.fromMods = false
@@ -431,7 +431,7 @@ test('without Native Settings UI the shortcut says so; a copy that loads later i
   frames(15, 0.1)
   assert(ns.data[TAB] and #ns.sections(TAB) == 1, 'registered when it appeared')
   ns.openScreen(TAB); frames(3); ns.verify()
-  assert(ns.find('Characters to invite'))
+  assert(ns.find('Main characters to invite'))
 `));
 
 test('add-on settings are rows of the Settings page, staged and committed with the main settings', () => run(`${harness()}
@@ -520,7 +520,7 @@ test('the tab keeps what is on screen current: a state that changes is drawn, a 
 
 test('sections are only ever removed from the end, so Native Settings UI never holds a hole in its list', () => run(`${harness()}
   local function holes() return not dense(ns.data[TAB]) end
-  for _, name in ipairs({'Settings', 'Back to Companion Manager', 'Characters to invite', 'Back to Companion Manager', 'Parties',
+  for _, name in ipairs({'Settings', 'Back to Companion Manager', 'Main characters to invite', 'Back to Companion Manager', 'Parties',
       'Back to Companion Manager', 'Settings', 'Memory', 'Back to settings', 'Help and support', 'Back to settings', 'Back to Companion Manager'}) do
     press(name)
     assert(not holes(), 'a hole after ' .. name)
@@ -732,9 +732,9 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
   titlePress('Settings')
   assert(ns.sections()[2].label == 'Interface' and ns.find('Interface language'), shownOutline())
   titlePress('Back to Companion Manager')
-  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', shownOutline())
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite', shownOutline())
   -- Pages that need one say so, visibly, and their invite buttons are not offered as if they worked.
-  for _, page in ipairs({'Characters to invite', 'Parties', 'Model browser'}) do
+  for _, page in ipairs({'Main characters to invite', 'Parties', 'Model browser'}) do
     titlePress(page)
     local note = assert(ns.find('Characters and party'), page .. ': no row that says a save is needed')
     assert(note.type == 'button' and note.buttonText == 'Load a save first', page)
@@ -743,7 +743,7 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
   end
   -- Game.GetPlayer() can still hand back an object at the main menu (seen live 2026-10-19): that is not a loaded save.
   player = {hash = 'menu-object', GetEntityID = function(self) return {hash = self.hash} end}
-  titlePress('Characters to invite')
+  titlePress('Main characters to invite')
   assert(ns.find('Characters and party'), 'a player object at the main menu is not a loaded save')
   titlePress('Back to Companion Manager')
   -- The same pages with a save loaded have no such row.
@@ -867,7 +867,7 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   assert(ns.find('Companion voices', TAB).selectedElementIndex == 2, 'and the row shows the corrected value')
   -- Pressing a button through the mirror works while the tab is not on screen, and the page it opens is the page MCM reads next.
   go('Back to Companion Manager')
-  assert(#ns.sections(TAB) == 1 and ns.sections(TAB)[1].options[1].label == 'Characters to invite')
+  assert(#ns.sections(TAB) == 1 and ns.sections(TAB)[1].options[1].label == 'Main characters to invite')
 `));
 
 test('a row whose text changes while the tab is not on screen is updated in place (same option table, new label); on screen it is replaced as before', () => run(`${harness({screen: false, locale: 'de'})}
@@ -975,7 +975,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Back to settings')
   assert(ns.sections()[2].label == 'Interface' and ns.find('Custom endpoint') and ns.find('Custom endpoint URL (x.ai)') == nil)
   press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
-  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite')
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Main characters to invite')
 `));
 
 test('Custom endpoint with a change just made: the change is still applied after the page is opened, and the page has no pending state of its own', () => run(`${harness()}
@@ -1089,13 +1089,13 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   ns.verify()
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
   local open = assert(ns.find('Character editor'), 'the row is on Home')
-  assert(open.buttonText == 'Open' and ns.sections()[1].options[4] == open, 'the fourth row of Home, a button')
+  assert(open.buttonText == 'Open' and ns.sections()[1].options[5] == open, 'the fifth row of Home, a button')
   local before = commandWrites()
   press('Character editor')
   assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
   assert(fileWrites[#fileWrites].path == 'runtime/editor-command.json')
   assert(managerUi.inspect().view == 'home' and #ns.sections() == 1, 'no sub-page: Home stays')
-  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[7].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
+  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[8].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
   -- A second click is a new command (the host counts one click once, not twice).
   clock = clock + 2
   press('Character editor')
@@ -1115,11 +1115,11 @@ test('Native Settings UI: with the conversation service stopped the Character ed
     press('Character editor')
     assert(not files['runtime/editor-command.json'], 'nothing written')
     assert(managerUi.inspect().view == 'home')
-    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[7].label:find('The conversation service is not running', 1, true), shownOutline())
+    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[8].label:find('The conversation service is not running', 1, true), shownOutline())
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   run(`${harness({modules: bare, absent: ['character-editor.lua']})}
-    assert(#ns.sections()[1].options == 5 and not ns.find('Character editor'), shownOutline())
+    assert(#ns.sections()[1].options == 6 and not ns.find('Character editor'), shownOutline())
   `);
 });
 
@@ -1139,7 +1139,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
     for _, o in ipairs(assert(section(name), 'no section ' .. name).options) do if o.label == label then return o end end
   end
   local home = ns.sections()[1].options
-  assert(home[4].label == 'Character editor' and home[5].label == 'Key bindings' and home[6].label == 'Settings' and home[5].buttonText == 'Open')
+  assert(home[5].label == 'Character editor' and home[6].label == 'Key bindings' and home[7].label == 'Settings' and home[6].buttonText == 'Open')
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings')
   local names = {}

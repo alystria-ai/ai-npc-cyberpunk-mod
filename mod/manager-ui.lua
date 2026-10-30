@@ -1408,7 +1408,7 @@ local function pageSignature(snapshot)
         local separate, packName = memoryInUse()
         if separate then add('memory-in-use:' .. tostring(packName)) end
     end
-    if view == 'characters' or view == 'party' then
+    if view == 'characters' or view == 'side' or view == 'party' then
         add(tostring(queue.message()))
         add(tostring(queue.count()))
         for _, member in ipairs(queue.list()) do
@@ -1419,9 +1419,9 @@ local function pageSignature(snapshot)
         local trip = queue.chauffeur()
         add(table.concat({trip.phase or '', tostring(trip.stopPending), trip.reason or '', trip.error or ''}, '|'))
     end
-    if view == 'characters' or view == 'memory' then memorySignature() end
-    if view == 'characters' then
-        -- The list changes when the player makes, renames or deletes a character of their own.
+    if view == 'characters' or view == 'side' or view == 'memory' then memorySignature() end
+    if view == 'characters' or view == 'side' then
+        -- The main list changes when the player makes, renames or deletes a character of their own.
         add('custom:' .. tostring(snapshot.customSignature))
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
@@ -1993,6 +1993,62 @@ function M.partyRows(rows, categories, list, canInvite)
     end
 end
 
+-- ---- Side characters to invite (docs/SIDE_CHARACTERS.md) ---------------------------------------------------------------------------
+-- The minor characters of the roster (snapshot.side, built once by the manager): a search, the first letter of the name as a group (the Model
+-- browser's Starts with), and twelve rows a page like the other long lists. The letter groups are worked out the first time the page is built for a
+-- list and held; a page build then reads twelve rows, never all of them. No Favorites block: favorites are the main list's and the Model browser's.
+-- A function of M, not a local, so schema() gains no upvalue.
+local sideGroupsCache = {}
+local function sideGroups(list)
+    if sideGroupsCache.list ~= list or sideGroupsCache.count ~= #list then
+        local lists, order = {}, {}
+        for _, profile in ipairs(list) do
+            local group = groupOf(profile.name)
+            local bucket = lists[group]
+            if not bucket then bucket = {}; lists[group] = bucket; order[#order + 1] = group end
+            bucket[#bucket + 1] = profile
+        end
+        table.sort(order)
+        sideGroupsCache = {list = list, count = #list, order = order, lists = lists}
+    end
+    return sideGroupsCache
+end
+
+function M.sideRows(snapshot, party, canInvite, rows, categories)
+    local shared = sharedCharacterLines(snapshot)
+    local all = snapshot.side or {}
+    local cache = sideGroups(all)
+    -- With a search text the whole list is searched, so the letter group is out of the way (All, and no row for it).
+    local searching = #modelFind.words > 0
+    local groups = not searching and #cache.order <= 40 and cache.order or {}
+    local groupElements = {ui.t('All')}
+    for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
+    listGroup = math.max(1, math.min(listGroup, #groupElements))
+    local profiles = searching and searchedModels(all, profileMatches)
+        or listGroup == 1 and all or cache.lists[groupElements[listGroup]] or {}
+    local first, last, pages = pageRange(#profiles)
+    if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+            'Inviting characters and managing your party need a loaded game.') end
+    rows[#rows + 1] = readonly('character-status', ui.t('{count} matching characters', {count = #profiles}), '',
+        ui.t('{count} matching characters', {count = #profiles}), {label = true, description = true})
+    if #groups > 0 then
+        rows[#rows + 1] = setting('ui:group', 'Starts with', 'select', listGroup, 1,
+            'Show only the characters whose name starts with this letter.', groupElements, {elements = true})
+    end
+    for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end, 'characters', #profiles)) do rows[#rows + 1] = row end
+    for index = first, last do
+        local profile = profiles[index]
+        local key = profile.key
+        local count = countKey(party, key)
+        local available = manager.definition(key) ~= nil
+        rows[#rows + 1] = action('invite:' .. key, profile.name,
+            available and (count > 0 and ui.t('Add copy ({count})', {count = count}) or 'Invite') or 'Profile only',
+            profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
+    end
+    categories[#categories + 1] = category('side', 'Side characters to invite', rows,
+        'Everyday people of Night City, from shopkeepers to fixers. Each joins as your own copy with their own personality.')
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -2008,14 +2064,14 @@ local function schema()
     local canInvite = owner ~= nil
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
-    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
+    local BACK = {characters = 'home', side = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings', ['omni-amd'] = 'settings',
         ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
         -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
-        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Parties'},
+        for _, tab in ipairs({{'characters', 'Main characters to invite'}, {'side', 'Side characters to invite'}, {'party', 'Parties'},
             {'models', 'Model browser'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
             if tab[1] == 'editor' then
                 if editor then
@@ -2071,7 +2127,9 @@ local function schema()
             local profile = profiles[index]
             entryRows(rows, 'characters', profile, profile.name, countKey(party, profile.key), inviteOf)
         end
-        categories[#categories + 1] = category('characters', 'Characters to invite', rows)
+        categories[#categories + 1] = category('characters', 'Main characters to invite', rows)
+    elseif view == 'side' then
+        M.sideRows(snapshot, party, canInvite, rows, categories)
     elseif view == 'party' then
         local trip = queue.chauffeur()
         local status = {}
@@ -2688,7 +2746,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
-local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
+local PAGES = {home = true, characters = true, side = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
     relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['omni-amd'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
@@ -2712,7 +2770,7 @@ function M.setSearch(text)
         return false
     end
     local clean, words = searchWords(text)
-    if (view ~= 'models' and view ~= 'characters') or clean == modelFind.text then return false end
+    if (view ~= 'models' and view ~= 'characters' and view ~= 'side') or clean == modelFind.text then return false end
     modelFind.text, modelFind.words = clean, words
     listPage = 1
     refreshQueued = true

@@ -444,7 +444,7 @@ test('manager home owns the five destinations and every inner page has one paren
       assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
       local first = loaded.categories[1].settings
       assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
-      for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
+      for _, name in ipairs({'characters', 'side', 'party', 'models', 'key-bindings', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
       local count = 0
@@ -461,8 +461,8 @@ test('manager home owns the five destinations and every inner page has one paren
         'party status, the limit or the last action leaked onto the page')
     end
     assert(managerUi.inspect().view == 'home' and #loaded.categories == 1)
-    assert(#category('navigation').settings == 5 and not row('party-count'))
-    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
+    assert(#category('navigation').settings == 6 and not row('party-count'))
+    for _, name in ipairs({'characters', 'side', 'party', 'models', 'key-bindings', 'settings'}) do
       local destination = row('tab:' .. name)
       assert(destination and destination.value == 'Open' and not destination.disabled)
       assert(invoke(destination.id).ok)
@@ -2986,9 +2986,9 @@ test('the model browser leaves out the game\'s retired records ("!OBSOLETE ...")
   `);
 });
 
-// 2026-10-30 (cast sweep, docs/CAST_SWEEP.md): the minor profiles cannot be invited, so the Characters to invite list does not carry them. Lucy, a profile
-// only of another kind, is still listed.
-test('minor profiles stay out of the Characters list of the Companion Manager, and a profile only that is not minor is still listed', () => {
+// 2026-10-30 (cast sweep, docs/CAST_SWEEP.md): a minor profile is never in the Main characters list (the side page has the ones that can be invited).
+// Lucy, a profile only of another kind, is still listed.
+test('minor profiles stay out of the Main characters list of the Companion Manager, and a profile only that is not minor is still listed', () => {
   run(`${nsuiFixture}
     local rita = {key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}}
     local mateo = {key = 'mateo-lorenzo', name = 'Mateo Lorenzo', kind = 'named', invite = false, minor = true, records = {'Character.q000_kid_bar_patron_male_03'}}
@@ -3001,6 +3001,66 @@ test('minor profiles stay out of the Characters list of the Companion Manager, a
     local invitable = manager.snapshot(player).invitable
     for _, profile in ipairs(invitable) do assert(profile.key ~= 'mateo-lorenzo', 'not in the invitable snapshot') end
     assert(#manager.snapshot(player).profiles == 3, 'but the profile still exists for talk, memory and the editor')
+  `);
+});
+
+// 2026-10-30 (owner): the 575 side characters have a page of their own on Home, "Side characters to invite" (docs/SIDE_CHARACTERS.md).
+test('Side characters to invite: a Home row of its own, twelve a page, a Starts with letter group, a search over the whole list, an Invite that makes a copy, and profiles with invite false stay out', () => {
+  run(`${nsuiFixture}
+    local list = {{key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer'}}}
+    local letters = {'A', 'B', 'C'}
+    for index = 1, 30 do
+      list[#list + 1] = {key = 'side-' .. index, name = letters[(index - 1) % 3 + 1] .. 'side Person ' .. string.format('%02d', index), kind = 'named',
+        invite = true, minor = true, records = {'Character.side_' .. index}}
+    end
+    list[#list + 1] = {key = 'side-child', name = 'Bside Child', kind = 'named', invite = false, minor = true, records = {'Character.side_child'}}
+    manager.configure(api, list)
+    assert(defs['side-1'] and defs['side-1'].id == 'Character.side_1' and defs['side-30'], 'an invitable minor profile has a companion definition')
+    assert(defs['side-child'] == nil, 'invite false: no definition')
+    local once = manager.snapshot(player).side
+    assert(#once == 30 and manager.snapshot(player).side == once, 'the side list is made once, not per snapshot')
+    -- Home: the main list is renamed and the side list is the second row.
+    assert(managerUi.inspect().view == 'home')
+    local main, side = row('tab:characters'), row('tab:side')
+    assert(main and main.label == 'Main characters to invite' and side and side.label == 'Side characters to invite' and side.value == 'Open')
+    assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
+    assert(row('invite:rita-wheeler') and not row('invite:side-1'), 'the main list has no side character')
+    assert(invoke('characters:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
+    assert(managerUi.inspect().view == 'side' and row('side:back') and row('side:back').value == 'Back')
+    local function invites()
+      local found = {}
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then found[#found + 1] = item.id:sub(8) end end
+      end
+      return found
+    end
+    assert(#invites() == 12 and invites()[1] == 'side-1' and not row('invite:rita-wheeler') and not row('invite:side-child'), table.concat(invites(), ','))
+    assert(row('ui:page').max == 3 and row('character-status').label == '30 matching characters')
+    assert(table.concat(row('ui:group').elements, ',') == 'All,A,B,C', table.concat(row('ui:group').elements, ','))
+    assert(row('invite:side-1').value == 'Invite' and row('invite:side-1').label == 'Aside Person 01')
+    assert(core.setUi('ui:page', 3)); loaded = registered.loadMod('manager')
+    assert(#invites() == 6, 'the last page holds the rest: ' .. #invites())
+    -- A letter group: ten names with B, one page, back at page 1; the child (invite false) is not among them.
+    assert(core.setUi('ui:group', 3)); loaded = registered.loadMod('manager')
+    assert(#invites() == 10 and row('ui:page') == nil and row('character-status').label == '10 matching characters')
+    for _, key in ipairs(invites()) do assert(row('invite:' .. key).label:sub(1, 1) == 'B', key) end
+    -- A search covers the whole list whatever the group, by words of the name or the key.
+    assert(core.setSearch('PERSON 07')); loaded = registered.loadMod('manager')
+    assert(table.concat(invites(), ',') == 'side-7' and row('ui:group') == nil and row('character-status').label == '1 matching characters')
+    assert(core.setSearch('side-2')); loaded = registered.loadMod('manager')
+    assert(#invites() == 11, 'side-2 and side-20 to side-29: ' .. #invites())
+    assert(core.setSearch('nobody')); loaded = registered.loadMod('manager')
+    assert(#invites() == 0 and row('character-status').label == '0 matching characters')
+    assert(core.setSearch('')); loaded = registered.loadMod('manager')
+    assert(row('ui:group').value == 1 and #invites() == 12, 'a search puts the group back on All')
+    -- Invite makes our own copy; the row then offers another copy.
+    assert(invoke('invite:side-1').ok); managerUi.update(player, true)
+    assert(members[1].key == 'side-1' and members[1].profileKey == 'side-1')
+    loaded = registered.loadMod('manager')
+    assert(row('invite:side-1').value == 'Add copy (1)', tostring(row('invite:side-1') and row('invite:side-1').value))
+    -- Leaving the page drops the search and the group.
+    assert(invoke('side:back').ok and invoke('tab:side').ok); loaded = registered.loadMod('manager')
+    assert(#invites() == 12 and row('character-status').label == '30 matching characters')
   `);
 });
 
@@ -6578,12 +6638,12 @@ const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorM
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
 `;
 
-test('Home offers the Character editor as the fourth row, then Key bindings, above Settings, an action with its own id, and the Settings row stays', () => {
+test('Home offers the Character editor as the fifth row, then Key bindings, above Settings, an action with its own id, and the Settings row stays', () => {
   run(`${homeEditorFixture()}
     assert(managerUi.inspect().view == 'home')
     local nav = loaded.categories[1].settings
     -- The owner's order: the Character editor, then Key bindings, above Settings, which stays last.
-    assert(#nav == 6 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:key-bindings' and nav[6].id == 'tab:settings', 'six rows, the editor and Key bindings above Settings: ' .. #nav)
+    assert(#nav == 7 and nav[5].id == 'character-editor:home' and nav[6].id == 'tab:key-bindings' and nav[7].id == 'tab:settings', 'seven rows, the editor and Key bindings above Settings: ' .. #nav)
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
@@ -6591,7 +6651,7 @@ test('Home offers the Character editor as the fourth row, then Key bindings, abo
     -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
-    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
+    for _, name in ipairs({'characters', 'side', 'party', 'models', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
     -- It is on Home only: an inner page has neither it nor a second Back.
     assert(invoke('tab:settings').ok and not row('character-editor:home'))
     local settingsRow = row('character-editor:open')
@@ -6650,7 +6710,7 @@ test('Home > Character editor says so when the service is stopped or the write f
 
 test('Home has no Character editor row without the editor module, and the other destinations are as before', () => {
   run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
-    assert(#loaded.categories[1].settings == 5 and not row('character-editor:home'), 'no row without the module')
+    assert(#loaded.categories[1].settings == 6 and not row('character-editor:home'), 'no row without the module')
     assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
     assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);

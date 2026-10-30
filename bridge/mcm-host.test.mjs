@@ -149,7 +149,7 @@ test('an MCM that loads after this mod is found by the once-a-second look, and t
 test('the home page: one category with the four destinations, explicit apply, no MCM internals touched', () => withScreen(`
   assert(mcm.config().applyPolicy == 'explicit')
   assert(table.concat(mcm.categories(), ',') == 'Companion Manager', table.concat(mcm.categories(), ','))
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
@@ -170,13 +170,13 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   press('Memory')
   assert(mcm.config().navigation.backActionId == 'memory:settings', 'the memory page goes back to settings')
   press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
   -- Closing the screen and opening it again starts on the first page.
   press('Settings')
   mcm.closeScreen(); frames(3)
   assert(managerUi.inspect().view == 'home', 'closeMod puts the page back on Home')
   mcm.openScreen()
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
 `));
 
 test('every kind of row is one MCM can take: switches, selects, sliders, buttons and text, with ids, defaults and capabilities', () => withScreen(`
@@ -330,7 +330,7 @@ test('Mature content: turned on, Apply saves Local AI and the uncensored model w
 `));
 
 test('the line of the last action is the status line of MCM (info), sent only when it changes', () => withScreen(`
-  press('Characters to invite')
+  press('Main characters to invite')
   local core = managerUi._test.core
   core.setFeedback('Evelyn is on her way.')
   frames(4)
@@ -346,7 +346,7 @@ test('the line of the last action is the status line of MCM (info), sent only wh
 `));
 
 test('the page is drawn again when what it shows changes (not while changes are pending), and never in a loop', () => withScreen(`
-  press('Characters to invite')
+  press('Main characters to invite')
   frames(20)
   local loads = mcm.loads
   frames(40)
@@ -426,13 +426,13 @@ const footer = `
 
 test('a long list is turned with footer buttons beside the way back (never rows of the list), the page number is in the heading, and the letter group cycles', () => withScreen(`
   ${footer}
-  press('Characters to invite')
+  press('Main characters to invite')
   local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
   assert(invites() == 12 and mcm.row('Johnny Silverhand') and not mcm.row('Viktor Vektor'))
   assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
   assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[2] == 'ui:page:next' and mcm.config().footerActions[3] == 'characters:back')
   assert(listed('Previous page') == nil and listed('Next page') == nil, 'not rows of the list')
-  assert(headings() == 'Characters to invite · Page 1 / 2', headings())
+  assert(headings() == 'Main characters to invite · Page 1 / 2', headings())
   assert(mcm.config().navigation.pageId == 'characters|1|1')
   -- Both buttons are buttons at every page: at the first page Previous does nothing, and nothing is drawn again.
   local loads = mcm.loads
@@ -442,7 +442,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(footerLabels() == 'Previous page | Next page | Back', 'the footer never changes shape')
   press('Next page')
   assert(invites() == 10 and mcm.row('Viktor Vektor') and not mcm.row('Johnny Silverhand'), 'the second page')
-  assert(headings() == 'Characters to invite · Page 2 / 2', headings())
+  assert(headings() == 'Main characters to invite · Page 2 / 2', headings())
   assert(footerLabels() == 'Previous page | Next page | Back')
   assert(mcm.config().navigation.pageId == 'characters|2|1', 'a new page id: MCM scrolls to the top of it')
   loads = mcm.loads
@@ -450,7 +450,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(mcm.config().navigation.pageId == 'characters|2|1' and mcm.loads == loads, 'Next on the last page changes nothing')
   press('Previous page')
   assert(mcm.row('Johnny Silverhand') ~= nil)
-  press('Back to Companion Manager'); press('Characters to invite')
+  press('Back to Companion Manager'); press('Main characters to invite')
   assert(mcm.config().navigation.pageId == 'characters|1|1', 'a list starts on its first page')
   -- The model browser: the scan reads a batch a frame, then a letter group and pages.
   press('Back to Companion Manager'); press('Model browser')
@@ -507,7 +507,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   local function go(...) for _, label in ipairs({...}) do press(label) end end
 
   check('home')
-  go('Characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
+  go('Main characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
   go('Parties'); check('party'); go('Back to Companion Manager')
   go('Model browser'); frames(140)
   check('models'); go('Starts with: All'); check('models letter J'); go('Starts with: J'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
@@ -735,7 +735,7 @@ test('the list keeps its place after Apply and after a reload of the page, leave
   assert(math.abs(mcm.scroll() - 0.9) < 1e-9, 'a later scroll of the player is not undone')
   -- Another page starts at its top (MCM keeps a position per page id).
   mcm.jumpOnLoad = nil
-  press('Back to Companion Manager'); press('Characters to invite')
+  press('Back to Companion Manager'); press('Main characters to invite')
   mcm.scrollTo(0.4); frames(2)
   press('Next page')
   assert(mcm.scroll() == 0, 'page 2 starts at the top: ' .. mcm.scroll())
@@ -809,7 +809,7 @@ test('the shortcut opens MCM straight on the manager page with its public open c
   mcm.update()
   local context = mcm.api.ui.getContext()
   assert(context.open == true and context.modKey == 'cyberpunk-convai:manager', 'MCM opened on the manager page')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', 'on the first page: ' .. labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', 'on the first page: ' .. labels())
   assert(#notices == 0, 'no notice: the page is opened for the player')
   -- Pressed again while it is open: nothing more to do (MCM has no public close call).
   assert(managerUi.open() == true)
@@ -1007,8 +1007,8 @@ test('at the main menu the pages that need a save say so in their heading, not i
   frames(4)
   -- A list of buttons: the status is in the heading and its help is the heading's description. A line of the list would be drawn 16 px
   -- right of the names under it (MCM's read-only line has an inset of its own; labelIndent does not reach it).
-  press('Characters to invite')
-  assert(headings():find('^Characters to invite · Load a save first · Page 1 / %d+$'), headings())
+  press('Main characters to invite')
+  assert(headings():find('^Main characters to invite · Load a save first · Page 1 / %d+$'), headings())
   assert(not listed('Characters and party') and not mcm.row('needs-save'), labels())
   assert(mcm.description() == 'Inviting characters and managing your party need a loaded game.', mcm.description())
   for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
@@ -1221,7 +1221,7 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   assert(mcm.config().actionVisibility == nil)
   for _, name in ipairs(mcm.calls) do assert(name ~= 'ui.close' and name ~= 'ui.setActionVisibility', 'called ' .. name) end
   -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
-  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
+  assert(#mcm.config().footerActions == 0 and labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings')
   press('Settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.set('Subtitles', 1))
@@ -1293,7 +1293,7 @@ test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape s
   assert(config.navigation.backActionId == nil and config.navigation.escapeBack == true, 'Escape stays the close of MCM')
   local back = mcm.row('Back')
   assert(back and back.type == 'action' and back.value == 'Back' and back.description ~= '' and back.capabilities.action == true)
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings | Back', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings | Back', labels())
   -- The sub-pages keep their own Back, and Home's is only on Home.
   press('Settings')
   assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
@@ -1329,7 +1329,7 @@ test('MCM 0.10.6: a close MCM refuses (no renderer) is answered with MCM\'s reas
   local lines = 0
   for _, line in ipairs(logged) do if line:find('would not close the page', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one console line for three presses: ' .. lines)
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings | Back', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings | Back', labels())
 `));
 
 test('MCM 0.10.6 by version but refusing the new presentation options: the base ones are sent instead, Add to favorites is still hidden, and the old names are used', () => run(`${harness({screen: false, nsui: false, hideMcm: true, mcm: {version: '0.10.6'}})}
@@ -1512,7 +1512,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil)
   press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
 `));
 
 test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
@@ -1721,7 +1721,7 @@ test('MCM: the Character editor row of Home writes one editor command, the page 
   assert(mcm.status() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', mcm.status())
   frames(40)
   assert(commandWrites() == before + 1, 'nothing more is sent by the frames that follow')
-  assert(labels() == 'Characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
+  assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Character editor | Key bindings | Settings', labels())
 `));
 
 test('MCM: the Character editor row says the service is not running and writes nothing; without the module it is not on Home', () => {
@@ -1736,7 +1736,7 @@ test('MCM: the Character editor row says the service is not running and writes n
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   withScreen(`
-    assert(labels() == 'Characters to invite | Parties | Model browser | Key bindings | Settings' and not mcm.row('Character editor'), labels())
+    assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Key bindings | Settings' and not mcm.row('Character editor'), labels())
   `, {modules: bare, absent: ['character-editor.lua']});
 });
 
@@ -1839,7 +1839,7 @@ test('MCM: without Codeware the Set button says so and nothing waits; without th
 // ---- Saved parties: the Search box names a party (Rename), and does not filter the page.
 test('Parties takes MCM\'s Search box as the new name for Rename: the provider search mode is on, the rows are not filtered, an empty box is refused', () => withScreen(`
   ${footer}
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Johnny Silverhand'); frames(8)
   members[1].state = 'ready'; frames(4)
   press('Back to Companion Manager'); press('Parties')

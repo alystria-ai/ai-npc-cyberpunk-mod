@@ -129,7 +129,7 @@ const harness = (options = {}) => nsuiHarness({modules: everything, ...options})
 
 // Two copies of Viktor and Johnny, invited the way a player does, and saved.
 const withSavedParty = `
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Person 01'); frames(8)
   press('Johnny Silverhand'); frames(8)
   press('Person 01', 'Add copy'); frames(8)
@@ -273,7 +273,7 @@ test('Update with current party replaces the members, and an empty party never w
   end
   local result = registered.invokeAction('manager', 'party:update:' .. convaiSavedParties.list()[1].id)
   assert(#convaiSavedParties.list()[1].members == 3, 'with nobody in the party the saved one stays')
-  press('Back to Companion Manager'); press('Characters to invite')
+  press('Back to Companion Manager'); press('Main characters to invite')
   press('Johnny Silverhand'); frames(8); arrive()
   press('Back to Companion Manager'); press('Parties')
   press('Update with current party')
@@ -324,7 +324,7 @@ test('with Immersive invitations On the first invitation of a character is an ap
 `));
 
 test('without mod/saved-parties.lua the page is the one it was: no Save row, no sections', () => run(`${harness({absent: ['saved-parties.lua']})}
-  press('Characters to invite')
+  press('Main characters to invite')
   press('Person 01'); frames(8); arrive()
   press('Back to Companion Manager'); press('Parties')
   assert(not ns.find('Save current party') and #ns.sections() == 2, shownOutline())
