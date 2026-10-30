@@ -8,6 +8,8 @@
 //     mod (docs/PACKAGING.md, "vgmstream in the Runtime"). Without them a voice mod cannot be read.
 //   - The sign-in settings in app/defaults/convai-auth.json (packaging/lib/convai-auth.mjs): the Runtime ships no Convai key, and without this file the
 //     bridge has no way to reach the shared Convai account. A --dry-run build may leave it out (`signIn: false`).
+//   - The two stand-in voices' Pocket clips (voices/archetypes/pocket/resident-male.wav and resident-female.wav, bridge/voice-clips.mjs STAND_IN_VOICES): with the other clips
+//     built on the player's PC (voiceClips.fromGame), these are what a character speaks with for a line it needs before its own clips are built. Without them that line has no voice.
 //   - The Runtime's own OmniVoice lists in app/defaults, which the launcher reads before the OmniVoice pack's older copy (packaging/runtime/
 //     prepare-state.mjs; docs/PACKAGING.md, "Packs reused unchanged"). Without them a pack reused from an earlier version runs on its own
 //     older lists (0.2's lack the 30 voices 0.2.1 added), and a list an earlier Runtime left in app/defaults stays in charge.
@@ -15,6 +17,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {OMNI_CONFIGS} from '../runtime/prepare-state.mjs';
 import {AUTH_FILE} from './convai-auth.mjs';
+import {STAND_IN_VOICES} from '../../bridge/voice-clips.mjs';
 
 export const V_VOICE_FOLDER = 'voices/v-voice';
 export const V_MANIFEST_SOURCE = 'assets/v-voice/v-voice.json';
@@ -32,6 +35,7 @@ export async function requiredRuntimeFiles(root, {signIn = true} = {}) {
   }
   return {
     "V's voice clips": ['v-voice.json', ...clips, V_MOD_LINES].map(file => `${plugin}/${V_VOICE_FOLDER}/${file}`),
+    'stand-in voices (Pocket clips)': Object.values(STAND_IN_VOICES).map(key => `${plugin}/voices/archetypes/pocket/${key}.wav`),
     "Runtime's OmniVoice lists": Object.values(OMNI_CONFIGS).map(name => `${app}/defaults/${name}`),
     ...(signIn ? {"Runtime's sign-in settings": [`${app}/${AUTH_FILE}`]} : {}),
     // The llama.cpp engine of Local AI (docs/LOCAL_AI.md, "The engine is in the Runtime"): the update zips deliver engine fixes only if the Runtime carries it.
