@@ -40,10 +40,23 @@ test('customProfileId: one stable id per endpoint and model, lower case, at most
   assert.match(a, /^custom-[a-z0-9-]+$/);
 });
 
+test('the Gemini profile (2026-10-30): few rules said as what to do, the context as what she already knows, the reaction to V first, three short examples and no "never" list', () => {
+  const profile = defaultProfile(customProfileId('https://generativelanguage.googleapis.com', 'gemini-flash-lite-latest'), {family: familyOf('gemini-flash-lite-latest')});
+  assert.deepEqual(profile.rules.map(rule => rule.id), ['voice', 'answer', 'short', 'now', 'facts', 'plain', 'identity', 'language'], 'the identity rule keeps its id for an add-on speaker');
+  const rules = profile.rules.map(rule => rule.text).join(' ');
+  assert.match(rules, /React to what V just said before anything else/);
+  assert.match(rules, /what you already know, the way anyone knows where they are/);
+  assert.ok((rules.match(/\bnever\b/gi) ?? []).length === 0, 'no "never" in the rules: a named thing to avoid is a thing to say');
+  assert.equal(profile.examples.length, 3);
+  assert.ok(profile.examples.every(line => line.length < 80 && !/Night City|Watson|eddies|V's/.test(line)), 'short, with no world facts to copy');
+  assert.equal(profile.sampling.temperature, 0.7);
+  assert.doesNotMatch(JSON.stringify(profile.rules), /[;–—]/);
+});
+
 test('familyOf: Custom models start from their family; an unknown one gets the generic default', () => {
   for (const [model, family] of [['qwen/qwen3-30b-a3b', 'qwen'], ['google/gemma-3-27b-it', 'gemma'], ['meta-llama/Llama-3.3-70B', 'llama'], ['mistralai/ministral-8b', 'mistral'],
-    ['deepseek-chat', 'generic'], ['', 'generic'], [undefined, 'generic']]) assert.equal(familyOf(model), family, String(model));
-  for (const family of ['generic', 'qwen', 'gemma', 'llama', 'mistral']) assert(defaultProfile(customProfileId('http://h', 'm'), {family}));
+    ['gemini-flash-lite-latest', 'gemini'], ['google/gemini-2.5-flash', 'gemini'], ['deepseek-chat', 'generic'], ['', 'generic'], [undefined, 'generic']]) assert.equal(familyOf(model), family, String(model));
+  for (const family of ['generic', 'qwen', 'gemma', 'gemini', 'llama', 'mistral']) assert(defaultProfile(customProfileId('http://h', 'm'), {family}));
   assert.equal(defaultProfile('nope'), null);
   assert.equal(defaultProfile('base'), null, 'the base is not a profile id');
 });
@@ -109,7 +122,7 @@ test('a changed profile changes the prompt where the profile says, and nowhere e
   assert(system.includes('EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)\n- Yeah, sure.'));
   for (const label of ['NOTES', 'WORLD', 'MEMORY', 'NOW']) assert(system.includes(`\n\n${label}\n`), label);
   // The facts: the same world text, memory text and right-now text sit under the changed labels.
-  assert.equal(system.split('\n\nWORLD\n')[1].split('\n\nMEMORY\n')[0], plain[0].content.split('\n\nWORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)\n')[1].split('\n\nWHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)\n')[0]);
+  assert.equal(system.split('\n\nWORLD\n')[1].split('\n\nMEMORY\n')[0], plain[0].content.split(`\n\n${BASE_PROFILE.labels.world}\n`)[1].split('\n\nWHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)\n')[0]);
   assert.equal(system.split('\n\nNOW\n')[1], plain[0].content.split('\n\nRIGHT NOW (from the game; background only, this changes as the talk goes on)\n')[1]);
   assert.equal(changed.length, 4, 'the system message, one exchange of history (limits.turns 1) and the last message');
   const last = changed.at(-1).content;
