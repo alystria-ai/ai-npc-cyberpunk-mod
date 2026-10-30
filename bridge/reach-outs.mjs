@@ -10,7 +10,8 @@
 //                                              {kind: "pack", ids: [..]} (once per finished pack) | {kind: "idle-days", days}
 //      when?: one condition the game checks:   {kind: "weather", is} | {kind: "hours", from, to, idle?} | {kind: "district", is, minutes?} |
 //                                              {kind: "fight-end", healthBelow?, heatAtLeast?, district?} | {kind: "heat", atLeast} | {kind: "song", contains?}
-//      minBond?, cooldownDays? (default 1 unless once), once?, relationship?: "partner" | "not-partner" (the romance the save confirmed), note?, offer?: <hangout pack id> }]}
+//      minBond?, cooldownDays? (default 1 unless once), once?, relationship?: "partner" | "not-partner" (the romance the save confirmed), note?, offer?: <hangout pack id>,
+//      partnerText?: the line a character V is in a confirmed romance with sends instead of `text` (the same moment in the partner's own warmer voice: a pet name, a want for V's company) }]}
 // `note` is what the character knows when V answers: the runner adds it to the next three private turns of that character.
 // Pure and offline: no I/O except reading the shipped folder when asked.
 import {readFileSync, readdirSync} from 'node:fs';
@@ -144,7 +145,7 @@ export function validateReachFile(file, {characters = null, packIds = null} = {}
     const where = `trigger ${plain(trigger) && typeof trigger.id === 'string' ? trigger.id : index + 1}`;
     if (!plain(trigger)) { fail(`${where} must be an object`); return; }
     for (const key of Object.keys(trigger)) {
-      if (!['id', 'via', 'text', 'image', 'after', 'when', 'minBond', 'cooldownDays', 'once', 'relationship', 'note', 'offer'].includes(key)) fail(`${where}: no field ${JSON.stringify(key).slice(0, 30)}`);
+      if (!['id', 'via', 'text', 'image', 'after', 'when', 'minBond', 'cooldownDays', 'once', 'relationship', 'note', 'offer', 'partnerText'].includes(key)) fail(`${where}: no field ${JSON.stringify(key).slice(0, 30)}`);
     }
     if (typeof trigger.id !== 'string' || !TRIGGER_ID.test(trigger.id)) fail(`${where}: id must be 2 to 32 lowercase letters, digits or hyphens`);
     else if (ids.has(trigger.id)) fail(`${where}: the id is used twice`);
@@ -152,6 +153,11 @@ export function validateReachFile(file, {characters = null, packIds = null} = {}
     if (!VIAS.includes(trigger.via)) fail(`${where}: via must be one of ${VIAS.join(', ')}`);
     const problem = textProblem(trigger.text, REACH_LIMITS.text);
     if (problem) fail(`${where}: text ${problem}`);
+    if (trigger.partnerText !== undefined) {
+      const partnerProblem = textProblem(trigger.partnerText, REACH_LIMITS.text);
+      if (partnerProblem) fail(`${where}: partnerText ${partnerProblem}`);
+      if (trigger.relationship !== undefined) fail(`${where}: partnerText and relationship do not go together (a partner-only trigger has its own text)`);
+    }
     if (trigger.image !== undefined && !(typeof trigger.image === 'string' && KEY.test(trigger.image))) fail(`${where}: image must be a picture key`);
     if (trigger.note !== undefined) { const noteProblem = textProblem(trigger.note, REACH_LIMITS.note); if (noteProblem) fail(`${where}: note ${noteProblem}`); }
     if (trigger.after !== undefined) {
@@ -307,7 +313,7 @@ export class ReachOuts {
         const keys = this.#ready(trigger, {gameSeconds, journalHistory, level, talkedAt: talkedAt[character], romance: romance[character] ?? null, finishedPacks, character});
         if (!keys) continue;
         if (keys.length) this.pending.set(trigger.id, keys);
-        block.items.push({id: trigger.id, character, via: trigger.via, text: trigger.text, ...(trigger.image ? {image: trigger.image} : {}),
+        block.items.push({id: trigger.id, character, via: trigger.via, text: trigger.partnerText && (romance[character] ?? null) === 'partner' ? trigger.partnerText : trigger.text, ...(trigger.image ? {image: trigger.image} : {}),
           ...(trigger.when ? {when: trigger.when} : {}), ...(trigger.offer ? {offer: trigger.offer} : {})});
       }
     }

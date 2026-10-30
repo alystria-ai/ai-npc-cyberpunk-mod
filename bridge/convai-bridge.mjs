@@ -69,6 +69,7 @@ import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic, gearSeen} from './player-gear.mjs';
 import {gearMemory} from './gear-memory.mjs';
 import {turnContextDiagnostic, turnContextWhere, modsProbeLine, vixenProbeLines} from './turn-context.mjs';
+import {besideV} from './turn-context.mjs';
 import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -1749,7 +1750,7 @@ const eddiesNote = (input, prepared, admitted) => input.eddies
 const bondFacts = (input, prepared, admitted) => {
   const selection = admitted ? prepared?.relationship : null, romance = romanceOf(selection, RELATIONSHIP_PROFILES);
   // The tone of a romance is the relationship text's job (bridge/romance-context.mjs), once, for every kind of turn: the bond only counts the romance as story points.
-  return {romance};
+  return {romance, near: besideV(input)};
 };
 // A reaction (the game sends no bond block with it) repeats the line of the character's last talk with V, so the system message of the prompt reads the same on both and a model that
 // continues only from a saved checkpoint reuses it; a talk with the setting off forgets the character's line.

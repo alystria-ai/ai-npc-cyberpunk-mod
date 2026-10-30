@@ -138,3 +138,16 @@ test('every catalog the Scripts package puts at the mod root is read by the ship
   unclassified.delete('release.json');
   assert.deepEqual([...unclassified], [], 'classify the file in packaging/runtime-exchange.json or ship it as a catalog');
 });
+
+test('the release ships the quest data: every bond pack, every reach-out file and the gift tables are in appData, and nothing listed is gone', async () => {
+  const listed = new Set(config.appData);
+  const folders = ['characters/bond-packs', 'characters/reach-outs'];
+  const present = [];
+  for (const folder of folders) for (const name of await readdir(resolve(project, folder))) if (name.endsWith('.json')) present.push(`${folder}/${name}`);
+  present.push('characters/gift-tables.json');
+  assert(present.filter(item => item.startsWith('characters/bond-packs/')).length >= 100, 'the pack folder is read');
+  assert(present.filter(item => item.startsWith('characters/reach-outs/')).length >= 10, 'the reach-out folder is read');
+  assert.deepEqual(present.filter(item => !listed.has(item)), [], 'a data file of the quest update is not in appData: it would not reach the player');
+  assert.deepEqual([...listed].filter(item => /^characters\/(?:bond-packs|reach-outs)\//.test(item) && !existsSync(resolve(project, item))), [], 'a listed quest file is gone');
+  assert.equal(new Set(config.appData).size, config.appData.length, 'no file is listed twice');
+});
