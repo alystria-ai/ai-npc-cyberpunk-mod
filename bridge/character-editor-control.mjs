@@ -10,7 +10,9 @@ import {spawn} from 'node:child_process';
 import {atomicFile} from './guarded-file.mjs';
 import {cleanStrings, cleanFacing} from './character-editor-server.mjs';
 
-const COMMAND_MAX_BYTES = 96 * 1024, COMMAND_MAX_AGE_MS = 30_000;
+// The command file carries every page sentence in the game's language (about 360 now; the worst case, every non-ASCII character escaped, is just under 100 KB in Russian), so the
+// cap is 128 KiB. It only bounds what a file in the game folder may make the service read, not a network input.
+const COMMAND_MAX_BYTES = 128 * 1024, COMMAND_MAX_AGE_MS = 30_000;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$/;
 
 export function parseEditorCommand(raw, now = Date.now()) {

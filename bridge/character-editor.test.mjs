@@ -5,7 +5,9 @@ import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CharacterOverrides, EDIT_LIMITS} from './character-overrides.mjs';
-import {CharacterEditor, V_EDITOR_KEYS} from './character-editor.mjs';
+import {CharacterEditor, V_EDITOR_KEYS, ROMANCE_KEYS, COMPANION_KEYS} from './character-editor.mjs';
+import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
+import {TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
 import {EditorServer, cleanStrings} from './character-editor-server.mjs';
 import {EditorControl, parseEditorCommand} from './character-editor-control.mjs';
 import {renderEditorPage} from './character-editor-page.mjs';
@@ -81,6 +83,30 @@ test('the catalogue lists story characters first, then everyday people, each by 
   await bench.editor.save('judy-alvarez', {style: 'Calm.'});
   assert.equal(bench.editor.catalog().find(item => item.key === 'judy-alvarez').edited, true);
   assert.equal(bench.editor.catalog().filter(item => item.edited).length, 1);
+});
+
+test('every shipped row has the role the picker filters by: romance, companion, story or side, from the lists the rest of the mod already keeps', async t => {
+  const bench = await workbench(); t.after(bench.done);
+  const list = bench.editor.catalog();
+  assert(list.every(item => ['romance', 'companion', 'story', 'side'].includes(item.role)), 'a role on every row');
+  // The two lists are the mod's own: the people the game lets V romance (bridge/relationship-routing.mjs), and the tier-1 characters (mod/auto-connect.lua, scripts/Create-MultilingualProfiles.mjs).
+  const relationship = Object.entries(RELATIONSHIP_PROFILES).filter(([, row]) => row.kind === 'relationship').map(([key]) => key).sort();
+  assert.deepEqual([...ROMANCE_KEYS].sort(), relationship);
+  const tier1 = [...(await readFile(new URL('../mod/auto-connect.lua', import.meta.url), 'utf8')).match(/M\.TIER1 = \{\}\r?\nfor _, key in ipairs\(\{([^}]*)\}\)/)[1].matchAll(/'([a-z0-9-]+)'/g)].map(match => match[1]).sort();
+  assert.deepEqual([...COMPANION_KEYS].sort(), tier1);
+  assert.deepEqual([...COMPANION_KEYS].sort(), [...TIER1_KEYS].sort());
+  const byKey = new Map(list.map(item => [item.key, item]));
+  for (const key of [...ROMANCE_KEYS, ...COMPANION_KEYS]) assert(byKey.has(key), `${key} is a character of the roster`);
+  for (const key of ROMANCE_KEYS) assert.equal(byKey.get(key).role, 'romance', key);
+  for (const key of COMPANION_KEYS.filter(item => !ROMANCE_KEYS.includes(item))) assert.equal(byKey.get(key).role, 'companion', key);
+  const count = role => list.filter(item => item.role === role).length;
+  assert.equal(count('romance'), 4);
+  assert.equal(count('companion'), COMPANION_KEYS.length - 4);
+  assert.equal(count('story') + count('romance') + count('companion'), list.filter(item => item.group === 'story').length, 'every named character has one of the three');
+  assert.equal(count('side'), list.filter(item => item.group === 'everyday').length, 'everyday people are side characters');
+  // The player's own rows and V's two rows carry no role: the page knows them by their group.
+  const made = await workbench({custom: true, voices: true}); t.after(made.done);
+  assert(made.editor.catalog().filter(item => item.group === 'v').every(item => !('role' in item)));
 });
 
 test('details give the shipped text, the current text and what is edited; defaults come from the Convai-derived profile', async t => {
