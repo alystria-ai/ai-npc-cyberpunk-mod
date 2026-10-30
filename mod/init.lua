@@ -159,10 +159,10 @@ local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
 local gameplayActions
 local relationshipState = dofile('relationship-state.lua').new({
     currentWorld = function() return knowledgeFrame end})
-local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
+local knowledgePhone = {capture = nil, receipts = {}}
 local invitations
 local knowledgeLaunch = 'lua-world-' .. tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
-local worldSessionSignature, worldSessionAt = nil, nil
+local worldSessionState = {signature = nil, at = nil, token = nil, ready = nil}
 local function knowledgeUnavailable(reason)
     return {version = 1, status = 'unavailable', reason = reason or 'world-unavailable'}
 end
@@ -216,12 +216,11 @@ convaiHeartbeatSlot = function()
     return true
 end
 
-local worldSessionToken, worldSessionReady
 local function publishWorldSession(frame, ready, force)
     local now = os.time()
     -- Unchanged and still leased (the common case, twice per frame): no table or string is built.
-    if not force and frame and frame.worldToken == worldSessionToken and (ready == true) == worldSessionReady
-        and worldSessionAt and now >= worldSessionAt and now - worldSessionAt < 2 then return end
+    if not force and frame and frame.worldToken == worldSessionState.token and (ready == true) == worldSessionState.ready
+        and worldSessionState.at and now >= worldSessionState.at and now - worldSessionState.at < 2 then return end
     -- `loading`: a save is being loaded (set by the PlayerPuppet OnDetach observer just before the session is abandoned, whose forced write below carries it), no world yet. The service
     -- starts V's helper voice then (it waited out the title screen, which has a key press to answer) instead of once the world exists, so it is ready sooner. Cleared by the first
     -- ready write; a field of a table that already exists, one more key in a write that happens anyway, nothing per frame.
@@ -231,16 +230,16 @@ local function publishWorldSession(frame, ready, force)
     if ready == true then convaiHeartbeat.loading = nil end
     local signature = value.token .. ':' .. tostring(value.ready)
     -- Lease heartbeat: the bridge keeps world-session.json 5 s; refresh it every 2 s or on change.
-    if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
-        and now - worldSessionAt < 2 then return end
-    if not force and signature == worldSessionSignature and not convaiHeartbeatSlot() then return end
+    if not force and signature == worldSessionState.signature and worldSessionState.at and now >= worldSessionState.at
+        and now - worldSessionState.at < 2 then return end
+    if not force and signature == worldSessionState.signature and not convaiHeartbeatSlot() then return end
     local encoded, raw = pcall(json.encode, value); if not encoded then return end
     -- In place: one open instead of open+remove+rename (about 9 ms of the game
     -- thread every 2 s). readWorldSession retries a partial read 3 times, 15 ms apart.
     local file = io.open('runtime/world-session.json', 'wb'); if not file then return end
     local written, closed = file:write(raw), file:close(); if not written or not closed then return end
-    worldSessionSignature, worldSessionAt = signature, now
-    worldSessionToken, worldSessionReady = frame and frame.worldToken or nil, ready == true
+    worldSessionState.signature, worldSessionState.at = signature, now
+    worldSessionState.token, worldSessionState.ready = frame and frame.worldToken or nil, ready == true
 end
 
 local function refreshKnowledgeFrame()
@@ -267,7 +266,7 @@ local function invalidateKnowledge(reason)
     -- cleanup. The local epoch is a cancellation guard, never a save identity.
     local before = knowledgeFrame
     if gameplayActions then gameplayActions.revoke(reason) end
-    knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
+    knowledgeAllowed, knowledgeFrame, knowledgePhone.capture = false, nil, nil
     publishWorldSession(before, false, true)
     relationshipState:reset(reason)
     if invitations then invitations.bind(nil) end
@@ -521,7 +520,7 @@ local function publishPhoneDelivery(receipt)
     if type(receipt) ~= 'table' or receipt.source ~= 'phone-ui' or receipt.state ~= 'accepted'
         or receipt.partial ~= false or receipt.cancelled ~= false or type(receipt.id) ~= 'string'
         or #receipt.id == 0 or #receipt.id > 240 or type(receipt.completedAt) ~= 'number' then return end
-    for _, prior in ipairs(knowledgePhoneReceipts) do if prior.id == receipt.id then return end end
+    for _, prior in ipairs(knowledgePhone.receipts) do if prior.id == receipt.id then return end end
     local row = {version = 1, source = 'phone-ui', state = 'accepted', partial = false, cancelled = false}
     for _, key in ipairs({'id', 'requestId', 'profileKey', 'contact', 'world', 'binding', 'worldToken'}) do
         if type(receipt[key]) == 'string' and #receipt[key] <= 600 then row[key] = receipt[key] end
@@ -531,9 +530,9 @@ local function publishPhoneDelivery(receipt)
         if type(value) == 'number' and value == value and value >= 0 and value < math.huge then row[key] = value end
     end
     if not row.requestId or not row.profileKey or not row.world or not row.binding or not row.completedAt then return end
-    knowledgePhoneReceipts[#knowledgePhoneReceipts + 1] = row
-    if #knowledgePhoneReceipts > 16 then table.remove(knowledgePhoneReceipts, 1) end
-    local ok, raw = pcall(json.encode, {version = 1, updated = os.time() * 1000, receipts = knowledgePhoneReceipts})
+    knowledgePhone.receipts[#knowledgePhone.receipts + 1] = row
+    if #knowledgePhone.receipts > 16 then table.remove(knowledgePhone.receipts, 1) end
+    local ok, raw = pcall(json.encode, {version = 1, updated = os.time() * 1000, receipts = knowledgePhone.receipts})
     if not ok or #raw > 32768 then return end
     local path = 'runtime/knowledge-phone-delivery.json'
     -- In place (the file ships as an empty placeholder under Mod Organizer 2): the bridge reads it with a
@@ -661,11 +660,11 @@ phoneChat.configure(profiles, manager, {
     captureBinding = capturePhoneBinding,
     captureWorldKnowledge = function(_, key)
         -- By revision: the phone request (rewritten into phone-chat-input.json every 3 s while it waits) stays small.
-        knowledgePhoneCapture = captureKnowledge({profileKey = key}, 'phone', true)
-        return knowledgePhoneCapture and knowledgePhoneCapture.worldKnowledge or knowledgeUnavailable()
+        knowledgePhone.capture = captureKnowledge({profileKey = key}, 'phone', true)
+        return knowledgePhone.capture and knowledgePhone.capture.worldKnowledge or knowledgeUnavailable()
     end,
     captureJournalHistory = function()
-        local captured = knowledgePhoneCapture; knowledgePhoneCapture = nil
+        local captured = knowledgePhone.capture; knowledgePhone.capture = nil
         if captured and sameKnowledgeOwner(captured.owner, knowledgeOwner(refreshKnowledgeFrame())) then
             return captured.journalHistory
         end
@@ -805,10 +804,7 @@ local lastDiagnosticRequest = nil
 local focusUntil = nil
 local focusMode = nil
 local focusEntity = nil
-local gazeCandidate = nil
-local gazeDwell = 0
-local gazeLost = 0
-local gazePoll = 0
+local gazeState = {candidate = nil, dwell = 0, lost = 0, poll = 0}
 local focusedCrowd = nil
 local releasedCrowd = nil
 local automatic, battleSample, battlePeople, battlePoll = nil, nil, {}, 0
@@ -823,7 +819,7 @@ end
 -- read is guarded; an unreadable fact is simply absent. Cached per entity
 -- (a record never changes for a spawned actor); the cache is small and reset
 -- when full. Confirm each read in game: docs/NPC_ARCHETYPES.md.
-local archetypeFactCache, archetypeFactCount = {}, 0
+local archetypeFactMemo = {cache = {}, count = 0}
 local function nameString(value)
     if type(value) == 'string' then return value end
     if value == nil then return nil end
@@ -833,7 +829,7 @@ local function nameString(value)
     return ok and type(text) == 'string' and text or nil
 end
 local function archetypeFacts(npc, entity, body)
-    local cached = entity and archetypeFactCache[entity]
+    local cached = entity and archetypeFactMemo.cache[entity]
     if cached then return cached end
     local facts = {bodyType = body}
     local function read(name, fn)
@@ -868,8 +864,8 @@ local function archetypeFacts(npc, entity, body)
         end)
     end
     if entity then
-        if archetypeFactCount >= 256 then archetypeFactCache, archetypeFactCount = {}, 0 end
-        archetypeFactCache[entity], archetypeFactCount = facts, archetypeFactCount + 1
+        if archetypeFactMemo.count >= 256 then archetypeFactMemo.cache, archetypeFactMemo.count = {}, 0 end
+        archetypeFactMemo.cache[entity], archetypeFactMemo.count = facts, archetypeFactMemo.count + 1
     end
     return facts
 end
@@ -1833,33 +1829,31 @@ local function warmConversation(participants, key, entity)
 end
 warmConversation(nil, nil)
 
-local lastPartyHint, lastPartyHeartbeat = nil, 0
+local partyLink = {lastHint = nil, lastHeartbeat = 0, lookAt = nil, retry = false, LOOK = 0.25}
 -- The per-frame call re-derives the party's profile list (a table and a concat per frame). A change reaches the
--- bridge through companions.onPartyChanged (forced); this look only backs it up, so it runs every PARTY_LOOK
+-- bridge through companions.onPartyChanged (forced); this look only backs it up, so it runs every partyLink.LOOK
 -- seconds of wall clock. A heartbeat refused its slot below retries on the next frame.
-local PARTY_LOOK = 0.25
-local partyLookAt, partyRetry = nil, false
 local function publishPartyConnections(force)
-    if not force and not partyRetry then
+    if not force and not partyLink.retry then
         local wall = os.clock()
-        if partyLookAt and wall >= partyLookAt and wall - partyLookAt < PARTY_LOOK then return end
-        partyLookAt = wall
+        if partyLink.lookAt and wall >= partyLink.lookAt and wall - partyLink.lookAt < partyLink.LOOK then return end
+        partyLink.lookAt = wall
     end
-    partyRetry = false
+    partyLink.retry = false
     local keys, encoded = {}, {}
     for _, key in ipairs(companions.connectionProfiles()) do
         if manager.profileEnabled(key) then keys[#keys + 1] = key end
     end
     local signature, now = table.concat(keys, ','), os.time()
-    if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
-    if not force and signature == lastPartyHint and not convaiHeartbeatSlot() then partyRetry = true; return end
+    if not force and signature == partyLink.lastHint and now - partyLink.lastHeartbeat < 2 then return end
+    if not force and signature == partyLink.lastHint and not convaiHeartbeatSlot() then partyLink.retry = true; return end
     for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
     -- In place (one open, not open+remove+rename): the bridge ignores a partial
     -- read (PartyConnections.ingest rejects it) and keeps the last snapshot.
     local f = io.open('runtime/party-connections.json', 'wb')
     if not f then return end
     local written = f:write('{"updated":' .. tostring(now * 1000) .. ',"profiles":[' .. table.concat(encoded, ',') .. ']}')
-    if f:close() and written then lastPartyHint, lastPartyHeartbeat = signature, now end
+    if f:close() and written then partyLink.lastHint, partyLink.lastHeartbeat = signature, now end
 end
 companions.onPartyChanged = function() publishPartyConnections(true) end
 publishPartyConnections(true)
@@ -2687,9 +2681,9 @@ local function targetAtCrosshair(gathered)
 end
 
 local function resetGaze()
-    gazeCandidate = nil
-    gazeDwell = 0
-    gazeLost = 0
+    gazeState.candidate = nil
+    gazeState.dwell = 0
+    gazeState.lost = 0
 end
 
 local function endFocus(player)
@@ -2831,18 +2825,18 @@ local function updateGaze(player, elapsed)
         convaiAttentionProbe = nil
     end
     if focusMode == 'chat' then return end
-    gazePoll = gazePoll + elapsed
-    if gazePoll < 0.2 then
+    gazeState.poll = gazeState.poll + elapsed
+    if gazeState.poll < 0.2 then
         -- Half way to a scan: its native candidate query runs now, on a tick of its own, so the measuring tick below carries only
         -- the per-candidate reads (no single frame holds the whole scan). Nothing is gathered when the scan could not run anyway.
-        if gazePoll >= 0.1 and convaiGazeGather == nil and gameplayCanAcquire(player) then
+        if gazeState.poll >= 0.1 and convaiGazeGather == nil and gameplayCanAcquire(player) then
             local gathered, result = pcall(gatherTargets, player)
             if gathered and type(result) == 'table' then result.at = os.clock(); convaiGazeGather = result end
         end
         return
     end
-    local step = gazePoll
-    gazePoll = 0
+    local step = gazeState.poll
+    gazeState.poll = 0
     local gather = convaiGazeGather
     convaiGazeGather = nil
     if gather and os.clock() - gather.at > 0.35 then gather = nil end
@@ -2873,27 +2867,27 @@ local function updateGaze(player, elapsed)
     -- Voice activation (mod/voice-activation.lua) asks whether somebody is faced: one clock read on this scan, nothing more.
     if lookKey then convaiLookSeenAt = os.clock() end
     if focusMode == 'gaze' then
-        if identity == focusEntity then gazeLost = 0; return end
-        gazeLost = gazeLost + step
-        if gazeLost < 1.5 then return end
+        if identity == focusEntity then gazeState.lost = 0; return end
+        gazeState.lost = gazeState.lost + step
+        if gazeState.lost < 1.5 then return end
         endFocus(player)
         focusMode = nil
         focusEntity = nil
         resetGaze()
     end
     if not npc then resetGaze(); return end
-    if gazeCandidate ~= identity then
-        gazeCandidate = identity
-        gazeDwell = 0
+    if gazeState.candidate ~= identity then
+        gazeState.candidate = identity
+        gazeState.dwell = 0
         return
     end
-    gazeDwell = gazeDwell + step
-    if gazeDwell < 0.2 then return end
+    gazeState.dwell = gazeState.dwell + step
+    if gazeState.dwell < 0.2 then return end
     local focused, reason = beginFocus(player, npc)
     if focused then
         focusMode = 'gaze'
         focusEntity = identity
-        gazeLost = 0
+        gazeState.lost = 0
         log('NPC responded to gaze: actor=' .. identity)
     else
         log('NPC gaze focus failed: ' .. tostring(reason))
@@ -6297,14 +6291,13 @@ end
 -- The phone queues a request only while it is open, so the per-frame ConvaiPhoneTakeRequest read waits for an open
 -- phone (and a short while after it closes, so a request queued as it closes is still taken). A closed phone is
 -- still drained once a second, as a backstop for a request left from before a CET reload.
-local PHONE_DRAIN_GRACE, PHONE_DRAIN_IDLE = 1.5, 1.0
-local phoneSeenAt, phoneDrainedAt = nil, nil
+local phoneDrain = {GRACE = 1.5, IDLE = 1.0, seenAt = nil, drainedAt = nil}
 local function phoneDrainDue(phoneOpen)
     local wall = os.clock()
-    if phoneOpen then phoneSeenAt = wall
-    elseif phoneSeenAt and wall >= phoneSeenAt and wall - phoneSeenAt < PHONE_DRAIN_GRACE then phoneDrainedAt = wall
-    elseif phoneDrainedAt and wall >= phoneDrainedAt and wall - phoneDrainedAt < PHONE_DRAIN_IDLE then return false end
-    phoneDrainedAt = wall
+    if phoneOpen then phoneDrain.seenAt = wall
+    elseif phoneDrain.seenAt and wall >= phoneDrain.seenAt and wall - phoneDrain.seenAt < phoneDrain.GRACE then phoneDrain.drainedAt = wall
+    elseif phoneDrain.drainedAt and wall >= phoneDrain.drainedAt and wall - phoneDrain.drainedAt < phoneDrain.IDLE then return false end
+    phoneDrain.drainedAt = wall
     return true
 end
 local function processPhoneAction(player)
