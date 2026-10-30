@@ -1258,6 +1258,8 @@ test('V’s voice has no row of its own for microphone lines any more: one list 
   assert(saved.vVoiceMic == false and saved.vVoice == true and ns.find('V’s voice').selectedElementIndex == 2)
   -- A file that has the microphone on and typed lines off (the old pair) shows Typed and spoken lines and keeps the engine.
   assert(manager.applySettings(player, {vVoice = false, vVoiceMic = true}))
-  frames(8)
+  frames(20)
+  press('Back to settings'); press('Back to Companion Manager')
+  settingsPage('Voice and microphone')
   assert(ns.find('V’s voice').selectedElementIndex == 3 and ns.find('V’s voice engine').selectedElementIndex == 1)
 `));

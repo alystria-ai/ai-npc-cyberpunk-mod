@@ -74,7 +74,9 @@ test('the player documents describe the feature as vision, under the setting nam
     assert.match(sentence, /vision/i, sentence);
   }
   for (const file of ['README.md', 'packaging/PLAYER_README.md', 'docs/NEXUS_PAGE.md', 'packaging/HF_MODEL_CARD.md', 'docs/COMPANION_VISION.md']) {
-    assert.ok(!read(file).includes('Companions can see'), `${file} still uses the old setting name`);
+    // The changelog line of the player README names the old setting once, to say it was renamed.
+    const text = read(file).replace('**Companions can see** is now **Companion vision**', '');
+    assert.ok(!text.includes('Companions can see'), `${file} still uses the old setting name`);
   }
 });
 
