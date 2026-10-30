@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Не используется с контентом для взрослых",
     ["Ready to choose in Companion voices"] = "Можно выбрать в Голосах напарников",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Нужен ключ Inworld (добавьте в Настройки > Голоса > Пользовательские голоса)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Озвучивает каждого напарника его собственным голосом, по вашему ключу Inworld. Только английский. Выберите его в Голосах напарников, где после добавления ключа он стоит последним.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Озвучивает каждого напарника его собственным голосом, по вашему ключу Inworld. Работает на английском и на других языках, которые поддерживает Inworld. Выберите его в Голосах напарников, где после добавления ключа он стоит последним.",
     ["{voice} · needs Inworld key"] = "{voice} · нужен ключ Inworld",
     ["Choose a character to start editing."] = "Выберите персонажа, чтобы начать редактирование.",
     ["Clear search"] = "Очистить поиск",

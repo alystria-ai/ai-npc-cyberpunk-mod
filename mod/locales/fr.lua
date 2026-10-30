@@ -1760,7 +1760,7 @@ return {
     ["Not used with Mature content"] = "Non utilisé avec le Contenu pour adultes",
     ["Ready to choose in Companion voices"] = "Prête à être choisie dans Voix des compagnons",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Nécessite une clé Inworld (ajoutez-la dans Paramètres > Voix > Voix personnalisées)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Parle avec la voix propre à chaque compagnon, avec votre propre clé Inworld. Anglais uniquement. Choisissez-la dans Voix des compagnons, où elle figure en dernier une fois une clé ajoutée.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Parle avec la voix propre à chaque compagnon, avec votre propre clé Inworld. Fonctionne en anglais et dans les autres langues prises en charge par Inworld. Choisissez-la dans Voix des compagnons, où elle figure en dernier une fois une clé ajoutée.",
     ["{voice} · needs Inworld key"] = "{voice} · nécessite la clé d'API Inworld",
     ["Choose a character to start editing."] = "Choisissez un personnage pour commencer à le modifier.",
     ["Clear search"] = "Effacer la recherche",

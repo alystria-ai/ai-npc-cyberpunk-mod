@@ -1164,7 +1164,7 @@
     "Speaking rules": "Speaking rules",
     "Speaking style": "Speaking style",
     "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
-    "Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.": "Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.",
+    "Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added.": "Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added.",
     "Speaks up normally": "Speaks up normally",
     "Speaks up often": "Speaks up often",
     "Speaks up rarely": "Speaks up rarely",
@@ -2453,7 +2453,7 @@
       "Saved reports",
       "Selected character",
       "Shared across your saves",
-      "Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.",
+      "Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added.",
       "Status",
       "The characters of this party: {names}.",
       "The conversation service is not running, so plans cannot be shown. Restart the game.",
@@ -13247,7 +13247,7 @@
         "mod/init.lua:3698"
       ]
     },
-    "Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.": {
+    "Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added.": {
       "contexts": [
         "page.readonly"
       ],

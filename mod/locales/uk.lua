@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Не використовується з контентом для дорослих",
     ["Ready to choose in Companion voices"] = "Готово до вибору в Голосах компаньйонів",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Потрібен ключ Inworld (додайте в Налаштування > Голоси > Власні голоси)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Озвучує кожного компаньйона його власним голосом, за вашим ключем Inworld. Лише англійська. Оберіть його в Голосах компаньйонів, де після додавання ключа він стоїть останнім.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Озвучує кожного компаньйона його власним голосом, за вашим ключем Inworld. Працює англійською та іншими мовами, які підтримує Inworld. Оберіть його в Голосах компаньйонів, де після додавання ключа він стоїть останнім.",
     ["{voice} · needs Inworld key"] = "{voice} · потрібен ключ Inworld",
     ["Choose a character to start editing."] = "Вибери персонажа, щоб почати редагування.",
     ["Clear search"] = "Очистити пошук",

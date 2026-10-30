@@ -28,8 +28,8 @@ the pack (those are greyed out). The key is the one used for the Mistral text op
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).
 
 **Languages (since 2026-10-21, Voxtral TTS 3).** The API has no language field: the model speaks the language the text is written in, in the cloned voice
-(a reference clip in English still speaks French). Mistral names 21 languages for Voxtral TTS 3 and its voice presets add Greek; those 22 are the list the mod
-uses (`bridge/voxtral-languages.mjs`; "35+ languages" is claimed, but only these are written down). The older alias model speaks 9 (English, French, Spanish,
+(a reference clip in English still speaks French). Mistral's languages page lists English and 37 other languages for Voxtral TTS 3 (38 in all, the list the mod uses since 2026-10-31,
+`bridge/voxtral-languages.mjs`; before that only the 22 the announcement named were used, which kept Czech, Swedish, Thai and others as text). The older alias model speaks 9 (English, French, Spanish,
 Portuguese, Italian, Dutch, German, Hindi, Arabic) and is the list used while it is the model in use. A reply in a listed language is spoken by Voxtral
 (on every provider); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text, with the one-time voice-language notice, and is never
 handed to the Convai voice or its multilingual twin's voice (`planTurnVoice`, `replyVoice`; owner rule 2026-10-21). An English conversation

@@ -1512,9 +1512,9 @@ const turnVoices = new Map();
 // `convai`: the Convai voice may speak this installation's turns, and only because the player chose it. A voice that cannot run (a local one,
 // or Voxtral with no key, in a cool-down or in a language it does not list) or has no clip for this character is never replaced by it: that turn is
 // written, and Convai gets ttsEnabled false (convaiSpeaks below).
-// `cloud` and `speaks`: the Voxtral voice (it runs on Pocket's route) and the languages the model in use speaks (bridge/multilingual.mjs cloudSpeaks).
+// `cloud` and `speaks`: the Voxtral or Inworld voice (they run on Pocket's route) and the languages that voice speaks (bridge/multilingual.mjs cloudSpeaks).
 const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,
-  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language),
+  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => (localVoice.cloud === 'inworld' ? inworldVoice : voxtralVoice).speaks(language),
   pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
@@ -1568,7 +1568,8 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
 function languagePackFor(engine, language, voiceKey) {
   if (!language || language === 'en' || !voiceKey || !languagePacks.installed) return null;
   if (engine === 'omni') return localVoice.hasPlayerClip(voiceKey) ? null : languagePacks.entry(language, voiceKey);
-  if (engine === 'pocket' && localVoice.cloudActive) return voxtralVoice.languageEntry(voiceKey, language);
+  // The Inworld voice always clones from the English reference (one voice per character, speaking every language), so it has no pack entry.
+  if (engine === 'pocket' && localVoice.cloudActive) return localVoice.cloud === 'inworld' ? null : voxtralVoice.languageEntry(voiceKey, language);
   // The local Pocket voice speaks the language from the pack's clip when it has the model for it (a player's own clip for the character stays the reference).
   if (engine === 'pocket') return localVoice.hasPlayerClip(voiceKey) ? null : pocketLanguages.entry(language, voiceKey);
   return null;

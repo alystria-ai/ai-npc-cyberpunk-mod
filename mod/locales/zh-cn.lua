@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "成人内容不使用",
     ["Ready to choose in Companion voices"] = "可在伙伴语音中选择",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "需要 Inworld 密钥（请在 设置 > 语音 > 自定义语音 中添加）",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "使用你自己的 Inworld 密钥，让每位伙伴用各自的声音说话。仅支持英语。在伙伴语音中选择它，添加密钥后它会列在最后。",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "使用你自己的 Inworld 密钥，让每位伙伴用各自的声音说话。支持英语以及 Inworld 支持的其他语言。在伙伴语音中选择它，添加密钥后它会列在最后。",
     ["{voice} · needs Inworld key"] = "{voice} · 需要 Inworld 密钥",
     ["Choose a character to start editing."] = "选择一个角色开始编辑。",
     ["Clear search"] = "清除搜索",

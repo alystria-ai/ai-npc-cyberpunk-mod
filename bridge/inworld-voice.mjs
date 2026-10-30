@@ -28,6 +28,7 @@ import {dirname} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {INWORLD_VOICES_ENDPOINT} from './inworld-key.mjs';
+import {inworldSpeaks, inworldRequestLanguage} from './inworld-languages.mjs';
 
 export const INWORLD_ENDPOINTS = Object.freeze({
   speech: 'https://api.inworld.ai/tts/v1/voice:stream',
@@ -196,6 +197,8 @@ export class InworldVoice {
     for (const key of keys) if (this.entries.delete(key) && !had.includes(key)) had.push(key);
     return had;
   }
+  /** Does the voice speak `language` ('ru')? English always; the rest is the Tier 1 and Tier 2 list of bridge/inworld-languages.mjs. The voice of a character is cloned once, in English, and speaks them all. */
+  speaks(language) { return inworldSpeaks(language); }
   hasCachedReference(key) { return this.entries.get(key)?.state === 'ready' || this.library.hasCachedReference?.(key) === true; }
   get hasKey() { return !!this.getKey(); }
   /** Whether a request may be made now (a key, and not inside a limit, quota or refused-key cool-down). */
@@ -450,7 +453,7 @@ export class InworldVoice {
    * Speaks `text` as the voice `key`, handing `onPcm` 24 kHz mono float32 packets of Pocket's shape. Resolves with the stream's summary. Throws an InworldError when nothing was delivered (the
    * caller asks again or writes the reply), `cancelled` when `signal` aborts, and the consumer's own error (marked `sink`) when `onPcm` fails.
    */
-  async synthesizeStream(key, text, {signal, onPcm, firstAudioMs} = {}) {
+  async synthesizeStream(key, text, {signal, onPcm, firstAudioMs, language} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Inworld streaming requires a PCM consumer');
     const apiKey = this.#syncKey();
@@ -462,7 +465,7 @@ export class InworldVoice {
       const queued = this.now();
       const voiceId = await this.#voiceFor(key, signal);
       throwIfCancelled(signal);
-      const result = await this.#stream({key, text, apiKey, voiceId, signal, onPcm, queued, firstAudioMs});
+      const result = await this.#stream({key, text, apiKey, voiceId, signal, onPcm, queued, firstAudioMs, language});
       this.spoke++; this.note(null);
       return result;
     } catch (error) {
@@ -506,7 +509,7 @@ export class InworldVoice {
   }
 
   /** One request for the whole text of this part. */
-  async #stream({key, text, apiKey, voiceId, signal, onPcm, queued, firstAudioMs = this.limits.firstAudioMs}) {
+  async #stream({key, text, apiKey, voiceId, signal, onPcm, queued, firstAudioMs = this.limits.firstAudioMs, language}) {
     const id = ++this.sequence, started = this.now();
     let delivered = 0, chunks = 0, firstMs = null, sentAt = null, bytesCarry = Buffer.alloc(0), pending = new Float32Array(0);
     const emit = async samples => {
@@ -543,6 +546,8 @@ export class InworldVoice {
       if (from) pending = pending.slice(from);
     };
 
+    // A reply in another language names it (a BCP-47 code; English and unlisted languages send nothing and the model detects the language from the text).
+    const tag = inworldRequestLanguage(language);
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -560,7 +565,7 @@ export class InworldVoice {
       try {
         response = await this.fetchImpl(this.endpoints.speech, {method: 'POST', signal: controller.signal,
           headers: {authorization: `Basic ${apiKey}`, 'content-type': 'application/json', accept: 'application/json'},
-          body: JSON.stringify({text, voiceId, modelId: INWORLD_MODEL, audioConfig: {audioEncoding: 'PCM', sampleRateHertz: INWORLD_RATE}})});
+          body: JSON.stringify({text, voiceId, modelId: INWORLD_MODEL, ...(tag ? {language: tag} : {}), audioConfig: {audioEncoding: 'PCM', sampleRateHertz: INWORLD_RATE}})});
       } catch (error) {
         throwIfCancelled(signal);
         throw timedOut ? this.fail('timeout', `gave no audio within ${firstAudioMs} ms`) : this.fail('network', error?.message || 'is unreachable');

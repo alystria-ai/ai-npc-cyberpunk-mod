@@ -39,7 +39,7 @@ function selectionOf({cloud = cloudStub(), extra = {}} = {}) {
 const localChoice = (voice, profile) => ({uses: voice.usesProfile(profile) && !voice.cloudKeyless, provider: voice.provider, convai: voice.convaiVoiceAllowed,
   cloud: voice.cloudActive ? voice.cloud : null, speaks: language => voxtralSpeaks(language)});
 test('the bridge composes the turn voice from the voice selection exactly as this file does, and Convai TTS follows the Convai voice only', () => {
-  assert.ok(bridgeSource.includes("const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,\n  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language),\n  pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});"));
+  assert.ok(bridgeSource.includes("const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,\n  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => (localVoice.cloud === 'inworld' ? inworldVoice : voxtralVoice).speaks(language),\n  pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});"));
   assert.ok(bridgeSource.includes('const convaiSpeaks = input => localVoice.playbackEnabled !== false && localVoice.convaiVoiceAllowed && !turnUsesLocal(input);'));
   // Every Convai text turn: the live turn, the first connection of a character and the warm connections ask the same question.
   assert.ok(bridgeSource.includes('ttsEnabled: convaiSpeaks(input),'));
@@ -70,8 +70,8 @@ const SCENARIOS = {
   'Voxtral chosen, no voice route to ride on': () => { const v = new VoiceSelection({}, {voxtral: cloudStub()}); v.update({voiceProvider: 'voxtral'}, null, false); return v; },
   'Voxtral chosen, barred by Mature content': () => { const v = selectionOf({extra: {cloudBarred: () => true}}); v.update({voiceProvider: 'voxtral'}, null, false); return v; },
 };
-const LANGUAGES = ['en', 'es', 'fr', 'ja', 'cs', 'ar'];
-const TEXTS = {en: 'Sure thing, V. Let us talk it over.', es: 'Claro que sí, V. Vamos al bar esta noche y hablamos con calma.', cs: 'Dobrý den, jak se máte? Dnes večer nemám co říct, kamaráde.'};
+const LANGUAGES = ['en', 'es', 'fr', 'ja', 'cs', 'ar', 'he'];
+const TEXTS = {en: 'Sure thing, V. Let us talk it over.', es: 'Claro que sí, V. Vamos al bar esta noche y hablamos con calma.', cs: 'Dobrý den, jak se máte? Dnes večer nemám co říct, kamaráde.', he: 'שלום, מה שלומך? אין לי מה להגיד הערב, חבר שלי.'};
 
 test('with any chosen voice other than Convai, no turn uses the Convai voice: not when Voxtral fails, has no key, is cooling down or gets a language it does not speak, and whatever the provider or language', async () => {
   for (const [name, make] of Object.entries(SCENARIOS)) {
@@ -109,11 +109,11 @@ test('a Voxtral voice that cannot be asked, or is given a language it does not s
   assert.equal(speaking.uses, true); assert.equal(speaking.cloud, 'voxtral');
   // A listed language is spoken by Voxtral; an unlisted one is written with the voice-language reason (the one-time voice-language notice); English stays.
   assert.deepEqual(planTurnVoice({textProvider: true, language: 'es', local: speaking}).engine, 'pocket');
-  const unlisted = planTurnVoice({enabled: true, language: 'cs', local: speaking});
+  const unlisted = planTurnVoice({enabled: true, language: 'he', local: speaking});
   assert.deepEqual([unlisted.engine, unlisted.reason], ['none', 'voice-language-unsupported']);
-  assert.deepEqual(replyVoice({plan: unlisted, text: TEXTS.cs, local: speaking}), {engine: 'none', language: 'cs', reason: 'voice-language-unsupported'});
-  const textTurn = planTurnVoice({textProvider: true, language: 'cs', local: speaking});
-  assert.deepEqual(replyVoice({plan: textTurn, text: TEXTS.cs, local: speaking}), {engine: 'none', language: 'cs', reason: 'voice-language-unsupported'});
+  assert.deepEqual(replyVoice({plan: unlisted, text: TEXTS.he, local: speaking}), {engine: 'none', language: 'he', reason: 'voice-language-unsupported'});
+  const textTurn = planTurnVoice({textProvider: true, language: 'he', local: speaking});
+  assert.deepEqual(replyVoice({plan: textTurn, text: TEXTS.he, local: speaking}), {engine: 'none', language: 'he', reason: 'voice-language-unsupported'});
   assert.equal(planTurnVoice({enabled: true, language: 'en', local: speaking}).engine, 'pocket');
   // No key: the turn is written (the local-voice-unavailable reason), and the game is told once ("... is unavailable right now. Replies show as text until it is back.").
   const keyless = SCENARIOS['Voxtral chosen, no key']();
@@ -126,7 +126,7 @@ test('a Voxtral voice that cannot be asked, or is given a language it does not s
   assert.equal(planTurnVoice({textProvider: true, language: 'en', local: localChoice(cooling, PROFILE)}).engine, 'none');
   // The old hand-over is gone in the plan itself: even a caller that says "the Convai voice is allowed" for a character no voice speaks (a Voxtral voice that is
   // not usable) cannot get it unless it is the chosen voice, because convai is what the voice selection reports, and that is only the chosen Convai voice.
-  assert.equal(planTurnVoice({enabled: true, language: 'cs', local: {uses: true, provider: 'pocket', cloud: 'voxtral', convai: false, speaks: voxtralSpeaks}}).engine, 'none');
+  assert.equal(planTurnVoice({enabled: true, language: 'he', local: {uses: true, provider: 'pocket', cloud: 'voxtral', convai: false, speaks: voxtralSpeaks}}).engine, 'none');
 });
 
 test('the Convai voice speaks exactly when the player chose it, with or without a voice setting being rewritten', async () => {

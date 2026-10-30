@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Yetişkin içerikle kullanılmaz",
     ["Ready to choose in Companion voices"] = "Yoldaş sesleri arasında seçmeye hazır",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Inworld anahtarı gerekir (Ayarlar > Sesler > Özel sesler bölümünden ekle)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Her yoldaşı kendi sesiyle, kendi Inworld anahtarınla konuşturur. Yalnızca İngilizce. Yoldaş sesleri altından seç, anahtar eklendikten sonra listenin en sonunda görünür.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Her yoldaşı kendi sesiyle, kendi Inworld anahtarınla konuşturur. İngilizcenin yanı sıra Inworld tarafından desteklenen diğer dillerde de çalışır. Yoldaş sesleri altından seç, anahtar eklendikten sonra listenin en sonunda görünür.",
     ["{voice} · needs Inworld key"] = "{voice} · Inworld anahtarı gerekir",
     ["Choose a character to start editing."] = "Düzenlemeye başlamak için bir karakter seç.",
     ["Clear search"] = "Aramayı temizle",
