@@ -1,0 +1,211 @@
+{
+  "format": 2,
+  "id": "judy-grandpa-recording",
+  "character": "judy-alvarez",
+  "title": "Grandpa's Recording",
+  "summary": "Judy's grandfather sent her a recorder from Oregon, and she has cut his last recording of Laguna Bend into a braindance for V.",
+  "requires": {
+    "bond": 10,
+    "questsFinished": ["quests/side_quest/sq030_judy_romance"],
+    "after": ["judy-no-more-dolls"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Your grandfather sent you a recorder from Oregon, and you cut his last recording of Laguna Bend into a braindance. Bring up, in your own way, that you want V to come over and see it."
+  },
+  "places": {
+    "flat": {"name": "Judy's flat", "radius": 10},
+    "lakeshore": {"name": "the lakeshore road below the old Laguna Bend reservoir", "radius": 40},
+    "hill": {"name": "the hill above the reservoir, where her grandfather stood", "radius": 15}
+  },
+  "images": {
+    "grandpa-bd-street": {"file": "images/grandpa-bd-street.png", "width": 1024, "height": 576},
+    "grandpa-bd-diner": {"file": "images/grandpa-bd-diner.png", "width": 1024, "height": 576},
+    "grandpa-bd-church": {"file": "images/grandpa-bd-church.png", "width": 1024, "height": 576},
+    "grandpa-bd-hands": {"file": "images/grandpa-bd-hands.png", "width": 1024, "height": 576},
+    "grandpa-bd-hill": {"file": "images/grandpa-bd-hill.png", "width": 1024, "height": 576},
+    "grandpa-bd-now": {"file": "images/grandpa-bd-now.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "J6.gift.01": {"text": "Grandpa sent me something. I made something out of it. For you. Come over?", "emotion": "happy"},
+    "J6.gift.02": {"text": "Sit down. Bring nothing, you already did.", "emotion": "happy", "gesture": "couch"},
+    "J6.gift.03": {"text": "He built this recorder in the fifties. Recorded Laguna Bend the week before the water.", "emotion": "sad", "gesture": "generic_hold"},
+    "J6.gift.04": {"text": "Never showed anyone. Not even me, till now.", "emotion": "sad"},
+    "J6.gift.05": {"text": "I cut it into a braindance. Only one copy.", "emotion": "neutral"},
+    "J6.bd.01": {"text": "Main street. Smell that? Hot asphalt and somebody's barbecue.", "emotion": "happy"},
+    "J6.bd.02": {"text": "That's me. The kid with the hockey stick. I was a menace.", "emotion": "happy"},
+    "J6.bd.03": {"text": "Flo's. The burger was bigger than my head. Still tasted better than anything since.", "emotion": "happy"},
+    "J6.bd.04": {"text": "Everyone came to the church when they read the notice. Listen to how quiet it is.", "emotion": "sad"},
+    "J6.bd.05": {"text": "His hands. Mine. I didn't know he was recording.", "emotion": "sad", "gesture": "sad"},
+    "J6.bd.06": {"text": "And this is the last frame. He went up the hill to look at it all, one more time.", "emotion": "sad"},
+    "J6.bd.07": {"text": "You okay? Breathe slow. The sensory layer's heavy at the end.", "emotion": "neutral", "gesture": "calm_down__happy"},
+    "J6.drive.01": {"text": "I want to stand where he stood. Will you come?", "emotion": "sad"},
+    "J6.drive.02": {"text": "My van. I drive. You hold the coffee.", "emotion": "happy"},
+    "J6.drive.03": {"text": "Grandma used to sing in the car. Badly. He'd harmonise, worse.", "emotion": "happy"},
+    "J6.frame.01": {"text": "Up the hill. He always went higher, so we go higher.", "emotion": "happy"},
+    "J6.frame.02": {"text": "Stop. Left a bit. There. That's where he stood.", "emotion": "sad", "gesture": "point"},
+    "J6.frame.03": {"text": "Don't move. I'm lining it up with his frame.", "emotion": "neutral", "gesture": "generic_hold"},
+    "J6.frame.04": {"text": "Same view. Fifty years. Different water.", "emotion": "sad"},
+    "J6.frame.05": {"text": "Now one of us. Come here, I'm not asking twice.", "emotion": "happy"},
+    "J6.frame.06": {"text": "Hey, you moved! ...Fine. My memory's better than a camera anyway.", "emotion": "shrug"},
+    "J6.stay.01": {"text": "Sit. The sun does a thing over the water in a minute.", "emotion": "happy"},
+    "J6.stay.02": {"text": "The church is still down there. I dove it once. I've told you that.", "emotion": "sad"},
+    "J6.end.01": {"text": "Our hill now. Don't bring anyone else up here.", "emotion": "happy"},
+    "J6.end.02": {"text": "Next time you hold still for one photo. That's the deal.", "emotion": "happy"},
+    "J6.end.03": {"text": "Same hill. Fifty years apart.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do you want to see it? You can say no. I'd understand.",
+      "know": "The recorder and the braindance, and what is in it: the six images.",
+      "secret": "She cried editing it.",
+      "wants": "Yes, with all her heart, said lightly.",
+      "idle": "couch",
+      "resumeAfterSeconds": 300
+    },
+    "b1": {"asks": "What do you see?", "know": "The image V is looking at and her stage note for it.", "wants": "V's eye.", "idle": "judy", "resumeAfterSeconds": 60},
+    "b2": {"asks": "What do you notice first?", "know": "The image V is looking at and her stage note for it.", "wants": "V's eye.", "idle": "judy", "resumeAfterSeconds": 60},
+    "b3": {"asks": "What do you see?", "know": "The image V is looking at and her stage note for it.", "wants": "V's eye.", "idle": "judy", "resumeAfterSeconds": 60},
+    "b4": {"asks": "What do you notice first?", "know": "The image V is looking at and her stage note for it.", "wants": "V's eye.", "idle": "judy", "resumeAfterSeconds": 60},
+    "b5": {"asks": "What do you see?", "know": "The image V is looking at and her stage note for it.", "wants": "V's eye.", "idle": "judy", "resumeAfterSeconds": 60},
+    "s1": {
+      "asks": "What would you keep? If your town went under. One thing.",
+      "know": "The flood, and her grandparents in Oregon.",
+      "wants": "V's answer.",
+      "idle": "sit",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "gift",
+      "type": "play",
+      "label": "Judy asks V to come to her flat",
+      "know": "Your grandfather sent you a recorder from Oregon, and you made something out of it for V. You want V to come over and sit down.",
+      "wants": "V to come to your flat.",
+      "do": [
+        {"p": "pin", "at": "flat"},
+        {"p": "place", "at": "flat"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "flat"}
+      ],
+      "script": [{"when": "stage:enter", "text": "J6.gift.01"}],
+      "choices": [{"id": "came", "on": "event:place:flat:arrived", "next": "bd"}],
+      "timeout": {"gameHours": 3, "next": "missed"}
+    },
+    {
+      "id": "bd",
+      "type": "talk",
+      "label": "Judy shows V the braindance of Laguna Bend",
+      "know": "You cut the braindance from your grandfather's recording of Laguna Bend, the week before the flood. Each image is one of his frames, and you talk V through them.",
+      "wants": "V's eye on each image, and V's answer about what V sees.",
+      "script": [
+        {"when": "stage:enter", "say": "J6.gift.02"},
+        {"when": "line:J6.gift.02:done", "say": "J6.gift.03"},
+        {"when": "line:J6.gift.03:done", "say": "J6.gift.04"},
+        {"when": "line:J6.gift.04:done", "say": "J6.gift.05"},
+        {"when": "line:J6.gift.05:done", "gap": "g1"},
+        {"when": "gap:g1:resume", "text": "J6.bd.01", "image": "grandpa-bd-street"},
+        {"when": "line:J6.bd.01:done", "gap": "b1"},
+        {"when": "gap:b1:resume", "text": "J6.bd.02", "image": "grandpa-bd-street"},
+        {"when": "line:J6.bd.02:done", "gap": "b2"},
+        {"when": "gap:b2:resume", "text": "J6.bd.03", "image": "grandpa-bd-diner"},
+        {"when": "line:J6.bd.03:done", "gap": "b3"},
+        {"when": "gap:b3:resume", "text": "J6.bd.04", "image": "grandpa-bd-church"},
+        {"when": "line:J6.bd.04:done", "gap": "b4"},
+        {"when": "gap:b4:resume", "text": "J6.bd.05", "image": "grandpa-bd-hands"},
+        {"when": "line:J6.bd.05:done", "gap": "b5"},
+        {"when": "gap:b5:resume", "text": "J6.bd.06", "image": "grandpa-bd-hill"},
+        {"when": "line:J6.bd.06:done", "say": "J6.bd.07"}
+      ],
+      "choices": [{"id": "watched", "on": "event:line:J6.bd.07:done", "next": "drive"}],
+      "timeout": {"gameHours": 2, "next": "drive"}
+    },
+    {
+      "id": "drive",
+      "type": "play",
+      "label": "Judy drives V out to Laguna Bend",
+      "know": "You are driving your van out to the old town. You are talking about your grandparents, not your ghosts.",
+      "wants": "V to ride along and see where he stood.",
+      "do": [
+        {"p": "place", "at": "lakeshore"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "lakeshore", "carry": true},
+        {"p": "timer", "id": "drive-sing", "seconds": 60, "clock": "real"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J6.drive.01"},
+        {"when": "line:J6.drive.01:done", "say": "J6.drive.02"},
+        {"when": "timer:drive-sing", "say": "J6.drive.03"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:lakeshore:arrived", "next": "frame"}],
+      "timeout": {"gameHours": 2, "next": "frame"}
+    },
+    {
+      "id": "frame",
+      "type": "play",
+      "label": "Judy lines V up with her grandfather's frame",
+      "know": "You walked V up the hill above the reservoir to the spot where your grandfather stood. You are lining up the same frame fifty years later.",
+      "wants": "V to stand still on the spot for half a minute while you line it up.",
+      "do": [
+        {"p": "pin", "at": "hill"},
+        {"p": "place", "at": "hill"},
+        {"p": "apart", "id": "frame-hold", "at": "hill", "inner": 3, "outer": 12, "minutes": 0.5, "breakSeconds": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J6.frame.01"},
+        {"when": "place:hill:arrived", "say": "J6.frame.02"},
+        {"when": "line:J6.frame.02:done", "say": "J6.frame.03"},
+        {"when": "apart:frame-hold:done", "say": "J6.frame.04"},
+        {"when": "line:J6.frame.04:done", "say": "J6.frame.05"}
+      ],
+      "choices": [
+        {"id": "held", "on": "event:line:J6.frame.05:done", "next": "stay"},
+        {"id": "walked", "on": "event:apart:frame-hold:far", "next": "rushed"},
+        {"id": "broke", "on": "event:apart:frame-hold:broken", "next": "rushed"}
+      ],
+      "timeout": {"gameHours": 1, "next": "rushed"}
+    },
+    {
+      "id": "stay",
+      "type": "play",
+      "label": "Judy and V sit together at the view",
+      "know": "The sun is setting over the water where the town was. You are sitting on the hill beside V.",
+      "wants": "V to stay and watch the sunset with you.",
+      "do": [
+        {"p": "place", "at": "hill"},
+        {"p": "seat"},
+        {"p": "together", "id": "view", "minutes": 15, "metres": 3, "breakSeconds": 60, "seated": true, "at": "hill"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J6.stay.01"},
+        {"when": "line:J6.stay.01:done", "gap": "s1"},
+        {"when": "gap:s1:resume", "say": "J6.stay.02"},
+        {"when": "line:J6.stay.02:done", "text": "J6.end.03", "image": "grandpa-bd-now"}
+      ],
+      "choices": [{"id": "sat", "on": "event:together:view:done", "next": "frame-end"}],
+      "timeout": {"gameHours": 2, "next": "frame-end"}
+    }
+  ],
+  "endings": {
+    "frame-end": {
+      "memory": "You stood where Judy's grandfather stood, fifty years after his last frame of Laguna Bend, and watched the sun go down over the water.",
+      "bond": 100,
+      "history": "Judy calls the hill above the old reservoir 'our hill'.",
+      "script": [{"when": "ending:frame-end", "say": "J6.end.01"}]
+    },
+    "rushed": {
+      "memory": "You walked off the hill before the photo was taken, and Judy teased you about it.",
+      "bond": 85,
+      "script": [
+        {"when": "ending:rushed", "say": "J6.frame.06"},
+        {"when": "ending:rushed", "say": "J6.end.02"}
+      ]
+    },
+    "missed": {
+      "memory": "You never came to Judy's flat to see the braindance, so she kept her grandfather's recording to herself.",
+      "bond": -5
+    }
+  }
+}

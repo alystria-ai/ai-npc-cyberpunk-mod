@@ -1,0 +1,98 @@
+{
+  "format": 2,
+  "id": "songbird-hangout-colour-hunt",
+  "kind": "hangout",
+  "character": "songbird",
+  "title": "Colour Hunt",
+  "summary": "Songbird asks V to find five colours around Pacifica and describe what each one feels like.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird says Dogtown is grey and asks V to find five colours and say what each one feels like."
+  },
+  "places": {
+    "spot": {"name": "the plaza by the Pacifica stadium", "radius": 25},
+    "colour-1": {"name": "a painted mural on a Pacifica wall", "radius": 15},
+    "colour-2": {"name": "a rusted blue door", "radius": 10},
+    "colour-3": {"name": "a red market stall", "radius": 10},
+    "colour-4": {"name": "a green rag on a fence", "radius": 10},
+    "colour-5": {"name": "a magenta scrap of cloth on a rail", "radius": 10}
+  },
+  "lines": {
+    "SBH4.ask.01": {"text": "What does this one feel like?", "emotion": "neutral", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What does this one feel like?",
+      "know": "The colours you have found so far.",
+      "secret": "Magenta was the first colour she ever chose.",
+      "wants": "You to say one honest thing.",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "flatter", "kind": "flatter"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "night", "know": "It is night, and the colours are neon signs now."},
+      {"id": "three", "know": "Only three colours are on the list tonight.", "places": {"colour-4": "colour-5"}},
+      {"id": "guess", "wants": "V picks the colours, and she guesses them from the descriptions."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "hangout",
+      "type": "play",
+      "label": "Songbird sends V to find five colours",
+      "know": "V is in Pacifica looking for five colours. You picked the list, and the fifth colour is the one you chose first.",
+      "wants": "V to find the colours, describe them, and say one honest thing about the last one.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [
+        {"p": "pin", "at": "spot"},
+        {"p": "place", "at": "spot"},
+        {"p": "place", "at": "colour-1"},
+        {"p": "place", "at": "colour-2"},
+        {"p": "place", "at": "colour-3"},
+        {"p": "place", "at": "colour-4"},
+        {"p": "place", "at": "colour-5"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "place:colour-5:arrived", "say": "SBH4.ask.01"},
+        {"when": "line:SBH4.ask.01:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
+        {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
+        {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "honest": {
+      "memory": "You found five colours around Pacifica for Songbird and told her one true thing about the magenta scrap.",
+      "bond": 8
+    },
+    "flattered": {
+      "memory": "You found five colours around Pacifica for Songbird and said something kind about the last one, without meaning it much.",
+      "bond": 4
+    },
+    "left": {
+      "memory": "You found a couple of colours around Pacifica for Songbird and went home before the list was done."
+    },
+    "stood-up": {
+      "memory": "You never went looking for the five colours in Pacifica, and Songbird sent nothing to the plaza."
+    }
+  }
+}

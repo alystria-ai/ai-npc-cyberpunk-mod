@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "id": "kerry-new-song",
+  "character": "kerry-eurodyne",
+  "title": "Something New",
+  "summary": "Kerry wrote his first song in years that is not a Samurai song, and he wants V to hear it first and tell him the truth.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": [
+      "quests/side_quest/sq017_kerry",
+      "quests/side_quest/sq028_kerry_romance"
+    ],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone", "holocall", "own"],
+    "chance": 0.35,
+    "bringUp": "You wrote something new, the first song in years that is not a Samurai song, and you hate how much you want V to hear it first. Bring it up in this reply, briefly, half joking, the way you hide that something matters."
+  },
+  "stages": [
+    {
+      "id": "text",
+      "label": "He wrote a new song",
+      "know": "Three nights ago you wrote a song at four in the morning: slow, ugly-beautiful, about outliving everyone. Nobody has heard it. Your manager would want it polished into a single, you want to know if it is any good before anyone gets near it.",
+      "wants": "V to come over and listen to it, at your villa or wherever V is.",
+      "say": {"en": "Wrote something. New, not Samurai. Don't make it weird. Come over and listen?"},
+      "text": {"when": "start", "line": {"en": "Wrote a thing. First new thing in years. You're hearing it first, don't make it weird."}},
+      "meet": {"where": "here", "inGameHours": 1},
+      "choices": [
+        {"id": "listen", "on": "tag", "kind": "yes", "means": "V says they want to hear it or will come over", "next": "listen"},
+        {"id": "met", "on": "meet:met", "next": "listen"},
+        {"id": "not-now", "on": "tag", "kind": "no", "means": "V says not now", "next": "later"}
+      ],
+      "timeout": {"gameHours": 24, "next": "later"}
+    },
+    {
+      "id": "listen",
+      "label": "He wants your honest opinion of it",
+      "know": "You played V the song, just you and a guitar. You are watching V's face harder than you have watched a crowd in thirty years.",
+      "wants": "V's honest opinion. You will know if V is only being nice.",
+      "say": {"en": "So. Say something. And if you're about to be nice, don't."},
+      "choices": [
+        {"id": "honest", "on": "tag", "kind": "honest", "means": "V gives an honest opinion, praise with substance or real criticism", "next": "rework"},
+        {"id": "nice", "on": "tag", "kind": "flatter", "means": "V is only polite or vague about it", "next": "doubt"}
+      ],
+      "timeout": {"gameHours": 6, "next": "doubt"}
+    },
+    {
+      "id": "rework",
+      "label": "He rewrote the song",
+      "know": "V told you the truth about the song. You took it badly for a minute, then you saw V was right. You have been rewriting the bridge since.",
+      "wants": "To tell V the song got better because of them, without getting sappy about it.",
+      "say": {"en": "Rewrote the bridge. You were right, which is annoying. It's going in the set."},
+      "text": {"when": "start", "line": {"en": "Rewrote the bridge. You were right, which is annoying. It's going in the set."}},
+      "next": "setlist"
+    },
+    {
+      "id": "doubt",
+      "label": "He put the song away",
+      "know": "V heard your song and was only nice about it. You do not know if it is good, and you have put it away for now.",
+      "wants": "Nothing about the song right now. You change the subject if it comes up.",
+      "say": {"en": "Yeah, you're just being nice. It's fine. It's going in the drawer."},
+      "next": "drawer"
+    },
+    {
+      "id": "later",
+      "label": "He sent you the song as a file",
+      "know": "V did not have time for your song. You sent it as a file instead, and told V to listen whenever.",
+      "wants": "To pretend you do not care whether V listened.",
+      "say": {"en": "Sent you the file. Whenever. No pressure. Seriously."},
+      "text": {"when": "start", "line": {"en": "Sent you the file. Whenever. No pressure. Seriously."}},
+      "next": "file"
+    }
+  ],
+  "endings": {
+    "setlist": {"memory": "V was the first to hear your new song and told you the truth about it, you rewrote the bridge and it made the setlist.", "bond": 80},
+    "drawer": {"memory": "V heard your new song first but was only polite about it, the song is still in a drawer.", "bond": 20},
+    "file": {"memory": "You sent V your new song as a file, you never heard what V thought of it.", "bond": 10}
+  }
+}

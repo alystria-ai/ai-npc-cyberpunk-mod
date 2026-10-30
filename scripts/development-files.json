@@ -154,6 +154,102 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/eddies.lua"
     },
     {
+      "source": "mod/bonds.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/bonds.lua"
+    },
+    {
+      "source": "mod/quest-world.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world.lua"
+    },
+    {
+      "source": "mod/quest-world-action.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-action.lua"
+    },
+    {
+      "source": "mod/quest-world-drive.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-drive.lua"
+    },
+    {
+      "source": "mod/quest-places.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-places.lua"
+    },
+    {
+      "source": "mod/quest-prims.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims.lua"
+    },
+    {
+      "source": "mod/quest-prims-action.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-action.lua"
+    },
+    {
+      "source": "mod/quest-prims-drive.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-drive.lua"
+    },
+    {
+      "source": "mod/quest-world-race.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-race.lua"
+    },
+    {
+      "source": "mod/quest-prims-race.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-race.lua"
+    },
+    {
+      "source": "mod/quest-prims-scene.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-scene.lua"
+    },
+    {
+      "source": "mod/quest-world-scene.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-scene.lua"
+    },
+    {
+      "source": "mod/quest-tweak.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-tweak.lua"
+    },
+    {
+      "source": "mod/quest-prims-systems.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-systems.lua"
+    },
+    {
+      "source": "mod/quest-world-systems.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-systems.lua"
+    },
+    {
+      "source": "mod/quest-prims-calls.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-calls.lua"
+    },
+    {
+      "source": "mod/quest-world-calls.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-calls.lua"
+    },
+    {
+      "source": "mod/quest-audio.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-audio.lua"
+    },
+    {
+      "source": "mod/quest-world-audio.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-audio.lua"
+    },
+    {
+      "source": "mod/quest-facts.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-facts.lua"
+    },
+    {
+      "source": "mod/quest-reach.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-reach.lua"
+    },
+    {
+      "source": "mod/quest-lines.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-lines.lua"
+    },
+    {
+      "source": "mod/quest-play.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-play.lua"
+    },
+    {
+      "source": "mod/quest-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-probe.lua"
+    },
+    {
       "source": "mod/companion-outfits.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
     },
@@ -533,6 +629,10 @@
     {
       "source": "mod/media-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
+    },
+    {
+      "source": "mod/phone-image-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-image-probe.lua"
     },
     {
       "source": "mod/talk-target.lua",

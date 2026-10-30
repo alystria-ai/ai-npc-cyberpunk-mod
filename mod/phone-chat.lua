@@ -147,10 +147,41 @@ local function save()
     if M.bucket then M.bucket.history, M.bucket.drafts, M.bucket.launch = M.history, M.drafts, M.launch end
     return write('runtime/phone-history.json', M.store)
 end
-local function append(contact, text, sent)
+-- The optional picture of a row (docs/PHONE_IMAGES.md): the .inkatlas of one picture in the optional picture archive (only the mod's own folder
+-- is accepted), the name of its part, and the size in pixels. Anything else is dropped, so a hand-edited phone-history.json cannot point a row
+-- at another resource. Returns a clean copy or nil.
+M.IMAGE_FOLDER = 'cyberpunk_convai\\phone_images\\'
+function M.cleanImage(value)
+    if type(value) ~= 'table' or type(value.atlas) ~= 'string' or type(value.part) ~= 'string' then return nil end
+    local key = value.atlas:match('^' .. M.IMAGE_FOLDER:gsub('%p', '%%%0') .. '([%l%d_]+)%.inkatlas$')
+    if not key or #key > 48 or not value.part:match('^[%l%d_]+$') or #value.part > 48 then return nil end
+    local width, height = math.floor(tonumber(value.width) or 0), math.floor(tonumber(value.height) or 0)
+    if width < 1 or width > 4096 or height < 1 or height > 4096 then return nil end
+    return {atlas = value.atlas, part = value.part, width = width, height = height}
+end
+local function append(contact, text, sent, image)
     local rows = M.history[contact] or {}; M.history[contact] = rows
-    rows[#rows + 1] = {text = text, sent = sent}
+    rows[#rows + 1] = {text = text, sent = sent, image = M.cleanImage(image)}
     M.dirty = true; save()
+end
+-- A message with a picture from a character (a scripted event, or the developer picture probe, docs/PHONE_IMAGES.md). The caption may be empty.
+-- False when the contact is unknown or the picture is not one the mod's folder can hold. Nothing here runs per frame.
+function M.deliverImage(contact, text, image)
+    local clean = M.cleanImage(image)
+    if not clean or not M.catalog[contact] or type(text) ~= 'string' or #text > 6000 then return false end
+    append(contact, text, false, clean)
+    return true
+end
+-- A fixed text a bond quest sends from a character (mod/quest-lines.lua, docs/QUEST_PRIMITIVES.md): a row of her thread, with a picture when `image` is one the
+-- mod's folder can hold (anything else makes it a plain text message, never an error). False when the character has no contact, is switched off, the saved
+-- chats are not loaded yet (the caller asks again) or the text is empty or too long. Nothing here runs per frame.
+function M.deliverScripted(profileKey, text, image)
+    if type(text) ~= 'string' or text == '' or #text > 6000 or M.bucket == nil then return false end
+    local contact = M.contactFor(profileKey)
+    if not contact then return false end
+    if M.manager and M.manager.profileEnabled and not M.manager.profileEnabled(profileKey) then return false end
+    append(contact, text, false, image)
+    return true, contact
 end
 local function publish(active)
     -- chatContact: the contact whose Chat is open, so the bridge can open that conversation while V types
@@ -502,7 +533,7 @@ local function selectBucket(value)
             for i = 1, #rows do
                 local row = rows[i]
                 if type(row) == 'table' and type(row.text) == 'string' and #row.text <= 6000 then
-                    table.insert(M.history[contact], {text = row.text, sent = row.sent == true})
+                    table.insert(M.history[contact], {text = row.text, sent = row.sent == true, image = M.cleanImage(row.image)})
                 end
             end
         end
@@ -798,6 +829,8 @@ function M.update(player, delta, phoneOpen)
             M.pending.meetOffer = capture(M.captureMeetOffer, submission.contact, key)
             -- Housemates (mod/housemates.lua): moving in at V's place or moving out, for a contact who may be invited.
             M.pending.homeOffer = capture(M.captureHomeOffer, submission.contact, key)
+            -- Character bonds (mod/bonds.lua): the block a typed message carries, nil while the setting is Off. Read once, when the message is sent.
+            M.pending.bonds = capture(M.captureBonds, key)
             M.sentAt = os.time()
             M.replyWaitSeconds = replyWait()
             M.errors[submission.contact] = nil
@@ -898,7 +931,9 @@ function M.update(player, delta, phoneOpen)
         local lines = {}
         for _, row in ipairs(historyReady and M.history[contact] or {}) do
             local line = NewObject('CyberpunkConvai.ConvaiPhoneChatLine')
-            line.text, line.sent = row.text, row.sent; lines[#lines + 1] = line
+            line.text, line.sent = row.text, row.sent
+            if row.image then line.imageAtlas, line.imagePart, line.imageWidth, line.imageHeight = row.image.atlas, row.image.part, row.image.width, row.image.height end
+            lines[#lines + 1] = line
         end
         local waiting = M.pending and (M.pending.contact == contact and 'Message sent. Waiting for reply.' or 'Waiting for your previous message to finish.') or ''
         local status = (M.errors or {})[contact] or waiting

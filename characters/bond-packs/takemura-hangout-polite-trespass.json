@@ -1,0 +1,68 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "takemura-hangout-polite-trespass",
+  "character": "takemura",
+  "title": "Polite Trespass",
+  "summary": "Takemura asks you to talk your way into a closed corporate garden in Vista del Rey, to stand under a cherry tree for five minutes.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Takemura proposes a cherry tree in a closed corporate garden, which he would like to see politely."
+  },
+  "places": {
+    "spot": {"name": "the closed garden terrace in Vista del Rey", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What is the last place you were unwelcome and stayed anyway?",
+      "know": "The corporate guard is watching you and Takemura under the cherry tree.",
+      "secret": "Most of his adult life.",
+      "wants": "A story.",
+      "idle": "lean",
+      "resumeAfterSeconds": 40
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 1,
+    "stoodUp": -5,
+    "variations": [
+      {"id": "bare-winter", "know": "The cherry tree is bare, and the terrace is cold.", "wants": "A quiet five minutes."},
+      {"id": "refused", "know": "The guard refuses at first, and you have to talk your way in.", "wants": "V to ask again, politely."},
+      {"id": "second-guard", "know": "A second guard is at the gate, and he does not bow.", "wants": "The first guard to stay on your side."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V and Takemura stand under the cherry tree",
+      "know": "You are on the closed garden terrace in Vista del Rey with Takemura. A corporate guard has let you stay under the tree for five minutes.",
+      "wants": "V to stay under the tree and be polite.",
+      "meet": {"where": "waypoint", "inGameHours": 2},
+      "do": [{"p": "place", "at": "spot"}],
+      "script": [{"when": "place:spot:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "done"},
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+      ]
+    }
+  ],
+  "endings": {
+    "done": {
+      "memory": "You talked your way into a closed corporate garden in Vista del Rey, and stood under a cherry tree while the guard brought you both tea.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You did not come to the corporate garden, and Takemura walked past the closed gate alone."
+    }
+  }
+}

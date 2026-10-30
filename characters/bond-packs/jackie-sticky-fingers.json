@@ -1,0 +1,199 @@
+{
+  "format": 2,
+  "id": "jackie-sticky-fingers",
+  "character": "jackie-welles",
+  "title": "Sticky Fingers",
+  "summary": "A kid lifts the gold cross Jackie never takes off at Kabuki Market, and Jackie goes after him over the stalls with you.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Jackie is at Kabuki Market with the bike, showing you the new hand-wrapped grips loudly, when a kid brushes past him and is gone. He reaches for his collar and finds the gold cross he never takes off is missing. He doesn't say what it means to him, and he doesn't have to. He goes after the kid over the stalls, and he asks you to come and admire the bike while you wait for him to take it back."
+  },
+  "places": {
+    "east": {"name": "the east entrance of Kabuki Market", "radius": 25},
+    "roof": {"name": "the rooftop walkway above Kabuki Market", "radius": 12},
+    "yard": {"name": "the back yard behind the market stalls", "radius": 8},
+    "fence": {"name": "the fence's stall in Little China", "radius": 8}
+  },
+  "lines": {
+    "JW2.open.01": {"text": "Look at these grips, hermano! Hand-wrapped. Took me three nights.", "emotion": "happy"},
+    "JW2.open.02": {"text": "Feel that? That's craftsmanship. Go on, tell me it's beautiful.", "emotion": "neutral"},
+    "JW2.stage.theft.01": {"text": "My cross! Hey! That little... Get back here!", "emotion": "angry"},
+    "JW2.bark.chase.a": {"text": "He's fast! Over the rail, choom!", "emotion": "emphatic"},
+    "JW2.bark.chase.b": {"text": "Kid knows the roofs. Don't lose him!", "emotion": "emphatic"},
+    "JW2.thief.01": {"text": "I'm hungry! I didn't think it was yours that important!", "emotion": "fear"},
+    "JW2.bark.deadend.a": {"text": "Dead end, mijo. Hand it over.", "emotion": "angry"},
+    "JW2.bark.deadend.b": {"text": "Got you. Easy. Nobody hurts you.", "emotion": "emphatic"},
+    "JW2.stage.catch.01": {"text": "Hey. Listen. When did you last eat? No, really.", "emotion": "neutral"},
+    "JW2.close.01": {"text": "Here's the cross. Go eat. Tell nobody I was soft.", "emotion": "nod"},
+    "JW2.close.02": {"text": "Good scare. Maybe he learns. Maybe not.", "emotion": "shrug"},
+    "JW2.close.03": {"text": "Ugh. Roughing up a kid. Not my best.", "emotion": "sad"},
+    "JW2.stage.listen.01": {"text": "Sit on her. Easy with the throttle. Listen to the engine first.", "emotion": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Seriously, what do you think? Beautiful or just fast?",
+      "know": "You are at the Kabuki Market east entrance with Jackie's bike parked beside you. A pickpocket is about to lift his cross while the crowd is busy.",
+      "secret": "The cross matters to him in a way he won't explain.",
+      "wants": "V to admire the bike.",
+      "idle": "lean",
+      "tags": [{"id": "admire", "kind": "flatter"}, {"id": "tease", "kind": "honest"}],
+      "resumeAfterSeconds": 180
+    },
+    "g2": {
+      "asks": "Do I let him go, hermano? Or do we teach him something harder?",
+      "know": "The kid is cornered, hungry and not a hardened thief, and the cross is in his hand. You can let him go, scare him or rough him up.",
+      "secret": "He sees himself at that age.",
+      "wants": "Your opinion before he decides.",
+      "idle": "jackie",
+      "tags": [{"id": "let-go", "kind": "yes"}, {"id": "scare", "kind": "no"}, {"id": "rough", "kind": "honest"}],
+      "resumeAfterSeconds": 240
+    }
+  },
+  "stages": [
+    {
+      "id": "show-off",
+      "type": "play",
+      "label": "Jackie shows V the grips at Kabuki Market",
+      "know": "You are at the Kabuki Market east entrance with Jackie and his bike. He is loud about the grips he wrapped himself, and he wants you to look at them properly.",
+      "wants": "V to admire the bike and the grips.",
+      "do": [
+        {"p": "pin", "at": "east"},
+        {"p": "place", "at": "east"},
+        {"p": "cast", "id": "jackie", "who": "self", "at": "east", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW2.open.01"},
+        {"when": "line:JW2.open.01:done", "say": "JW2.open.02"},
+        {"when": "line:JW2.open.02:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "admire", "on": "event:gap:g1:admire", "next": "lift"},
+        {"id": "tease", "on": "event:gap:g1:tease", "next": "lift"},
+        {"id": "resume", "on": "event:gap:g1:resume", "next": "lift"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lift"}
+    },
+    {
+      "id": "lift",
+      "type": "play",
+      "label": "V and Jackie chase the kid over the stalls",
+      "know": "The kid lifted your cross and runs over the stalls, up to the rooftop walkway, down into a back yard and toward a fence in Little China. You are running with Jackie, and he is shouting.",
+      "wants": "V to catch the kid before he reaches the fence.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "roof"},
+        {"p": "runner", "id": "kid", "route": ["east", "roof", "yard", "fence"], "caughtMetres": 4, "stoppedSeconds": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW2.stage.theft.01"},
+        {"when": "place:roof:arrived", "say": "JW2.bark.chase.a"},
+        {"when": "line:JW2.bark.chase.a:done", "say": "JW2.bark.chase.b"},
+        {"when": "runner:kid:stopped", "say": "JW2.thief.01"},
+        {"when": "line:JW2.thief.01:done", "say": "JW2.bark.deadend.a"},
+        {"when": "line:JW2.bark.deadend.a:done", "say": "JW2.bark.deadend.b"}
+      ],
+      "choices": [
+        {"id": "caught", "on": "event:runner:kid:caught", "next": "catch"},
+        {"id": "stopped", "on": "event:runner:kid:stopped", "next": "catch"},
+        {"id": "lost", "on": "event:runner:kid:lost", "next": "fenced"}
+      ],
+      "timeout": {"gameHours": 1, "next": "fenced"}
+    },
+    {
+      "id": "catch",
+      "type": "talk",
+      "label": "V decides what to do with the kid",
+      "know": "The kid is in front of you with your cross in his hand, hungry and scared. Jackie is waiting for your call on what happens to him.",
+      "wants": "V's decision on the kid.",
+      "script": [
+        {"when": "stage:enter", "say": "JW2.stage.catch.01"},
+        {"when": "line:JW2.stage.catch.01:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "let-go", "on": "event:gap:g2:let-go", "next": "listen"},
+        {"id": "scare", "on": "event:gap:g2:scare", "next": "scared-ending"},
+        {"id": "rough", "on": "event:gap:g2:rough", "next": "rough-ending"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "listen"}
+    },
+    {
+      "id": "listen",
+      "type": "play",
+      "label": "Jackie puts the cross back on and lets V sit on the bike",
+      "know": "Jackie has the cross back on his neck. He lets you sit on the bike for a few minutes and tells you to listen to the engine.",
+      "wants": "V to sit on the bike and listen to the engine.",
+      "do": [
+        {"p": "party"},
+        {"p": "seat"},
+        {"p": "together", "id": "ride", "minutes": 5, "metres": 5, "breakSeconds": 120, "seated": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW2.close.01"},
+        {"when": "line:JW2.close.01:done", "say": "JW2.stage.listen.01"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:ride:done", "next": "let-go"},
+        {"id": "left", "on": "event:together:ride:broken", "next": "let-go"}
+      ],
+      "timeout": {"gameHours": 1, "next": "let-go"}
+    },
+    {
+      "id": "fenced",
+      "type": "play",
+      "label": "V finds the cross at a fence's stall",
+      "know": "The kid got away and the cross ended up with a fence in Little China. The fence has it on a velvet cloth and wants a price for it. Jackie stands behind you and says nothing.",
+      "wants": "V to buy the cross back.",
+      "do": [
+        {"p": "place", "at": "fence"},
+        {"p": "cast", "id": "fence", "who": "the fence", "at": "fence"},
+        {"p": "pay", "id": "toll", "to": "fence", "amount": 400, "min": 200, "reason": "haggle"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:toll:paid", "next": "fenced-back"},
+        {"id": "declined", "on": "event:pay:toll:declined", "next": "lost"},
+        {"id": "short", "on": "event:pay:toll:short", "next": "lost"},
+        {"id": "broke", "on": "event:pay:toll:broke", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    }
+  ],
+  "endings": {
+    "let-go": {
+      "memory": "A kid lifted Jackie's gold cross at Kabuki Market, you chased him over the stalls, and Jackie let him go with a lecture and a meal.",
+      "bond": 55
+    },
+    "scared-ending": {
+      "memory": "A kid lifted Jackie's gold cross at Kabuki Market, and you chased him off with a scare.",
+      "bond": 45,
+      "script": [{"when": "ending:scared-ending", "say": "JW2.close.02"}]
+    },
+    "rough-ending": {
+      "memory": "A kid lifted Jackie's gold cross at Kabuki Market, and you roughed him up when you caught him. Jackie did not like it.",
+      "bond": 40,
+      "script": [{"when": "ending:rough-ending", "say": "JW2.close.03"}]
+    },
+    "fenced-back": {
+      "memory": "A kid lifted Jackie's gold cross at Kabuki Market, and you bought it back from a fence in Little China.",
+      "bond": 40
+    },
+    "lost": {
+      "memory": "The kid got away with Jackie's gold cross at Kabuki Market. Jackie says it's only a cross, and he wears a plain cord now.",
+      "bond": 10
+    },
+    "unfinished": {
+      "memory": "Somebody took Jackie's gold cross at Kabuki Market and you went after it with him, and you never knew how it ended.",
+      "bond": 0
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

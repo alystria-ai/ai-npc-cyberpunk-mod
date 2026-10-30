@@ -8,6 +8,7 @@ import fengari from 'fengari';
 // method is an error the module must survive (pcall), never a crash.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/immersive-world.lua', import.meta.url), 'utf8');
+const catalogSource = readFileSync(new URL('../mod/companion-vehicle-catalog.lua', import.meta.url), 'utf8');
 function run(body) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const program = fixture + body;
@@ -135,4 +136,31 @@ test('a road that is too far or has no path is no road, and the census is not as
   fake.road = {point = {x = 110, y = 200, z = 5}, pathLength = -1}
   result = here()
   assert(result.road == nil and result.roadWhy == 'no-path' and fake.queries == 0)
+`));
+
+// Her own car may be unavailable for a while (a story pack, mod/bonds.lua vehicleBlocked): she arrives on foot, and only a character who owns a car can lose it.
+test('a blocked personal car makes her walk; the ordinary car, an unblocked owner and an unknown hook do not', () => run(`
+  local realDofile = dofile
+  dofile = function(name)
+    if name == 'companion-vehicle-catalog.lua' then return (function() ${catalogSource} end)() end
+    return realDofile(name)
+  end
+  local blocked = {}
+  local defs = {panam = {id = 'Character.Panam'}, judy = {id = 'Character.Judy'}, rita = {id = 'Character.Rita'}}
+  local companions = {definition = function(key) return defs[key] end, findCarSpot = function() return nil, 'none' end,
+    vehicleBlocked = function(profileKey) return blocked[profileKey] == true end}
+  local w = World.new({companions = companions})
+  local catalog = (function() ${catalogSource} end)()
+  assert(w.carBlocked({key = 'panam'}) == false and w.carChoice({key = 'panam'}).name == "Panam's truck")
+  blocked['panam-palmer'] = true
+  assert(w.carBlocked({key = 'panam'}) == true, 'her truck is not available')
+  assert(w.carChoice({key = 'panam'}) == catalog.fallback or w.carChoice({key = 'panam'}).record == catalog.fallback.record, 'and if asked anyway, it is not her truck')
+  assert(w.carBlocked({key = 'judy'}) == false and w.carChoice({key = 'judy'}).name == "Judy's van", 'another owner')
+  blocked['rita-wheeler'] = true
+  assert(w.carBlocked({key = 'rita'}) == false, 'a character with no personal car has nothing to lose: she arrives in the ordinary car')
+  assert(w.carBlocked({key = 'nobody'}) == false)
+  companions.vehicleBlocked = function() error('boom') end
+  assert(w.carBlocked({key = 'panam'}) == false, 'a raising hook blocks nothing')
+  companions.vehicleBlocked = nil
+  assert(w.carBlocked({key = 'panam'}) == false and w.carChoice({key = 'panam'}).name == "Panam's truck", 'no hook: nothing is blocked')
 `));

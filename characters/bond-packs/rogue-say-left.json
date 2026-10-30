@@ -1,0 +1,168 @@
+{
+  "format": 2,
+  "id": "rogue-say-left",
+  "character": "rogue-amendiares",
+  "title": "Say Left",
+  "summary": "Rogue hands V the keys to her Type-66 and gives directions only, through the city she used to know, to the water.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You want V to drive your car tonight, with no map and no destination, and you will give the directions yourself. Bring up, briefly and in your own way, that you need a driver you trust."
+  },
+  "places": {
+    "curb": {"name": "the Afterlife curb", "radius": 8},
+    "cp-1": {"name": "the first junction out of Westbrook", "radius": 25},
+    "cp-2": {"name": "the tree-lined avenue", "radius": 25},
+    "cp-3": {"name": "the old shopfront street", "radius": 25},
+    "cp-4": {"name": "the row of shuttered doors", "radius": 25},
+    "cp-5": {"name": "the last turn before the water", "radius": 25},
+    "rail": {"name": "the Watson waterfront lot above the water", "radius": 25}
+  },
+  "images": {
+    "say-left-dash": {"file": "images/say-left-dash.png", "width": 1024, "height": 576},
+    "say-left-water": {"file": "images/say-left-water.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R4.open.01": {"text": "Here. Keys. Don't make a thing of it.", "emotion": "neutral"},
+    "R4.open.02": {"text": "I haven't been a passenger in years. You drive. I'll tell you where.", "emotion": "neutral"},
+    "R4.open.03": {"text": "No map. No questions. Just left and right.", "emotion": "emphatic"},
+    "R4.stage.route.01": {"text": "Left. At the light.", "emotion": "neutral"},
+    "R4.stage.route.02": {"text": "The city used to have more trees. Right.", "emotion": "neutral"},
+    "R4.stage.route.03": {"text": "Johnny drove like he owned the road. Left here.", "emotion": "angry"},
+    "R4.stage.route.04": {"text": "I notice the doors now. Who's behind them. Next.", "emotion": "neutral"},
+    "R4.stage.route.04b": {"text": "Funny. Me neither. Until tonight.", "emotion": "sad"},
+    "R4.stage.route.05": {"text": "Right. Then keep going.", "emotion": "neutral"},
+    "R4.stage.rail.01": {"text": "Stop. Here. Get out.", "emotion": "neutral"},
+    "R4.stage.rail.02": {"text": "I come here when the Afterlife gets loud. Water doesn't ask.", "emotion": "neutral"},
+    "R4.stage.rail.03": {"text": "Rain. Good. It takes the noise out of my head. Stand in it.", "emotion": "nod"},
+    "R4.stage.rail.04": {"text": "Clear night. You can almost see stars through the haze. Almost.", "emotion": "nod"},
+    "R4.close.01": {"text": "Good answer. Take me back. I'll drive this time.", "emotion": "nod"},
+    "R4.close.02": {"text": "You drove it well. Don't tell anyone.", "emotion": "nod"},
+    "R4.close.03": {"text": "You pulled out early. Fine. The quiet's still there.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You ever let someone else steer? Really? For a night?",
+      "know": "You have handed V the keys to your Quadra Type-66. You give directions only, the route is hidden, and the heat must stay at zero for about 25 game minutes.",
+      "secret": "You have not handed your keys to anyone you trusted in years.",
+      "wants": "V to take the wheel without commentary.",
+      "idle": "lean",
+      "tags": [{"id": "take", "kind": "yes"}, {"id": "warm", "kind": "flatter"}, {"id": "dry", "kind": "honest"}],
+      "resumeAfterSeconds": 180
+    },
+    "g2": {
+      "asks": "Do you have anyone you'd hand your keys to? Honestly?",
+      "know": "V is driving, rain or clear, and you are a passenger. The route is partly done, and the answer tells you whether you trust V with something larger.",
+      "secret": "The answer tells you whether you trust V with something larger.",
+      "wants": "An honest answer, not a speech.",
+      "idle": "arms-crossed",
+      "tags": [{"id": "name", "kind": "honest"}, {"id": "nobody", "kind": "no"}],
+      "resumeAfterSeconds": 240
+    },
+    "g3": {
+      "asks": "What do you do when the city gets too loud? Where do you go?",
+      "know": "You are at the waterfront lot above the water, about 5 game minutes at the rail. You do not smoke or drink in this scene, and this is where you go after bad nights.",
+      "secret": "This is where you go after bad nights, and you never say why.",
+      "wants": "V to answer simply.",
+      "idle": "lean",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "keys",
+      "type": "play",
+      "label": "Rogue hands V the keys at the Afterlife curb",
+      "know": "V is at the Afterlife curb. You give V the keys to your Quadra Type-66 and you will sit beside V. You downplay it, and you do not say why you chose tonight.",
+      "wants": "V to take the keys and drive.",
+      "do": [
+        {"p": "pin", "at": "curb"},
+        {"p": "place", "at": "curb"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "curb"}
+      ],
+      "script": [
+        {"when": "place:curb:arrived", "say": "R4.open.01"},
+        {"when": "line:R4.open.01:done", "say": "R4.open.02"},
+        {"when": "line:R4.open.02:done", "say": "R4.open.03"},
+        {"when": "line:R4.open.03:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "drive", "on": "event:gap:g1:resume", "next": "route"}],
+      "timeout": {"gameHours": 1, "next": "short"}
+    },
+    {
+      "id": "route",
+      "type": "play",
+      "label": "V drives Rogue's route through the changed city",
+      "know": "V drives the Type-66 to the water on a hidden route. You give directions at each junction and say nothing else. The heat must stay at zero, and about 25 game minutes is the target.",
+      "wants": "V to follow the directions to the water, quietly.",
+      "do": [
+        {"p": "place", "at": "rail"},
+        {"p": "ride", "to": "rail", "checkpoints": ["cp-1", "cp-2", "cp-3", "cp-4", "cp-5"], "limitMinutes": 25, "heat": true, "hidden": true}
+      ],
+      "script": [
+        {"when": "ride:checkpoint:cp-1", "say": "R4.stage.route.01"},
+        {"when": "ride:checkpoint:cp-2", "say": "R4.stage.route.02"},
+        {"when": "ride:checkpoint:cp-3", "text": "R4.stage.route.03", "image": "say-left-dash"},
+        {"when": "line:R4.stage.route.03:done", "gap": "g2"},
+        {"when": "gap:g2:nobody", "say": "R4.stage.route.04b"},
+        {"when": "ride:checkpoint:cp-4", "say": "R4.stage.route.04"},
+        {"when": "ride:checkpoint:cp-5", "say": "R4.stage.route.05"}
+      ],
+      "choices": [{"id": "water", "on": "event:place:rail:arrived", "next": "rail-stop"}],
+      "timeout": {"gameHours": 1, "next": "short"}
+    },
+    {
+      "id": "rail-stop",
+      "type": "play",
+      "label": "Rogue stops V at the rail above the water",
+      "know": "You say stop at the Watson waterfront lot above the water. The car radio stays off. You will read the weather and the hour, and you will stand at the rail with V for 5 game minutes.",
+      "wants": "V to stand at the rail with you while the weather plays out.",
+      "do": [
+        {"p": "place", "at": "rail"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "rail"},
+        {"p": "check", "id": "weather", "what": "weather", "now": true},
+        {"p": "workspot", "id": "lean-rail", "who": "rogue", "at": "rail", "key": "rail"}
+      ],
+      "script": [
+        {"when": "place:rail:arrived", "say": "R4.stage.rail.01"},
+        {"when": "stage:enter", "say": "R4.stage.rail.02"},
+        {"when": "check:weather:rain", "text": "R4.stage.rail.03", "image": "say-left-water"},
+        {"when": "check:weather:clear", "text": "R4.stage.rail.04", "image": "say-left-water"},
+        {"when": "line:R4.stage.rail.02:done", "gap": "g3"}
+      ],
+      "choices": [{"id": "rail-done", "on": "event:gap:g3:resume", "next": "chauffeur-home"}],
+      "timeout": {"gameHours": 1, "next": "chauffeur-home"}
+    },
+    {
+      "id": "chauffeur-home",
+      "type": "talk",
+      "label": "Rogue takes the wheel and drives V home",
+      "know": "You take the wheel and drive V home. You will not explain the drive, and you are glad it was quiet.",
+      "wants": "V to ride home without a word about the drive.",
+      "script": [{"when": "stage:enter", "say": "R4.close.01"}],
+      "timeout": {"gameHours": 1, "next": "drive-back"}
+    }
+  ],
+  "endings": {
+    "drive-back": {
+      "memory": "You drove Rogue's Type-66 where she told you to, and she stood at the water for one song and said nothing.",
+      "history": "Rogue calls the drive left when she talks about the night she let someone else steer.",
+      "bond": 55,
+      "script": [
+        {"when": "ending:drive-back", "say": "R4.close.02"}
+      ]
+    },
+    "short": {
+      "memory": "You pulled out of Rogue's drive early, and she let you go with a dry word.",
+      "bond": 25,
+      "script": [{"when": "ending:short", "say": "R4.close.03"}]
+    }
+  }
+}

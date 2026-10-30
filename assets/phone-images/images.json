@@ -1,0 +1,17 @@
+{
+  "folder": "cyberpunk_convai\\phone_images",
+  "images": [
+    {
+      "key": "card_wide",
+      "png": "card-wide.png",
+      "width": 1024,
+      "height": 576
+    },
+    {
+      "key": "card_tall",
+      "png": "card-tall.png",
+      "width": 576,
+      "height": 1024
+    }
+  ]
+}

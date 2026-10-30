@@ -1,0 +1,194 @@
+{
+  "format": 2,
+  "id": "johnny-street-poll",
+  "character": "johnny-silverhand",
+  "title": "What They Say About Me",
+  "summary": "Johnny bets V that nobody remembers him right, and V asks three strangers in three districts who he was.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
+    "notActive": ["quests/main_quest/act_01/q101", "quests/main_quest/act_01/q108", "quests/side_quest/sq011"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.5,
+    "bringUp": "You want to know what is left of you in this city, and you cannot ask it yourself. Bring up, in your own way, a bet: three strangers in three districts, each asked who Johnny Silverhand was, and V never says whose head is listening. Say it grumpy, as if it were nothing."
+  },
+  "places": {
+    "watson": {"name": "a street in Watson, Kabuki or Little China", "radius": 25, "district": "Watson"},
+    "city-center": {"name": "the Corpo Plaza side of City Center", "radius": 25, "district": "City Center"},
+    "westbrook": {"name": "a nightlife street in Westbrook, near Japantown", "radius": 25, "district": "Westbrook"},
+    "wall": {"name": "the Kabuki wall set with the gig posters", "radius": 12, "district": "Watson"}
+  },
+  "images": {
+    "poll-wall": {"file": "images/poll-wall.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SH1.open.01": {"text": "You ever wonder what this city says about me when I'm not in the room?", "emotion": "neutral"},
+    "SH1.open.02": {"text": "Don't answer. I'll tell you. Nothing. They kept the shirt and forgot the man.", "emotion": "emphatic"},
+    "SH1.open.03": {"text": "So here's a bet. Three strangers, three districts. Ask each one who Johnny Silverhand was.", "emotion": "neutral"},
+    "SH1.open.04": {"text": "You don't say why you're asking. And you don't say who's listening.", "emotion": "emphatic"},
+    "SH1.open.05": {"text": "Good. Start wherever. I'll keep score, and I cheat.", "emotion": "nod"},
+    "SH1.open.06": {"text": "Coward. Fine. Offer stands, and so does what I'll say about you.", "emotion": "angry"},
+    "SH1.bark.answer.a": {"text": "Huh. So that's the shirt crowd's version.", "emotion": "disgust"},
+    "SH1.bark.answer.b": {"text": "Not wrong. Not right. Next.", "emotion": "shrug"},
+    "SH1.bark.third.a": {"text": "That's three. Now let me tell you how badly I lost.", "emotion": "neutral"},
+    "SH1.bark.third.b": {"text": "Three for three. Come on, give me the verdict.", "emotion": "neutral"},
+    "SH1.close.01": {"text": "A moustache on my face on a Kabuki wall. Fifty years of fame and that's the review.", "emotion": "disgust"},
+    "SH1.close.02": {"text": "But that one kid knew every word. Don't tell anyone I said that.", "emotion": "nod"},
+    "SH1.wall.caption": {"text": "Someone gave me a moustache. Fix that.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You in? And before you answer, what do you think they'll say?",
+      "know": "Johnny bet you that nobody remembers him right. Three kinds of ordinary people, three districts: a street resident in Watson, a corporate worker in City Center, a nightlife person in Westbrook. You never say whose head is listening, and you have seen his 2023 memory of the tower.",
+      "secret": "He is more afraid they will remember him right than wrong.",
+      "wants": "V to take the bet.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    }
+  },
+  "stages": [
+    {
+      "id": "bet",
+      "type": "talk",
+      "label": "Johnny lays out the bet",
+      "know": "Johnny is walking beside you with his arms folded, grumpy and sure of himself. He wants proof that the city remembers him wrong, and he has picked three kinds of people to ask. He is more interested in the answer than he will admit.",
+      "wants": "V to take the bet and go ask the three strangers.",
+      "script": [
+        {"when": "stage:enter", "say": "SH1.open.01"},
+        {"when": "line:SH1.open.01:done", "say": "SH1.open.02"},
+        {"when": "line:SH1.open.02:done", "say": "SH1.open.03"},
+        {"when": "line:SH1.open.03:done", "say": "SH1.open.04"},
+        {"when": "line:SH1.open.04:done", "gap": "g1"},
+        {"when": "gap:g1:in", "say": "SH1.open.05"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "poll-watson"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "not-asked"}
+      ],
+      "timeout": {"gameHours": 6, "next": "not-asked"}
+    },
+    {
+      "id": "poll-watson",
+      "type": "play",
+      "label": "Ask a street resident in Watson",
+      "know": "You bet V that nobody remembers you right. V is in Watson now, to ask a street resident who you were. V must not say who is asking.",
+      "wants": "V to ask a street resident in Watson.",
+      "do": [
+        {"p": "pin", "at": "watson"},
+        {"p": "place", "at": "watson", "dwell": 60}
+      ],
+      "script": [
+        {"when": "place:watson:arrived", "say": "SH1.bark.answer.a", "bark": true}
+      ],
+      "choices": [{"id": "watson", "on": "event:place:watson:arrived", "next": "poll-city"}],
+      "timeout": {"gameHours": 24, "next": "quit"}
+    },
+    {
+      "id": "poll-city",
+      "type": "play",
+      "label": "Ask a corporate worker in City Center",
+      "know": "You bet V that nobody remembers you right. The first answer from Watson is in. V is heading to City Center to ask a corporate worker who you were.",
+      "wants": "V to ask a corporate worker at Corpo Plaza.",
+      "do": [
+        {"p": "pin", "at": "city-center"},
+        {"p": "place", "at": "city-center", "dwell": 60}
+      ],
+      "script": [
+        {"when": "place:city-center:arrived", "say": "SH1.bark.answer.b", "bark": true}
+      ],
+      "choices": [{"id": "city", "on": "event:place:city-center:arrived", "next": "poll-westbrook"}],
+      "timeout": {"gameHours": 24, "next": "quit"}
+    },
+    {
+      "id": "poll-westbrook",
+      "type": "play",
+      "label": "Ask a nightlife person in Westbrook",
+      "know": "You bet V that nobody remembers you right. Two answers are in. V is heading to Westbrook to ask a nightlife person, the kind who bought the records and paid the tab.",
+      "wants": "V to ask a nightlife person in Westbrook.",
+      "do": [
+        {"p": "pin", "at": "westbrook"},
+        {"p": "place", "at": "westbrook", "dwell": 60}
+      ],
+      "choices": [{"id": "westbrook", "on": "event:place:westbrook:arrived", "next": "tally"}],
+      "timeout": {"gameHours": 24, "next": "quit"}
+    },
+    {
+      "id": "tally",
+      "type": "talk",
+      "label": "Johnny scores the three answers",
+      "know": "V has asked all three kinds of people. You score their answers like a critic. You are bad at winning a bet and worse at losing one, and you want to hear which answer came closest.",
+      "wants": "V to say which answer was closest to the truth, or that all three were wrong in the same way.",
+      "script": [
+        {"when": "stage:enter", "say": "SH1.bark.third.a", "bark": true},
+        {"when": "line:SH1.bark.third.a:done", "say": "SH1.bark.third.b", "bark": true}
+      ],
+      "choices": [
+        {"id": "fair", "on": "tag", "means": "V says which answer was closest to the truth", "kind": "yes", "next": "close-fair"},
+        {"id": "harsh", "on": "tag", "means": "V says all three answers were wrong in the same way", "kind": "no", "next": "close"}
+      ],
+      "timeout": {"gameHours": 6, "next": "close"}
+    },
+    {
+      "id": "close",
+      "type": "play",
+      "label": "Johnny waits for V at the Kabuki wall",
+      "know": "The poll is over and you are still angry about the moustache. Next time V is at the Kabuki wall, you want V to see your own face on it.",
+      "wants": "V to pass the Kabuki wall set.",
+      "do": [
+        {"p": "place", "at": "wall"}
+      ],
+      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall"}],
+      "timeout": {"gameHours": 6, "next": "wall"}
+    },
+    {
+      "id": "close-fair",
+      "type": "play",
+      "label": "Johnny waits for V at the Kabuki wall",
+      "know": "The poll is over. One of the answers had you right, and you admitted it to V. You want V to see the wall where the poll started.",
+      "wants": "V to pass the Kabuki wall set.",
+      "do": [
+        {"p": "place", "at": "wall"}
+      ],
+      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall-fair"}],
+      "timeout": {"gameHours": 6, "next": "wall-fair"}
+    }
+  ],
+  "endings": {
+    "wall": {
+      "memory": "You asked three strangers who Johnny Silverhand was and told him the truth about what they said.",
+      "history": "Johnny still calls the three answers from three districts 'the poll'.",
+      "bond": 45,
+      "script": [
+        {"when": "ending:wall", "text": "SH1.wall.caption", "image": "poll-wall"},
+        {"when": "ending:wall", "say": "SH1.close.01"},
+        {"when": "ending:wall", "say": "SH1.close.02"}
+      ]
+    },
+    "wall-fair": {
+      "memory": "You asked three strangers who Johnny Silverhand was and told him the truth about what they said, and he admitted one of them had him right.",
+      "history": "Johnny still calls the three answers from three districts 'the poll', and he once admitted one of them had him right.",
+      "bond": 55,
+      "script": [
+        {"when": "ending:wall-fair", "text": "SH1.wall.caption", "image": "poll-wall"},
+        {"when": "ending:wall-fair", "say": "SH1.close.01"},
+        {"when": "ending:wall-fair", "say": "SH1.close.02"}
+      ]
+    },
+    "quit": {
+      "memory": "You gave up on Johnny's poll before the three answers came in.",
+      "bond": 10
+    },
+    "not-asked": {
+      "memory": "You said no to Johnny's bet, and he called you a coward.",
+      "bond": -5,
+      "script": [
+        {"when": "ending:not-asked", "say": "SH1.open.06"}
+      ]
+    }
+  }
+}

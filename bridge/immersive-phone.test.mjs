@@ -76,6 +76,33 @@ submission={contact='judy',text='hi again'}; update()
 assert(request().meetOffer==nil)
 `));
 
+// Character bonds (mod/bonds.lua): the block a typed Phone Chat message carries in the request file, read once when the message is sent.
+test('a typed message carries the bonds block the game captured, nothing when there is none, and a text she sends herself carries none', () => runLua(setup + `
+update(); submission={contact='judy',text='Hello'}; update()
+assert(m.pending and m.pending.bonds==nil and request().bonds==nil, 'no hook: the request is as before')
+reply({state='reply',text='Hey V'}); update()
+local asked={}
+m.captureBonds=function(key) asked[#asked+1]=key; return {version=1,on=true,packs=true,invitations=true,busy=true} end
+submission={contact='judy',text='what are you up to'}; update()
+assert(asked[1]=='judy-alvarez' and #asked==1, 'asked once, when the message is sent')
+local block=request().bonds
+assert(block.version==1 and block.on==true and block.packs==true and block.invitations==true and block.busy==true and block.copy==nil)
+for i=1,3 do m.update(player,0) end
+assert(#asked==1, 'not again while the request waits (the file is rewritten every few seconds)')
+reply({state='reply',text='Not much'}); update()
+m.captureBonds=function() return nil end
+submission={contact='judy',text='ok'}; update()
+assert(request().bonds==nil)
+m.captureBonds=function() error('boom') end
+reply({state='reply',text='ok'}); update()
+submission={contact='judy',text='still there?'}; update()
+assert(m.pending and request().bonds==nil, 'a raising hook costs the message nothing')
+reply({state='reply',text='yes'}); update()
+m.captureBonds=function() return {version=1,on=true} end
+assert(m.sendEvent(item)==true); update()
+assert(m.pending.event and request().bonds==nil, 'a text she sends on her own is not a turn of V')
+`));
+
 test('the bridge answer reaches the game only for a message that carried an offer, with the contact and profile', () => runLua(setup + `
 local got={}
 m.onMeetAction=function(profileKey,action,c) got[#got+1]={profileKey,action.kind,action.token,c} end

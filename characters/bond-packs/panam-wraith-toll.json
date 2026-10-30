@@ -1,0 +1,199 @@
+{
+  "format": 2,
+  "id": "panam-wraith-toll",
+  "character": "panam-palmer",
+  "title": "The Wraith Toll",
+  "summary": "Panam wants to know how many Wraiths hold the old highway toll and whether they bluff, so she covers V from the ridge while V talks to them.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "The Wraiths have put a burned bus across the old highway south of Rocky Ridge and charge every Aldecaldo run to pass. You want to know how many there are and whether they bluff, without a clan war. Bring up, in your own way, that V should drive up and talk while you cover from the ridge."
+  },
+  "places": {
+    "meet": {"name": "the meeting spot south of Rocky Ridge", "radius": 25},
+    "barricade": {"name": "the burned bus across the old highway south of Rocky Ridge", "radius": 25},
+    "ridge": {"name": "the ridge 80 m off the old highway, where Panam lies prone", "radius": 12},
+    "sunset": {"name": "the Sunset Motel forecourt in Rocky Ridge", "radius": 25}
+  },
+  "lines": {
+    "P2.call.01": {"text": "V. Wraiths put a bus across the old highway. They're charging our runs to pass.", "emotion": "angry", "gesture": "panam", "channel": "holocall"},
+    "P2.call.02": {"text": "I don't want a war. I want to know how many and whether they bluff.", "emotion": "emphatic", "gesture": "talk", "channel": "holocall"},
+    "P2.call.03": {"text": "Here's how. You drive up and talk. I lie on the ridge with my rifle.", "emotion": "neutral", "gesture": "describe", "channel": "holocall"},
+    "P2.call.04": {"text": "Good. Meet me south of Rocky Ridge. And V, don't be charming, be boring.", "emotion": "happy", "gesture": "nod", "channel": "holocall"},
+    "P2.post.01": {"text": "I'm set. I see four. The one by the wheel is twitchy.", "emotion": "neutral", "gesture": "post", "channel": "remote"},
+    "P2.post.02": {"text": "Slow. Hands where they can see them. I've got you.", "emotion": "fear", "channel": "remote"},
+    "P2.toll.01": {"text": "They're packing up. You talked Wraiths off a road. Unbelievable.", "emotion": "surprise", "channel": "remote"},
+    "P2.toll.02": {"text": "Money's money, I guess. They'll be back for more.", "emotion": "sad", "channel": "remote"},
+    "P2.toll.03": {"text": "That's it, they're drawing. Get down, I'm shooting.", "emotion": "angry", "channel": "remote"},
+    "P2.toll.04a": {"text": "Clear. Clear! Damn, that felt good.", "emotion": "happy", "channel": "remote"},
+    "P2.toll.04b": {"text": "That's all of them. You hit?", "emotion": "fear", "channel": "remote"},
+    "P2.toll.05": {"text": "Car coming from the south. More of them.", "emotion": "fear", "channel": "remote"},
+    "P2.ran.01": {"text": "You left me on a ridge with six Wraiths below. We'll talk.", "emotion": "angry", "channel": "remote"},
+    "P2.debrief.01": {"text": "Drive. I'll tell you everything you did wrong on the way.", "emotion": "happy"},
+    "P2.debrief.02": {"text": "...Fine, you didn't do much wrong. Don't tell Mitch I said that.", "emotion": "shrug"}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "P2.call.01",
+      "steps": [
+        {"say": "P2.call.01"},
+        {"say": "P2.call.02"},
+        {"say": "P2.call.03"},
+        {"gap": "g1"},
+        {"say": "P2.call.04"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You in, or do you want to tell me how you'd do it?",
+      "know": "Four Wraiths hold a burned bus across the old highway south of Rocky Ridge, and they charge Aldecaldo runs to pass. You have a plan in steps, and you want no war.",
+      "secret": "You already promised Mitch that nobody gets hurt.",
+      "wants": "V's yes.",
+      "idle": "panam",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "loud", "kind": "honest"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "plan",
+      "type": "play",
+      "label": "Panam lays out the toll plan on the radio",
+      "know": "You have a toll on the old highway south of Rocky Ridge in your sights. Four Wraiths hold a burned bus across the road and charge Aldecaldo runs to pass. You want to know how many there are and whether they bluff before anyone starts a clan war. Your plan: V drives up and talks while you lie on the ridge with your rifle.",
+      "wants": "V to say yes to the plan, or to refuse it.",
+      "do": [
+        {"p": "pin", "at": "meet"},
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "toll"},
+        {"id": "loud", "on": "event:gap:g1:loud", "next": "toll"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "pass"}
+      ],
+      "timeout": {"gameHours": 4, "next": "pass"}
+    },
+    {
+      "id": "toll",
+      "type": "play",
+      "label": "Panam covers V from the ridge at the toll",
+      "know": "V is at the burned bus on the old highway. You are prone on the ridge, 80 m off, with your rifle, and you speak only through the radio. The four Wraiths at the bus are relaxed until someone provokes them, and their boss waits to see what V offers.",
+      "wants": "V to talk the boss into leaving, or to pay the toll.",
+      "do": [
+        {"p": "place", "at": "barricade"},
+        {"p": "post", "id": "ridge", "at": "ridge", "stance": "prone", "fightFrom": true},
+        {"p": "squad", "id": "wraiths", "at": "barricade", "faction": "wraiths", "count": 4, "hostile": false, "waves": [{"after": 30, "count": 2}]},
+        {"p": "cast", "id": "boss", "who": "archetype", "archetype": "wraiths", "at": "barricade"},
+        {"p": "npc-react", "id": "react", "cast": "boss"},
+        {"p": "pay", "id": "toll", "to": "boss", "amount": 1000, "min": 500, "reason": "toll"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P2.post.01"},
+        {"when": "place:barricade:arrived", "say": "P2.post.02"},
+        {"when": "npc:react:leave", "say": "P2.toll.01"},
+        {"when": "npc:react:cower", "event": "npc:react:leave"},
+        {"when": "pay:toll:paid", "say": "P2.toll.02"},
+        {"when": "squad:wraiths:hostile", "say": "P2.toll.03"},
+        {"when": "squad:wraiths:down", "say": "P2.toll.04a"},
+        {"when": "squad:wraiths:wave2", "say": "P2.toll.05"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:toll:paid", "next": "debrief-paid"},
+        {"id": "bluffed", "on": "event:npc:react:leave", "next": "debrief-bluff"},
+        {"id": "cleared", "on": "event:squad:wraiths:down", "next": "debrief-clear"},
+        {"id": "ran", "on": "event:place:barricade:left", "next": "ran"}
+      ],
+      "timeout": {"gameHours": 3, "next": "pass"}
+    },
+    {
+      "id": "debrief-bluff",
+      "type": "play",
+      "label": "Panam rides back to the Sunset Motel",
+      "know": "The Wraiths left the old highway without a shot. You came down off the ridge and got into V's car, and you are already listing everything V did wrong. V talked the toll off the road.",
+      "wants": "V to drive you back to the Sunset Motel.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "sunset"},
+        {"p": "place", "at": "sunset"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P2.debrief.01"},
+        {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
+      ],
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "bluffed"}],
+      "timeout": {"gameHours": 4, "next": "bluffed"}
+    },
+    {
+      "id": "debrief-paid",
+      "type": "play",
+      "label": "Panam rides back after the toll was paid",
+      "know": "V paid the Wraiths' toll so nobody got shot, and you are not sure that was right. You came down off the ridge and got into V's car. You wonder whether the Wraiths will be back.",
+      "wants": "V to drive you back to the Sunset Motel.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "sunset"},
+        {"p": "place", "at": "sunset"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P2.debrief.01"},
+        {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
+      ],
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "paid"}],
+      "timeout": {"gameHours": 4, "next": "paid"}
+    },
+    {
+      "id": "debrief-clear",
+      "type": "play",
+      "label": "Panam rides back after the fight",
+      "know": "The Wraith toll is cleared. You shot from the ridge and V held the road, and the adrenaline has not left you. You came down off the ridge and got into V's car.",
+      "wants": "V to drive you back to the Sunset Motel.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "sunset"},
+        {"p": "place", "at": "sunset"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P2.debrief.01"},
+        {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
+      ],
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "cleared"}],
+      "timeout": {"gameHours": 4, "next": "cleared"}
+    }
+  ],
+  "endings": {
+    "bluffed": {
+      "memory": "You talked the Wraiths off the old highway while Panam covered you from the ridge, and not one shot was fired.",
+      "bond": 55
+    },
+    "cleared": {
+      "memory": "You and Panam cleared the Wraith toll on the old highway, her from the ridge and you on the road.",
+      "bond": 50,
+      "script": [{"when": "ending:cleared", "say": "P2.toll.04b"}]
+    },
+    "paid": {
+      "memory": "You paid the Wraiths' toll so nobody got shot, and you are not sure that was right.",
+      "bond": 35
+    },
+    "ran": {
+      "memory": "You left Panam on the ridge with the Wraiths coming up the road, and she is angry about it.",
+      "bond": 5,
+      "script": [{"when": "ending:ran", "say": "P2.ran.01"}]
+    },
+    "pass": {
+      "memory": "You refused to cover Panam's toll run, so she went with Mitch instead and mentioned it.",
+      "bond": 0
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "format": 2,
+  "id": "jackie-drink",
+  "character": "jackie-welles",
+  "title": "The Drink with My Name",
+  "summary": "Jackie rehearses his entrance to the Afterlife, poses for a photo, and asks you to help name the drink he will one day order.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q004_braindance"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie is outside the Afterlife in Little China, staring at the door. He wants to rehearse the entrance he will make when he is a legend, and he asks you to be the crowd."
+  },
+  "places": {
+    "door": {"name": "the front door of the Afterlife in Little China", "radius": 10},
+    "stairs": {"name": "the stairs up to the booths in the Afterlife", "radius": 8},
+    "bar": {"name": "the bar in the Afterlife", "radius": 10}
+  },
+  "lines": {
+    "JW5.open.01": {"text": "There it is. The Afterlife. In a year they'll be chanting my name at that door.", "emotion": "happy"},
+    "JW5.open.02": {"text": "I want to rehearse. The walk. The nod. The tilt of the chin.", "emotion": "emphatic"},
+    "JW5.open.03": {"text": "You're the crowd. Cheer or heckle, but be honest.", "emotion": "neutral"},
+    "JW5.stage.entrance.01": {"text": "Here we go. Chin up. Don't smile, they hate that.", "emotion": "emphatic"},
+    "JW5.stage.entrance.02": {"text": "Up the stairs. Slow. Let the booths look.", "emotion": "nod"},
+    "JW5.stage.entrance.03": {"text": "And the bar. That's where legends order. How'd it look?", "emotion": "neutral"},
+    "JW5.bark.cheer.a": {"text": "Yes! More of that! I'm gonna need a bodyguard for the applause.", "emotion": "happy"},
+    "JW5.bark.cheer.b": {"text": "Louder! Make the whole bar turn around!", "emotion": "happy"},
+    "JW5.bark.heckle.a": {"text": "Boo? Boo?! Okay, okay. That's character building.", "emotion": "shrug"},
+    "JW5.bark.heckle.b": {"text": "Keep heckling. Legends need haters. It's practice.", "emotion": "nod"},
+    "JW5.stage.photo.01": {"text": "Alright. Frame it. Door behind me. Arm up. Make me look like a champion.", "emotion": "emphatic"},
+    "JW5.stage.photo.02": {"text": "Look at that. A legend in the making. Send it to Misty.", "emotion": "happy"},
+    "JW5.stage.drink.01": {"text": "Claire! What goes in a legend's drink? No, listen, I have a recipe.", "emotion": "emphatic"},
+    "JW5.stage.drink.02": {"text": "Vodka, ice, lime, ginger beer. And then something... sentimental. I always lose the last word.", "emotion": "neutral"},
+    "JW5.close.01": {"text": "A twist! Perfect. We'll put it on the menu: The Jackie. With a twist.", "emotion": "happy"},
+    "JW5.close.02": {"text": "Salt. Weird. Okay. A legend can be weird.", "emotion": "shrug"},
+    "JW5.close.03": {"text": "Tequila float. Of course. You know me.", "emotion": "happy"},
+    "JW5.close.04": {"text": "Plain? Fine. Sometimes plain's honest.", "emotion": "nod"},
+    "JW5.close.05": {"text": "Write it on a coaster. One day I'll order it and they'll know my name.", "emotion": "emphatic"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Be honest, hermano. How would you like a legend to walk in? Slow or fast?",
+      "know": "The Afterlife door, three checkpoints (door, stairs, bar), three regulars at the bar, a photo and a drink to come.",
+      "secret": "This is for his mother and Misty more than for the crowd.",
+      "wants": "V to play along.",
+      "idle": "jackie_hips",
+      "tags": [{"id": "cheer", "kind": "yes"}, {"id": "heckle", "kind": "no"}],
+      "resumeAfterSeconds": 240
+    },
+    "g2": {
+      "asks": "Do I smile? Do I not smile? You're the artist, V.",
+      "know": "V frames the photo. The Afterlife neon is behind him. The tag got-it closes the shot.",
+      "wants": "A good shot.",
+      "idle": "jackie_hips",
+      "tags": [{"id": "got-it", "kind": "yes"}],
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "Help me finish it. What's the last ingredient of a good memory?",
+      "know": "The recipe is vodka over ice, lime and ginger beer. The flourish is open: a twist, salt, a tequila float, or plain. Claire is the bartender and only talks. The coaster is for his name.",
+      "secret": "He wants the drink to remind Misty of him.",
+      "wants": "V's pick.",
+      "idle": "bar",
+      "tags": [{"id": "twist", "kind": "yes"}, {"id": "salt", "kind": "no"}, {"id": "float", "kind": "honest"}, {"id": "plain", "kind": "flatter"}],
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "Jackie waits at the Afterlife door",
+      "know": "You are meeting Jackie at the front door of the Afterlife in Little China, at night. He wants to rehearse his entrance and asks you to be the crowd.",
+      "wants": "V to come to the door and be the crowd.",
+      "do": [
+        {"p": "pin", "at": "door"},
+        {"p": "place", "at": "door"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW5.open.01"},
+        {"when": "line:JW5.open.01:done", "say": "JW5.open.02"},
+        {"when": "line:JW5.open.02:done", "say": "JW5.open.03"},
+        {"when": "line:JW5.open.03:done", "gap": "g1"},
+        {"when": "gap:g1:cheer", "say": "JW5.bark.cheer.a"},
+        {"when": "line:JW5.bark.cheer.a:done", "say": "JW5.bark.cheer.b"},
+        {"when": "gap:g1:heckle", "say": "JW5.bark.heckle.a"},
+        {"when": "line:JW5.bark.heckle.a:done", "say": "JW5.bark.heckle.b"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:door:arrived", "next": "entrance"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stood-up"}
+    },
+    {
+      "id": "entrance",
+      "type": "play",
+      "label": "Jackie walks through the Afterlife to the bar",
+      "know": "Jackie is walking slowly through the Afterlife, chin up, past the booths and up to the bar. Three regulars are watching him from the bar.",
+      "wants": "V to walk with him and play the crowd.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "door"},
+        {"p": "place", "at": "stairs"},
+        {"p": "place", "at": "bar"},
+        {"p": "cast", "id": "regular-1", "who": "a nameless merc at the bar who tells people to sit down", "at": "bar"},
+        {"p": "cast", "id": "regular-2", "who": "a nameless merc at the bar who laughs", "at": "bar"},
+        {"p": "cast", "id": "regular-3", "who": "a nameless merc at the bar who half remembers Jackie from a job in Kabuki", "at": "bar"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW5.stage.entrance.01"},
+        {"when": "place:stairs:arrived", "say": "JW5.stage.entrance.02"},
+        {"when": "place:bar:arrived", "say": "JW5.stage.entrance.03"}
+      ],
+      "choices": [
+        {"id": "bar", "on": "event:place:bar:arrived", "next": "photo"}
+      ],
+      "timeout": {"gameHours": 1, "next": "photo"}
+    },
+    {
+      "id": "photo",
+      "type": "play",
+      "label": "V frames the shot of Jackie at the Afterlife",
+      "know": "Jackie is posing for a photo in the Afterlife, with the neon behind him. V is framing the shot.",
+      "wants": "V to take the shot.",
+      "do": [
+        {"p": "party"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "JW5.stage.photo.01"},
+        {"when": "line:JW5.stage.photo.01:done", "gap": "g2"},
+        {"when": "gap:g2:got-it", "say": "JW5.stage.photo.02"}
+      ],
+      "choices": [
+        {"id": "got-it", "on": "event:gap:g2:got-it", "next": "drink"},
+        {"id": "resume", "on": "event:gap:g2:resume", "next": "drink"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "drink"}
+    },
+    {
+      "id": "drink",
+      "type": "play",
+      "label": "Jackie orders a drink with his name on it",
+      "know": "You are at the bar of the Afterlife. Claire is the bartender, and Jackie wants to know what goes in a legend's drink.",
+      "wants": "V's pick for the flourish.",
+      "do": [
+        {"p": "place", "at": "bar"},
+        {"p": "party"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW5.stage.drink.01"},
+        {"when": "line:JW5.stage.drink.01:done", "say": "JW5.stage.drink.02"},
+        {"when": "line:JW5.stage.drink.02:done", "gap": "g3"},
+        {"when": "gap:g3:twist", "say": "JW5.close.01"},
+        {"when": "gap:g3:salt", "say": "JW5.close.02"},
+        {"when": "gap:g3:float", "say": "JW5.close.03"},
+        {"when": "gap:g3:plain", "say": "JW5.close.04"}
+      ],
+      "choices": [
+        {"id": "twist", "on": "event:line:JW5.close.01:done", "next": "flourish"},
+        {"id": "salt", "on": "event:line:JW5.close.02:done", "next": "flourish"},
+        {"id": "float", "on": "event:line:JW5.close.03:done", "next": "flourish"},
+        {"id": "plain", "on": "event:line:JW5.close.04:done", "next": "plain"}
+      ],
+      "timeout": {"gameHours": 1, "next": "entrance-only"}
+    }
+  ],
+  "endings": {
+    "flourish": {
+      "memory": "You helped Jackie plan his Afterlife entrance and name his drink, and you picked the flourish.",
+      "bond": 60,
+      "history": "Jackie keeps the name of his drink for a future menu at the Afterlife.",
+      "script": [{"when": "ending:flourish", "say": "JW5.close.05"}]
+    },
+    "plain": {
+      "memory": "You helped Jackie plan his Afterlife entrance and name his drink, and you ordered the plain version.",
+      "bond": 45,
+      "script": [{"when": "ending:plain", "say": "JW5.close.05"}]
+    },
+    "entrance-only": {
+      "memory": "You walked Jackie through the Afterlife to the bar, and you never got around to naming his drink.",
+      "bond": 35
+    },
+    "stood-up": {
+      "memory": "Jackie waited for you at the front door of the Afterlife, and you never came.",
+      "bond": -5
+    },
+    "unfinished": {
+      "memory": "You and Jackie rehearsed his entrance to the Afterlife and named a drink you never ordered. Then The Heist came.",
+      "bond": 0
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

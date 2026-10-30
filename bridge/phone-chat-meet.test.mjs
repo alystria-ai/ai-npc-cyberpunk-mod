@@ -234,3 +234,17 @@ test('the failure log keeps only a line for an event: no automatic report, no co
   assert.equal(reports.length, 1);
   assert.equal(writes.length, 1);
 });
+
+test('Character bonds on Phone Chat: a typed message carries its bonds block to the provider input (the channel is phone); a message the character starts carries none', async () => {
+  const block = {version: 1, on: true, packs: true, invitations: true, eddies: true, busy: true};
+  const {chat, calls} = fixture(answer('Hey.'));
+  await finish(chat, state({text: 'hi', bonds: block}));
+  assert.deepEqual(calls[0].input.bonds, {on: true, copy: null, packs: true, invitations: true, eddies: true, busy: true});
+  assert.equal(calls[0].input.channel, 'phone');
+  const second = fixture(answer('Hey.'));
+  await finish(second.chat, state({text: 'hi', bonds: {version: 2, on: true}}));
+  assert.equal(Object.hasOwn(second.calls[0].input, 'bonds'), false, 'a malformed block is dropped');
+  const event = fixture(answer('I am here.'));
+  await finish(event.chat, state({text: '', bonds: block, event: {version: 1, kind: 'arrived', place: "Lizzie's", minutes: 3, car: false}}));
+  assert.equal(Object.hasOwn(event.calls[0].input, 'bonds'), false, 'an event turn is not an exchange');
+});

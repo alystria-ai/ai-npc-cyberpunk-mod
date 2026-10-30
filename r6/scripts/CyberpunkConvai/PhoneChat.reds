@@ -9,6 +9,12 @@ import Codeware.UI.TextInput.*
 public class ConvaiPhoneChatLine extends IScriptable {
     public let text: String;
     public let sent: Bool;
+    // An optional picture shown under the text (docs/PHONE_IMAGES.md): the depot path of an .inkatlas from the optional picture archive, the name
+    // of its part, and the picture's size in pixels (for the shape of the frame). All empty/zero for the ordinary text-only line.
+    public let imageAtlas: String;
+    public let imagePart: String;
+    public let imageWidth: Int32;
+    public let imageHeight: Int32;
 }
 
 public class ConvaiPhoneChatDraft extends IScriptable {
@@ -782,6 +788,27 @@ protected cb func OnDataChanged(value: ref<IScriptable>) -> Bool {
 }
 @addMethod(MessangerItemRenderer)
 public final func ConvaiChatRender(line: ref<ConvaiPhoneChatLine>) -> Void {
+    // The row is recycled by the list: the picture slot is hidden first, so a text-only line never shows the picture of an earlier one.
     inkImageRef.SetVisible(this.m_image, false);
+    // The third string of SetMessageView is the contact's name (the game's own rows pass it and never show it), not a picture.
     this.SetMessageView(line.text, line.sent ? MessageViewType.Sent : MessageViewType.Received, "");
+    if StrLen(line.imageAtlas) > 0 && StrLen(line.imagePart) > 0 { this.ConvaiChatShowImage(line); };
+}
+
+// The game's message row has a picture slot under the text (`photo`, 450 x 450, it is in the same panel as the text, so the bubble grows with it).
+// The picture is set once, when the row is built from the line, never per frame. The frame keeps the picture's shape inside 450 wide and 600 tall.
+// An atlas that is not there (the optional picture archive is not installed) leaves the slot empty and the row as a text line.
+@addMethod(MessangerItemRenderer)
+private final func ConvaiChatShowImage(line: ref<ConvaiPhoneChatLine>) -> Void {
+    let image = inkImageRef.Get(this.m_image) as inkImage;
+    if !IsDefined(image) { return; };
+    let width = Cast<Float>(line.imageWidth);
+    let height = Cast<Float>(line.imageHeight);
+    if width < 1.0 || height < 1.0 { width = 450.0; height = 450.0; };
+    let scale = MinF(450.0 / width, 600.0 / height);
+    image.SetAtlasResource(ResRef.FromString(line.imageAtlas));
+    image.SetTexturePart(StringToName(line.imagePart));
+    image.SetFitToContent(false);
+    image.SetSize(new Vector2(width * scale, height * scale));
+    image.SetVisible(true);
 }

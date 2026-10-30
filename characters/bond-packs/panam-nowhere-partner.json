@@ -1,0 +1,236 @@
+{
+  "format": 2,
+  "id": "panam-nowhere-partner",
+  "character": "panam-palmer",
+  "title": "Nowhere in Particular",
+  "summary": "Panam asks V to drive her out of the city at night with no destination, and at dawn she tells V what scares her and what she wants from them.",
+  "requires": {
+    "bond": 10,
+    "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "partner",
+    "after": ["panam-convoy-home"]
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "Panam has never driven anywhere without a reason, and tonight she wants to try. Bring up, in your own way, that she is tired of having a plan and asks V to come get her from camp with no destination."
+  },
+  "places": {
+    "camp": {"name": "the Aldecaldo camp where Panam asks to be picked up", "radius": 40},
+    "overlook": {"name": "an overlook above the Badlands where V stops for the view", "radius": 60}
+  },
+  "images": {
+    "nowhere-dawn": {"file": "images/nowhere-dawn-partner.png", "width": 1920, "height": 1080}
+  },
+  "lines": {
+    "P6.call.01": {"text": "Come get me. Your car, your music. No questions where.", "emotion": "neutral", "gesture": "panam", "channel": "holocall"},
+    "P6.call.02": {"text": "I've never once driven anywhere without a reason. I want to try.", "emotion": "sad", "channel": "holocall"},
+    "P6.call.03": {"text": "Camp. Tonight. Don't make me regret calling.", "emotion": "happy", "channel": "holocall"},
+    "P6.drive.01": {"text": "Just drive. If I say \"turn\", ignore me.", "emotion": "happy", "channel": "own"},
+    "P6.drive.02": {"text": "Okay. Let's see what you listen to when nobody's judging.", "emotion": "happy", "channel": "own"},
+    "P6.drive.03": {"text": "Really? This? ...Okay, it's growing on me.", "emotion": "surprise", "channel": "own"},
+    "P6.drive.04": {"text": "Now we're talking.", "emotion": "happy", "channel": "own"},
+    "P6.drive.05": {"text": "Silence is fine too.", "emotion": "neutral", "channel": "own"},
+    "P6.drive.06": {"text": "This is weird. No plan. My hands keep looking for one.", "emotion": "sad", "channel": "own"},
+    "P6.drive.07": {"text": "Can I tell you something? Just drive while I say it.", "emotion": "sad", "channel": "own"},
+    "P6.drive.08": {"text": "If I lead the family, I'm scared I turn into Saul. If I don't, I'm scared I lose them.", "emotion": "sad", "gesture": "sad", "channel": "own"},
+    "P6.drive.09": {"text": "That's it. That's the thing. You're the only one I've said it to.", "emotion": "fear", "channel": "own"},
+    "P6.drive.10": {"text": "You're driving us back. ...Okay. It's okay.", "emotion": "sad", "channel": "own"},
+    "P6.dawn.01": {"text": "Stop here. Look at that.", "emotion": "happy", "channel": "own"},
+    "P6.dawn.02": {"text": "Sit. The ground's cold, sit anyway.", "emotion": "happy", "channel": "own"},
+    "P6.dawn.03": {"text": "Hold out your hand.", "emotion": "neutral", "gesture": "generic_hold", "channel": "own"},
+    "P6.keep.01": {"text": "My mother's. Aldecaldo, before the Aldecaldos were anything.", "emotion": "sad", "gesture": "generic_hold", "channel": "own"},
+    "P6.keep.02": {"text": "Don't say anything stupid. Just wear it.", "emotion": "happy", "channel": "own"},
+    "P6.keep.03": {"text": "I don't know what comes after all this. I know I want you in it.", "emotion": "sad", "channel": "own"},
+    "P6.keep.05": {"text": "Okay. Then that's decided.", "emotion": "happy", "channel": "own"},
+    "P6.end.01": {"text": "I'd take another nowhere. Anytime.", "emotion": "happy", "channel": "own"},
+    "P6.end.02": {"text": "We'll try again. I'm bad at nowhere.", "emotion": "shrug", "channel": "own"},
+    "P6.bark.01": {"text": "Where are you going? Nowhere means with me.", "emotion": "happy", "channel": "own"},
+    "P6.bark.04": {"text": "Cops. Really? On our nowhere? Lose them.", "emotion": "angry", "channel": "own"},
+    "P6.bark.06": {"text": "Sun's coming up somewhere. Find us a view.", "emotion": "happy", "channel": "own"},
+    "P6.bark.07": {"text": "Look what someone took. Don't ask who.", "emotion": "happy", "channel": "own"}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "P6.call.01",
+      "steps": [
+        {"say": "P6.call.01"},
+        {"say": "P6.call.02"},
+        {"say": "P6.call.03"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Your turn. Tell me something nobody knows about you.",
+      "know": "It is a drive with no destination, the radio choice, and the night after the supply run.",
+      "secret": "The confession is coming and she is working up to it.",
+      "wants": "To listen to V first.",
+      "idle": "panam_hips",
+      "resumeOn": ["timer:t40"]
+    },
+    "g2": {
+      "asks": "Ask nothing. Let her talk, and let V reply without fixing it.",
+      "know": "Her confession about leading the family and losing herself.",
+      "secret": "She laughs if V tries to fix it, because V is doing the thing she does.",
+      "wants": "V not to fix it, only to hear it.",
+      "idle": "sad",
+      "resumeAfterSeconds": 600
+    },
+    "g3": {
+      "asks": "What do you see, out there?",
+      "know": "Dawn, the view over the Badlands, and the bracelet in her pocket.",
+      "secret": "She wants to hear V's words for it.",
+      "wants": "V's words for the view.",
+      "idle": "panam_hips",
+      "resumeOn": ["seat:stood"],
+      "resumeAfterSeconds": 600
+    },
+    "g4": {
+      "asks": "Is that... okay with you?",
+      "know": "The partner relationship and what she just said about the future.",
+      "secret": "She has never asked anyone about the future before.",
+      "wants": "An answer from V.",
+      "idle": "panam_hips",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "soft", "kind": "honest"}, {"id": "no", "kind": "no"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Panam calls V to come get her at camp",
+      "know": "Panam is at the Aldecaldo camp at night and wants V to come and take her out with no destination, no job and no clan.",
+      "wants": "V to answer the call and drive out to the camp.",
+      "do": [
+        {"p": "place", "at": "camp"},
+        {"p": "pin", "at": "camp"},
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}
+      ],
+      "choices": [
+        {"id": "there", "on": "event:place:camp:arrived", "next": "drive"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no-call"}
+    },
+    {
+      "id": "drive",
+      "type": "play",
+      "label": "V drives Panam out of the city with no destination",
+      "know": "V is at the wheel and Panam is in the passenger seat. There is no destination and no job. The radio is V's choice.",
+      "wants": "V to drive, pick the music and listen when Panam talks.",
+      "do": [
+        {"p": "party"},
+        {"p": "together", "id": "drive", "minutes": 60, "metres": 30},
+        {"p": "check", "id": "radio", "what": "radio"},
+        {"p": "check", "id": "district", "what": "district"},
+        {"p": "check", "id": "heat", "what": "heat"},
+        {"p": "timer", "id": "t20", "seconds": 1200, "clock": "game"},
+        {"p": "timer", "id": "t40", "seconds": 2400, "clock": "game"},
+        {"p": "timer", "id": "t50", "seconds": 3000, "clock": "game"},
+        {"p": "place", "at": "overlook"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P6.drive.01"},
+        {"when": "line:P6.drive.01:done", "gap": "g1"},
+        {"when": "check:radio:on", "say": "P6.drive.02"},
+        {"when": "check:radio:any", "say": "P6.drive.03"},
+        {"when": "check:radio:morro-rock-radio", "say": "P6.drive.04"},
+        {"when": "check:radio:off", "say": "P6.drive.05"},
+        {"when": "timer:t20", "say": "P6.drive.06"},
+        {"when": "timer:t40", "say": "P6.drive.07"},
+        {"when": "line:P6.drive.07:done", "gap": "g2"},
+        {"when": "gap:g2:resume", "say": "P6.drive.08"},
+        {"when": "line:P6.drive.08:done", "say": "P6.drive.09"},
+        {"when": "check:district:city", "say": "P6.drive.10"},
+        {"when": "together:drive:broken", "say": "P6.bark.01"},
+        {"when": "check:heat:raised", "say": "P6.bark.04"},
+        {"when": "timer:t50", "say": "P6.bark.06"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:overlook:arrived", "next": "view"},
+        {"id": "city", "on": "event:line:P6.drive.10:done", "next": "short"}
+      ],
+      "timeout": {"gameHours": 4, "next": "short"}
+    },
+    {
+      "id": "view",
+      "type": "play",
+      "label": "V stops at an overlook and they sit on the ground",
+      "know": "V has stopped at a view over the Badlands at first light. Panam gets out and sits, with her confession ready.",
+      "wants": "V to sit with her and hear her out.",
+      "do": [
+        {"p": "pin", "at": "overlook"},
+        {"p": "workspot", "id": "sit", "who": "self", "at": "overlook", "key": "sit-ground"},
+        {"p": "together", "id": "dawn", "minutes": 10, "seated": true, "at": "overlook"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P6.dawn.01"},
+        {"when": "line:P6.dawn.01:done", "say": "P6.dawn.02"},
+        {"when": "line:P6.dawn.02:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "held", "on": "event:gap:g3:resume", "next": "keepsake"}
+      ],
+      "timeout": {"gameHours": 3, "next": "keepsake"}
+    },
+    {
+      "id": "keepsake",
+      "type": "play",
+      "label": "Panam gives V her mother's bracelet and asks about the future",
+      "know": "Panam has her mother's Aldecaldo bracelet in her pocket. It is from before the Aldecaldos were anything. She has never asked anyone about the future.",
+      "wants": "V to take the bracelet and answer her question.",
+      "do": [{"p": "pin", "at": "overlook"}],
+      "script": [
+        {"when": "stage:enter", "say": "P6.dawn.03"},
+        {"when": "line:P6.dawn.03:done", "say": "P6.keep.01"},
+        {"when": "line:P6.keep.01:done", "say": "P6.keep.02"},
+        {"when": "line:P6.keep.02:done", "say": "P6.keep.03"},
+        {"when": "line:P6.keep.03:done", "gap": "g4"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g4:yes", "next": "dawn-yes"},
+        {"id": "soft", "on": "event:gap:g4:soft", "next": "dawn-soft"},
+        {"id": "no", "on": "event:gap:g4:no", "next": "dawn-no"}
+      ],
+      "timeout": {"gameHours": 2, "next": "dawn-soft"}
+    }
+  ],
+  "endings": {
+    "dawn-yes": {
+      "memory": "One night you drove Panam nowhere, she told you what scares her about leading the family, and at dawn she gave you her mother's bracelet. You said yes to the future she asked about.",
+      "bond": 100,
+      "script": [
+        {"when": "ending:dawn-yes", "say": "P6.keep.05"},
+        {"when": "ending:dawn-yes", "say": "P6.end.01"},
+        {"when": "ending:dawn-yes", "text": "P6.bark.07", "image": "nowhere-dawn"}
+      ]
+    },
+    "dawn-soft": {
+      "memory": "One night you drove Panam nowhere, she told you what scares her about leading the family, and at dawn she gave you her mother's bracelet. You hesitated on the future she asked about, and she kept the bracelet in your hand anyway.",
+      "bond": 85,
+      "script": [
+        {"when": "ending:dawn-soft", "text": "P6.bark.07", "image": "nowhere-dawn"}
+      ]
+    },
+    "dawn-no": {
+      "memory": "One night you drove Panam nowhere, she told you what scares her about leading the family, and at dawn she gave you her mother's bracelet. You told her no about the future, and she kept the bracelet in your hand anyway.",
+      "bond": 70,
+      "script": [
+        {"when": "ending:dawn-no", "text": "P6.bark.07", "image": "nowhere-dawn"}
+      ]
+    },
+    "short": {
+      "memory": "You took Panam for a drive with no destination, and it ended sooner than she hoped.",
+      "bond": 50,
+      "script": [{"when": "ending:short", "say": "P6.end.02"}]
+    },
+    "no-call": {
+      "memory": "You never came to get Panam that night.",
+      "bond": 0
+    }
+  }
+}

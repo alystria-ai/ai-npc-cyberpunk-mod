@@ -1,0 +1,134 @@
+{
+  "format": 2,
+  "id": "rogue-terms",
+  "character": "rogue-amendiares",
+  "title": "Terms",
+  "summary": "Rogue hires V to carry a sealed note to an old merc in Kabuki, and V has to name the fee first.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You have a job for V and a sealed note that has to reach a man in Kabuki, and you will not ask V as a friend. Bring up, briefly and in your own way, that you are hiring V and that V should name the price."
+  },
+  "places": {
+    "booth": {"name": "the private booth upstairs at the Afterlife", "radius": 8},
+    "stall": {"name": "the noodle stall in Kabuki", "radius": 25}
+  },
+  "images": {
+    "terms-envelope": {"file": "images/terms-envelope.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R1.open.01": {"text": "I'm not asking you as a friend. I'm hiring you. Sit.", "emotion": "neutral"},
+    "R1.open.02": {"text": "A note. Sealed. It goes to a man in Kabuki. He'll be at a noodle stall.", "emotion": "neutral"},
+    "R1.open.03": {"text": "Price is what we haggle. Don't insult me by working for free.", "emotion": "emphatic"},
+    "R1.open.04": {"text": "That's a number. Fine. You argued it well. Don't make a habit of it.", "emotion": "nod"},
+    "R1.open.05": {"text": "No. That's not how this works. Take the money.", "emotion": "angry"},
+    "R1.bark.arrive.a": {"text": "He's the one by the red lantern. Hands in his pockets. Don't stare.", "emotion": "neutral", "channel": "remote"},
+    "R1.merc.01": {"text": "A bar tab. She owes me a drink since a night neither of us should have walked out of.", "emotion": "shrug"},
+    "R1.close.01": {"text": "A bar tab. Of course it was. ... Thank you. Don't say anything about it.", "emotion": "nod"},
+    "R1.close.02": {"text": "A coaster. Keep your mouth shut. ... I'll remember that.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Name your number. And don't tell me you don't have one.",
+      "know": "You have the Afterlife's private booth, the errand: a sealed note for a man at a noodle stall in Kabuki, and a fee between 300 and 1,200 eddies. You respect people who negotiate, and you will settle the number once V has named one.",
+      "secret": "The note is a bar tab, and an apology you cannot send through anyone you employ.",
+      "wants": "You want V to take the job at a fair price, and you will respect V for arguing it.",
+      "idle": "rogue",
+      "tags": [{"id": "take", "kind": "yes"}, {"id": "push", "kind": "honest"}, {"id": "free", "kind": "flatter"}]
+    },
+    "g2": {
+      "asks": "Does she ask about me? Or just about the money?",
+      "know": "You sent V to the old merc with the note. He has not forgiven you, and he will hand back a coaster or a cold word depending on what V tells him.",
+      "secret": "He never stopped caring where you were.",
+      "wants": "You want V to carry back an honest word.",
+      "idle": "lean",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "brush", "kind": "no"}],
+      "resumeAfterSeconds": 240
+    }
+  },
+  "stages": [
+    {
+      "id": "terms",
+      "type": "play",
+      "label": "Rogue hires V in the Afterlife booth",
+      "know": "V is in the Afterlife's private booth upstairs. You are about to hire V for an errand with a price, and you will make V haggle it. You have not said what the note is.",
+      "wants": "V to name a fee and take the job.",
+      "do": [
+        {"p": "pin", "at": "booth"},
+        {"p": "place", "at": "booth"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "booth"}
+      ],
+      "script": [
+        {"when": "place:booth:arrived", "say": "R1.open.01"},
+        {"when": "line:R1.open.01:done", "say": "R1.open.02"},
+        {"when": "line:R1.open.02:done", "say": "R1.open.03"},
+        {"when": "line:R1.open.03:done", "gap": "g1"},
+        {"when": "gap:g1:push", "say": "R1.open.04"},
+        {"when": "gap:g1:free", "say": "R1.open.05"}
+      ],
+      "choices": [
+        {"id": "take", "on": "event:gap:g1:take", "next": "errand"},
+        {"id": "push", "on": "event:gap:g1:push", "next": "errand"},
+        {"id": "free", "on": "event:gap:g1:free", "next": "errand"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "errand",
+      "type": "play",
+      "label": "V carries the note to the noodle stall in Kabuki",
+      "know": "You sent V to a noodle stall in Kabuki with a sealed note for an old merc you have not spoken to in years. You have not told V that the note is a bar tab.",
+      "wants": "V to hand over the note and carry back an honest word.",
+      "do": [
+        {"p": "pin", "at": "stall"},
+        {"p": "place", "at": "stall"},
+        {"p": "cast", "id": "merc", "who": "old merc in a grey coat, has not forgiven Rogue", "at": "stall", "archetype": "street-solo"},
+        {"p": "npc-react", "id": "merc-react", "cast": "merc"}
+      ],
+      "script": [
+        {"when": "place:stall:arrived", "say": "R1.bark.arrive.a"},
+        {"when": "npc:merc-react:obey", "say": "R1.merc.01"},
+        {"when": "line:R1.merc.01:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "refused", "on": "event:npc:merc-react:leave", "next": "torn"},
+        {"id": "honest", "on": "event:gap:g2:honest", "next": "report"},
+        {"id": "brushed", "on": "event:gap:g2:brush", "next": "report-cold"},
+        {"id": "quiet", "on": "event:gap:g2:resume", "next": "report-cold"}
+      ],
+      "timeout": {"gameHours": 1, "next": "torn"}
+    }
+  ],
+  "endings": {
+    "report": {
+      "memory": "You carried a sealed note from Rogue to an old solo in Kabuki, and he answered with a coaster.",
+      "history": "Rogue brings up the tab when old debts come up.",
+      "bond": 40,
+      "script": [
+        {"when": "ending:report", "say": "R1.close.01"},
+        {"when": "ending:report", "text": "R1.close.02", "image": "terms-envelope"}
+      ]
+    },
+    "report-cold": {
+      "memory": "You carried a sealed note from Rogue to an old solo in Kabuki, and he gave you one cold word back.",
+      "bond": 35,
+      "script": [{"when": "ending:report-cold", "say": "R1.close.01"}]
+    },
+    "torn": {
+      "memory": "You carried a sealed note from Rogue to Kabuki, and the old solo would not take it.",
+      "bond": 25
+    },
+    "stood-up": {
+      "memory": "You did not take Rogue's job, and she did not wait for you at the booth.",
+      "bond": -5
+    }
+  }
+}

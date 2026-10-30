@@ -35,6 +35,12 @@ local function whole(value, low, high)
     return type(value) == 'number' and value == value and value == math.floor(value) and value >= (low or 0) and value <= (high or 1e12)
 end
 
+-- The story a proposal belongs to ("<pack id>:<stage id>", docs/RELATIONSHIPS_AND_QUESTS.md section 7.5), or nil for anything else.
+function M.story(value)
+    if type(value) ~= 'string' or #value > 100 or not value:match('^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*$') then return nil end
+    return value
+end
+
 -- What V owes the character and what the character owes V, from a view row (M.view).
 function M.debts(row)
     local t = type(row) == 'table' and type(row.totals) == 'table' and row.totals or {}
@@ -42,7 +48,8 @@ function M.debts(row)
     return math.max(0, n('loanToV') - n('repayByV')), math.max(0, n('loanFromV') - n('repayToV'))
 end
 
--- The row the bridge reads (bridge/eddies.mjs parseRow) from a stored row: totals of the transfers made, the faded flow at `now`, the last entry.
+-- The row the bridge reads (bridge/eddies.mjs parseRow) from a stored row: totals of the transfers made, the faded flow at `now`, the last entry
+-- (with the story it was made for, when it was one).
 function M.view(stored, now)
     if type(stored) ~= 'table' then return nil end
     local row = {seed = stored.seed, met = stored.met, asked = stored.asked, totals = {}, flow = 0, flowAt = now}
@@ -55,7 +62,7 @@ function M.view(stored, now)
         end
     end
     local last = stored.entries[#stored.entries]
-    if last then row.last = {flow = last.f, amount = last.n, result = last.r, at = last.at, origin = last.o} end
+    if last then row.last = {flow = last.f, amount = last.n, result = last.r, at = last.at, origin = last.o, story = last.s} end
     return row
 end
 
@@ -132,7 +139,7 @@ function M.new(options)
     local function cleanEntry(entry)
         if type(entry) ~= 'table' or not M.FLOWS[entry.f] or not whole(entry.n, 1, M.CAP) or not whole(entry.at, 0) or not RESULTS[entry.r] then return nil end
         return {f = entry.f, n = entry.n, at = entry.at, r = entry.r, o = (entry.o == 'asked' or entry.o == 'offered') and entry.o or nil,
-            g = whole(entry.g, 0) and entry.g or nil}
+            g = whole(entry.g, 0) and entry.g or nil, s = M.story(entry.s)}
     end
     local function cleanRow(row)
         if type(row) ~= 'table' then return nil end
@@ -225,7 +232,8 @@ function M.new(options)
         local rows = load()
         local row = rows[p.profileKey] or cleanRow({seed = random(1000), met = now()})
         local at = now()
-        row.entries[#row.entries + 1] = {f = p.flow, n = p.amount, at = at, r = result, o = p.origin == 'asked' and 'asked' or 'offered', g = gameTime()}
+        row.entries[#row.entries + 1] = {f = p.flow, n = p.amount, at = at, r = result, o = p.origin == 'asked' and 'asked' or 'offered', g = gameTime(),
+            s = M.story(p.story)}
         -- The oldest go first. Every entry was a proposal of a turn, so 40 is a long stretch of play.
         while #row.entries > MAX_ENTRIES do table.remove(row.entries, 1) end
         if p.origin == 'asked' then row.asked = at end

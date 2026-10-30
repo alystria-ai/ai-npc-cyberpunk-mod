@@ -1,0 +1,126 @@
+{
+  "format": 1,
+  "character": "judy-alvarez",
+  "triggers": [
+    {
+      "id": "jr-both-sides",
+      "via": "text",
+      "text": "Still can't sleep in that apartment. Don't come over. Just text me something dumb.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq026_01_suicide"}],
+      "once": true,
+      "note": "Evelyn's death. She is grieving and wants distraction, not comfort."
+    },
+    {
+      "id": "jr-pyramid-partner",
+      "via": "text",
+      "text": "Still have lake water in my ear. Worth it.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq030_judy_romance"}],
+      "relationship": "partner",
+      "once": true,
+      "note": "The dive, and the romance state from the save."
+    },
+    {
+      "id": "jr-pyramid-friend",
+      "via": "text",
+      "text": "Thanks for diving with me. Means more than I said.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq030_judy_romance"}],
+      "relationship": "not-partner",
+      "once": true,
+      "note": "The dive, and the romance state from the save."
+    },
+    {
+      "id": "jr-bond5",
+      "via": "text",
+      "text": "Fixed my wreath. Made it play your voice when it boots. Kidding. Unless?",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "note": "The bond rose, and she is teasing."
+    },
+    {
+      "id": "jr-bond7",
+      "via": "call",
+      "text": "I'm editing and it's four in the morning and I just wanted a face. Yours, specifically.",
+      "after": [{"kind": "bond", "level": 7}],
+      "once": true,
+      "note": "She is working late, and it is a soft call."
+    },
+    {
+      "id": "jr-bond9",
+      "via": "text",
+      "text": "Grandpa asked who the person in my photos is. I said nobody. He laughed at me.",
+      "after": [{"kind": "bond", "level": 9}],
+      "once": true,
+      "note": "Her grandparents know about V now."
+    },
+    {
+      "id": "jr-late-night",
+      "via": "text",
+      "text": "You up? Sensory track glitched and now I can't stop smelling rain.",
+      "when": {"kind": "hours", "from": 3, "to": 5},
+      "minBond": 6,
+      "cooldownDays": 4,
+      "note": "Late-night work. Nothing is wrong."
+    },
+    {
+      "id": "jr-watson-fight",
+      "via": "text",
+      "text": "Saw the smoke from Lizzie's. That you? Be alive, please.",
+      "when": {"kind": "fight-end", "district": "Watson"},
+      "cooldownDays": 2,
+      "note": "A fight just ended in Watson, near Kabuki or Little China. She is worried."
+    },
+    {
+      "id": "jr-rain",
+      "via": "text",
+      "text": "Rain's good for editing. Come down to the basement, bring noodles.",
+      "when": {"kind": "weather", "is": "rain"},
+      "cooldownDays": 3,
+      "note": "Weather. An invitation that can become a hangout."
+    },
+    {
+      "id": "jr-hang-roach-race",
+      "via": "text",
+      "text": "I hold the high score on this thing. Come lose to me.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "judy-hangout-roach-race",
+      "note": "She holds the high score on an arcade cabinet near the Kabuki roundabout and wants V to try to beat it."
+    },
+    {
+      "id": "jr-hang-spot-cut",
+      "via": "text",
+      "text": "Commercial BDs are a crime against my profession. Come watch me suffer.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "judy-hangout-spot-the-cut",
+      "note": "She has rented two booths at a cheap braindance parlour in Kabuki and wants V to spot the bad cut."
+    },
+    {
+      "id": "jr-hang-sound-hunt",
+      "via": "text",
+      "text": "I need ambient tracks for a BD. You're my walking microphone.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "judy-hangout-sound-hunt",
+      "note": "She wants V to walk Jig-Jig Street at night with her and stand still at spots to record sound."
+    },
+    {
+      "id": "jr-hang-skates",
+      "via": "text",
+      "text": "Found my old rollerblades. They don't fit. I'm going anyway.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "judy-hangout-skates-lake",
+      "note": "She wants V at the Laguna Bend boat ramp car park for street hockey with a can and two crates."
+    },
+    {
+      "id": "jr-hang-repair",
+      "via": "text",
+      "text": "Bring me something broken. I'm in a fixing mood.",
+      "minBond": 8,
+      "cooldownDays": 3,
+      "offer": "judy-hangout-repair-night",
+      "note": "She is at her workbench in Lizzie's basement and wants V to bring something broken to fix."
+    }
+  ]
+}

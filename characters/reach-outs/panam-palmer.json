@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "character": "panam-palmer",
+  "triggers": [
+    {
+      "id": "pr-storm-saul",
+      "via": "text",
+      "text": "Saul's walking. Complaining, but walking. Thanks for that.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq004_riders_on_the_storm"}],
+      "when": {"kind": "hours", "from": 6, "to": 10},
+      "once": true,
+      "note": "Saul was rescued from the Raffen with V's help, she is relieved and will not gush."
+    },
+    {
+      "id": "pr-basilisk",
+      "via": "text",
+      "text": "Still smell like the Basilisk. Can't stop grinning.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq027_02_raffen_shiv_attack"}],
+      "relationship": "not-partner",
+      "once": true,
+      "note": "The Basilisk raid is done and her mood is high."
+    },
+    {
+      "id": "pr-basilisk-love",
+      "via": "text",
+      "text": "Still thinking about the Basilisk. Mostly the second part.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq027_02_raffen_shiv_attack"}],
+      "relationship": "partner",
+      "once": true,
+      "note": "The Basilisk raid is done and her mood is high. V and she are together, as the save shows."
+    },
+    {
+      "id": "pr-bond5",
+      "via": "text",
+      "text": "Mitch says I mention you too much. Mitch should mind his business.",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "note": "The bond rose, nothing else changed."
+    },
+    {
+      "id": "pr-bond7",
+      "via": "call",
+      "text": "Nothing's wrong. I just wanted to hear someone who isn't family. That's a compliment, by the way.",
+      "after": [{"kind": "bond", "level": 7}],
+      "once": true,
+      "note": "She has no agenda and wants to talk. She may bring up a hangout."
+    },
+    {
+      "id": "pr-bond9",
+      "via": "call",
+      "text": "If you ever need to disappear, there's a place out here nobody knows. I'm telling you because it's you.",
+      "after": [{"kind": "bond", "level": 9}],
+      "once": true,
+      "note": "The hideout is a place in the Badlands she will not name on the phone."
+    },
+    {
+      "id": "pr-dust-storm",
+      "via": "text",
+      "text": "Storm's coming your way. Get inside or get to the camp. Don't be stupid about it.",
+      "when": {"kind": "weather", "is": "dust"},
+      "minBond": 2,
+      "cooldownDays": 3,
+      "note": "A dust storm is coming where V is, in the Badlands."
+    },
+    {
+      "id": "pr-heat",
+      "via": "text",
+      "text": "Saw the news. Is that you? Of course that's you. Breathe, then call me.",
+      "when": {"kind": "heat", "atLeast": 4},
+      "minBond": 2,
+      "cooldownDays": 2,
+      "note": "V's wanted level was high and she saw it on a feed."
+    },
+    {
+      "id": "pr-night",
+      "via": "text",
+      "text": "Can't sleep. Talk me down from driving to the city at two in the morning.",
+      "when": {"kind": "hours", "from": 23, "to": 2, "idle": true},
+      "minBond": 6,
+      "cooldownDays": 4,
+      "note": "She is restless and nothing is wrong. She may suggest a hangout."
+    },
+    {
+      "id": "pr-hang-mackinaw",
+      "via": "text",
+      "text": "Truck's making a noise. Come hand me things and pretend you know what they are.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-fixing-mackinaw",
+      "note": "The Mackinaw is making a noise and she wants V in the Jackson Plains garage to hand her parts."
+    },
+    {
+      "id": "pr-hang-billboard",
+      "via": "text",
+      "text": "I'm sitting on a billboard with two beers. One's getting warm. Figure out how to get up here.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-billboard-beers",
+      "note": "She is on a billboard with two beers and V has to work out how to climb up."
+    },
+    {
+      "id": "pr-hang-stargazing",
+      "via": "text",
+      "text": "Clear sky tonight. I know where the turbines hum. Bring a jacket.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-stargazing-turbines",
+      "note": "A clear night near the turbines, and she wants V to lie in the grass and look at the sky."
+    },
+    {
+      "id": "pr-hang-diner",
+      "via": "text",
+      "text": "I'm hungry and I'm buying. That's not a joke, I'm actually buying.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-diner-rules",
+      "note": "She is hungry and buying at the diner by the old turbine farm road."
+    },
+    {
+      "id": "pr-hang-dust-run",
+      "via": "text",
+      "text": "Bikes. Lakebed. Loser buys fuel.",
+      "minBond": 8,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-dust-run",
+      "note": "A short race across the dry lakebed east of the dam road, and the loser buys the fuel."
+    }
+  ]
+}

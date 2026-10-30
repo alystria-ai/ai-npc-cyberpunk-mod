@@ -20,6 +20,11 @@ import {planSignal, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
+// Scripted quest lines (docs/QUEST_PRIMITIVES.md section 4): the line's reply, its voice route, and the prepared voice that plays its audio file.
+import {scriptedResult, scriptedRoute} from './quest-lines.mjs';
+import {createPreparedVoice, readPreparedFile} from './prepared-voice.mjs';
+import {createPreparedAudio, createDecodeCache} from './prepared-audio.mjs';
+import {MediaLink} from './media-link.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -107,6 +112,12 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
+import {Bonds, BondStore} from './bonds.mjs';
+import {BondPacks} from './bond-pack-runner.mjs';
+import {QuestLink} from './quest-link.mjs';
+import {createFactsReader} from './quest-facts.mjs';
+import {syncAllowlist} from './gift-tables.mjs';
+import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext, romanceReminder} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
@@ -1055,6 +1066,8 @@ const phone = new PhoneChat({
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
+    // Character bonds: a typed message counts as an exchange, and a story pack reads it against its stage (after the reply, no model is asked).
+    publishBonds(prepared.input, result); publishPhoneEvent(options.input, options.profileKey);
     return result;
   },
   publish: (value, options) => atomic(phoneOutput, JSON.stringify(value), options),
@@ -1255,6 +1268,40 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
 const memoryNamespace = memoryScopes(addonContent);
 // When V last talked to each character (Settings > Dynamic info > Time since last talk, bridge/last-talk.mjs): kept per memory key, so a pack's characters have their own, read before the first turn.
 await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[LastTalk] ' + message)});
+// Character bonds (Settings > Gameplay > Character bonds, bridge/bonds.mjs): the shared part of each bond, per memory key (it follows the memory, and Forget clears it),
+// read before the first turn; the levels and their changes go to the game in runtime/bonds-status.json for the one notice per change (mod/bonds.lua).
+const bondStore = new BondStore();
+await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
+const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
+// Story packs (Settings > Gameplay > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
+// (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
+const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
+  bonds, log: line => console.error('[BondPacks] ' + line),
+  // The quest facts the game reports (runtime/quest-facts.json, bridge/quest-facts.mjs): looked at only when a gate asks, and then at most every few seconds.
+  readFacts: createFactsReader({path: resolve(runtime, 'quest-facts.json')})});
+await bondPacks.load().catch(() => {});
+// The gift allowlist the game checks community gifts against (characters/gift-tables.json): written once at the service start, only when it is missing or changed.
+void syncAllowlist({path: resolve(runtime, 'quest-gift-allowlist.json')});
+bonds.packSource = bondPacks.source();
+// Quest primitives (docs/QUEST_PRIMITIVES.md section 4): the quest the game is to execute goes to runtime/quest-play.json (written when the pack state changes), and what the game saw
+// comes back through runtime/quest-events.json. The events file is read every 500 ms only while a quest is active: the timer exists only then (bridge/quest-poller.mjs), so with no quest
+// nothing runs.
+const questLink = new QuestLink({packs: bondPacks, readEvents: () => readFile(resolve(runtime, 'quest-events.json'), 'utf8').catch(() => ''),
+  writePlay: text => atomic(resolve(runtime, 'quest-play.json'), text), now: Date.now, log: line => console.error('[QuestLink] ' + line)});
+const questPoller = createQuestPoller({link: questLink, stopped: () => stopped, onError: error => pollLog('[CyberpunkConvai] Quest link:', error)});
+// The pack state may have changed (a turn, a meeting): the play file follows it (a revision compare when nothing changed), and the poll runs while a quest is active.
+const questSync = () => { void questPoller.sync(); };
+// The prepared audio decoder and the media link. Made here, after the quest poller they read and before the voice routing code: the code between is evaluated piece by piece by tests.
+const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
+  onLog: message => console.error('[PreparedAudio] ' + message)});
+// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
+// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
+// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
+const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
+  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
+  log: message => console.error('[Media] ' + message)});
+const MEDIA_IDLE_MS = 30_000;
+await mediaLink.open();   // remembers the command file of an earlier session, which is never played
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -1691,14 +1738,61 @@ const vendorScope = prepared => {
 // setting is on) and V's words; its proposal is written after the reply is published (publishResult). The relationship the turn was admitted with counts.
 const eddiesDecisions = new EddiesDecisions({log: line => console.error('[Eddies] ' + line)});
 const eddiesNote = (input, prepared, admitted) => input.eddies
-  ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES)})?.note ?? '' : '';
+  ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES),
+    // The bond with V counts as trust, and a story pack's stage may ask for eddies or pay them back (bridge/bond-pack-runner.mjs).
+    bondLevel: input.bonds ? bonds.levelFor(input, bondFacts(input, prepared, admitted)) : null, story: packTurn(input, prepared, admitted)?.story ?? null})?.note ?? '' : '';
 // The proposal of a published turn (a spoken turn's words are read now), for the game to carry out (mod/eddies.lua). Never awaited, never in front of a reply.
+// Character bonds: the turn's line (world tier: it changes only with a level, so prefix caches keep working) and the record of a published turn, which is made after the
+// reply is out and never waits on anything. The relationship the turn was admitted with counts, as for Eddies.
+const bondFacts = (input, prepared, admitted) => {
+  const selection = admitted ? prepared?.relationship : null, romance = romanceOf(selection, RELATIONSHIP_PROFILES);
+  // The tone of a romance is the relationship text's job (bridge/romance-context.mjs), once, for every kind of turn: the bond only counts the romance as story points.
+  return {romance};
+};
+// A reaction (the game sends no bond block with it) repeats the line of the character's last talk with V, so the system message of the prompt reads the same on both and a model that
+// continues only from a saved checkpoint reuses it; a talk with the setting off forgets the character's line.
+const bondNote = (input, prepared, admitted) => {
+  if (input.bonds) return bonds.contextFor(input, bondFacts(input, prepared, admitted));
+  if (input.reaction) return bonds.repeatFor(input);
+  if (!input.head) bonds.dropLine(input);
+  return '';
+};
+// The turn's story pack decision (a start, or the stage in progress), made once per turn; null while Story packs is off or the turn is not a private one with a named character.
+const packTurn = (input, prepared, admitted) => {
+  if (!input.bonds?.packs) { if (input.bonds) bondPacks.on = false; return null; }
+  const facts = bondFacts(input, prepared, admitted);
+  return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
+};
+function publishBonds(input, result, proposal = null) {
+  // V's words to a quest's cast member are read once for an amount, yes or no, after the reply is out (bridge/quest-pay.mjs).
+  if (input?.quest && bondPacks.afterPay(input, result?.userText)) questSync();
+  if (!input?.bonds) return;
+  const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
+  bonds.recordTurn(input, result?.userText, bondFacts(input, prepared, admitted));
+  // The pack the turn started, or V's words read against the stage (after the reply is out; no model is asked).
+  if (input.bonds.packs) bondPacks.afterTurn(input, result?.userText, proposal);
+  questSync();   // the pack state may have changed: the play file follows it
+}
+// A meeting the character kept or gave up on (the appointment events of Phone Chat): a story pack that waits on it moves on.
+function publishPhoneEvent(input, profileKey) {
+  const kind = input?.event?.kind;
+  if (kind !== 'arrived' && kind !== 'stood-up') return;
+  const gameSeconds = Number.isSafeInteger(input.turnContext?.gameTime) ? input.turnContext.gameTime : undefined;
+  bondPacks.noteMeeting(profileKey, kind === 'arrived' ? 'met' : 'stood-up', gameSeconds); questSync();
+}
+// The greeting at a meeting (V reached the character): a story pack that waits on the meeting moves on.
+function publishMeeting(input) {
+  if (input?.reaction?.kind !== 'meet') return;
+  const gameSeconds = Number.isSafeInteger(input.turnContext?.gameTime) ? input.turnContext.gameTime : undefined;
+  bondPacks.noteMeeting(input.profileKey, 'met', gameSeconds); questSync();
+}
 function publishEddies(input, result) {
-  if (!input?.eddies) return;
+  if (!input?.eddies) return null;
   try {
     const proposal = eddiesDecisions.finish(input, result?.userText);
     if (proposal) void atomic(resolve(runtime, 'eddies-offer.json'), JSON.stringify(proposal)).catch(() => {});
-  } catch (error) { console.error('[Eddies] proposal failed: ' + String(error?.message ?? error).slice(0, 120)); }
+    return proposal;
+  } catch (error) { console.error('[Eddies] proposal failed: ' + String(error?.message ?? error).slice(0, 120)); return null; }
 }
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
@@ -1709,6 +1803,10 @@ const conversationBlocks = input => {
     block('world', reputation.contextFor(input, {place: dynamicInfo.on('location')})),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
+    block('world', bondNote(input, prepared, admitted)),
+    block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
+    // The cast member of an armed pay stage is told what is asked and the least it takes (bridge/quest-pay.mjs); '' for every other turn.
+    block('volatile', input.quest ? bondPacks.payNote(input) : ''),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -2092,6 +2190,8 @@ function mergeFinishedReply(spoken, final, streamed) {
 
 async function synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
+  // A scripted quest line with its audio file is always played by the prepared voice, whatever voice the player chose (docs/BOND_QUESTS.md 14.7).
+  if (result.audioPath) return synthesizePrepared(input, result, signal, current, profile);
   const turnPlan = turnVoice(input);
   if (turnPlan.engine === 'convai') {
     logVoiceRoute(input, profile, {engine: 'convai', language: turnPlan.language});
@@ -2289,13 +2389,14 @@ async function status(state, detail = '', turn = null) {
 
 // What a voice engine's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound, sized from how
 // slowly the broken line was produced. One per engine (the Mistral cloud voice, the Pocket voice, the Convai voice): the speed is the engine's.
-const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace(), omniPace = new SpeechPace();
+const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace(), omniPace = new SpeechPace(), preparedPace = new SpeechPace();
 const paceOf = (local, cloud) => local ? (cloud ? cloudPace : pocketPace) : convaiPace;
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
   {player = input.text, late, engine, mic} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
-  const pace = engine === 'omni' ? omniPace : paceOf(local, localVoice.cloudActive);
+  // A prepared quest line is buffered whole before it is sent, so it has a pace of its own and teaches no live engine's.
+  const pace = engine === 'prepared' ? preparedPace : engine === 'omni' ? omniPace : paceOf(local, localVoice.cloudActive);
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     // V speaks your microphone lines, on the Convai provider: the recognised words arrive in the stream, V's line starts from them and holds the reply (bridge/mic-v-line.mjs).
     ...(mic ? {onTranscript: mic.onTranscript, awaitTranscript: mic.awaitTranscript} : {}),
@@ -2352,7 +2453,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       // Delamain line). Such a turn only has to still be current.
       // A character the player made is the same: runCustomTurn voices the reply with no knowledge receipt (error report e0fc2ad3,
       // Local AI + Pocket: "Conversation receipt owner changed" after every custom-character line).
-      if (!receiptPrepared && (input.addon || customCharacters.has(input.profileKey))) {
+      if (!receiptPrepared && (input.addon || customCharacters.has(input.profileKey) || input.reaction?.kind === 'scripted')) {
         if (!await current()) throw Error('Conversation owner changed');
         return;
       }
@@ -2504,6 +2605,8 @@ function decideCallMeet(input, result, signal) {
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
   if (input.holocall && input.meetOffer && mistral.active) decideCallMeet(input, result, signal);
+  // A scripted quest line used no Convai session and no warm connection: it must not overwrite the character's session id or mark a connection as used (runScriptedTurn).
+  const scripted = input.reaction?.kind === 'scripted';
   // "Never mind, cancel that" said to a companion at V's side calls off a meeting V arranged with someone who is not here (bridge/call-off.mjs).
   publishCallOff(runtime, atomic, input, result?.userText);
   // A reply published as a whole (OmniVoice) is ready now: V's typed line, if it is audible, finishes first; if it is not, it is dropped.
@@ -2526,12 +2629,13 @@ async function publishResult(input, profile, result, current = async () => true,
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
-    realtimeSessions.set(sessionKey(input), result.sessionID);
+    if (!scripted) realtimeSessions.set(sessionKey(input), result.sessionID);
     recordDevTurn(input, profile, result);
-    commitExchange(input); gearTold(); publishEddies(input, result);
-    connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
+    commitExchange(input); gearTold(); publishBonds(input, result, publishEddies(input, result)); publishMeeting(input);
+    if (!scripted) connections.used(input, result.timing);
+    prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
-      stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
+      stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : result.timing?.voiceProvider === 'prepared' ? 'prepared-continuous' : 'convai-continuous', complete: true},
       continuousPlaybackCompleteAt: Date.now()});
     await status('ready', profile.name, {requestId: input.requestId});
     return true;
@@ -2545,14 +2649,16 @@ async function publishResult(input, profile, result, current = async () => true,
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
+    // A scripted line whose prepared audio was missing or could not be played: the game shows the subtitle and adds a Phone Chat line (bridge/quest-lines.mjs scriptedResult).
+    ...(result.missingAudio === true ? {missingAudio: true} : {}),
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   recordDevTurn(input, profile, result);
-  commitExchange(input); gearTold(); publishEddies(input, result);
+  commitExchange(input); gearTold(); publishBonds(input, result, publishEddies(input, result)); publishMeeting(input);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
-  (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
-  if (result.transport === 'realtime') connections.used(input, result.timing);
+  if (!scripted) (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
+  if (result.transport === 'realtime' && !scripted) connections.used(input, result.timing);
   prefetch.published(input, result.text);
   // Reconsider the prediction file after a source reply becomes valid.
   prefetchObserved = '';
@@ -2754,6 +2860,8 @@ async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
     // The text providers keep their own conversation memory here (bridge/memory-store.mjs): Forget clears it too, records and vectors included.
     mistralMemory.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});
     lastTalk.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // a forgotten character does not remember when it last met V
+    bonds.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // the bond's talk part follows the memory it came from
+    bondPacks.forgetHistory({all: scope === 'all', profileKeys: profileKeys ?? []});   // the lasting lines a story pack kept follow the memory too
     await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
@@ -3338,7 +3446,8 @@ async function runInput(request, prepared, clock) {
   companionVision.beginTurn(input);
   // A group speaker starts: the next speakers' pages get their picture now (a turn with no composer would publish it too late). Not awaited, and the turn waits for nothing.
   companionVision.stageForNext(nextSpeakerPages(input));
-  warmTalkTargets([input.profileKey], {persona: false});
+  // A scripted line prepares no live voice: its audio is a file (runScriptedTurn).
+  if (input.reaction?.kind !== 'scripted') warmTalkTargets([input.profileKey], {persona: false});
   const ahead = request.lookahead;
   const preparationStarted = performance.now();
   const stages = {};
@@ -3368,6 +3477,8 @@ async function runInput(request, prepared, clock) {
     if (!ahead) await cancelMicrophone();
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
     throwIfCancelled(controller.signal);
+    // A scripted quest line (docs/QUEST_PRIMITIVES.md section 4): the pack's own words and audio, no profile/knowledge/Convai step, no model, no allowance.
+    if (input.reaction?.kind === 'scripted') { await runScriptedTurn(request, input, current, clock); return; }
     const profile = profileFor(input, roster);
     // A character the player made answers through the player's text provider, and never takes the Convai path either (docs/CHARACTER_EDITOR.md).
     if (profile && customCharacters.has(profile.key)) { await runCustomTurn(request, input, profile, current, clock); return; }
@@ -3467,6 +3578,82 @@ async function runInput(request, prepared, clock) {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
     if (active === request) active = null;
   }
+}
+
+// ---- Scripted quest lines (docs/QUEST_PRIMITIVES.md section 4, bridge/quest-lines.mjs)
+// The game asks for a line of a story pack with a private turn of the speaking character (reaction kind 'scripted'). The words and the audio file come from the pack
+// (bondPacks.lineFor), never from the request. No model, no knowledge route, no Convai memory or connection and no allowance belong to the turn, as for a stocked add-on line.
+// With an audio file the line is played by the prepared voice (synthesizePrepared) whatever voice the player chose. With none it is shown, and the missing file is a pack
+// error in the log. A line whose file is missing (or cannot be decoded) is NEVER spoken by a live voice, in Developer mode too (owner decision of 29 Oct 2026): the reply
+// carries `missingAudio: true` for the game, which shows the subtitle and adds a Phone Chat line.
+// Ogg, FLAC and MP3 files are decoded by bridge/prepared-audio.mjs (ffmpeg, else the Runtime Python); its decoded-sample cache lives in the state folder and is bounded.
+const scriptedLogged = new Set();
+// One ERROR line per pack and line (the pack id and the line id are in it), however often the line is asked for.
+const scriptedPackError = (input, message) => {
+  const key = `${input.reaction.pack}/${input.reaction.line}`;
+  if (scriptedLogged.has(key)) return;
+  scriptedLogged.add(key);
+  if (scriptedLogged.size > 256) scriptedLogged.delete(scriptedLogged.values().next().value);
+  console.error(`[QuestLines] ERROR pack=${input.reaction.pack} line=${input.reaction.line}: ${message}`);
+};
+// A published line is her own words from now on: a synthetic exchange in the local store of the text providers (Mistral, Local AI, Custom) with a bracketed note for V's side
+// (an exchange needs both sides) and the extractor skipped (reaction). Convai learns from real turns only (docs/BOND_QUESTS.md 14.6), so nothing is written on that provider.
+function rememberScripted(input, text) {
+  if (!mistral.active || memoryQuiescing) return;
+  try { mistralMemory.record({profileKey: memoryNamespace.keyFor(input.profileKey), channel: 'private', v: '[a scripted moment of the story you share with V]', r: text, reaction: true}); }
+  catch (error) { console.error('[QuestLines] memory not recorded:', error?.message); }
+}
+async function runScriptedTurn(request, input, current, clock) {
+  const {controller} = request, signal = controller.signal;
+  const profile = profileFor(input, roster);
+  const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+    error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  note(input, {receivedAt: request.receivedAt, preparation: {mode: 'none'}, reaction: 'scripted'});
+  if (!profile) { scriptedPackError(input, 'the speaker is not in the roster'); await fail('', 'scripted-line'); return; }
+  void status('thinking', profile.name, {requestId: input.requestId}).catch(() => {});
+  clock.mark('admitted');
+  const {pack, line} = input.reaction;
+  const resolved = bondPacks.lineFor?.(pack, line) ?? null;
+  // A line the pack does not have (or a pack that is not active), or one of another character's: an error code, never a model call.
+  const speaker = typeof resolved?.speaker === 'string' && roster.some(row => row.key === resolved.speaker) ? resolved.speaker : null;
+  const reply = speaker && speaker !== input.profileKey ? null : scriptedResult(resolved);
+  if (!reply) { scriptedPackError(input, 'the pack has no such line, the pack is not running, or the line belongs to another character'); await fail('', 'scripted-line'); return; }
+  if (reply.missingAudio) scriptedPackError(input, 'the line has no prepared audio file, it is shown as a subtitle and is not spoken');
+  throwIfCancelled(signal);
+  let result;
+  const route = scriptedRoute(reply, {playbackEnabled: localVoice.playbackEnabled !== false});
+  // The renderer's page and a silent output device open now, beside the file being read, so the first sound waits for neither (as for any local voice, runInput). Not awaited.
+  if (route === 'prepared') void Promise.resolve(readSpeechStateCached()).then(state => state.continuousAvailable === true ? realtime.standbyLocal?.() : null).catch(() => {});
+  if (route === 'prepared') result = await synthesizeReply(input, reply, signal, current, profile);
+  else { const {audioPath: _file, ...written} = reply; result = {...written, ttsEnabled: false}; }
+  if (!await current()) return;
+  note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  if (await publishResult(input, profile, result, current, signal)) rememberScripted(input, result.text);
+}
+// The prepared voice's delivery (the tail of synthesizeReplyBody, with the audio read from the pack's file): the same renderer, lease, face model and subtitles as a live
+// reply. A file that cannot be read, decoded or played is never handed to a live voice: the line is written (a pack error in the log, `missingAudio: true` in the reply for the game) and no notice is raised.
+async function synthesizePrepared(input, result, signal, current, profile) {
+  const {audioPath, ...written} = result;
+  const textOnly = {...written, audio: undefined, faces: [], captions: [], timing: {...written.timing, voiceProvider: 'none'}};
+  if ((await readSpeechStateCached()).continuousAvailable !== true) {
+    console.error(`[QuestLines] ${input.reaction.pack}/${input.reaction.line}: local streaming is unavailable, the line is written only`);
+    return {...textOnly, missingAudio: true};
+  }
+  let pcm;
+  try { pcm = await preparedAudio.decode(await readPreparedFile(audioPath)); }
+  catch (error) { scriptedPackError(input, `${error.message}, the line is shown as a subtitle and is not spoken`); return {...textOnly, missingAudio: true}; }
+  throwIfCancelled(signal);
+  markStage('voiceStart');
+  // The face: the line's own feeling when the pack names one (an ordered emotion), else what the words say. The prepared line is no answer to V's words.
+  const who = personKey(input), plan = emotionSelection.plan({player: '', reply: result.text, profile: input.profileKey, who, convai: result.expressionSignal, breaks: []});
+  let spoken = {...written};
+  if (spoken.expressionSignal === undefined) { const cue = plan && plan.summary?.basis !== 'calm' ? planSignal(plan) : undefined; if (cue !== undefined) spoken.expressionSignal = cue; }
+  if (plan) spoken.expressionPlan = plan;
+  emotionSelection.remember(who, plan);
+  console.error(`[QuestLines] ${input.reaction.pack}/${input.reaction.line}: ${input.profileKey} speaks from its prepared audio (${(pcm.length / 24000).toFixed(1)} s)`);
+  const speech = continuousSpeech(input, profile, current, signal, undefined, true, undefined, {player: '', engine: 'prepared'});
+  return deliverPocketSpeech({input, profile, result: spoken, current, signal, voice: createPreparedVoice({load: async () => pcm}), host: realtime, speech,
+    phoneAnalysis: localVoice.phoneAnalysis, jaliFace, onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
 let lastAudioHeartbeat = 0;
@@ -3837,6 +4024,9 @@ async function releaseUnused() {
   try {
     const muted = localVoice.silent;
     if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
+    // A story pack that stopped running takes its music and sounds with it, and the media page closes after a quiet half minute.
+    await mediaLink.reconcile().catch(() => {});
+    await realtime.releaseMediaIfIdle({idleMs: MEDIA_IDLE_MS}).catch(() => {});
     if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
     await realtime.releaseRendererPages({line: !vVoice.active || !vVoice.available, companion: muted});
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
@@ -4235,9 +4425,12 @@ void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local vo
 // local voice; the first reply would wait for it (about a second and a half under a running game). Start it now.
 if (mistral.active && localVoice.playbackEnabled !== false) void realtime.prewarmLocal();
 console.log('[CyberpunkConvai] Convai conversation bridge ready');
+// A quest left active in the save is handed to the game now, and the 500 ms poll starts only if one is.
+questSync();
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.
-const timer = setInterval(tick, 50);
+// The media link looks at its command file from this loop, not awaited, only while a quest runs or a sound plays (bridge/media-link.mjs).
+const timer = setInterval(() => { mediaLink.maybePoll(); return tick(); }, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
 // The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone.lua): read the moment the game writes it.
 const liveTimer = setInterval(() => { void micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);
@@ -4297,6 +4490,7 @@ async function shutdown() {
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); micLive.stop(); micDevicesControl.close(); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
+  questPoller.stop();
   stockCancel?.();
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
@@ -4306,6 +4500,8 @@ async function shutdown() {
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
   await lastTalk.flush().catch(() => {});
+  await bondStore.flush().catch(() => {});
+  await bondPacks.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
   await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});

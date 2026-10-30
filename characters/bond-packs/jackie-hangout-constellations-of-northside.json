@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "jackie-hangout-constellations-of-northside",
+  "character": "jackie-welles",
+  "title": "Constellations of Northside",
+  "summary": "Jackie takes you to a Northside rooftop to name stars, where he invents three constellations and asks you for one of your own.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie invites you to a rooftop in Northside, and asks you to bring a jacket. He says he is naming stars."
+  },
+  "places": {
+    "roof": {"name": "a rooftop in Northside", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What's yours called? And what's the story? There's always a story.",
+      "know": "V has just invented a constellation. The sky is above you, and a drone has flown across it, which Jackie has named The Delivery.",
+      "secret": "He made one for Misty and won't say.",
+      "wants": "V's story.",
+      "idle": "stool",
+      "tags": [{"id": "named", "kind": "yes"}, {"id": "smog", "kind": "honest"}],
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "roof",
+      "type": "play",
+      "label": "Jackie and V name constellations from a Northside rooftop",
+      "know": "You are on a rooftop in Northside with Jackie. He is naming constellations after food and tools, and a drone has just flown across the sky.",
+      "wants": "V to name a constellation and tell its story.",
+      "do": [
+        {"p": "place", "at": "roof"},
+        {"p": "party"},
+        {"p": "workspot", "id": "sit", "who": "self", "at": "roof", "key": "sit-ledge", "fallback": "lean"},
+        {"p": "check", "id": "sky", "what": "weather", "now": true},
+        {"p": "timer", "id": "named", "seconds": 300, "clock": "game"},
+        {"p": "together", "id": "stars", "minutes": 15, "metres": 4, "breakSeconds": 300, "at": "roof"}
+      ],
+      "script": [
+        {"when": "timer:named", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stayed", "on": "event:together:stars:done", "next": "stayed"},
+        {"id": "left", "on": "event:together:stars:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "stayed": {
+      "memory": "You and Jackie named constellations from a Northside rooftop, and you named one yourself.",
+      "bond": 10,
+      "history": "V named a constellation for Jackie on a Northside rooftop, and he kept the name."
+    },
+    "left": {
+      "memory": "You and Jackie watched the Northside sky for a while, and then you went back down.",
+      "bond": 6
+    },
+    "unfinished": {
+      "memory": "You and Jackie were doing something light, and it ended there.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "smog", "know": "A smoggy sky, so Jackie does smog shapes instead of stars.", "wants": "V's story.", "places": {"roof": "roof"}},
+      {"id": "clear", "know": "A clear, cold sky with more stars than the city usually shows.", "wants": "V's story.", "places": {"roof": "roof"}},
+      {"id": "fireworks", "know": "Fireworks from a festival far off, lighting the rooftop every few seconds.", "wants": "V's story.", "places": {"roof": "roof"}}
+    ]
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

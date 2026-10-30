@@ -1,0 +1,80 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "johnny-hangout-what-i-know",
+  "character": "johnny-silverhand",
+  "title": "What Do I Know About You",
+  "summary": "Johnny makes four claims about V at a Heywood bar, one of them false, and V has to say which.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq011_concert"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Johnny wants to play a game about you. Bring up, in your own way and smug, that V should sit at a bar in Heywood and order a drink, because he will tell four things about V and one is a lie."
+  },
+  "places": {
+    "bar": {"name": "a bar in Heywood on the Wellsprings side", "radius": 8, "district": "Heywood"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "So? Which one's the lie? And tell me what you wish I didn't know.",
+      "know": "Johnny has made four claims about V from live reads of the gear, the hour and the district, and one is false. The game marks V's pick right or wrong. A nightlife stranger sits nearby.",
+      "secret": "He borrows V's memories more than he lets on.",
+      "wants": "V to commit to a claim and be a little honest.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "right", "kind": "yes"}, {"id": "wrong", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "bar",
+      "type": "play",
+      "label": "Name the lie among Johnny's four claims",
+      "know": "V is at a Heywood bar with a drink. Johnny makes four claims about V, built from live reads, and one of them is false. A stranger at the next stool starts talking to V.",
+      "wants": "V to pick which of the four claims is the lie.",
+      "do": [
+        {"p": "pin", "at": "bar"},
+        {"p": "place", "at": "bar"},
+        {"p": "seat"},
+        {"p": "cast", "id": "stranger", "who": "a nightlife stranger at the bar", "at": "bar", "archetype": "nightlife"},
+        {"p": "npc-react", "id": "react-stranger", "cast": "stranger"},
+        {"p": "check", "id": "gear", "what": "gear"},
+        {"p": "check", "id": "hour", "what": "hour"},
+        {"p": "check", "id": "district", "what": "district"}
+      ],
+      "script": [
+        {"when": "seat:seated", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "right", "on": "event:gap:g1:right", "next": "right"},
+        {"id": "wrong", "on": "event:gap:g1:wrong", "next": "wrong"}
+      ],
+      "timeout": {"gameHours": 2, "next": "wrong"}
+    }
+  ],
+  "endings": {
+    "right": {
+      "memory": "You named the lie in Johnny's four claims about you, and he gave you a rare compliment.",
+      "bond": 10
+    },
+    "wrong": {
+      "memory": "You picked the wrong claim in Johnny's game, and he gloated about it.",
+      "bond": 8
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "route", "know": "The four claims are about the day's route."},
+      {"id": "car", "know": "The four claims are about the car V is driving."},
+      {"id": "kills", "know": "The four claims are about recent kills, with no counts."}
+    ]
+  }
+}

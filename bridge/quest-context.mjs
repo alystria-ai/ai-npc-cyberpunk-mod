@@ -174,6 +174,14 @@ export const turnContextOptions = (input, ambient = false) => ({ambient, split: 
 // may carry a `key` (knowledge, recency, history, jobs, journal, gear): a text provider whose context is too small cuts the blocks
 // that have one, the lowest-priority first (bridge/prompt-budget.mjs); a block without one is never cut by itself. (`authority` is only a place
 // mark: the world facts of a text provider's prompt go just before it, bridge/mistral-prompt.mjs worldBlocksInCacheOrder; it is never cut.)
+// The gear block of a named character's turn. V's own turns carry the gear and set the block; a reaction repeats the last one (bridge/gear-memory.mjs), so the system message reads the same.
+const gearBlock = input => {
+  if (input?.head) return gearContext(input);
+  if (input?.reaction) return gearMemory.recall(input.profileKey);
+  const text = gearContext(input);
+  if (input?.gear !== undefined) gearMemory.remember(input.profileKey, text);
+  return text;
+};
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
@@ -214,7 +222,7 @@ export function conversationContextBlocks(input) {
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
     // The job briefing is for this turn only (volatile), so it never moves the stable blocks a prefix cache keeps.
     {tier: 'volatile', text: quest ? trusted?.briefingContext : ''}, {tier: 'volatile', text: dialogue},
-    {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearContext(input) : ''},
+    {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearBlock(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
 }

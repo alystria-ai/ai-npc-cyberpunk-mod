@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "jackie-hangout-slowest-wins",
+  "character": "jackie-welles",
+  "title": "Slowest Wins",
+  "summary": "Jackie challenges you to a reversed race through the Northside back roads, where the slowest car to the finish wins.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie invites you to a race on the Northside back roads, but backwards. The slowest car to the finish wins, and he says he will beat you at going slow."
+  },
+  "places": {
+    "start": {"name": "the start line on a Northside back road", "radius": 12},
+    "finish": {"name": "the finish line on a Northside waterfront lot", "radius": 15}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Rules are simple. But tell me, hermano, who's the better slow driver, you or me?",
+      "know": "The rules: the slowest car to the finish wins, there is no stopping, and nobody can stand still for more than 5 seconds. The route runs through the Northside back roads to a waterfront lot.",
+      "wants": "The race.",
+      "idle": "lean",
+      "tags": [{"id": "claim", "kind": "honest"}],
+      "resumeAfterSeconds": 180,
+      "resumeOn": ["race:race:started"]
+    }
+  },
+  "stages": [
+    {
+      "id": "race",
+      "type": "play",
+      "label": "The reversed race through Northside",
+      "know": "The race is on. Jackie rides his bike and waves at strangers, and he speeds up whenever he sees a food truck.",
+      "wants": "V to drive slowly and win.",
+      "do": [
+        {"p": "place", "at": "start"},
+        {"p": "race", "id": "race", "from": "start", "to": "finish", "vehicle": "Jackie's bike", "reversed": true, "stillSeconds": 5, "limitMinutes": 20, "heat": false}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "won", "on": "event:race:race:won", "next": "win"},
+        {"id": "lost", "on": "event:race:race:lost", "next": "finish"},
+        {"id": "stopped", "on": "event:race:race:stopped", "next": "finish"}
+      ],
+      "timeout": {"gameHours": 1, "next": "finish"}
+    }
+  ],
+  "endings": {
+    "win": {
+      "memory": "You and Jackie raced the Northside back roads at a crawl, and you were the slower car to the finish and won.",
+      "bond": 14
+    },
+    "finish": {
+      "memory": "You and Jackie raced the Northside back roads at a crawl, and you both made it to the finish line.",
+      "bond": 9
+    },
+    "unfinished": {
+      "memory": "You and Jackie were doing something light, and it ended there.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "night", "know": "Empty Northside roads at night, with nobody to race but each other.", "wants": "The race.", "places": {"start": "start", "finish": "finish"}},
+      {"id": "rain", "know": "A rain run on the Northside back roads, with bright headlights and slick tires.", "wants": "The race.", "places": {"start": "start", "finish": "finish"}},
+      {"id": "crossing", "know": "A crowd of pedestrians at a crossing on the route, and Jackie waving at all of them.", "wants": "The race.", "places": {"start": "start", "finish": "finish"}}
+    ]
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

@@ -1,0 +1,155 @@
+{
+  "format": 2,
+  "id": "panam-sunset-coffee",
+  "character": "panam-palmer",
+  "title": "Coffee at the Sunset",
+  "summary": "Panam asks V out to the Sunset Motel in Rocky Ridge for terrible coffee and a sunrise.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q104_02_av_chase"],
+    "notActive": ["quests/main_quest/act_01/q104", "quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Since Ghost Town you keep a motel room at the Sunset Motel in Rocky Ridge, the one roof you sleep under. You have a rare free morning and terrible motel coffee, and nobody to complain about it to. Bring up, briefly and in your own way, that V should come out to the Sunset for coffee. It is the first time you ask V for nothing but company."
+  },
+  "places": {
+    "sunset": {"name": "the Sunset Motel forecourt in Rocky Ridge", "radius": 25},
+    "lookout": {"name": "the lookout behind the Sunset Motel", "radius": 12}
+  },
+  "images": {
+    "sunset-coffee": {"file": "images/sunset-coffee.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "P1.invite.01": {"text": "Motel coffee tastes like engine coolant. View's good though. Come out to the Sunset?", "emotion": "neutral"},
+    "P1.invite.02": {"text": "Drank both coffees. You owe me.", "emotion": "shrug"},
+    "P1.walk.01": {"text": "You actually came. Here. It's terrible, drink it anyway.", "emotion": "happy", "gesture": "happy"},
+    "P1.walk.02": {"text": "Grand tour of Rocky Ridge. Takes four minutes, five if you ask questions.", "emotion": "emphatic", "gesture": "talk"},
+    "P1.walk.03": {"text": "This is where I watch the road. Dust tells you who's coming before the engine does.", "emotion": "neutral", "gesture": "describe"},
+    "P1.sit.01": {"text": "Sun's coming. Shut up a minute, this is the good part.", "emotion": "happy"},
+    "P1.sit.02": {"text": "Huh. Didn't figure you for that.", "emotion": "surprise", "gesture": "nod"},
+    "P1.left.01": {"text": "Leaving already? Fine. Next coffee's on you.", "emotion": "shrug"},
+    "P1.sunrise.01": {"text": "Proof the view was worth it.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "So. If you weren't running jobs for every fixer in the city, what would you be doing right now?",
+      "know": "You and V are sitting at the Sunset Motel at dawn, the sun about to come up. You asked V here for company only. You walked V around Rocky Ridge: the motel, the gas station and the lookout behind the motel where you watch the road.",
+      "secret": "You are pleased that V came and you will not say so.",
+      "wants": "A real answer from V, not a joke. If V gives a real one, answer in kind with one small memory of growing up on the road, nothing heavy. If V jokes, joke back.",
+      "idle": "seat",
+      "tags": [{"id": "shared", "kind": "honest"}, {"id": "light", "kind": "flatter"}],
+      "resumeAfterSeconds": 900,
+      "resumeOn": ["together:sunrise:done", "seat:stood"]
+    }
+  },
+  "stages": [
+    {
+      "id": "invite",
+      "type": "play",
+      "label": "Panam is waiting at the Sunset Motel with coffee",
+      "know": "You asked V to come out to the Sunset Motel in Rocky Ridge for coffee. You are waiting on the forecourt with two cups of terrible motel coffee. You want nothing from V but company, and you would never say that out loud.",
+      "wants": "V to come out to the Sunset Motel.",
+      "do": [
+        {"p": "pin", "at": "sunset"},
+        {"p": "place", "at": "sunset"},
+        {"p": "cast", "id": "panam", "who": "self", "at": "sunset", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "P1.invite.01"},
+        {"when": "place:sunset:arrived", "say": "P1.walk.01"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:sunset:arrived", "next": "walk"}],
+      "timeout": {"gameHours": 3, "next": "cold-coffee"}
+    },
+    {
+      "id": "walk",
+      "type": "play",
+      "label": "Panam is walking V around Rocky Ridge",
+      "know": "V came out to the Sunset. You are walking V around Rocky Ridge: the motel, the gas station and the lookout behind the motel where you watch the road. You review the motel coffee with mock formality and you cannot resist the extras of the motel room. You read weather from the dust and you keep a room under a roof, which says something about you that you do not explain.",
+      "wants": "V to stay with you for the walk.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "lookout"},
+        {"p": "together", "id": "tour", "minutes": 20, "metres": 5, "breakSeconds": 90}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P1.walk.02"},
+        {"when": "place:lookout:arrived", "say": "P1.walk.03"}
+      ],
+      "choices": [
+        {"id": "walked", "on": "event:together:tour:done", "next": "sit"},
+        {"id": "wandered", "on": "event:together:tour:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 4, "next": "left"}
+    },
+    {
+      "id": "sit",
+      "type": "play",
+      "label": "Panam wants V to sit and watch the sun come up",
+      "know": "The tour is done and the sun is about to come up over the Badlands. You want V to sit down with you at the motel and watch it. You have a sharp, curious question for V and you will ask it once you are sitting.",
+      "wants": "V to sit down beside you and watch the sunrise.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "sunrise", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "seat:seated", "say": "P1.sit.01"},
+        {"when": "line:P1.sit.01:done", "gap": "g1"},
+        {"when": "gap:g1:shared", "say": "P1.sit.02"}
+      ],
+      "choices": [
+        {"id": "shared", "on": "event:gap:g1:shared", "next": "last-sip-warm"},
+        {"id": "light", "on": "event:gap:g1:light", "next": "last-sip"},
+        {"id": "quiet", "on": "event:together:sunrise:done", "next": "last-sip"},
+        {"id": "gone", "on": "event:together:sunrise:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "left"}
+    },
+    {
+      "id": "last-sip",
+      "type": "play",
+      "label": "Panam finishes her coffee",
+      "know": "The sun is up and the coffee is finished. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
+      "do": [{"p": "place", "at": "sunset"}],
+      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise"}],
+      "timeout": {"gameHours": 2, "next": "sunrise"}
+    },
+    {
+      "id": "last-sip-warm",
+      "type": "play",
+      "label": "Panam finishes her coffee",
+      "know": "The sun is up and the coffee is finished. V told you something real about V's own life and you answered with something small about growing up on the road. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
+      "do": [{"p": "place", "at": "sunset"}],
+      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise-shared"}],
+      "timeout": {"gameHours": 2, "next": "sunrise-shared"}
+    }
+  ],
+  "endings": {
+    "sunrise": {
+      "memory": "You had coffee with V at the Sunset Motel at dawn and showed them Rocky Ridge.",
+      "history": "You and V have had motel mornings at the Sunset in Rocky Ridge.",
+      "bond": 45,
+      "script": [{"when": "ending:sunrise", "text": "P1.sunrise.01", "image": "sunset-coffee"}]
+    },
+    "sunrise-shared": {
+      "memory": "You had coffee with V at the Sunset Motel at dawn and showed them Rocky Ridge. V told you something real about their life.",
+      "history": "You and V have had motel mornings at the Sunset in Rocky Ridge, and V told you something real there.",
+      "bond": 55,
+      "script": [{"when": "ending:sunrise-shared", "text": "P1.sunrise.01", "image": "sunset-coffee"}]
+    },
+    "left": {
+      "memory": "V came out to the Sunset for coffee but did not stay long.",
+      "bond": 15,
+      "script": [{"when": "ending:left", "say": "P1.left.01"}]
+    },
+    "cold-coffee": {
+      "memory": "You asked V out for coffee at the Sunset and they never came. You will tease V about it once.",
+      "bond": -5,
+      "script": [{"when": "ending:cold-coffee", "text": "P1.invite.02"}]
+    }
+  }
+}

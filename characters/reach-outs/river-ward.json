@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "character": "river-ward",
+  "triggers": [
+    {
+      "id": "rv-joss-thanks",
+      "via": "text",
+      "text": "Joss says thank you. I can't say it right. So: thank you.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq021_sick_dreams"}],
+      "once": true,
+      "note": "The ending of the missing boy case, Randy's state, and what V saw."
+    },
+    {
+      "id": "rv-bond5",
+      "via": "text",
+      "text": "Case file's open if you want to look. No pressure.",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "note": "The ring case and what is already solved."
+    },
+    {
+      "id": "rv-thursday-dusk",
+      "via": "text",
+      "text": "Thursday again. Coffee's cold already.",
+      "after": [{"kind": "pack", "id": "river-cold-coffee"}],
+      "when": {"kind": "hours", "from": 18, "to": 20},
+      "cooldownDays": 7,
+      "note": "The stakeout and the courier."
+    },
+    {
+      "id": "rv-scanner",
+      "via": "call",
+      "text": "I heard it on the scanner. Is that you? Tell me it's not you.",
+      "when": {"kind": "fight-end", "heatAtLeast": 4},
+      "cooldownDays": 3,
+      "note": "The fight, any witnesses, and V's health."
+    },
+    {
+      "id": "rv-sobchak-dinner",
+      "via": "text",
+      "text": "Joss wants to know if you're coming Sunday. I said I'd ask. So I'm asking.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq029_sobchak_romance"}],
+      "cooldownDays": 10,
+      "note": "The dinner and who was there."
+    },
+    {
+      "id": "rv-badlands",
+      "via": "text",
+      "text": "You're out near Red Peaks. Come by? Coffee on the stove.",
+      "when": {"kind": "district", "is": "Badlands"},
+      "cooldownDays": 5,
+      "note": "V's location, and the farm case if RW5 is done."
+    },
+    {
+      "id": "rv-idle",
+      "via": "text",
+      "text": "You alive? I'd check the cameras but I'm trying to be normal.",
+      "after": [{"kind": "idle-days", "days": 10}],
+      "cooldownDays": 10,
+      "note": "The last topic and any open promise."
+    },
+    {
+      "id": "rwh1-offer-tin-cans",
+      "via": "text",
+      "text": "Dry gulch off the Red Peaks road. Tin cans, two guns, one bad loser. Me.",
+      "after": [{"kind": "bond", "level": 2}],
+      "once": true,
+      "offer": "river-hangout-tin-can-alley",
+      "note": "A shooting range of tin cans in a dry gulch, and River keeps score."
+    },
+    {
+      "id": "rwh2-offer-witness",
+      "via": "text",
+      "text": "A diner in Santo Domingo. Four witnesses, one stolen tip jar. Come hungry and suspicious.",
+      "after": [{"kind": "bond", "level": 3}],
+      "once": true,
+      "offer": "river-hangout-friendliest-witness",
+      "note": "A staged theft at a diner in Santo Domingo, with four witnesses."
+    },
+    {
+      "id": "rwh3-offer-scrapyard",
+      "via": "text",
+      "text": "Scrapyard south of the city. Five wrecks, one quiz. Loser buys the coffee.",
+      "after": [{"kind": "bond", "level": 4}],
+      "once": true,
+      "offer": "river-hangout-scrapyard-appraisal",
+      "note": "A wreck field south of the city, with a quiz about the cars."
+    },
+    {
+      "id": "rwh4-offer-time-capsule",
+      "via": "text",
+      "text": "Badlands west road, a pullout with one tree. Bring something you won't miss and something you will.",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "offer": "river-hangout-time-capsule",
+      "note": "A pullout on the Badlands west road where River wants to bury a tin."
+    },
+    {
+      "id": "rwh5-offer-cover-story",
+      "via": "text",
+      "text": "Santo Domingo night market. I'll give you an alias. Get a free coffee with it. If you can.",
+      "after": [{"kind": "bond", "level": 6}],
+      "once": true,
+      "offer": "river-hangout-cover-story",
+      "note": "A night market in Santo Domingo, where River tests a cover story."
+    }
+  ]
+}

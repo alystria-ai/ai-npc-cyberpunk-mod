@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "river-hangout-friendliest-witness",
+  "character": "river-ward",
+  "title": "The Friendliest Witness",
+  "summary": "River takes you to a Santo Domingo diner where a tip jar has gone missing and four witnesses have a story each.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "River has a small case at a Santo Domingo diner, a stolen tip jar and four witnesses. He wants V to come and question them with him."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "lost-dog", "know": "A dog's leash is on the diner floor with no dog attached, and the waitress says its owner ran out the back.", "wants": "The owner found, with the story straight."},
+      {"id": "sandwich", "know": "A sandwich has gone missing from the counter, and each of the four witnesses has a different story about the plate.", "wants": "The right name for the sandwich thief."},
+      {"id": "v-sets-case", "know": "V sets the case this time, and River plays the investigator at the diner counter.", "wants": "V's case to be solved by River."}
+    ]
+  },
+  "places": {
+    "diner": {"name": "the roadside diner on the main road through Santo Domingo", "radius": 25}
+  },
+  "lines": {
+    "RWH2.inv": {"text": "A diner in Santo Domingo. Four witnesses, one stolen tip jar. Come hungry and suspicious.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Who do you trust least in this room, and why is it the nicest one?",
+      "know": "You have heard the four statements. You know what each witness said about the tip jar and the waitress.",
+      "secret": "He knew who took the jar in the first minute.",
+      "wants": "V's reasoning.",
+      "idle": "chair",
+      "tags": [{"id": "nicest", "kind": "yes"}, {"id": "other", "kind": "no"}],
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "statements",
+      "type": "play",
+      "label": "River and V question the diner witnesses",
+      "know": "You are in the Santo Domingo diner with River. Four witnesses sit at the counter and each has given a statement about the stolen tip jar.",
+      "wants": "V to question the witnesses and name the thief.",
+      "do": [
+        {"p": "cast", "id": "river", "who": "self", "at": "diner", "carry": true},
+        {"p": "place", "at": "diner"},
+        {"p": "cast", "id": "diner-a", "who": "extra", "at": "diner"},
+        {"p": "cast", "id": "diner-b", "who": "extra", "at": "diner"},
+        {"p": "cast", "id": "diner-c", "who": "extra", "at": "diner"},
+        {"p": "cast", "id": "diner-d", "who": "extra", "at": "diner"},
+        {"p": "timer", "id": "statements", "seconds": 60}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RWH2.inv"},
+        {"when": "timer:statements", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "right", "on": "event:gap:g1:nicest", "next": "right"},
+        {"id": "wrong", "on": "event:gap:g1:other", "next": "wrong"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "right": {
+      "memory": "You named the friendliest of the four witnesses at the Santo Domingo diner, and River grudgingly said to keep it up.",
+      "bond": 6
+    },
+    "wrong": {
+      "memory": "You named the wrong witness at the Santo Domingo diner, and River gave you a lesson about trusting the nicest one.",
+      "bond": 2
+    },
+    "stood-up": {
+      "memory": "You never came to the Santo Domingo diner, and River questioned the four witnesses alone."
+    }
+  }
+}

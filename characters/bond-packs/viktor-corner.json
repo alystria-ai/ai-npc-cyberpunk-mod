@@ -1,0 +1,251 @@
+{
+  "format": 2,
+  "id": "viktor-corner",
+  "character": "viktor-vektor",
+  "title": "Corner",
+  "summary": "Viktor gets in the ring himself for three rounds, and he asks V to be the corner man with the stool, the towel and the water.",
+  "requires": {
+    "bond": 10,
+    "after": ["viktor-patient-confidentiality"],
+    "questsFinished": ["quests/minor_quest/mq033_tarot"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Viktor wants to step into the ring himself for three rounds at the old Grand Prix hall, to show a young fighter why his guard drops. Bring it up, briefly and in your own way, that he needs a corner man on Thursday night and that he wants a yes that is not a favour."
+  },
+  "places": {
+    "hall": {"name": "the Watson hall where the Grand Prix was held", "radius": 25},
+    "dressing": {"name": "the dressing room beside the hall", "radius": 6},
+    "ring": {"name": "the ring in the Watson hall", "radius": 8},
+    "corner": {"name": "the corner of the ring where the stool stands", "radius": 3}
+  },
+  "lines": {
+    "V6.open.01": {"text": "V. Thursday night. I need a corner man.", "emotion": "neutral", "channel": "holocall"},
+    "V6.open.02": {"text": "Stool, towel, water bottle. You don't have to say anything clever.", "emotion": "shrug", "channel": "holocall"},
+    "V6.open.03": {"text": "One of the kids drops his guard in round two. I'm going to show him why.", "emotion": "emphatic", "channel": "holocall"},
+    "V6.open.04": {"text": "In the ring. I haven't been in one since the Grand Prix.", "emotion": "sad", "channel": "holocall"},
+    "V6.open.05": {"text": "Will you do it? Think first. I'll know if you didn't.", "emotion": "neutral", "channel": "holocall"},
+    "V6.open.06": {"text": "Thursday. The hall. Bring a clean shirt.", "emotion": "nod", "channel": "holocall"},
+    "V6.bark.arrive.a": {"text": "Bag's in the dressing room. Don't touch the trophies.", "emotion": "shrug"},
+    "V6.bark.arrive.b": {"text": "Smells the same. Funny.", "emotion": "sad"},
+    "V6.s2.01": {"text": "Sit. Hands. Tight across the knuckles, not the wrist.", "emotion": "emphatic"},
+    "V6.s2.02": {"text": "Second place. Everyone says it like an insult. It isn't.", "emotion": "nod"},
+    "V6.s2.03": {"text": "I could have been somebody. I stopped wanting to be. Sleep got easier.", "emotion": "sad"},
+    "V6.s2.04": {"text": "What do you want from me tonight? As a corner. Truthfully.", "emotion": "neutral"},
+    "V6.r1.01": {"text": "Easy. Feel him out. Jab, jab.", "emotion": "neutral"},
+    "V6.r2.01": {"text": "He's dropping his hands. Good. Wait for it.", "emotion": "emphatic"},
+    "V6.r2.04": {"text": "Should I go out for the third? Be honest. You're the one who can see.", "emotion": "neutral"},
+    "V6.r3.01": {"text": "Last round. Chin down. Last round.", "emotion": "emphatic"},
+    "V6.end.01": {"text": "Three rounds. Still on my feet. More than I promised.", "emotion": "happy"},
+    "V6.end.02": {"text": "Towel's in. Fine. Fine.", "emotion": "sad"},
+    "V6.s4.01": {"text": "Hold the lamp. Higher. That's it.", "emotion": "nod"},
+    "V6.s4.03": {"text": "Take it. Second place. It's lighter than you'd think.", "emotion": "nod"},
+    "V6.s4.04": {"text": "Is there someone who would stand in your corner? Name one.", "emotion": "neutral"},
+    "V6.s4.05": {"text": "Sleeping well is a decent trade. I mean it. Try it.", "emotion": "nod"},
+    "V6.close.01": {"text": "My corner. That's what you are now. Don't make me regret it.", "emotion": "happy"},
+    "V6.close.02": {"text": "You threw it in. I'm still angry. Thank you. In that order.", "emotion": "angry"},
+    "V6.close.03": {"text": "I'll ask somebody else. Don't worry about it.", "emotion": "shrug"},
+    "V6.close.04": {"text": "Thursday came and went. It's fine. I fought the kid in my head.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you do it?",
+      "know": "The bout plan, V4 and V5 done, the hall is the Grand Prix hall.",
+      "secret": "He has not been in a ring since the Grand Prix and he fears the first punch.",
+      "wants": "A yes that is not a favour.",
+      "tags": [{"id": "firm", "kind": "yes"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "What do you want from me tonight?",
+      "know": "The dressing room, his wraps, and the ring waiting.",
+      "secret": "He wants V to say stop before he asks for it.",
+      "wants": "A role, not a speech.",
+      "idle": "generic_back",
+      "tags": [{"id": "role", "kind": "honest"}, {"id": "stop", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "Should I go out for the third?",
+      "know": "The cut, the score of the two rounds, and the towel.",
+      "secret": "He wants to go out, and he wants to be stopped, and he cannot tell which.",
+      "wants": "V's honest eyes.",
+      "idle": "stool",
+      "tags": [{"id": "guard", "kind": "yes"}, {"id": "towel", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g4": {
+      "asks": "Is there someone who would stand in your corner? Name one.",
+      "know": "The ending and V's relationships in the save.",
+      "secret": "He wants the answer to be himself.",
+      "wants": "V to say a name.",
+      "idle": "chair",
+      "tags": [{"id": "named", "kind": "honest"}, {"id": "nobody", "kind": "no"}],
+      "resumeAfterSeconds": 40
+    }
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "steps": [
+        {"say": "V6.open.01"},
+        {"say": "V6.open.02"},
+        {"say": "V6.open.03"},
+        {"say": "V6.open.04"},
+        {"say": "V6.open.05"},
+        {"gap": "g1"},
+        {"say": "V6.open.06"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Viktor calls V to be his corner man",
+      "know": "Viktor calls you on Thursday to ask you to be his corner man at the old Grand Prix hall. He wants a yes that is not a favour, and he will know if you did not think about it.",
+      "wants": "V to say yes and meet him at the hall.",
+      "do": [
+        {"p": "pin", "at": "hall"},
+        {"p": "place", "at": "hall"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "hall", "carry": true},
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30}
+      ],
+      "script": [
+        {"when": "place:hall:arrived", "say": "V6.bark.arrive.a"},
+        {"when": "line:V6.bark.arrive.a:done", "say": "V6.bark.arrive.b"}
+      ],
+      "choices": [
+        {"id": "came", "on": "event:place:hall:arrived", "next": "wraps"}
+      ],
+      "timeout": {"gameHours": 24, "next": "no-corner"}
+    },
+    {
+      "id": "wraps",
+      "type": "play",
+      "label": "V wraps Viktor's hands on the dressing room bench",
+      "know": "You are in the dressing room. Viktor sits on the bench and holds out his hands, and you wrap them while he talks about the second-place night.",
+      "wants": "V to wrap his hands tight across the knuckles and to hear what he has not said.",
+      "do": [
+        {"p": "place", "at": "dressing"},
+        {"p": "seat"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "dressing"},
+        {"p": "together", "id": "wraps", "minutes": 5, "metres": 3, "seated": true, "breakSeconds": 120},
+        {"p": "timer", "id": "t60", "seconds": 60},
+        {"p": "timer", "id": "t120", "seconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V6.s2.01"},
+        {"when": "timer:t60", "say": "V6.s2.02"},
+        {"when": "timer:t120", "say": "V6.s2.03"},
+        {"when": "line:V6.s2.03:done", "say": "V6.s2.04"},
+        {"when": "line:V6.s2.04:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:wraps:done", "next": "rounds"},
+        {"id": "broken", "on": "event:together:wraps:broken", "next": "walked"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walked"}
+    },
+    {
+      "id": "rounds",
+      "type": "play",
+      "label": "V works the corner for three rounds",
+      "know": "Viktor is in the ring with a younger fighter who has a handicap, and you are at the stool in the corner with the towel and the water. You can throw in the towel at any time.",
+      "wants": "V to keep Viktor on his feet, or to stop it when it is time.",
+      "do": [
+        {"p": "place", "at": "ring"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "ring"},
+        {"p": "cast", "id": "young", "who": "extra", "at": "ring"},
+        {"p": "bout", "id": "fight", "at": "ring", "a": "viktor", "b": "young", "rounds": 3, "roundSeconds": 90, "floor": 25, "handicap": 15},
+        {"p": "post", "id": "corner", "at": "corner", "stance": "stand"},
+        {"p": "together", "id": "stool", "minutes": 1, "metres": 3}
+      ],
+      "script": [
+        {"when": "stage:enter", "event": "bout:fight:go"},
+        {"when": "bout:fight:started", "say": "V6.r1.01"},
+        {"when": "bout:fight:round2", "say": "V6.r2.01"},
+        {"when": "line:V6.r2.01:done", "say": "V6.r2.04"},
+        {"when": "line:V6.r2.04:done", "gap": "g3"},
+        {"when": "bout:fight:round3", "say": "V6.r3.01"}
+      ],
+      "choices": [
+        {"id": "towel", "on": "tag", "kind": "no", "means": "V throws in the towel between rounds two and three.", "next": "after-towel"},
+        {"id": "ended", "on": "event:bout:fight:ended", "next": "after"},
+        {"id": "left", "on": "event:post:corner:lost", "next": "walked"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walked"}
+    },
+    {
+      "id": "after",
+      "type": "play",
+      "label": "V holds the lamp while Viktor patches himself",
+      "know": "The fight is over and Viktor is on the dressing room bench. He takes the second-place medal from the bag and tells you what he thinks of it.",
+      "wants": "V to hold the lamp steady while he patches himself.",
+      "do": [
+        {"p": "place", "at": "dressing"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "dressing"},
+        {"p": "timer", "id": "t240", "seconds": 240}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V6.end.01"},
+        {"when": "line:V6.end.01:done", "say": "V6.s4.01"},
+        {"when": "timer:t240", "say": "V6.s4.03"},
+        {"when": "line:V6.s4.03:done", "say": "V6.s4.04"},
+        {"when": "line:V6.s4.04:done", "gap": "g4"}
+      ],
+      "choices": [
+        {"id": "named", "on": "tag", "kind": "honest", "means": "V names someone who would stand in the corner.", "next": "stood"},
+        {"id": "nobody", "on": "tag", "kind": "no", "means": "V says nobody would.", "next": "stood"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stood"}
+    },
+    {
+      "id": "after-towel",
+      "type": "play",
+      "label": "V threw in the towel and Viktor is angry",
+      "know": "You threw in the towel between rounds, and Viktor is on the stool with a cut over one eye, furious and then grateful.",
+      "wants": "V to stay with him until the anger passes.",
+      "do": [
+        {"p": "place", "at": "dressing"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "dressing"},
+        {"p": "timer", "id": "fin", "seconds": 30}
+      ],
+      "script": [{"when": "stage:enter", "say": "V6.end.02"}],
+      "choices": [
+        {"id": "done", "on": "event:timer:fin", "next": "towel"}
+      ],
+      "timeout": {"gameHours": 1, "next": "towel"}
+    }
+  ],
+  "endings": {
+    "stood": {
+      "memory": "You were Viktor's corner man for three rounds at the old hall, and he was still on his feet at the bell.",
+      "history": "He calls V his corner.",
+      "bond": 100,
+      "script": [
+        {"when": "ending:stood", "say": "V6.s4.05"},
+        {"when": "ending:stood", "say": "V6.close.01"}
+      ]
+    },
+    "towel": {
+      "memory": "You stopped the fight between rounds two and three at the old hall, and Viktor has not forgiven you yet, which is how he says thanks.",
+      "bond": 85,
+      "script": [{"when": "ending:towel", "say": "V6.close.02"}]
+    },
+    "walked": {
+      "memory": "You left his corner in the middle of the fight, and he went looking for someone else.",
+      "bond": 20,
+      "script": [{"when": "ending:walked", "say": "V6.close.03"}]
+    },
+    "no-corner": {
+      "memory": "You never made it to the hall on Thursday, and he fought the kid in his head.",
+      "bond": -10,
+      "script": [{"when": "ending:no-corner", "text": "V6.close.04"}]
+    }
+  }
+}

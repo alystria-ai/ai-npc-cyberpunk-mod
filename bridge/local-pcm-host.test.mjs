@@ -50,9 +50,9 @@ class OfflinePlayer {
   async stop() { this.stopped = true; this.pending?.reject(Error('Offline renderer retired')); }
 }
 
-function fixture(t, {manualAck = false, timeoutMs = 120_000} = {}) {
+function fixture(t, {manualAck = false, timeoutMs = 120_000, onSpeech} = {}) {
   const pages = [], players = [], tasks = [];
-  const host = new LocalPcmHost({pollMs: 5, timeoutMs, cleanupTimeoutMs: 30_000,
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs, cleanupTimeoutMs: 30_000, onSpeech,
     createPage: async () => {
       const client = new LocalPcmClient({createPlayer: () => {
         const player = new OfflinePlayer({manualAck}); players.push(player); return player;
@@ -682,4 +682,31 @@ test('ownedFaceCopy: rows the producer attests as unchanged are copied once and 
   const loose = {};
   const a = ownedFaceCopy(plain, loose), b = ownedFaceCopy(plain, loose);
   assert.notEqual(a.frames, b.frames, 'no note, no reuse, even with the same array');
+});
+
+test('onSpeech (the media channel\'s duck signal): told once when the first audio is accepted and once when the turn ends, never for a turn that made no audio, and a throwing listener changes nothing', {timeout: 120_000}, async t => {
+  const told = [];
+  const {host, players, track} = fixture(t, {manualAck: true, onSpeech: on => told.push(on)});
+  const pending = track(host.play({token: 'duck-signal', text: 'One reply.'}, async emit => { await emit(packet({pcm: new Float32Array(9600).fill(.25)})); return {timing: {}}; },
+    {onFrame: () => control}));
+  await until(() => players[0]?.copies.length);
+  assert.deepEqual(told, [], 'the renderer has not accepted the audio yet: nobody is audible');
+  players[0].pending.resolve();
+  await until(() => players[0]?.sealed);
+  assert.deepEqual(told, [true]);
+  players[0].finish(); await pending;
+  assert.deepEqual(told, [true, false]);
+  // a turn cancelled before any audio never told anyone it was speaking
+  const quiet = fixture(t, {onSpeech: on => told.push('quiet-' + on)});
+  const controller = new AbortController();
+  const aborted = quiet.track(quiet.host.play({token: 'no-audio', text: 'Owned'}, async (emit, {signal}) => { await new Promise(resolve => signal.addEventListener('abort', resolve, {once: true})); },
+    {signal: controller.signal, onFrame: () => control}));
+  await sleep(20); controller.abort();
+  await assert.rejects(aborted, {name: 'AbortError'});
+  assert.deepEqual(told, [true, false]);
+  // a listener that throws is swallowed: the voice plays on
+  const loud = fixture(t, {onSpeech: () => { throw Error('listener'); }});
+  const turn = loud.track(loud.host.play({token: 'throwing-listener', text: 'Still heard.'}, async emit => { await emit(packet()); return {timing: {}}; }, {onFrame: () => control}));
+  await until(() => loud.players[0]?.sealed); loud.players[0].finish();
+  assert.equal((await turn).streamed, true);
 });

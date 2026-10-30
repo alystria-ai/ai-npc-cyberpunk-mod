@@ -1,0 +1,200 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "rogue-hangout-shake-the-tail",
+  "character": "rogue-amendiares",
+  "title": "Shake the Tail",
+  "summary": "Someone is following Rogue and V through City Center Downtown, and V has ten game minutes to lose him.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": [
+      "quests/side_quest/sq031_rogue",
+      "quests/side_quest/sq031_smack_my_bitch_up"
+    ],
+    "notActive": [
+      "quests/main_quest/act_01/q103",
+      "quests/side_quest/sq031",
+      "quests/main_quest/act_01/q115"
+    ],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": [
+      "own",
+      "phone",
+      "holocall"
+    ],
+    "chance": 0.05,
+    "bringUp": "You want V to walk with you through City Center Downtown and lose someone who is following you. Bring up, briefly and in your own way, that you have company you do not want and need V to deal with it."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {
+        "id": "rain",
+        "know": "It is raining, and the reflective glass of the shops shows the follower in every window.",
+        "places": {
+          "street": "street-rain"
+        }
+      },
+      {
+        "id": "two-followers",
+        "know": "Two followers trail V and Rogue. The one who is nearer is the one the trail follows."
+      },
+      {
+        "id": "night-metro",
+        "know": "It is night, and the metro station is the easiest place to lose someone.",
+        "places": {
+          "street": "metro-station"
+        }
+      }
+    ]
+  },
+  "places": {
+    "street": {
+      "name": "the streets of City Center Downtown",
+      "radius": 25
+    },
+    "street-rain": {
+      "name": "the streets of City Center Downtown in the rain",
+      "radius": 25
+    },
+    "metro-station": {
+      "name": "the night metro station in City Center Downtown",
+      "radius": 8
+    },
+    "alley": {
+      "name": "the narrow alley behind the shops",
+      "radius": 8
+    },
+    "crowd": {
+      "name": "the busy market crowd",
+      "radius": 25
+    },
+    "building": {
+      "name": "the building with a back exit",
+      "radius": 8
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which way would you lose him? Alley, crowd or building? Tell me before you go.",
+      "know": "The follower is a young man with a camera drone. Three routes can lose him: the alley, the crowd and the building. You have ten game minutes. He is an intern from a gossip site, and you already know who he is.",
+      "secret": "That you already know who he is.",
+      "wants": "V's plan.",
+      "idle": "arms-crossed",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "shake",
+      "type": "play",
+      "label": "V walks Rogue through the streets to lose the follower",
+      "know": "You and V walk the streets of City Center Downtown with a young man following you with a camera drone. You want V to lose him in ten game minutes through the alley, the crowd or the building. You give tips on the way.",
+      "wants": "V to lose the follower, and to keep Rogue out of his camera.",
+      "do": [
+        {
+          "p": "pin",
+          "at": "street"
+        },
+        {
+          "p": "place",
+          "at": "street"
+        },
+        {
+          "p": "cast",
+          "id": "intern",
+          "who": "nameless young man with a camera drone, trailing them",
+          "at": "street"
+        },
+        {
+          "p": "cast",
+          "id": "rogue",
+          "who": "self",
+          "at": "street"
+        },
+        {
+          "p": "tail",
+          "id": "trail",
+          "at": "street",
+          "noticeMetres": 10,
+          "lostMetres": 120
+        },
+        {
+          "p": "place",
+          "at": "alley"
+        },
+        {
+          "p": "place",
+          "at": "crowd"
+        },
+        {
+          "p": "place",
+          "at": "building"
+        },
+        {
+          "p": "npc-react",
+          "id": "intern-react",
+          "cast": "intern"
+        }
+      ],
+      "script": [
+        {
+          "when": "stage:enter",
+          "gap": "g1"
+        }
+      ],
+      "choices": [
+        {
+          "id": "lost",
+          "on": "event:tail:trail:lost",
+          "next": "shaken"
+        },
+        {
+          "id": "leave",
+          "on": "event:npc:intern-react:leave",
+          "next": "coffee"
+        },
+        {
+          "id": "obey",
+          "on": "event:npc:intern-react:obey",
+          "next": "coffee"
+        },
+        {
+          "id": "stood",
+          "on": "meet:stood-up",
+          "next": "stood-up"
+        }
+      ],
+      "meet": {
+        "where": "waypoint",
+        "inGameHours": 3
+      },
+      "timeout": {
+        "gameHours": 0.17,
+        "next": "tailed"
+      }
+    }
+  ],
+  "endings": {
+    "shaken": {
+      "memory": "You lost the follower in the streets of City Center Downtown, and Rogue said you had done it cleanly.",
+      "bond": 11
+    },
+    "coffee": {
+      "memory": "The young man with the drone gave up and left, and Rogue bought him a coffee and told him to stop following people.",
+      "bond": 9
+    },
+    "tailed": {
+      "memory": "He was still behind you when the ten minutes ran out, and Rogue said he was not worth losing.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "V did not come to meet Rogue in City Center Downtown, and she walked the streets alone."
+    }
+  }
+}

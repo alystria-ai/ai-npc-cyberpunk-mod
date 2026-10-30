@@ -1,0 +1,240 @@
+{
+  "format": 2,
+  "id": "jackie-wraps",
+  "character": "jackie-welles",
+  "title": "Wraps",
+  "summary": "Jackie lifts to settle his nerves, has his hands wrapped at Viktor's clinic, and fights a friendly bout in a Northside pit with you in his corner.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie texts you that he needs to lift before he does something stupid, and asks you to meet him at the gym. Tonight he plans to take a bout at a Northside pit, the way he used to with Viktor, and he wants you in his corner. He would never say he is nervous."
+  },
+  "places": {
+    "gym": {"name": "the gym in Kabuki where Jackie lifts", "radius": 12},
+    "clinic": {"name": "Viktor's clinic behind the Esoterica in Little China", "radius": 10},
+    "pit": {"name": "the old warehouse pit in Northside", "radius": 20}
+  },
+  "lines": {
+    "JW4.open.01": {"text": "Good, you're here. I need to lift before I do something stupid.", "emotion": "neutral"},
+    "JW4.open.02": {"text": "Weights are my meditation. Don't talk at me. Just spot me.", "emotion": "emphatic"},
+    "JW4.open.03": {"text": "Tonight I'm fighting in a pit in Northside. Like old times with Viktor.", "emotion": "happy"},
+    "JW4.open.04": {"text": "You're my corner. Say yes before I come up with a worse plan.", "emotion": "neutral"},
+    "JW4.stage.lift.01": {"text": "One more. Count for me. Eight, nine... you've got me, right?", "emotion": "emphatic"},
+    "JW4.stage.lift.02": {"text": "There. Feels good. Hurts in the right places.", "emotion": "happy"},
+    "JW4.stage.clinic.01": {"text": "Viktor! Wrap me up, doc. Tonight I need hands like hammers.", "emotion": "happy"},
+    "JW4.stage.clinic.02": {"text": "He never says yes. He says \"be careful\". Which is a yes.", "emotion": "nod"},
+    "JW4.pit.01": {"text": "Rules are simple. Hands only. Last one standing or the towel.", "emotion": "emphatic"},
+    "JW4.stage.pit.01": {"text": "Alright, alright. Let's make some noise.", "emotion": "happy"},
+    "JW4.stage.pit.02": {"text": "I'm fine. Don't look at me like that.", "emotion": "angry"},
+    "JW4.bark.round.a": {"text": "Water. Quick. I'm good, choom, I'm good.", "emotion": "emphatic"},
+    "JW4.bark.round.b": {"text": "He hits harder than he looks. Don't throw the towel yet.", "emotion": "emphatic"},
+    "JW4.bark.towel.a": {"text": "What the hell, V! ...Thank you.", "emotion": "sad"},
+    "JW4.bark.towel.b": {"text": "I had him! ...No. I didn't. Thanks.", "emotion": "shrug"},
+    "JW4.bark.win.a": {"text": "Ha! Did you see that? Tell Viktor!", "emotion": "happy"},
+    "JW4.bark.win.b": {"text": "On my feet! Nobody carried me!", "emotion": "happy"},
+    "JW4.bark.lose.a": {"text": "Ah. Well. That's a story. I'll tell it better.", "emotion": "shrug"},
+    "JW4.bark.lose.b": {"text": "He was better tonight. Don't tell Viktor.", "emotion": "sad"},
+    "JW4.close.01": {"text": "Good. Lift, hit, or talk. One of them has to work. Misty says talk.", "emotion": "nod"},
+    "JW4.close.02": {"text": "Ha. Fair. Let's go eat something.", "emotion": "happy"},
+    "JW4.close.03": {"text": "Gym was enough. Maybe the pit's for another night.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You've got my back, right? And be honest, you think I'm crazy?",
+      "know": "The plan is the gym, then Viktor's clinic, then the pit in Northside with three 90-second rounds. Jackie is restless and needs company, not therapy.",
+      "secret": "He is nervous and hiding it with a joke.",
+      "wants": "A plain yes.",
+      "idle": "jackie_hips",
+      "tags": [{"id": "spotted", "kind": "yes"}, {"id": "crazy", "kind": "honest"}],
+      "resumeAfterSeconds": 240
+    },
+    "g2": {
+      "asks": "Be straight with me. Do I look nervous, hermano?",
+      "know": "Viktor has wrapped his hands. Misty teased him from her shop. The pit is next, and V can throw in the towel.",
+      "secret": "He doesn't want to disappoint Viktor.",
+      "wants": "Reassurance without a lecture.",
+      "idle": "jackie",
+      "tags": [{"id": "calm", "kind": "yes"}, {"id": "worry", "kind": "no"}],
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "Tell me something true. What do you actually do when you want to hit something and can't?",
+      "know": "The bout is over. He is sore and has ice on him, and he is loose enough to talk about Misty and about why fighting helps.",
+      "secret": "He worries Misty sees more than he wants.",
+      "wants": "V to answer honestly, he'll answer back.",
+      "idle": "stool",
+      "tags": [{"id": "honest", "kind": "yes"}, {"id": "joke", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "lift",
+      "type": "play",
+      "label": "Jackie lifts at the gym with V spotting",
+      "know": "You are at the gym in Kabuki with Jackie. He is lifting to meditate, and he wants company, not therapy.",
+      "wants": "V to spot him and keep him company.",
+      "do": [
+        {"p": "place", "at": "gym"},
+        {"p": "party"},
+        {"p": "workspot", "id": "lift", "who": "self", "at": "gym", "key": "weights"},
+        {"p": "together", "id": "gym", "minutes": 15, "metres": 3, "breakSeconds": 300, "at": "gym"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW4.open.01"},
+        {"when": "line:JW4.open.01:done", "say": "JW4.open.02"},
+        {"when": "line:JW4.open.02:done", "say": "JW4.open.03"},
+        {"when": "line:JW4.open.03:done", "say": "JW4.open.04"},
+        {"when": "line:JW4.open.04:done", "gap": "g1"},
+        {"when": "gap:g1:spotted", "say": "JW4.stage.lift.01"},
+        {"when": "line:JW4.stage.lift.01:done", "say": "JW4.stage.lift.02"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:gym:done", "next": "clinic"},
+        {"id": "broken", "on": "event:together:gym:broken", "next": "clinic"}
+      ],
+      "timeout": {"gameHours": 1, "next": "clinic"}
+    },
+    {
+      "id": "clinic",
+      "type": "play",
+      "label": "Viktor wraps Jackie's hands at the clinic",
+      "know": "You are at Viktor's clinic behind the Esoterica in Little China. Viktor is wrapping Jackie's hands and saying what he thinks, and Misty is leaning out of her shop to tease him.",
+      "wants": "V to answer Jackie's question, or to talk him out of the pit.",
+      "do": [
+        {"p": "place", "at": "clinic"}
+      ],
+      "script": [
+        {"when": "place:clinic:arrived", "say": "JW4.stage.clinic.01"},
+        {"when": "line:JW4.stage.clinic.01:done", "say": "JW4.stage.clinic.02"},
+        {"when": "line:JW4.stage.clinic.02:done", "gap": "g2"},
+        {"when": "gap:g2:calm", "say": "JW4.stage.pit.01"},
+        {"when": "gap:g2:worry", "say": "JW4.stage.pit.02"},
+        {"when": "gap:g2:resume", "say": "JW4.stage.pit.01"}
+      ],
+      "choices": [
+        {"id": "calm", "on": "event:gap:g2:calm", "next": "pit"},
+        {"id": "worry", "on": "event:gap:g2:worry", "next": "pit"},
+        {"id": "skip", "on": "tag", "means": "V says Jackie should skip the pit tonight and stay at the gym", "kind": "honest", "next": "lift-only"}
+      ],
+      "timeout": {"gameHours": 1, "next": "pit"}
+    },
+    {
+      "id": "pit",
+      "type": "play",
+      "label": "Jackie fights a friendly bout at the Northside pit",
+      "know": "You are at the old warehouse pit in Northside. The pit boss is calling the rules, and Jackie's rival is in the ring. Three rounds of 90 seconds, hands only.",
+      "wants": "V to watch the bout and call the towel if it goes too far.",
+      "do": [
+        {"p": "place", "at": "pit"},
+        {"p": "cast", "id": "rival", "who": "a nameless pit fighter in a torn vest", "at": "pit"},
+        {"p": "cast", "id": "boss", "who": "the pit boss, a street type with a clipboard", "at": "pit"},
+        {"p": "bout", "id": "fight", "at": "pit", "a": "self", "b": "rival", "rounds": 3, "roundSeconds": 90, "floor": 25}
+      ],
+      "script": [
+        {"when": "place:pit:arrived", "say": "JW4.pit.01"},
+        {"when": "bout:fight:round1", "say": "JW4.bark.round.a"},
+        {"when": "line:JW4.bark.round.a:done", "say": "JW4.bark.round.b"}
+      ],
+      "choices": [
+        {"id": "won", "on": "event:bout:fight:b-down", "next": "win-bark"},
+        {"id": "lost", "on": "event:bout:fight:a-down", "next": "lose-bark"},
+        {"id": "stopped", "on": "event:bout:fight:stopped", "next": "lose-bark"},
+        {"id": "towel", "on": "tag", "means": "V throws in the towel and stops the bout", "kind": "no", "next": "towel-bark"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lose-bark"}
+    },
+    {
+      "id": "win-bark",
+      "type": "talk",
+      "label": "Jackie wins on his feet",
+      "know": "Jackie won the bout on his feet. He is sore, he has ice, and he wants to talk.",
+      "wants": "V to answer his question honestly.",
+      "script": [
+        {"when": "stage:enter", "say": "JW4.bark.win.a"},
+        {"when": "line:JW4.bark.win.a:done", "say": "JW4.bark.win.b"},
+        {"when": "line:JW4.bark.win.b:done", "gap": "g3"},
+        {"when": "gap:g3:honest", "say": "JW4.close.01"},
+        {"when": "gap:g3:joke", "say": "JW4.close.02"},
+        {"when": "gap:g3:resume", "say": "JW4.close.02"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "won"},
+        {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "won"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "won"}
+    },
+    {
+      "id": "lose-bark",
+      "type": "talk",
+      "label": "Jackie loses the bout",
+      "know": "Jackie lost the bout. He is sore, he has ice, and he is trying to make the loss sound like a story.",
+      "wants": "V to answer his question honestly.",
+      "script": [
+        {"when": "stage:enter", "say": "JW4.bark.lose.a"},
+        {"when": "line:JW4.bark.lose.a:done", "say": "JW4.bark.lose.b"},
+        {"when": "line:JW4.bark.lose.b:done", "gap": "g3"},
+        {"when": "gap:g3:honest", "say": "JW4.close.01"},
+        {"when": "gap:g3:joke", "say": "JW4.close.02"},
+        {"when": "gap:g3:resume", "say": "JW4.close.02"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "lost"},
+        {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "lost"}
+    },
+    {
+      "id": "towel-bark",
+      "type": "talk",
+      "label": "V throws in the towel",
+      "know": "V threw in the towel. Jackie hates it and is grateful at the same time.",
+      "wants": "V to answer his question honestly.",
+      "script": [
+        {"when": "stage:enter", "say": "JW4.bark.towel.a"},
+        {"when": "line:JW4.bark.towel.a:done", "say": "JW4.bark.towel.b"},
+        {"when": "line:JW4.bark.towel.b:done", "gap": "g3"},
+        {"when": "gap:g3:honest", "say": "JW4.close.01"},
+        {"when": "gap:g3:joke", "say": "JW4.close.02"},
+        {"when": "gap:g3:resume", "say": "JW4.close.02"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "towel"},
+        {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "towel"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "towel"}
+    }
+  ],
+  "endings": {
+    "won": {
+      "memory": "You were Jackie's corner at a Northside pit and he won on his feet.",
+      "bond": 60
+    },
+    "towel": {
+      "memory": "You threw in the towel for Jackie at a Northside pit. He hated it, then he thanked you.",
+      "bond": 50
+    },
+    "lost": {
+      "memory": "Jackie lost a bout at a Northside pit, and he tells it with himself as the loser, which is the best kind.",
+      "bond": 40
+    },
+    "lift-only": {
+      "memory": "You went to the gym with Jackie and skipped the pit that night.",
+      "bond": 25,
+      "script": [{"when": "ending:lift-only", "say": "JW4.close.03"}]
+    },
+    "unfinished": {
+      "memory": "Jackie wrapped his hands for a fight at a Northside pit, and The Heist came before you saw the end.",
+      "bond": 0
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

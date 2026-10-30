@@ -1,0 +1,69 @@
+{
+  "format": 2,
+  "id": "viktor-hangout-auscultation",
+  "kind": "hangout",
+  "character": "viktor-vektor",
+  "title": "Auscultation Walk",
+  "summary": "Viktor lends V a stethoscope and asks for honest guesses about three humming machines in the noodle alley.",
+  "requires": {"bond": 2, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
+  "start": {
+    "channels": ["phone", "own"],
+    "chance": 1,
+    "bringUp": "Viktor invites V to a listening walk through the noodle alley in Little China, with a stethoscope and a theory."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "rain", "know": "It is raining. The hums are masked, so the guesses are harder."},
+      {"id": "platform", "know": "The listening stops are on the monorail platform instead of the alley.", "places": {"alley": "platform"}},
+      {"id": "heartbeat", "know": "The last stop is V's own heartbeat after a sprint, which Viktor times on his watch."}
+    ]
+  },
+  "places": {
+    "alley": {"name": "the noodle alley under the elevated rail in Little China", "radius": 12},
+    "platform": {"name": "the monorail platform in Little China", "radius": 15},
+    "hum": {"name": "a humming neon box in the alley", "radius": 4},
+    "vend": {"name": "a vending machine in the alley", "radius": 4},
+    "amp": {"name": "a busker's amp at the alley mouth", "radius": 4}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which of the three worried you most, and why?",
+      "know": "The stops, and V's guesses so far.",
+      "secret": "The vending machine is the one that is actually fine.",
+      "wants": "V to name a reason, not a hunch.",
+      "tags": [{"id": "fine", "kind": "no"}, {"id": "fault", "kind": "honest"}, {"id": "danger", "kind": "yes"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "listen",
+      "type": "play",
+      "label": "Viktor lends V a stethoscope for three listening stops",
+      "know": "Viktor is in the noodle alley with a stethoscope. You listen to three humming machines, say what is wrong with each, and tell him the truth. A passer-by with a limp walks past, and Viktor asks you to stop him.",
+      "wants": "V to hear the three machines and name what is wrong with each.",
+      "do": [
+        {"p": "pin", "at": "alley"},
+        {"p": "place", "at": "alley"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "alley", "carry": true},
+        {"p": "place", "at": "hum"},
+        {"p": "place", "at": "vend"},
+        {"p": "place", "at": "amp"},
+        {"p": "cast", "id": "limp", "who": "extra", "at": "amp", "archetype": "pedestrian"},
+        {"p": "npc-react", "id": "limp", "cast": "limp"}
+      ],
+      "script": [{"when": "place:vend:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "twist", "on": "event:npc:limp:obey", "next": "twist"},
+        {"id": "done", "on": "event:place:amp:arrived", "next": "done"}
+      ],
+      "timeout": {"gameHours": 2, "next": "done"}
+    }
+  ],
+  "endings": {
+    "done": {"memory": "You listened to three humming machines in the noodle alley with Viktor and told him what was wrong with each.", "bond": 4},
+    "twist": {"memory": "A limping stranger in the noodle alley let you talk him into a check, and Viktor watched you do it.", "bond": 8}
+  }
+}

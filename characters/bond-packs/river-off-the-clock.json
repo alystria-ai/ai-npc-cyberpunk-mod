@@ -1,0 +1,321 @@
+{
+  "format": 2,
+  "id": "river-off-the-clock",
+  "character": "river-ward",
+  "title": "Off the Clock",
+  "summary": "River asks you to take his phone for one day off, drive him past three temptations to the water tower, and cook a pot of jambalaya with him.",
+  "requires": {
+    "bond": 10,
+    "after": ["river-until-dawn"],
+    "questsFinished": ["quests/side_quest/sq029_sobchak_romance"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "River has not taken a day without a case since the badge. He wants you to hold his phone and drive him to the water tower near Joss's place, where he will cook. Bring it up as a favour, and say you will hold him to it."
+  },
+  "places": {
+    "meet": {"name": "V's flat", "radius": 25},
+    "roadside": {"name": "the roadside with the smoking car", "radius": 25},
+    "street": {"name": "the street where a man is standing", "radius": 25},
+    "stop": {"name": "the roadside stop with the cruiser", "radius": 25},
+    "tower": {"name": "the water tower near Joss's place", "radius": 25}
+  },
+  "images": {
+    "off-the-clock-card": {"file": "images/off-the-clock-card.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RW6.open.01": {"text": "I want one day. No phone. You hold it. If I reach for it, say something unkind.", "emotion": "neutral"},
+    "RW6.open.02": {"text": "Here. Phone. Don't answer it. Don't look at it. Don't tell me who called.", "emotion": "emphatic"},
+    "RW6.open.03": {"text": "I'm bad at this. If I start asking about suspects, kick me.", "emotion": "shrug"},
+    "RW6.open.04": {"text": "What counts as a day off, for you?", "emotion": "neutral"},
+    "RW6.s3.01": {"text": "Where we're going has no signal, no cases. Just dust.", "emotion": "happy"},
+    "RW6.s3.02": {"text": "That car. Smoke. Don't. No. Okay, a little. Pull over?", "emotion": "neutral"},
+    "RW6.s3.03": {"text": "Quick. Two minutes. I won't read his plates.", "emotion": "nod"},
+    "RW6.s3.04": {"text": "Good. Drive. I'm fine. I'm not fine.", "emotion": "shrug"},
+    "RW6.s3.05": {"text": "That man on the left. I know that face. Never mind. Never mind.", "emotion": "fear"},
+    "RW6.s3.06": {"text": "That's a guy from my old precinct. Keep driving. I mean it. Please.", "emotion": "angry"},
+    "RW6.bark.hold.a": {"text": "Fine. Fine. I'm fine.", "emotion": "shrug"},
+    "RW6.bark.hold.b": {"text": "Good call. I hate that it was a good call.", "emotion": "nod"},
+    "RW6.bark.let.a": {"text": "I know. I know. One thing. Then nothing.", "emotion": "shrug"},
+    "RW6.bark.let.b": {"text": "Don't say anything. I can hear you not saying it.", "emotion": "emphatic"},
+    "RW6.s4.01": {"text": "That's it. That's the tower. No suspects in this view.", "emotion": "happy"},
+    "RW6.s4.02": {"text": "Tomatoes, rice, onions, paprika, thyme, celery, garlic. Stir. Don't let it burn.", "emotion": "neutral"},
+    "RW6.s4.03": {"text": "My secret is nothing special. Patience. And Randy's face when he tastes it.", "emotion": "happy"},
+    "RW6.s4.04": {"text": "Do you cook for anyone? Or just for the idea of it?", "emotion": "neutral"},
+    "RW6.s4.05": {"text": "Monique and Dorian fight over the last spoon. Randy eats the pot clean. I miss most of it.", "emotion": "sad"},
+    "RW6.s4.06": {"text": "Have you ever worked so hard at something that you forgot who it was for?", "emotion": "neutral"},
+    "RW6.close.01": {"text": "A whole day. Not one case. I'll deny it under oath.", "emotion": "happy"},
+    "RW6.close.02": {"text": "I slipped. Twice. Don't tell Harold.", "emotion": "shrug"},
+    "RW6.close.04": {"text": "Went to the tower alone. The pot was fine. You missed it.", "emotion": "sad"},
+    "RW6.s5.01": {"text": "Recipe. Don't lose it.", "emotion": "nod"},
+    "RW6.s5.02": {"text": "Tell Randy it's secret.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What counts as a day off, for you?",
+      "know": "You know the plan: the phone handover, the drive, and the water tower. You know V's habits.",
+      "secret": "You have not taken a day off since the badge.",
+      "wants": "To borrow V's definition of a day off.",
+      "idle": "talk",
+      "resumeAfterSeconds": 40
+    },
+    "g2": {
+      "asks": "Do you cook for anyone?",
+      "know": "You know the recipe you just said aloud, and V's food habits.",
+      "secret": "You cook mainly to keep Randy talking.",
+      "wants": "V to try the idea.",
+      "idle": "talk",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "Have you ever worked so hard at something that you forgot who it was for?",
+      "know": "You know the water tower, the meal, and your parents' case in outline only.",
+      "secret": "That is your entire life so far.",
+      "wants": "V's honest answer.",
+      "idle": "talk",
+      "resumeAfterSeconds": 60
+    },
+    "temp1": {
+      "asks": "Pull over?",
+      "know": "A motorist with a smoking car is waving at the roadside. You want to help, and you know you should not stop.",
+      "secret": "You would stop for anyone with a smoking car.",
+      "wants": "V to hold you in the seat or let you go.",
+      "idle": "talk",
+      "tags": [{"id": "hold", "kind": "no"}, {"id": "let", "kind": "yes"}],
+      "resumeAfterSeconds": 40
+    },
+    "temp2": {
+      "asks": "That man on the left. I know that face.",
+      "know": "A man on the street matches a face on a wanted list.",
+      "secret": "You know who he is and what he did.",
+      "wants": "V to hold you in the seat or let you go.",
+      "idle": "talk",
+      "tags": [{"id": "hold", "kind": "no"}, {"id": "let", "kind": "yes"}],
+      "resumeAfterSeconds": 40
+    },
+    "temp3": {
+      "asks": "Keep driving. I mean it. Please.",
+      "know": "An officer from your old precinct is waving you over from a cruiser.",
+      "secret": "You want to go and say hello.",
+      "wants": "V to hold you back.",
+      "idle": "talk",
+      "tags": [{"id": "hold", "kind": "no"}, {"id": "let", "kind": "yes"}],
+      "resumeAfterSeconds": 40
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "River hands V his phone for one day",
+      "know": "You texted V about one day off, with no phone and no cases. You are waiting for V at V's flat, and you will hand over your phone there.",
+      "wants": "V to take the phone and keep you from reaching for it.",
+      "do": [
+        {"p": "pin", "at": "meet"},
+        {"p": "place", "at": "meet"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RW6.open.01"},
+        {"when": "stage:enter", "say": "RW6.open.02"},
+        {"when": "line:RW6.open.02:done", "say": "RW6.open.03"},
+        {"when": "line:RW6.open.03:done", "say": "RW6.open.04"},
+        {"when": "line:RW6.open.04:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:meet:arrived", "next": "roadside-a"}],
+      "timeout": {"gameHours": 1, "next": "stood-up"}
+    },
+    {
+      "id": "roadside-a",
+      "type": "play",
+      "label": "V drives River past the smoking car",
+      "know": "V is driving toward the water tower with no phone for River. The first temptation is a motorist at the roadside with a smoking car.",
+      "wants": "V to keep driving and hold River in the seat.",
+      "do": [
+        {"p": "ride", "to": "roadside", "limitMinutes": 30},
+        {"p": "cast", "id": "motorist", "who": "extra", "at": "roadside"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW6.s3.01"},
+        {"when": "ride:arrived", "say": "RW6.s3.02"},
+        {"when": "line:RW6.s3.02:done", "gap": "temp1"}
+      ],
+      "choices": [
+        {"id": "hold", "on": "event:gap:temp1:hold", "next": "street-a"},
+        {"id": "let", "on": "event:gap:temp1:let", "next": "street-b"}
+      ],
+      "timeout": {"gameHours": 1, "next": "street-a"}
+    },
+    {
+      "id": "street-a",
+      "type": "play",
+      "label": "V drives River past the man on the street",
+      "know": "You stayed in the seat past the smoking car. The next temptation is a man on the street whom you recognize from a wanted list.",
+      "wants": "V to keep driving and hold River in the seat again.",
+      "do": [
+        {"p": "ride", "to": "street", "limitMinutes": 30},
+        {"p": "cast", "id": "wanted", "who": "extra", "at": "street"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW6.s3.04"},
+        {"when": "line:RW6.s3.04:done", "say": "RW6.bark.hold.a"},
+        {"when": "ride:arrived", "say": "RW6.s3.05"},
+        {"when": "line:RW6.s3.05:done", "gap": "temp2"}
+      ],
+      "choices": [
+        {"id": "hold", "on": "event:gap:temp2:hold", "next": "stop-a"},
+        {"id": "let", "on": "event:gap:temp2:let", "next": "stop-b"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stop-a"}
+    },
+    {
+      "id": "street-b",
+      "type": "play",
+      "label": "V drives River past the man on the street after a let",
+      "know": "You went after the smoking car for two minutes and came back. The next temptation is a man on the street whom you recognize from a wanted list.",
+      "wants": "V to keep driving and hold River in the seat this time.",
+      "do": [
+        {"p": "ride", "to": "street", "limitMinutes": 30},
+        {"p": "cast", "id": "wanted", "who": "extra", "at": "street"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW6.s3.03"},
+        {"when": "line:RW6.s3.03:done", "say": "RW6.bark.let.a"},
+        {"when": "ride:arrived", "say": "RW6.s3.05"},
+        {"when": "line:RW6.s3.05:done", "gap": "temp2"}
+      ],
+      "choices": [
+        {"id": "hold", "on": "event:gap:temp2:hold", "next": "stop-b"},
+        {"id": "let", "on": "event:gap:temp2:let", "next": "stop-b"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stop-b"}
+    },
+    {
+      "id": "stop-a",
+      "type": "play",
+      "label": "V drives River past the cruiser",
+      "know": "You stayed in the seat through two temptations. The last one is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
+      "wants": "V to keep driving and hold River in the seat.",
+      "do": [
+        {"p": "ride", "to": "stop", "limitMinutes": 30},
+        {"p": "cast", "id": "officer", "who": "extra", "at": "stop"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW6.bark.hold.b"},
+        {"when": "ride:arrived", "say": "RW6.s3.06"},
+        {"when": "line:RW6.s3.06:done", "gap": "temp3"}
+      ],
+      "choices": [
+        {"id": "hold", "on": "event:gap:temp3:hold", "next": "ridge-whole"},
+        {"id": "let", "on": "event:gap:temp3:let", "next": "ridge-slip"}
+      ],
+      "timeout": {"gameHours": 1, "next": "ridge-whole"}
+    },
+    {
+      "id": "stop-b",
+      "type": "play",
+      "label": "V drives River past the cruiser after a let",
+      "know": "You went off the clock twice already. The last temptation is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
+      "wants": "V to keep driving and hold River in the seat.",
+      "do": [
+        {"p": "ride", "to": "stop", "limitMinutes": 30},
+        {"p": "cast", "id": "officer", "who": "extra", "at": "stop"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW6.bark.let.b"},
+        {"when": "ride:arrived", "say": "RW6.s3.06"},
+        {"when": "line:RW6.s3.06:done", "gap": "temp3"}
+      ],
+      "choices": [
+        {"id": "hold", "on": "event:gap:temp3:hold", "next": "ridge-slip"},
+        {"id": "let", "on": "event:gap:temp3:let", "next": "ridge-slip"}
+      ],
+      "timeout": {"gameHours": 1, "next": "ridge-slip"}
+    },
+    {
+      "id": "ridge-whole",
+      "type": "play",
+      "label": "River cooks at the water tower",
+      "know": "You have reached the water tower near Joss's place. You are cooking jambalaya on a camp stove, and V is sitting with you.",
+      "wants": "V to sit with you through the meal.",
+      "do": [
+        {"p": "ride", "to": "tower", "limitMinutes": 30},
+        {"p": "place", "at": "tower"},
+        {"p": "seat"},
+        {"p": "together", "id": "tower", "minutes": 25, "seated": true, "at": "tower"},
+        {"p": "workspot", "id": "cook", "who": "self", "at": "tower", "key": "cook"},
+        {"p": "timer", "id": "cook-time", "seconds": 120},
+        {"p": "timer", "id": "stew-time", "seconds": 300}
+      ],
+      "script": [
+        {"when": "place:tower:arrived", "say": "RW6.s4.01"},
+        {"when": "line:RW6.s4.01:done", "say": "RW6.s4.02"},
+        {"when": "timer:cook-time", "say": "RW6.s4.03"},
+        {"when": "line:RW6.s4.03:done", "say": "RW6.s4.04"},
+        {"when": "line:RW6.s4.04:done", "gap": "g2"},
+        {"when": "timer:stew-time", "say": "RW6.s4.05"},
+        {"when": "line:RW6.s4.05:done", "say": "RW6.s4.06"},
+        {"when": "line:RW6.s4.06:done", "gap": "g3"}
+      ],
+      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "whole-day"}],
+      "timeout": {"gameHours": 1, "next": "whole-day"}
+    },
+    {
+      "id": "ridge-slip",
+      "type": "play",
+      "label": "River cooks at the water tower after a slip",
+      "know": "You have reached the water tower near Joss's place. You slipped off the clock on the drive, and you are cooking jambalaya on a camp stove with V.",
+      "wants": "V to sit with you through the meal.",
+      "do": [
+        {"p": "ride", "to": "tower", "limitMinutes": 30},
+        {"p": "place", "at": "tower"},
+        {"p": "seat"},
+        {"p": "together", "id": "tower", "minutes": 25, "seated": true, "at": "tower"},
+        {"p": "workspot", "id": "cook", "who": "self", "at": "tower", "key": "cook"},
+        {"p": "timer", "id": "cook-time", "seconds": 120},
+        {"p": "timer", "id": "stew-time", "seconds": 300}
+      ],
+      "script": [
+        {"when": "place:tower:arrived", "say": "RW6.s4.01"},
+        {"when": "line:RW6.s4.01:done", "say": "RW6.s4.02"},
+        {"when": "timer:cook-time", "say": "RW6.s4.03"},
+        {"when": "line:RW6.s4.03:done", "say": "RW6.s4.04"},
+        {"when": "line:RW6.s4.04:done", "gap": "g2"},
+        {"when": "timer:stew-time", "say": "RW6.s4.05"},
+        {"when": "line:RW6.s4.05:done", "say": "RW6.s4.06"},
+        {"when": "line:RW6.s4.06:done", "gap": "g3"}
+      ],
+      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "slipped"}],
+      "timeout": {"gameHours": 1, "next": "slipped"}
+    }
+  ],
+  "endings": {
+    "whole-day": {
+      "memory": "You spent a whole day off the clock with River, and he cooked for you at the water tower.",
+      "history": "the day off",
+      "bond": 100,
+      "script": [
+        {"when": "ending:whole-day", "say": "RW6.close.01"},
+        {"when": "ending:whole-day", "text": "RW6.s5.01", "image": "off-the-clock-card"},
+        {"when": "ending:whole-day", "text": "RW6.s5.02"}
+      ]
+    },
+    "slipped": {
+      "memory": "You and River spent a day off the clock, he slipped on a case or two on the drive, and he cooked for you at the water tower.",
+      "bond": 95,
+      "script": [
+        {"when": "ending:slipped", "say": "RW6.close.02"},
+        {"when": "ending:slipped", "text": "RW6.s5.01", "image": "off-the-clock-card"},
+        {"when": "ending:slipped", "text": "RW6.s5.02"}
+      ]
+    },
+    "stood-up": {
+      "memory": "You did not come for River's day off, and he went to the water tower alone.",
+      "bond": -5,
+      "script": [{"when": "ending:stood-up", "text": "RW6.close.04"}]
+    }
+  }
+}

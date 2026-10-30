@@ -1,0 +1,186 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "rogue-hangout-last-light",
+  "character": "rogue-amendiares",
+  "title": "Last Light",
+  "summary": "At sunset in a high-rise bar Rogue keeps for herself, V picks the cheapest of three glasses and tells one small true story.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": [
+      "quests/side_quest/sq031_rogue",
+      "quests/side_quest/sq031_smack_my_bitch_up"
+    ],
+    "notActive": [
+      "quests/main_quest/act_01/q103",
+      "quests/side_quest/sq031",
+      "quests/main_quest/act_01/q115"
+    ],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": [
+      "own",
+      "phone",
+      "holocall"
+    ],
+    "chance": 0.05,
+    "bringUp": "You want V at a high-rise bar in City Center Downtown at sunset, where you will buy and V tells a story. Bring up, briefly and in your own way, that you have a bar for the evening and want company."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {
+        "id": "rain",
+        "know": "Rain runs down the glass as the sun goes, and the skyline is grey.",
+        "places": {
+          "bar": "bar-rain"
+        }
+      },
+      {
+        "id": "late-bar",
+        "know": "It is a late-night bar, and the sunset has already gone.",
+        "places": {
+          "bar": "bar-late"
+        }
+      },
+      {
+        "id": "single-malt",
+        "know": "The bartender pours a single-malt flight instead of three glasses.",
+        "places": {
+          "bar": "bar-flight"
+        }
+      }
+    ]
+  },
+  "places": {
+    "bar": {
+      "name": "the high-rise bar in City Center Downtown",
+      "radius": 8
+    },
+    "bar-rain": {
+      "name": "the high-rise bar in the rain",
+      "radius": 8
+    },
+    "bar-late": {
+      "name": "the high-rise bar late at night",
+      "radius": 8
+    },
+    "bar-flight": {
+      "name": "the high-rise bar with a single-malt flight",
+      "radius": 8
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Your turn. Something true and small. Not a war story.",
+      "know": "The bartender has poured three glasses at sunset, and the second is the cheapest. Rogue has just told a small story, and V's story should be brief. The sun is going down behind the skyline.",
+      "secret": "That she has not told a small story in years.",
+      "wants": "V's honest tale.",
+      "idle": "bar",
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "tasting",
+      "type": "play",
+      "label": "V picks the cheapest of three glasses at sunset",
+      "know": "You are at the bar at sunset with V. The bartender pours three glasses. You buy, and you want V to pick the cheapest glass by tag. You will then tell a short story and ask V for one.",
+      "wants": "V to pick the cheapest of the three glasses, and then tell a small true story.",
+      "do": [
+        {
+          "p": "pin",
+          "at": "bar"
+        },
+        {
+          "p": "place",
+          "at": "bar"
+        },
+        {
+          "p": "cast",
+          "id": "bartender",
+          "who": "bartender who knew Rogue in the old days, who tells one harmless story about her",
+          "at": "bar"
+        },
+        {
+          "p": "cast",
+          "id": "rogue",
+          "who": "self",
+          "at": "bar"
+        },
+        {
+          "p": "seat"
+        },
+        {
+          "p": "check",
+          "id": "sunset",
+          "what": "hour",
+          "now": true
+        }
+      ],
+      "script": [
+        {
+          "when": "stage:enter",
+          "gap": "g1"
+        }
+      ],
+      "choices": [
+        {
+          "id": "glass-one",
+          "on": "tag",
+          "means": "V picks the first or the third glass",
+          "kind": "yes",
+          "next": "wrong-glass"
+        },
+        {
+          "id": "glass-two",
+          "on": "tag",
+          "means": "V picks the second glass",
+          "kind": "honest",
+          "next": "right-glass"
+        },
+        {
+          "id": "glass-none",
+          "on": "tag",
+          "means": "V picks no glass",
+          "kind": "no",
+          "next": "declined"
+        },
+        {
+          "id": "stood",
+          "on": "meet:stood-up",
+          "next": "stood-up"
+        }
+      ],
+      "meet": {
+        "where": "waypoint",
+        "inGameHours": 3
+      },
+      "timeout": {
+        "gameHours": 0.1,
+        "next": "declined"
+      }
+    }
+  ],
+  "endings": {
+    "right-glass": {
+      "memory": "You picked the cheapest of the three glasses at sunset, and Rogue let the bartender tell her story.",
+      "bond": 10
+    },
+    "wrong-glass": {
+      "memory": "You picked a dearer glass at sunset, and Rogue let it go.",
+      "bond": 6
+    },
+    "declined": {
+      "memory": "You would not pick a glass at sunset, and the bartender poured one for you anyway.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "V did not come to the bar at sunset, and Rogue watched the light go alone."
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "format": 1,
+  "character": "viktor-vektor",
+  "triggers": [
+    {
+      "id": "vk-jackie-loss",
+      "via": "text",
+      "text": "Heard about Jackie. The door's open. No need to talk.",
+      "after": [{"kind": "quest", "path": "quests/main_quest/prologue/q005_heist"}],
+      "once": true,
+      "note": "Jackie's loss, Viktor's own history with him, and V's last words about it."
+    },
+    {
+      "id": "vk-low-health",
+      "via": "call",
+      "text": "You look bad on paper. Come by. Don't argue.",
+      "when": {"kind": "fight-end", "healthBelow": 25},
+      "cooldownDays": 3,
+      "note": "V's wounds, which fight it was, and the last fix he did."
+    },
+    {
+      "id": "vk-bond5",
+      "via": "text",
+      "text": "Misty asked if you'd eat with us. I said you're busy. Were you?",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "note": "Misty, the tarot, and the shop."
+    },
+    {
+      "id": "vk-friday-card",
+      "via": "text",
+      "text": "Card tonight at the old gym. Seat's free.",
+      "after": [{"kind": "pack", "id": "viktor-ringside"}],
+      "when": {"kind": "hours", "from": 19, "to": 22},
+      "cooldownDays": 7,
+      "note": "The gym, the result of V1, and any bet."
+    },
+    {
+      "id": "vk-night-owl",
+      "via": "text",
+      "text": "Some people can't sleep. I'm one of them. Tea's on.",
+      "when": {"kind": "hours", "from": 3, "to": 5},
+      "cooldownDays": 4,
+      "note": "V's insomnia, the hour, and Viktor's own habits."
+    },
+    {
+      "id": "vk-debt-paid",
+      "via": "text",
+      "text": "You paid the 21,000. Fastest I've ever been paid. Don't let it go to your head.",
+      "after": [{"kind": "quest", "path": "quests/minor_quest/mq045_victor_debt"}],
+      "once": true,
+      "note": "The debt story and how much V had left."
+    },
+    {
+      "id": "vk-offer-auscultation",
+      "via": "text",
+      "text": "I have a stethoscope and a theory. Meet me at the noodle alley. Bring your ears.",
+      "minBond": 2,
+      "cooldownDays": 3,
+      "offer": "viktor-hangout-auscultation",
+      "note": "He wants V at the noodle alley to listen to chests with his stethoscope and test a theory."
+    },
+    {
+      "id": "vk-offer-fake-patients",
+      "via": "text",
+      "text": "Taco truck line in the Glen. Three people, one lie. Come hungry.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "viktor-hangout-fake-patients",
+      "note": "He is in the taco truck line in the Glen, where three people stand and one of them is lying."
+    },
+    {
+      "id": "vk-offer-roadwork",
+      "via": "text",
+      "text": "Roadwork at dawn. Five minutes to warm up, then I don't wait. Courtyard by H10.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "viktor-hangout-roadwork",
+      "note": "He is running roadwork at dawn in the courtyard by the clinic and will not wait."
+    },
+    {
+      "id": "vk-offer-name-beat",
+      "via": "text",
+      "text": "Rooftop in the Glen. I brought a radio and a bad opinion. Come tell me I'm wrong.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "viktor-hangout-name-that-beat",
+      "note": "He is on a rooftop in the Glen with a radio and wants V to tell him he is wrong about the music."
+    },
+    {
+      "id": "vk-offer-brew-haggle",
+      "via": "text",
+      "text": "Misty swears by a tea stall by the bridge. I swear it is overpriced. Come settle it.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "viktor-hangout-brew-haggle",
+      "note": "He wants V to settle an argument with Misty about an overpriced tea stall by the bridge."
+    }
+  ]
+}

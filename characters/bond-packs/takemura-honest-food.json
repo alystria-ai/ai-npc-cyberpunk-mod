@@ -1,0 +1,165 @@
+{
+  "format": 2,
+  "id": "takemura-honest-food",
+  "character": "takemura",
+  "title": "Honest Food",
+  "summary": "Takemura announces he will eat one honest meal in Night City and asks V to choose where, a test of judgement he will not call a joke.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q112_04_hideout"],
+    "notActive": ["quests/main_quest/act_01/q112", "quests/main_quest/act_01/q113"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Takemura has been in Night City long enough to be sure its food is a crime against whoever invented it. He announces, as a formal decision, that he will eat one honest meal and that V will choose where. He says it with a straight face and asks V to pick a place in Japantown. It is the closest he comes to a joke."
+  },
+  "places": {
+    "market": {"name": "the market gate in Japantown", "radius": 25},
+    "counter-ramen": {"name": "the ramen counter on the Japantown street", "radius": 8},
+    "counter-yakitori": {"name": "the yakitori grill on the Japantown street", "radius": 8},
+    "counter-sushi": {"name": "the small sushi bar on the Japantown street", "radius": 8}
+  },
+  "images": {
+    "honest-food-counter": {"file": "images/honest-food-counter.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "T1.open.01": {"text": "I require a meal. An honest one. You will decide where one may be found.", "emotion": "neutral"},
+    "T1.open.02": {"text": "You are punctual. A virtue. Choosing the place will test others.", "emotion": "nod"},
+    "T1.open.03": {"text": "Watch the knife hand. A cook who respects the blade respects the rice.", "emotion": "emphatic"},
+    "T1.open.04": {"text": "Which of these three do you trust? Do not tell me the cleanest.", "emotion": "neutral"},
+    "T1.taste.01": {"text": "I will rate each dish in a low voice. Tell me if I am too loud.", "emotion": "neutral"},
+    "T1.bark.counter.a": {"text": "Hm.", "emotion": "neutral"},
+    "T1.bark.counter.b": {"text": "The broth is honest. The man is nervous.", "emotion": "nod"},
+    "T1.bark.dish.a": {"text": "Three. For now.", "emotion": "neutral"},
+    "T1.bark.dish.b": {"text": "Two. The second bite was worse than the first.", "emotion": "disgust"},
+    "T1.bark.cook.a": {"text": "Forgive my companion's honesty. And mine.", "emotion": "shrug"},
+    "T1.bark.cook.b": {"text": "I have been rude. I will correct it with a bow.", "emotion": "fear"},
+    "T1.close.01": {"text": "You are an acceptable guide. I will return to that counter.", "emotion": "happy"},
+    "T1.close.02": {"text": "I bowed to a cook in the street. It was the correct size.", "emotion": "shrug"},
+    "T1.close.03": {"text": "I ate nothing. The city wins.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which of these three do you trust? Do not tell me the cleanest.",
+      "know": "You are on the Japantown street with three counters in front of you: a ramen stall, a yakitori grill and a small sushi bar. You can see the cooks' hands and which of them works carefully.",
+      "secret": "He has already decided which counter he wants and has not told you.",
+      "wants": "Your judgement, based on something other than how the place looks.",
+      "idle": "takemura",
+      "resumeAfterSeconds": 45,
+      "resumeOn": ["place:counter-ramen:arrived", "place:counter-yakitori:arrived", "place:counter-sushi:arrived"]
+    },
+    "g2": {
+      "asks": "How do you tell a cook the truth without insulting him?",
+      "know": "The dishes are in front of you and the cook is within earshot. You have heard Takemura rate each one in a low voice, always a three.",
+      "secret": "His own method is silence and a bow, and he has never found a better one.",
+      "wants": "You to learn restraint.",
+      "idle": "bar",
+      "tags": [{"id": "smooth", "kind": "flatter"}, {"id": "truth", "kind": "honest"}, {"id": "silent", "kind": "no"}],
+      "resumeAfterSeconds": 90
+    }
+  },
+  "stages": [
+    {
+      "id": "summon",
+      "type": "play",
+      "label": "Takemura asks V to choose an honest meal",
+      "know": "Takemura has decided, as a formal matter, to eat one honest meal in Night City and wants you to choose where. He is waiting at the market gate in Japantown and expects you to be punctual.",
+      "wants": "V to come to the market gate and choose a place.",
+      "do": [
+        {"p": "pin", "at": "market"},
+        {"p": "place", "at": "market"},
+        {"p": "cast", "id": "takemura", "who": "self", "at": "market", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "T1.open.01"},
+        {"when": "place:market:arrived", "say": "T1.open.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "choose"}],
+      "timeout": {"gameHours": 3, "next": "no-meal"}
+    },
+    {
+      "id": "choose",
+      "type": "play",
+      "label": "V walks Takemura past three counters and picks one",
+      "know": "You are at the market gate with V. There are three counters on this street, a ramen stall, a yakitori grill and a small sushi bar, and their cooks are working. You will say one word about each counter, and you will not hurry V. If V stalls for fifteen minutes, you pick one yourself and say you are not impressed.",
+      "wants": "V to walk up to a counter and choose it by stepping into it.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "counter-ramen"},
+        {"p": "place", "at": "counter-yakitori"},
+        {"p": "place", "at": "counter-sushi"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T1.open.03"},
+        {"when": "line:T1.open.03:done", "say": "T1.open.04"},
+        {"when": "line:T1.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "ramen", "on": "event:place:counter-ramen:arrived", "next": "tasting"},
+        {"id": "yakitori", "on": "event:place:counter-yakitori:arrived", "next": "tasting"},
+        {"id": "sushi", "on": "event:place:counter-sushi:arrived", "next": "tasting"}
+      ],
+      "timeout": {"gameHours": 0.25, "next": "tasting"}
+    },
+    {
+      "id": "tasting",
+      "type": "play",
+      "label": "Takemura rates three dishes at the counter in a low voice",
+      "know": "You are seated at the counter beside Takemura. The cook is making three dishes and Takemura rates each one in a low voice, always a three, with the reasons it is never higher. The cook can overhear you.",
+      "wants": "V to answer the cook's hearing of the ratings in their own way.",
+      "do": [
+        {"p": "seat"},
+        {"p": "cast", "id": "cook", "who": "the cook at the counter"},
+        {"p": "together", "id": "meal", "minutes": 20, "metres": 5, "seated": true, "breakSeconds": 120},
+        {"p": "npc-react", "id": "react", "cast": "cook"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T1.taste.01"},
+        {"when": "line:T1.taste.01:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "thrown", "on": "event:npc:react:leave", "next": "thrown-out"},
+        {"id": "meal-done", "on": "event:together:meal:done", "next": "last-bowl"}
+      ],
+      "timeout": {"gameHours": 2, "next": "last-bowl"}
+    },
+    {
+      "id": "last-bowl",
+      "type": "play",
+      "label": "The cook brings one small bowl that is not on the menu",
+      "know": "The meal is over. The cook has brought a last small bowl that is not on the menu, and Takemura eats it in silence with the face of a man at a funeral he is glad to attend.",
+      "wants": "V to sit with him and eat.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "bowl", "minutes": 2, "metres": 5, "seated": true, "breakSeconds": 60}
+      ],
+      "choices": [
+        {"id": "eaten", "on": "event:together:bowl:done", "next": "honest-bowl"},
+        {"id": "left", "on": "event:together:bowl:broken", "next": "honest-bowl"}
+      ],
+      "timeout": {"gameHours": 1, "next": "honest-bowl"}
+    }
+  ],
+  "endings": {
+    "honest-bowl": {
+      "memory": "You took Takemura to a counter in Japantown and the cook made him a bowl worth the trip.",
+      "history": "Takemura calls the counter in Japantown the honest counter and means to go back.",
+      "bond": 45,
+      "script": [{"when": "ending:honest-bowl", "text": "T1.close.01", "image": "honest-food-counter"}]
+    },
+    "thrown-out": {
+      "memory": "The cook threw you out after the second rating. Takemura apologised to him in the street, bowing more deeply than he has ever bowed to the corporation.",
+      "bond": 25,
+      "script": [{"when": "ending:thrown-out", "say": "T1.close.02"}]
+    },
+    "no-meal": {
+      "memory": "You never came to choose a meal with Takemura, and he wrote the city off a little further.",
+      "bond": -5,
+      "script": [{"when": "ending:no-meal", "text": "T1.close.03"}]
+    }
+  }
+}

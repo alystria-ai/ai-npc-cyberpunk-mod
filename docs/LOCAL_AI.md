@@ -1211,6 +1211,16 @@ request whose prompt `--cache-ram` keeps (72 to 84 new tokens after the first). 
 **Not verified in the game:** the player's 12B model and 5090 (the cost of the full cache for a 12B is probed at the start, not assumed), frame times during a turn, OmniVoice synthesis overlapping the model's writing.
 Tests: `bridge/topic-words.test.mjs`, `bridge/journal-history.test.mjs`, `bridge/quest-context.test.mjs`, `bridge/local-llm-server.test.mjs`.
 
+### Prompt reuse after a change of turn kind (2026-10-30: "Alex on the lite model read 5,000 new tokens a turn")
+
+The report (lite model Bonsai 2 4B, the quest build): `prompt 5359 new + 1134 cached`, then `4852 new + 1134 cached`. The 1,134 is the persona warm-up; nothing of the first turn was reused by the second. The second turn was a speak-up (a reaction), not a talk.
+
+**Measured** (30 Oct, the real bridge in a disposable world, Alex from a copy of the owner's last input and knowledge files, bonds on, the real llama-server, Bonsai 2 4B): V's own turns in a row reuse the prompt on main and on the quest branch (210 to 255 new, about 2,900 cached). Talk, speak-up, talk, speak-up, talk read 3,030 to 3,190 new and 0 cached on every turn, on main too. The first difference is inside the system message: the game sends the gear and the bond block with a talk and neither with a reaction, so the gear block (main) and the bond line (quest branch) are in one system message and not in the other. A model that continues only from a saved checkpoint (Bonsai, Qwen: the lite and Mature models) reuses nothing of a prompt that differs inside the message the checkpoint covers. `--checkpoint-min-step 512` did not change it.
+
+**Fix.** A reaction repeats the character's last bond line (`Bonds.repeatFor`) and gear block (`GearMemory.remember/recall`), byte for byte, in their places; a new world, Forget and a talk with the setting off clear them. After: 253 / 178 / 255 / 177 new and 2,936 to 3,024 cached on the four turns after the first, first word 150 to 200 ms instead of 750 to 850. The romance tone (`ROMANCE_TONE`) is part of the bond line, so it is as stable as the level; its one-sentence reminder is a volatile note. Tests: `bridge/prompt-prefix-turns.test.mjs`.
+
+**Not changed.** A reaction before any talk has neither block, as before. Gemma with `--swa-full` was not re-measured.
+
 ### Your own model with no pack (2026-10-29: "Local AI is unavailable (not-installed)" with a model of the player's own)
 
 The error report: settings `localModel` `custom:gemma-4-12b-it-qat-ud-q4_k_xl`, `localAi` `not-installed`, no Local AI pack. The model is listed (the model row and the scan read the player's files

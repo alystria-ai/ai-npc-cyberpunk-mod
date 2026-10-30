@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "id": "judy-dinner-dress",
+  "character": "judy-alvarez",
+  "title": "Dressed for Dinner",
+  "summary": "Judy has a dress she never wore and a dinner party with her Mox friends, she wants V's honest eye, and maybe V at the table.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": [
+      "quests/side_quest/sq026_04_hiromi",
+      "quests/side_quest/sq030_judy_romance"
+    ],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You have a dinner party coming up and a dress you have never worn, and you are nervous about it, which annoys you. Bring it up in this reply, briefly, in your own way. If you and V are together, it is your evening, if not, you are in the city for a few days and want a friend's honest eye."
+  },
+  "stages": [
+    {
+      "id": "invite",
+      "label": "A dress she never wore and a dinner party",
+      "know": "The Mox are throwing a small dinner party in the back room at Lizzie's. You bought a dress years ago for something that never happened and never wore it. You want to wear it now and you cannot tell if it works or if you look like you are trying too hard.",
+      "wants": "V to come by and tell you honestly what they think of the dress. Not flattery: you can always tell.",
+      "say": {"en": "Got a dinner thing with the girls and a dress I've never worn. Come by and tell me if I look ridiculous? Honestly, I mean."},
+      "text": {"when": "start", "line": {"en": "Weird ask. Dinner party, a dress I never wore, and I need someone honest. Come by in a couple hours?"}},
+      "meet": {"where": "here", "inGameHours": 2},
+      "choices": [
+        {"id": "yes", "on": "tag", "kind": "yes", "means": "V says they will come by to see the dress", "next": "dress"},
+        {"id": "cant", "on": "tag", "kind": "no", "means": "V says they cannot make it", "next": "rain-check"},
+        {"id": "met", "on": "meet:met", "next": "dress"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "rain-check"}
+      ],
+      "timeout": {"gameHours": 24, "next": "rain-check"}
+    },
+    {
+      "id": "dress",
+      "label": "She wants your honest eye on the dress",
+      "know": "V came to see the dress. You are wearing it, or about to put it on. You feel exposed and a little silly, and you cover it with dry jokes.",
+      "wants": "V's honest answer about the dress. Honest and kind is best, teasing is fine, pure flattery you only half believe.",
+      "say": {"en": "Okay. Don't laugh. Well? And I want the truth, not the nice version."},
+      "effects": [{"kind": "outfit"}],
+      "choices": [
+        {"id": "honest", "on": "tag", "kind": "honest", "means": "V gives an honest opinion of the dress, kind, critical or teasing", "next": "dinner"},
+        {"id": "flatter", "on": "tag", "kind": "flatter", "means": "V only flatters you without really looking", "next": "dinner"}
+      ],
+      "timeout": {"gameHours": 6, "next": "dinner"}
+    },
+    {
+      "id": "dinner",
+      "label": "She asks you to come to the dinner",
+      "know": "The dress is decided. The dinner at Lizzie's is in about an hour. Going alone means a table of Mox asking questions, going with V would make it easier, though you would never say it like that.",
+      "wants": "V to come to the dinner with you, as your plus-one or as moral support.",
+      "say": {"en": "Dinner's in an hour. You could... come. As moral support. Or whatever."},
+      "meet": {"where": "here", "inGameHours": 1},
+      "choices": [
+        {"id": "comes", "on": "meet:met", "next": "together"},
+        {"id": "declines", "on": "tag", "kind": "no", "means": "V says they will not come to the dinner", "next": "dress-only"},
+        {"id": "no-show", "on": "meet:stood-up", "next": "dress-only"}
+      ],
+      "timeout": {"gameHours": 8, "next": "dress-only"}
+    },
+    {
+      "id": "rain-check",
+      "label": "You missed the dinner",
+      "know": "V could not make it to see the dress. You went to the dinner anyway, wore it, and it was a hell of a night. You are not hurt, much.",
+      "wants": "To tell V about the night in a few words, and to make V a little sorry they missed it.",
+      "say": {"en": "You missed a hell of a night. The dress was a hit, by the way."},
+      "text": {"when": "start", "line": {"en": "You missed a hell of a night. Dress was a hit. Next time, no excuses."}},
+      "next": "missed"
+    }
+  ],
+  "endings": {
+    "together": {"memory": "You wore the dress you had never worn to the Mox dinner at Lizzie's, and V came with you.", "bond": 70},
+    "dress-only": {"memory": "V came over before the Mox dinner and told you what they really thought of your dress.", "bond": 40},
+    "missed": {"memory": "V could not make it before the Mox dinner at Lizzie's, you wore the dress anyway and had a great night.", "bond": -5}
+  }
+}

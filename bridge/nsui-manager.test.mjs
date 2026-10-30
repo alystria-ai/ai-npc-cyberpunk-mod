@@ -49,11 +49,11 @@ test('every page builds on the tab and the tab always starts with the way back, 
   end
   -- Home: the six destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
-  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 6)
-  for index, label in ipairs({'Characters to invite', 'Parties', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
+  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 7)
+  for index, label in ipairs({'Characters to invite', 'Parties', 'Model browser', 'Relationships', 'Character editor', 'Key bindings', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
-  for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'},
+  for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'}, {'Relationships', 'Relationships'},
       {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
@@ -1074,13 +1074,13 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   ns.verify()
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
   local open = assert(ns.find('Character editor'), 'the row is on Home')
-  assert(open.buttonText == 'Open' and ns.sections()[1].options[4] == open, 'the fourth row of Home, a button')
+  assert(open.buttonText == 'Open' and ns.sections()[1].options[5] == open, 'the fifth row of Home, a button')
   local before = commandWrites()
   press('Character editor')
   assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
   assert(fileWrites[#fileWrites].path == 'runtime/editor-command.json')
   assert(managerUi.inspect().view == 'home' and #ns.sections() == 1, 'no sub-page: Home stays')
-  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[7].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
+  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[8].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
   -- A second click is a new command (the host counts one click once, not twice).
   clock = clock + 2
   press('Character editor')
@@ -1100,11 +1100,11 @@ test('Native Settings UI: with the conversation service stopped the Character ed
     press('Character editor')
     assert(not files['runtime/editor-command.json'], 'nothing written')
     assert(managerUi.inspect().view == 'home')
-    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[7].label:find('The conversation service is not running', 1, true), shownOutline())
+    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[8].label:find('The conversation service is not running', 1, true), shownOutline())
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   run(`${harness({modules: bare, absent: ['character-editor.lua']})}
-    assert(#ns.sections()[1].options == 5 and not ns.find('Character editor'), shownOutline())
+    assert(#ns.sections()[1].options == 6 and not ns.find('Character editor'), shownOutline())
   `);
 });
 
@@ -1124,7 +1124,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
     for _, o in ipairs(assert(section(name), 'no section ' .. name).options) do if o.label == label then return o end end
   end
   local home = ns.sections()[1].options
-  assert(home[4].label == 'Character editor' and home[5].label == 'Key bindings' and home[6].label == 'Settings' and home[5].buttonText == 'Open')
+  assert(home[5].label == 'Character editor' and home[6].label == 'Key bindings' and home[7].label == 'Settings' and home[6].buttonText == 'Open')
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings')
   local names = {}

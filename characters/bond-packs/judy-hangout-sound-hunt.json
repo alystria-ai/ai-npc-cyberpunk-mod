@@ -1,0 +1,80 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "judy-hangout-sound-hunt",
+  "character": "judy-alvarez",
+  "title": "Sound Hunt",
+  "summary": "Judy needs ambient tracks for a braindance and wants you to walk Jig-Jig Street at night as her walking microphone.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Judy needs ambient sound for a braindance and wants you to walk Jig-Jig Street at night with her to record it. Bring up, in your own way, that you want V to come and walk the street with you."
+  },
+  "places": {
+    "north-arch": {"name": "the north arch of Jig-Jig Street", "radius": 20}
+  },
+  "lines": {
+    "JH3.invite.01": {"text": "I need ambient tracks for a BD. You're my walking microphone.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What does this city sound like to you?",
+      "know": "The sounds Judy has recorded along Jig-Jig Street so far, and what she plans to use them for.",
+      "wants": "V's answer.",
+      "idle": "judy",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "hunt",
+      "type": "play",
+      "label": "Judy records the sounds of Jig-Jig Street at night",
+      "know": "You are walking Jig-Jig Street at night, and Judy is recording ambient sound for a braindance with a small device in her hand.",
+      "wants": "V to walk the street with her while she records.",
+      "do": [
+        {"p": "pin", "at": "north-arch"},
+        {"p": "place", "at": "north-arch"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "north-arch"},
+        {"p": "together", "id": "walk", "minutes": 10, "metres": 3, "breakSeconds": 60, "at": "north-arch"},
+        {"p": "timer", "id": "sound-end", "seconds": 600, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JH3.invite.01"},
+        {"when": "timer:sound-end", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "recorded", "on": "event:together:walk:done", "next": "recorded"},
+        {"id": "left", "on": "event:together:walk:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "recorded": {
+      "memory": "You walked Jig-Jig Street at night as Judy's walking microphone while she recorded the sounds of the city.",
+      "bond": 6
+    },
+    "left": {
+      "memory": "You left Judy on Jig-Jig Street before she had finished recording the night.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "rain", "know": "Rain on Jig-Jig Street, and Judy is delighted by every drop on the device.", "wants": "V's ear for the rain.", "places": {"north-arch": "north-arch"}},
+      {"id": "festival", "know": "A festival night on Jig-Jig Street, loud and full of people, and Judy wants the crowd on tape.", "wants": "V's ear for the crowd.", "places": {"north-arch": "north-arch"}},
+      {"id": "power-cut", "know": "A power cut has gone through the street, and the quiet is the sound Judy wants.", "wants": "V's ear for the quiet.", "places": {"north-arch": "north-arch"}}
+    ]
+  }
+}

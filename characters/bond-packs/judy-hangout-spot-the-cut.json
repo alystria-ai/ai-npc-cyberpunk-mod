@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "judy-hangout-spot-the-cut",
+  "character": "judy-alvarez",
+  "title": "Spot the Cut",
+  "summary": "Judy rents a cheap braindance booth in Kabuki to suffer through a commercial BD, and asks V to spot the bad cut.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Judy has rented a cheap braindance booth in Kabuki to watch a commercial BD and wants you there to suffer through it with her. Bring up, in your own way, that you want V to come and watch."
+  },
+  "places": {
+    "booth": {"name": "the public braindance parlour in Kabuki", "radius": 8}
+  },
+  "lines": {
+    "JH2.invite.01": {"text": "Commercial BDs are a crime against my profession. Come watch me suffer.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What would you want in a BD of your own life? One moment.",
+      "know": "The three cuts in the BD they are watching, and which one an editor would never make.",
+      "wants": "V's answer.",
+      "idle": "chair",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "watch",
+      "type": "play",
+      "label": "Judy and V watch a commercial BD in a Kabuki booth",
+      "know": "You rented two booths in a cheap braindance parlour in Kabuki and are watching a commercial BD. One of its cuts is one an editor would never make.",
+      "wants": "V to name the bad cut.",
+      "tags": [{"id": "right", "kind": "yes"}, {"id": "wrong", "kind": "no"}],
+      "do": [
+        {"p": "pin", "at": "booth"},
+        {"p": "place", "at": "booth"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "booth"},
+        {"p": "seat"},
+        {"p": "together", "id": "watch", "minutes": 10, "metres": 3, "breakSeconds": 90, "seated": true, "at": "booth"},
+        {"p": "timer", "id": "cut-review", "seconds": 600, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JH2.invite.01"},
+        {"when": "timer:cut-review", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "right", "on": "tag", "means": "V names the bad cut correctly", "kind": "yes", "next": "right"},
+        {"id": "wrong", "on": "tag", "means": "V names the wrong cut or none at all", "kind": "no", "next": "wrong"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "right": {
+      "memory": "You spotted the bad cut in a commercial BD with Judy in a Kabuki booth, and she was pleased about it.",
+      "bond": 6
+    },
+    "wrong": {
+      "memory": "You guessed the wrong cut in a commercial BD with Judy in a Kabuki booth, and she gave you a long lecture about it.",
+      "bond": 3
+    },
+    "left": {
+      "memory": "You left Judy alone in a Kabuki braindance booth before the commercial BD was over.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "action-bd", "know": "An action BD with a chase Judy picks apart frame by frame.", "wants": "V's cut.", "places": {"booth": "booth"}},
+      {"id": "romance-bd", "know": "A romance BD, and Judy says it has three cuts that never happened.", "wants": "V's cut.", "places": {"booth": "booth"}},
+      {"id": "nature-bd", "know": "A nature BD with fake birds, and Judy is offended by every one of them.", "wants": "V's cut.", "places": {"booth": "booth"}}
+    ]
+  }
+}

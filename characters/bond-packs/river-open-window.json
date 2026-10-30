@@ -1,0 +1,205 @@
+{
+  "format": 2,
+  "id": "river-open-window",
+  "character": "river-ward",
+  "title": "Open Window",
+  "summary": "A plate led River to a Westbrook flat where the ring keeps its list of families, and he needs V to go in through the window while he holds the super.",
+  "requires": {
+    "bond": 5,
+    "after": ["river-cold-coffee"],
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "The plate from the Northside van led to a flat in a Westbrook tower where the ring keeps its list of families. You have no warrant and you cannot go through the front, but you can keep the building's super talking on the street, and V can go in by the fire escape. Bring it up in your own way, and say you want the list and nothing else."
+  },
+  "places": {
+    "street": {"name": "the Westbrook street across from the tower", "radius": 25},
+    "lobby": {"name": "the lobby of the Westbrook tower", "radius": 8},
+    "fire-escape": {"name": "the rusted fire escape of the Westbrook tower", "radius": 8},
+    "window": {"name": "the window of the third-floor flat", "radius": 8},
+    "list-wall": {"name": "the wall of names inside the flat", "radius": 8},
+    "burner-drawer": {"name": "the drawer of cheap burner phones", "radius": 8},
+    "calendar": {"name": "the calendar with every Thursday ringed", "radius": 8}
+  },
+  "lines": {
+    "RW3.open.01": {"text": "Flat's on the third floor. The fire escape is rusted but honest.", "emotion": "nod"},
+    "RW3.open.02": {"text": "I'll hold the super. I'm very good at weather. You go in.", "emotion": "shrug"},
+    "RW3.open.03": {"text": "Three things only. The list, the phones, the calendar.", "emotion": "emphatic"},
+    "RW3.open.04": {"text": "Can you go in and take nothing but what I asked?", "emotion": "neutral"},
+    "RW3.bark.super.a": {"text": "Five minutes. He's asking about my badge.", "emotion": "fear", "channel": "remote"},
+    "RW3.bark.super.b": {"text": "He's looking at the stairs. Out. Now.", "emotion": "fear", "channel": "remote"},
+    "RW3.bark.clue.a": {"text": "Good. Next.", "emotion": "nod", "channel": "remote"},
+    "RW3.bark.clue.b": {"text": "Leave it as you found it.", "emotion": "emphatic", "channel": "remote"},
+    "RW3.bark.spot.a": {"text": "Window. Go.", "emotion": "emphatic", "channel": "remote"},
+    "RW3.bark.spot.b": {"text": "Out! I'll hold the door.", "emotion": "fear", "channel": "remote"},
+    "RW3.out.01": {"text": "Sit with me a minute. Do you ever read a list and find your own name?", "emotion": "neutral"},
+    "RW3.close.01": {"text": "That's the list. Han will want to see this.", "emotion": "nod"},
+    "RW3.close.02": {"text": "Not complete. Enough to start.", "emotion": "shrug"},
+    "RW3.close.03": {"text": "You got out. That's the job.", "emotion": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you go in and take nothing but what I asked?",
+      "know": "You know the three clues, the super's patience, which is about eight game minutes, and the lookout who sleeps by the window. You know a warrant would not get you this list.",
+      "secret": "You would take the whole flat if you could.",
+      "wants": "Discipline from V. If V refuses, you will say it is still doable at the door.",
+      "idle": "talk",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "door", "kind": "honest"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Do you ever read a list and find your own name?",
+      "know": "You know the list, and one name on it that you cannot forget. You know what lists have cost you before.",
+      "secret": "The name is a child's.",
+      "wants": "To not be alone with it.",
+      "idle": "chair",
+      "resumeAfterSeconds": 45
+    }
+  },
+  "stages": [
+    {
+      "id": "plan",
+      "type": "play",
+      "label": "River plans the Westbrook flat from the car",
+      "know": "You are in V's car across the street from the Westbrook tower. You have the plan: you hold the super on the street, and V goes in by the fire escape. You want the list and nothing else.",
+      "wants": "V to decide whether to go in.",
+      "do": [
+        {"p": "pin", "at": "street"},
+        {"p": "place", "at": "street"},
+        {"p": "cast", "id": "river", "who": "self", "at": "street", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW3.open.02"},
+        {"when": "line:RW3.open.02:done", "say": "RW3.open.03"},
+        {"when": "line:RW3.open.03:done", "say": "RW3.open.04"},
+        {"when": "line:RW3.open.04:done", "gap": "g1"},
+        {"when": "place:street:arrived", "say": "RW3.open.01"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "distract"},
+        {"id": "door", "on": "event:gap:g1:door", "next": "distract"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "distract",
+      "type": "play",
+      "label": "River holds the super on the street",
+      "know": "You are on the street, and your copy has walked into the lobby to keep the super talking. You speak to V only while the super is looking away.",
+      "wants": "V to get to the fire escape.",
+      "do": [
+        {"p": "place", "at": "fire-escape"},
+        {"p": "post", "id": "river-post", "at": "lobby", "stance": "stand"},
+        {"p": "cast", "id": "super", "who": "extra", "at": "lobby"},
+        {"p": "remote"}
+      ],
+      "choices": [{"id": "climbed", "on": "event:place:fire-escape:arrived", "next": "search-list"}],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "search-list",
+      "type": "play",
+      "label": "V searches the flat for the list",
+      "know": "V is inside the Westbrook flat, past the fire escape. A lookout sleeps by the window and a guard dozes in the kitchen. The super has about eight game minutes before he comes up to check the noise.",
+      "wants": "V to find the list and get out before the super comes up.",
+      "do": [
+        {"p": "place", "at": "list-wall", "dwell": 4},
+        {"p": "squad", "id": "lookout", "at": "window", "faction": "ring", "count": 2, "hostile": false},
+        {"p": "unseen", "id": "sneak", "squad": "lookout", "at": "list-wall"},
+        {"p": "timer", "id": "super-a", "seconds": 300, "clock": "game"},
+        {"p": "timer", "id": "super-b", "seconds": 420, "clock": "game"},
+        {"p": "timer", "id": "patience", "seconds": 480, "clock": "game"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "timer:super-a", "say": "RW3.bark.super.a"},
+        {"when": "timer:super-b", "say": "RW3.bark.super.b"},
+        {"when": "place:list-wall:arrived", "say": "RW3.bark.clue.a"},
+        {"when": "unseen:sneak:spotted", "say": "RW3.bark.spot.a"},
+        {"when": "line:RW3.bark.spot.a:done", "say": "RW3.bark.spot.b"}
+      ],
+      "choices": [
+        {"id": "list", "on": "event:place:list-wall:arrived", "next": "search-drawer"},
+        {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "spotted"},
+        {"id": "patience", "on": "event:timer:patience", "next": "spotted"}
+      ],
+      "timeout": {"gameHours": 1, "next": "spotted"}
+    },
+    {
+      "id": "search-drawer",
+      "type": "play",
+      "label": "V searches the drawer and the calendar",
+      "know": "The list is in your hands and the drawer of burner phones is open. A calendar with every Thursday ringed is on the wall, and the window is the way out.",
+      "wants": "V to check the drawer and the calendar before leaving.",
+      "do": [
+        {"p": "place", "at": "burner-drawer", "dwell": 4},
+        {"p": "place", "at": "calendar", "dwell": 4},
+        {"p": "place", "at": "window"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "place:burner-drawer:arrived", "say": "RW3.bark.clue.b"}
+      ],
+      "choices": [
+        {"id": "calendar", "on": "event:place:calendar:arrived", "next": "out-all"},
+        {"id": "window", "on": "event:place:window:arrived", "next": "out-two"}
+      ],
+      "timeout": {"gameHours": 1, "next": "out-two"}
+    },
+    {
+      "id": "out-all",
+      "type": "play",
+      "label": "River reads the list in the car",
+      "know": "V has the list, the phones and the calendar. You are back in the car on the street and the super is still downstairs.",
+      "wants": "V to sit with you a minute before you drive off.",
+      "do": [{"p": "place", "at": "street"}],
+      "script": [
+        {"when": "stage:enter", "say": "RW3.out.01"},
+        {"when": "line:RW3.out.01:done", "gap": "g2"}
+      ],
+      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "all-three"}],
+      "timeout": {"gameHours": 1, "next": "all-three"}
+    },
+    {
+      "id": "out-two",
+      "type": "play",
+      "label": "River reads the list in the car",
+      "know": "V has the list and the phones, but the calendar was never checked. You are back in the car on the street.",
+      "wants": "V to sit with you a minute before you drive off.",
+      "do": [{"p": "place", "at": "street"}],
+      "script": [
+        {"when": "stage:enter", "say": "RW3.out.01"},
+        {"when": "line:RW3.out.01:done", "gap": "g2"}
+      ],
+      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "two-clues"}],
+      "timeout": {"gameHours": 1, "next": "two-clues"}
+    }
+  ],
+  "endings": {
+    "all-three": {
+      "memory": "You and V found the ring's list while River held the super on the street.",
+      "history": "River is taking the ring's list to Harold Han.",
+      "bond": 65,
+      "script": [{"when": "ending:all-three", "say": "RW3.close.01"}]
+    },
+    "two-clues": {
+      "memory": "You and V found two of the ring's clues in the Westbrook flat before you got out, but the list was not complete.",
+      "bond": 50,
+      "script": [{"when": "ending:two-clues", "say": "RW3.close.02"}]
+    },
+    "spotted": {
+      "memory": "The lookout woke up in the Westbrook flat, you ran, and the super went upstairs.",
+      "bond": 35,
+      "script": [{"when": "ending:spotted", "say": "RW3.close.03"}]
+    },
+    "no": {
+      "memory": "You chose not to go into the Westbrook flat, and River said the list would keep.",
+      "bond": 5
+    }
+  }
+}

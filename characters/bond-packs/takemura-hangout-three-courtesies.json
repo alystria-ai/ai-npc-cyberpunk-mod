@@ -1,0 +1,68 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "takemura-hangout-three-courtesies",
+  "character": "takemura",
+  "title": "Three Courtesies",
+  "summary": "Takemura takes you to a rooftop tea garden in Japantown, where an old tea host tests you on three courtesies and asks for a haiku.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Takemura proposes a tea garden above a shop in Japantown, to see whether you can be taught three courtesies."
+  },
+  "places": {
+    "spot": {"name": "the rooftop tea garden above a shop in Japantown", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "A haiku. Seventeen syllables. Yours.",
+      "know": "The tea host has asked V for a haiku in a gesture, and Takemura is waiting to score it.",
+      "secret": "He has written exactly one haiku in his life.",
+      "wants": "V's attempt.",
+      "idle": "stool",
+      "resumeAfterSeconds": 40
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 1,
+    "stoodUp": -5,
+    "variations": [
+      {"id": "lanterns", "know": "It is night and the garden is lit with paper lanterns.", "wants": "A calm evening."},
+      {"id": "second-guest", "know": "A second guest is at the table, and does every courtesy wrong.", "wants": "The host to notice."},
+      {"id": "v-hosts", "know": "V is hosting this time, and Takemura is the student.", "wants": "V to teach him one courtesy."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V and Takemura take tea with the host on the roof",
+      "know": "You are at the rooftop tea garden with Takemura and an old tea host. She tests three moments: arriving, receiving the cup and leaving.",
+      "wants": "V to pass the three courtesies.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [{"p": "place", "at": "spot"}],
+      "script": [{"when": "place:spot:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "done"},
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+      ]
+    }
+  ],
+  "endings": {
+    "done": {
+      "memory": "You took Takemura to a Japantown rooftop tea garden, and the old host tested you on three courtesies.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You did not come to the tea garden, and Takemura waited for you above the shop."
+    }
+  }
+}

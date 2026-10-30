@@ -702,7 +702,7 @@ end
 
 local function notifyEnded(player, call, reason)
     -- V hung up, called again, or the game's own call took over (its window shows): no notice.
-    if reason == 'hangup' or reason == 'replaced' or reason == 'quest-call' or not player then return end
+    if reason == 'hangup' or reason == 'replaced' or reason == 'quest-call' or reason == 'scripted' or not player then return end
     convaiNotices.send(player, 'holocall-ended', reason == 'combat' and ui.t('Holocall ended: combat started.')
         or ui.t('Holocall with {name} ended.', {name = call.name}))
 end
@@ -711,6 +711,7 @@ function M.finish(player, reason)
     local call = M.call
     if not call then return false end
     M.call = nil
+    M.lastEnd = {serial = call.serial, reason = reason}   -- bond quests (mod/quest-prims-calls.lua) read why a call of theirs ended
     if player then pcall(function() player:ConvaiHolocallEnd() end) end
     holoCleanup(call.holo)
     log('state=ended contact=' .. call.contact .. ' reason=' .. tostring(reason) .. ' length=' .. math.floor(call.age) .. 's')
@@ -726,6 +727,7 @@ function M.abandon(reason)
     local call = M.call
     if not call then return end
     M.call = nil
+    M.lastEnd = {serial = call.serial, reason = reason or 'abandoned'}
     M.sweepDue = true
     log('state=ended contact=' .. call.contact .. ' reason=' .. tostring(reason or 'abandoned') .. ' length=' .. math.floor(call.age) .. 's')
 end
@@ -754,7 +756,14 @@ local function refuse(player, contact, reason, text, detail)
     return false
 end
 
-function M.start(player, contact, sample, waited)
+-- opts (bond quests, mod/quest-prims-calls.lua, nil for every call V makes): {incoming = the character rings V and the call waits for V to pick up (the phone button),
+-- quiet = no notice when it is refused, voice = the portrait voice call, never a live picture, quest = the call belongs to a quest (its start hook is not told)}.
+function M.start(player, contact, sample, waited, opts)
+    local refuse = refuse
+    if opts and opts.quiet == true then
+        local noisy = refuse
+        refuse = function(p, c, reason, _, detail) return noisy(p, c, reason, nil, detail) end
+    end
     if M.call then
         local same = M.call.contact == contact
         M.finish(player, 'replaced')
@@ -809,9 +818,12 @@ function M.start(player, contact, sample, waited)
     -- A video holocall for the characters the game stages one for, and for a Chat row with no journal contact that has a game record (a character the
     -- player made with "Use the character I'm facing", Rita Wheeler and the roster): her own body is filmed. No record: the portrait voice call.
     local cast = (M.STAGED[contact] or entry.journal == false) and entry.record and 'video' or 'voice'
+    if opts and opts.voice == true then cast = 'voice' end   -- a quest's call that is a voice call, whatever the character
     local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
         cast = cast, backing = backed and backing == true, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
+    if opts and opts.incoming == true then call.incoming = true end
+    if opts and opts.quest == true then call.quest = true end
     M.call = call
     if type(M.env.warm) == 'function' then pcall(M.env.warm, call.key, call.entity) end
     log('state=dialing contact=' .. contact .. ' profile=' .. call.key .. ' mode=' .. (call.wantLive and 'holo' or 'audio')
@@ -834,15 +846,22 @@ local function connect(call, player)
     log('state=connected contact=' .. call.contact .. ' mode=' .. call.mode .. ' window=' .. window .. ' ready='
         .. tostring(call.ready or 'n/a') .. string.format(' ring=%.1fs', call.ring))
     if type(M.env.onConnected) == 'function' then pcall(M.env.onConnected, call) end
+    -- Bond quests (mod/quest-prims-calls.lua): V's call to this character connected, so a scripted call can play. Guarded, nil outside a quest.
+    if type(M.onCallStarted) == 'function' then pcall(M.onCallStarted, call.key, call) end
 end
 
 local EVENTS = {hangup = 'hangup', ['quest-call'] = 'quest-call', ['hud-lost'] = 'hud-lost'}
+-- An incoming call (opts.incoming) rings until V picks up. The phone button is the only signal the redscript gives today, and it reports a tap and a hold as "hangup", so while
+-- one rings a "hangup" reads as picking up (UNVERIFIED). A redscript that reports a pick-up as "answer" makes this false: then "hangup" turns the call away.
+M.HANGUP_ANSWERS = true
 
 local function step(call, player, dt, sample)
     for _ = 1, 4 do
         local ok, event = pcall(function() return player:ConvaiHolocallTakeEvent() end)
         if not ok or type(event) ~= 'string' or event == '' then break end
-        if EVENTS[event] then return M.finish(player, EVENTS[event]) end
+        if call.incoming and call.state == 'dialing' and not call.answered and (event == 'answer' or (event == 'hangup' and M.HANGUP_ANSWERS)) then
+            call.answered = true
+        elseif EVENTS[event] then return M.finish(player, EVENTS[event]) end
     end
     local blocked = M.blocked(sample)
     if blocked then return M.finish(player, blocked) end
@@ -852,7 +871,7 @@ local function step(call, player, dt, sample)
         call.ring = call.ring + dt
         if call.wantLive then holoStep(call, dt) end
         local settled = not call.wantLive or not call.holo or call.holo.ready or call.holo.failed
-        if call.ring >= M.RING_MIN and (settled or call.ring >= M.RING_MAX) then
+        if call.ring >= M.RING_MIN and (settled or call.ring >= M.RING_MAX) and (not call.incoming or call.answered) then
             -- Her conversation is ready (asked at most once per tick, only once the picture has settled), or the
             -- ring has waited long enough.
             if call.ready == nil and (type(M.env.ready) ~= 'function' or M.env.ready(call.key) == true) then

@@ -32,6 +32,9 @@ local fleet = vehicles.new(vehicleNative)
 -- One probe.log line per boarding, seat and exit decision of the fleet: 'Companion recovery vehicle-boarding', 'vehicle-seat',
 -- 'vehicle-settled', 'vehicle-exit-start' and 'vehicle-exit' (companion-vehicles.lua report). M.recoveryLog is set by init.lua.
 fleet.report = function(kind, fields) if M.recoveryLog then pcall(M.recoveryLog, 'vehicle-' .. kind, fields) end end
+-- A character whose own car a story pack has taken away for a while (mod/bonds.lua vehicleBlocked): init.lua sets M.vehicleBlocked(profileKey). Asked when a
+-- party car is chosen, never per frame.
+fleet.isBlocked = function(profileKey) return M.vehicleBlocked ~= nil and M.vehicleBlocked(profileKey) == true end
 -- The convoy follow A/B (companion-vehicle-native.lua, convoyMode) is a Developer-mode choice; init.lua sets M.developerMode.
 vehicleNative.developerMode = function() return M.developerMode and M.developerMode() == true end
 local reloadCleanupModule,reloadCleanup

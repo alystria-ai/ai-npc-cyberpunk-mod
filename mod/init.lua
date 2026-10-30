@@ -499,6 +499,11 @@ convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
     -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
+    -- A pay stage of a bond quest (docs/QUEST_PRIMITIVES.md section 10.2): quest = {pack, cast} when the target is its cast member.
+    if not context.reaction and not context.group and not context.head and convaiQuestAttach then convaiQuestAttach(context) end
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well, and a group
+    -- round turn carries its speaker's own block). Johnny in V's head and reactions have none.
+    if not context.reaction and not context.head then convaiBondsAttach(context) end
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
     -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
@@ -1616,6 +1621,8 @@ convaiGateCapture(gameDialogue, 'capture', 'dialogue')
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
+-- Character bonds (mod/bonds.lua): the block of a message V types in Phone Chat, nil while the setting is Off. No copy: the contact is a text, not a body.
+phoneChat.captureBonds = function(profileKey) return convaiBondsPhone and convaiBondsPhone(profileKey) or nil end
 microphone.captureGameDialogue = captureGameDialogue
 
 -- What V is wearing and carrying, attached to manual turns (docs/PLAYER_GEAR_CONTEXT.md). Read on demand when a turn
@@ -3728,6 +3735,8 @@ local function sendRequest(context)
     if context.reaction and context.reaction.kind == 'meet' then context.battle = nil end
     -- So has a housemates' chat line or greeting (mod/housemates.lua).
     if context.reaction and context.reaction.kind == 'house' then context.battle = nil end
+    -- And a scripted line of a bond quest: the pack supplies the words, nothing about the fight goes with it.
+    if context.reaction and context.reaction.kind == 'scripted' then context.battle = nil end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
@@ -3750,8 +3759,12 @@ local function sendRequest(context)
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
     local providerOk, provider = pcall(function() return chosenProvider() end)
     context.provider = providerOk and provider or nil
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): one boolean while it is off. A group round turn carries its speaker's own block.
+    if not context.reaction and not context.head then convaiBondsAttach(context) end
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
+    -- A pay stage of a bond quest: quest = {pack, cast} when the target is its cast member (one nil check while none is armed).
+    if not context.reaction and not context.group and not context.head and convaiQuestAttach then convaiQuestAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)
@@ -4058,6 +4071,8 @@ cancelAutomatic = function(reason, abandoning)
         convaiSpeakUpState.hold = nil
         if convaiSpeakUp then pcall(convaiSpeakUp.release, convaiSpeakUp, hold.who, automatic.playbackAt ~= nil) end
     end
+    -- A scripted line of a bond quest tells the line player how it ended (convaiQuestLineEnded).
+    if automatic.reaction.kind == 'scripted' and convaiQuestLineEnded then pcall(convaiQuestLineEnded, automatic, reason) end
     -- A line of a party round tells the round how it ended (convaiPartyLineEnded).
     if automatic.party and convaiPartyLineEnded then pcall(convaiPartyLineEnded, automatic, reason) end
     automatic, reactionGuard = nil, nil
@@ -4673,7 +4688,8 @@ do
         if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
         local glue = convaiHousemates
         local controller = glue and glue.controller
-        return controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true
+        if controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true then return true end
+        return convaiQuestLines ~= nil and convaiQuestBusy()   -- a bond quest's open gap or scripted line
     end
     function convaiHouseReplyText(replyPending, text)
         if replyPending and replyPending.reaction and replyPending.reaction.kind == 'house' then convaiHouseText = text end
@@ -5344,6 +5360,7 @@ function convaiSpeakUpStopped(requestId, reason)
 end
 speech.onStopped = function(requestId, reason)
     if convaiSpeakUp or convaiSpeakUpState.plan then pcall(convaiSpeakUpStopped, requestId, reason) end
+    if convaiQuestLines then pcall(convaiQuestStopped, requestId, reason) end
 end
 
 -- V sent a line of their own: it cancels anything prepared, and a reply to it may get a follow-on from Johnny.
@@ -5649,6 +5666,8 @@ local function updateBattles(player, elapsed, worldReady)
         if convaiJohnnyFight then convaiJohnnyGuarded('fight watch', convaiJohnnyFightSample, battleSample) end
         -- A Johnny probe acting over time (Developer mode, mod/johnny-probe.lua); nil otherwise.
         if convaiJohnnyProbeTick then pcall(convaiJohnnyProbeTick) end
+        -- Characters text first: the end of a fight is the fall of this verdict, a nil check while its timer does not run (mod/quest-reach.lua).
+        if convaiReach then pcall(convaiReach.sample, battleSample.combat == true or battles.fighting()) end
     end
     local now = os.time()
     battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
@@ -5679,6 +5698,8 @@ local function updateBattles(player, elapsed, worldReady)
     if convaiPerfMark then convaiPerfMark('init:battles') end
     if automatic and automatic.reaction.kind == 'meet' then
         convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'scripted' then
+        convaiQuestLineTick(player, now, worldReady, outputs, manual)
     elseif automatic and automatic.reaction.kind == 'house' then
         convaiHouseTick(player, now, worldReady, outputs, manual)
     elseif automatic and automatic.reaction.kind == 'head' then
@@ -6079,6 +6100,12 @@ local function reactionCanDeliver(context, player)
     if context.reaction.kind == 'ambush' then
         if convaiAmbushSpeakerHere(context.requestId) then return true end
         cancelAutomatic('ambush-speaker-missing')
+        return false
+    end
+    -- A scripted line of a bond quest is said by its copy wherever she stands: only her body must still be there (mod/quest-play.lua).
+    if context.reaction.kind == 'scripted' then
+        if convaiQuestSpeakerHere(context.requestId) then return true end
+        cancelAutomatic('scripted-speaker-missing')
         return false
     end
     -- A reply can become ready between the half-second observer samples. Read
@@ -6739,6 +6766,11 @@ function convaiOutfitModule()
         -- The look the player chose for a character in the editor (Look and moves), worn all the time and even with the setting off.
         pinned = function(key) local chosen = convaiCharacterOptions; return chosen and chosen.outfit(key) or nil end,
         anyPinned = function() local chosen = convaiCharacterOptions; return chosen ~= nil and chosen.hasOutfits() end,
+        -- A story pack's look for a copy (mod/bonds.lua, nothing until the bonds service exists and a stage asks for one): another look of the character
+        -- while the stage lasts, her own look again after it.
+        story = function(key) return convaiBonds and convaiBonds.outfitState(key) or nil end,
+        anyStory = function() return convaiBonds ~= nil and convaiBonds.anyOutfit() end,
+        storyDone = function(key) if convaiBonds then convaiBonds.outfitDone(key) end end,
         rows = function() return companions.outfitRows(convaiOutfits.known) end,
         current = function(row) return NameToString(row.npc:GetCurrentAppearanceName()) end,
         prefetch = function(row, name) return companions.changeAppearance(row.serial, name, 'prefetch') end,
@@ -6784,7 +6816,7 @@ function convaiOutfitTick(player, elapsed, ready)
     -- The character choices file is looked at every few seconds, but only for two hours after the editor was opened (mod/character-options.lua).
     local chosen = convaiCharacterOptions
     if chosen then chosen.tick(elapsed) end
-    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return end
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) and not (convaiBonds and convaiBonds.anyOutfit()) then return end
     local module = convaiOutfitModule()
     if module then module.tick(player, elapsed, ready) end
 end
@@ -6846,10 +6878,462 @@ do
     end
 end
 
+-- ---- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md, mod/bonds.lua) -----------------------------------------------------------------------
+-- Built on the first private turn sent with the setting On; Off, a turn pays one boolean and the tick one nil check. Globals and one do-block, as for
+-- Eddies: the main chunk is near Lua's limit of locals.
+convaiBonds = nil
+do
+    local failed = false
+    local function service()
+        if convaiBonds then return convaiBonds end
+        if failed then return nil end
+        local loaded, module = pcall(dofile, 'bonds.lua')
+        local built, value = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            built, value = pcall(module.new, {
+                enabled = function() return manager.characterBonds() end,
+                storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
+                -- Settings > Gameplay > Characters text first (on by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
+                reach = function() return type(manager.reachOuts) == 'function' and manager.reachOuts() end,
+                invitations = function() return manager.immersive().enabled == true end,
+                eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,
+                -- Not now (docs/RELATIONSHIPS_AND_QUESTS.md section 8, item 4): a scene, a dialogue choice, a fight or a call of the game's own. Read once,
+                -- when a turn is built, from the battle sample the 0.5 s observer already holds: no new polling.
+                busy = function()
+                    local sample = battleSample
+                    if type(sample) == 'table' and (sample.combat or sample.dialogue or sample.choices or sample.call
+                        or (sample.tier ~= nil and sample.tier ~= 1)) then return true end
+                    local ok, fighting = pcall(function() return battles.fighting and battles.fighting() end)
+                    return ok and fighting == true
+                end,
+                -- V's game clock stamps the effects of a pack stage; one of a later clock belongs to a save that was loaded away from.
+                gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
+                ownCopy = function(entity, profileKey) return companions.ownCopy(entity, profileKey) end,
+                notice = function(player, text) convaiNotices.send(player, 'bond-level', text) end,
+                t = function(text, vars) return ui.t(text, vars) end,
+                log = function(line) log(line) end,
+                -- The bridge changed the bond quests' play file (mod/quest-play.lua).
+                onPlayRevision = function() if convaiQuestPlayRevision then convaiQuestPlayRevision() end end,
+            })
+        end
+        if not built then
+            failed = true
+            convaiLogOnce('bonds', 'Character bonds is unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiBonds = value
+        return value
+    end
+    -- A private turn to a named character (typed, spoken or a holocall): its `bonds` block, while the setting is On (bridge/bonds.mjs parseBonds).
+    function convaiBondsAttach(context)
+        if type(context) ~= 'table' or type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return end
+        local bonds = service()
+        if not bonds then return end
+        local ok, problem = pcall(bonds.attach, context)
+        if not ok then convaiLogOnce('bonds-block', 'Bonds block failed: ' .. tostring(problem)) end
+    end
+    -- A Phone Chat message V types (no entity, no copy): the same block, put in the request the phone file carries (mod/phone-chat.lua captureBonds).
+    function convaiBondsPhone(profileKey)
+        local context = {phone = true, profileKey = profileKey}
+        convaiBondsAttach(context)
+        return context.bonds
+    end
+    -- Her own car is not available (a pack stage's vehicleBlocked): asked at a decision (the companion car choice, a visitor's car arrival), never per frame.
+    function convaiBondsVehicleBlocked(profileKey)
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return false end
+        if type(manager.storyPacks) ~= 'function' or not manager.storyPacks() then return false end
+        local bonds = service()
+        if not bonds then return false end
+        local ok, blocked = pcall(bonds.vehicleBlocked, profileKey)
+        return ok and blocked == true
+    end
+    -- The Characters page: the bond level and the story of one character, or nil (the service is built on the first call with the setting On).
+    function convaiBondsView(profileKey)
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return nil end
+        local bonds = service()
+        if not bonds then return nil end
+        local ok, view = pcall(bonds.view, profileKey)
+        return ok and view or nil
+    end
+    -- The Relationships page: the characters V has talked to with their bond details, or nil (Off, or no usable file). Asked once, when the page is built.
+    function convaiBondsList()
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return nil end
+        local bonds = service()
+        if not bonds then return nil end
+        local ok, list = pcall(bonds.characters)
+        return ok and list or nil
+    end
+    -- From the 0.1 s tick: nothing unless a level notice is awaited (at most 30 s after a turn).
+    function convaiBondsTick(player)
+        if not convaiBonds or not player or not convaiBonds.pending() then return end
+        local ok, problem = pcall(convaiBonds.update, player)
+        if not ok then convaiLogOnce('bonds-tick', 'Bonds update failed: ' .. tostring(problem)) end
+    end
+end
+
+-- ---- Bond quests (docs/QUEST_PRIMITIVES.md, mod/quest-play.lua) -----------------------------------------------------------------------------------
+-- The game half of the story packs' gameplay: the bridge writes the stage to execute (runtime/quest-play.json), mod/quest-play.lua arms its primitives and plays
+-- its scripted lines, and reports what happened (runtime/quest-events.json). Built on the first tick of a world, or when the bridge says the play file changed,
+-- with Character bonds and Story packs On, nothing is loaded otherwise. The tick is one nil check while no quest is armed. Globals and one do-block, as for
+-- Eddies and bonds: the main chunk is near Lua's limit of locals.
+convaiQuestPlay, convaiQuestLines, convaiQuestWorld, convaiQuestSpeaker = nil, nil, nil, nil
+-- Characters text first (mod/quest-reach.lua, built with the quest module): a character texts, calls or Johnny speaks up first at a calm moment.
+convaiReach, convaiQuestMissingSeen = nil, nil
+-- The primitive registry (the pay stage lookup of a turn) and the facts reader (mod/quest-facts.lua, built the first time the play file wants a fact).
+convaiQuestPrims, convaiQuestFacts, convaiQuestFactsFailed = nil, nil, false
+convaiQuestDue = true
+-- What an ordinary person did after what V said (mod/npc-reactions.lua calls options.onOutcome(kind, entityKey) where a reaction starts). The npc-react primitive
+-- (mod/quest-prims-scene.lua) adds a listener to convaiQuestNpcSinks through the scene world calls and takes it away with its stage. With no quest the list is empty.
+convaiQuestNpcSinks = {}
+function convaiQuestNpcOutcome(key, kind)
+    local snapshot = {}
+    for index, fn in ipairs(convaiQuestNpcSinks) do snapshot[index] = fn end
+    for _, fn in ipairs(snapshot) do pcall(fn, key, kind) end
+end
+if convaiNpcReactions then convaiNpcReactions.options.onOutcome = function(kind, key) convaiQuestNpcOutcome(key, kind) end end
+do
+    local failed = false
+    local function settingOn()
+        return type(manager.characterBonds) == 'function' and manager.characterBonds() == true
+            and type(manager.storyPacks) == 'function' and manager.storyPacks() == true
+    end
+    local function gameClock() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end
+    -- Characters text first (docs/QUEST_PRIMITIVES.md section 10.7): the module is loaded on its own, so a failure there never takes the quests down. Its reads of the
+    -- hour, weather, heat and song are the drive natives (mod/quest-world-drive.lua), loaded when the first one is asked for.
+    local driveNatives = nil
+    local function drive()
+        if driveNatives == nil then
+            driveNatives = false
+            local loaded, module = pcall(dofile, 'quest-world-drive.lua')
+            if loaded and type(module) == 'table' and type(module.new) == 'function' then
+                local built, natives = pcall(module.new, {log = log})
+                if built and type(natives) == 'table' then driveNatives = natives end
+            end
+        end
+        return driveNatives or nil
+    end
+    local function reachReads()
+        local function native(name) return function() local natives = drive(); if not natives then return nil end return natives[name]() end end
+        return {hour = native('readHour'), weather = native('readWeather'), heat = native('readHeat'), song = native('readSong'),
+            district = function() return currentDistrict() end,
+            -- V's health pool as a percent (the read mod/turn-context.lua makes), V's place on the ground.
+            health = function()
+                local player = Game.GetPlayer()
+                local pools = player and Game.GetStatPoolsSystem()
+                if not pools then return nil end
+                local id, kind = player:GetEntityID(), Enum.new('gamedataStatPoolType', 'Health')
+                return tonumber(pools:GetStatPoolValue(id, kind, true))
+            end,
+            position = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end}
+    end
+    local function buildReach()
+        if convaiReach then return end
+        local loaded, module = pcall(dofile, 'quest-reach.lua')
+        if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+            convaiLogOnce('reach-load', 'Characters text first is unavailable: ' .. tostring(module))
+            return
+        end
+        local built, reach = pcall(module.new, {
+            enabled = function() return settingOn() and type(manager.reachOuts) == 'function' and manager.reachOuts() == true end,
+            clock = os.clock, gameTime = gameClock, log = log, read = reachReads(),
+            -- Not now: the test the scripted line player uses (a scene, a quest dialogue, a game call, a fight or a chase, V talking, a reply on its way).
+            busy = function() return convaiQuestLineBusy() end,
+            text = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
+            -- A call: mod/quest-calls.lua provides convaiQuestCallIn when it is there (a nil answer means it is absent, the text goes instead).
+            call = function(item)
+                if type(convaiQuestCallIn) ~= 'function' then return nil end
+                local ok, answer = pcall(convaiQuestCallIn, item.character, item.text, item.id)
+                return ok and answer == true
+            end,
+            voice = function(item) return convaiQuestReachVoice(item.text) end,
+            emit = function(id) return convaiQuestPlay ~= nil and convaiQuestPlay.emitReach(id) end,
+            refresh = function() if convaiQuestPlay then convaiQuestPlay.refresh() end end})
+        if built and type(reach) == 'table' then convaiReach = reach
+        else convaiLogOnce('reach-build', 'Characters text first is unavailable: ' .. tostring(reach)) end
+    end
+    local function build()
+        if convaiQuestPlay then return convaiQuestPlay end
+        if failed then return nil end
+        local modules = {}
+        for index, name in ipairs({'quest-world.lua', 'quest-places.lua', 'quest-prims.lua', 'quest-lines.lua', 'quest-play.lua'}) do
+            local loaded, module = pcall(dofile, name)
+            if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+                failed = true
+                convaiLogOnce('quest-load', 'Bond quests are unavailable: ' .. name .. ' ' .. tostring(module))
+                return nil
+            end
+            modules[index] = module
+        end
+        local built, play = pcall(function()
+            local world = modules[1].new({companions = companions, queue = function() return managerUi.party and managerUi.party() end,
+                seating = function() return convaiSeating end, district = function() return currentDistrict() end, log = log})
+            local places = modules[2].new({world = world, clock = os.clock, log = log})
+            local prims = modules[3].new({places = places, world = world, clock = os.clock, gameTime = gameClock, log = log})
+            if type(prims.env) == 'table' then prims.env.companions = companions end   -- the scene primitives find the mod's copies through it
+            -- The line player is in prims.env.lines: the call primitives (quest-prims-calls.lua) and the sounds (quest-audio.lua, prims.sounds) read it from there.
+            for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua', 'quest-prims-race.lua', 'quest-prims-scene.lua', 'quest-prims-systems.lua',
+                    'quest-prims-calls.lua', 'quest-audio.lua'}) do
+                local okExtra, extension = pcall(dofile, extra)
+                if okExtra and type(prims.extend) == 'function' then prims.extend(extension) end
+            end
+            local lines = modules[4].new({clock = os.clock, gameTime = gameClock, log = log,
+                busy = function() return convaiQuestLineBusy() end,
+                start = function(entry) return convaiQuestLineStart(entry) end,
+                alive = function(requestId) return automatic ~= nil and automatic.requestId == requestId end,
+                subtitle = function(profileKey, text) return convaiQuestSubtitle(profileKey, text) end,
+                phone = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
+                idle = function(profileKey, idleKey, on, situation) return convaiQuestIdle(profileKey, idleKey, on, situation) end,
+                emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
+                onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
+            if type(prims.env) == 'table' then prims.env.lines = lines end
+            local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log,
+                -- The play file's reach block (mod/quest-reach.lua): handed over whenever a play file is applied, or nil when it is gone.
+                onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end})
+            convaiQuestWorld, convaiQuestLines, convaiQuestPrims = world, lines, prims
+            return play
+        end)
+        if not built then
+            failed = true
+            convaiQuestWorld, convaiQuestLines, convaiQuestPrims = nil, nil, nil
+            convaiLogOnce('quest-build', 'Bond quests are unavailable: ' .. tostring(play))
+            return nil
+        end
+        convaiQuestPlay = play
+        buildReach()
+        return play
+    end
+    -- From the 0.1 s tick, only while a quest is armed or the world is new (then once: sweep what a crash left, read the saved stage).
+    function convaiQuestTick(player, delta)
+        if convaiQuestDue then
+            convaiQuestDue = false
+            if settingOn() then
+                local play = build()
+                if play then
+                    pcall(convaiQuestWorld.sweep)
+                    local ok, problem = pcall(play.restore)
+                    if not ok then convaiLogOnce('quest-restore', 'Bond quests could not start: ' .. tostring(problem)) end
+                end
+            end
+        end
+        local play = convaiQuestPlay
+        if not play then return end
+        local ok, problem = pcall(play.update, player, delta)
+        if not ok then convaiLogOnce('quest-tick', 'Bond quests update failed: ' .. tostring(problem)) end
+        -- Characters text first: one nil check while its timer does not run (mod/quest-reach.lua).
+        local reach = convaiReach
+        if reach ~= nil then
+            local okReach, problemReach = pcall(reach.update)
+            if not okReach then convaiLogOnce('reach-tick', 'Characters text first failed: ' .. tostring(problemReach)) end
+        end
+        -- Quest sounds (mod/quest-audio.lua): the queued media commands and a place loop's steering. One nil check and a boolean while no sound is playing or queued.
+        local sounds = convaiQuestPrims and convaiQuestPrims.sounds
+        if sounds ~= nil and sounds.pending() then
+            local okSounds, problemSounds = pcall(sounds.update, delta)
+            if not okSounds then convaiLogOnce('quest-sounds', 'Quest sounds update failed: ' .. tostring(problemSounds)) end
+        end
+        -- The facts the packs want read (runtime/quest-facts.json): a nil check while the play file wants none. The reader looks at its clock every 5 s and reads every 300 s.
+        if play.factsWanted ~= nil and play.factsWanted() ~= nil and not convaiQuestFactsFailed then
+            if convaiQuestFacts == nil then
+                local loaded, module = pcall(dofile, 'quest-facts.lua')
+                local built, reader = false, nil
+                if loaded and type(module) == 'table' and type(module.new) == 'function' then
+                    built, reader = pcall(module.new, {enabled = settingOn, wanted = function() return convaiQuestPlay and convaiQuestPlay.factsWanted() end,
+                        clock = os.clock, gameTime = gameClock, log = log})
+                end
+                if built and type(reader) == 'table' then convaiQuestFacts = reader
+                else convaiQuestFactsFailed = true; convaiLogOnce('quest-facts', 'Quest facts are unavailable: ' .. tostring(reader or module)) end
+            end
+            if convaiQuestFacts ~= nil then
+                local okFacts, problemFacts = pcall(convaiQuestFacts.update, delta)
+                if not okFacts then convaiLogOnce('quest-facts-tick', 'Quest facts update failed: ' .. tostring(problemFacts)) end
+            end
+        end
+    end
+    -- A private turn to an ordinary cast member of an armed pay stage carries quest = {pack, cast} so the bridge reads V's words against what the stage waits for
+    -- (docs/QUEST_PRIMITIVES.md section 10.1). One nil check while no pay stage is armed. The cast member is looked up by its entity ID, nothing is kept.
+    function convaiQuestAttach(context)
+        local prims = convaiQuestPrims
+        if prims == nil or type(prims.payTargetFor) ~= 'function' or type(context) ~= 'table' or context.entity == nil then return end
+        local ok, target = pcall(prims.payTargetFor, context.entity, context.profileKey)
+        if ok and type(target) == 'table' then context.quest = {pack = target.pack, cast = target.cast} end
+    end
+    -- The bridge says the play file changed (runtime/bonds-status.json, mod/bonds.lua): read it now.
+    function convaiQuestPlayRevision()
+        if not settingOn() then return end
+        local play = build()
+        if not play then return end
+        local ok, problem = pcall(play.onPlayRevision)
+        if not ok then convaiLogOnce('quest-revision', 'Bond quests could not read the play file: ' .. tostring(problem)) end
+    end
+    -- The world ended (a load, a detach, a fast travel): nothing is asked of it, the stage is read again once the next world is ready.
+    function convaiQuestReset(reason)
+        convaiQuestDue = true
+        convaiQuestSpeaker = nil
+        if convaiQuestFacts then pcall(convaiQuestFacts.reset) end   -- the facts are read again in the new world
+        if convaiReach then pcall(convaiReach.reset, reason) end     -- its timer, watches and fired stamps go with the world
+        if convaiQuestPlay then pcall(convaiQuestPlay.abandon) end
+        -- The sounds the bridge plays for the packs stop with the world (mod/quest-audio.lua), a scripted call's lock goes with it.
+        local sounds = convaiQuestPrims and convaiQuestPrims.sounds
+        if sounds ~= nil then pcall(sounds.worldChanged) end
+        convaiQuestCallLines = nil
+    end
+    -- The pose of a talk gap (mod/quest-lines.lua asks once at the gap's start and once at its end): the copy takes the gap's idle, or the one its situation stands
+    -- for, through the scene world's gap idle (mod/quest-world-scene.lua, the gestures' invisible device). It may hand back a step function for the line player to call
+    -- once a second while the pose starts. A seat kind is left to the seating code. Never raises, never loud: the talk goes on without the pose.
+    function convaiQuestIdle(profileKey, idleKey, on, situation)
+        local world = convaiQuestWorld
+        if world == nil or type(world.gapIdle) ~= 'function' then return nil end
+        local ok, step = pcall(world.gapIdle, profileKey, idleKey, on == true, situation)
+        return ok and type(step) == 'function' and step or nil
+    end
+    -- An open gap or a line in progress: the speak-up scheduler and every automatic remark stay quiet (docs/QUEST_PRIMITIVES.md section 5).
+    function convaiQuestBusy()
+        local lines = convaiQuestLines
+        return lines ~= nil and lines.busy()
+    end
+    -- A scripted line may not start now: V talks (key held, composer open), any reply is produced or heard, an automatic remark plays, a scene, call or fight runs.
+    function convaiQuestLineBusy()
+        local player = Game.GetPlayer()
+        if not player then return true end
+        if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil then return true end
+        if microphone.context ~= nil and microphone.state ~= 'reply' then return true end
+        if pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil then return true end
+        local composer = false
+        pcall(function() composer = player:ConvaiComposerOpen() == true end)
+        if composer then return true end
+        local sample = battleSample
+        if not sample or sample.available ~= true or sample.blocked or sample.combat or sample.dialogue or sample.choices or sample.call then return true end
+        if (sample.tier ~= nil and sample.tier ~= 1) or battles.fighting() then return true end
+        -- A call is open: nothing starts, except the lines of a scripted call of a quest, which are spoken on it (mod/quest-prims-calls.lua sets convaiQuestCallLines).
+        if convaiHolocall ~= nil and convaiHolocall.call ~= nil and convaiQuestCallLines ~= true then return true end
+        if convaiPartyState and convaiPartyState.chat then return true end
+        if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
+        local controller = convaiHousemates and convaiHousemates.controller
+        if controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true then return true end
+        return not (battleOutputs or reactionOutputs(player)).enabled
+    end
+    -- The request of a scripted line: a private automatic turn of the speaking copy, no model behind it (the bridge takes the words and the prepared audio
+    -- from the pack). Returns the request id, or nil and why.
+    function convaiQuestLineStart(entry)
+        local player = Game.GetPlayer()
+        if not player then return nil, 'no-player' end
+        local person
+        if entry.channel == 'holocall' then
+            -- A line of a scripted call (mod/quest-prims-calls.lua) is said by the caller on the phone: the open call's partner (V's own body in a voice call, the posed copy in a live one).
+            local caller = convaiHolocall ~= nil and convaiHolocall.partner(player, false) or nil
+            if caller ~= nil and caller.profileKey == entry.profileKey then person = caller end
+        else
+            for _, row in ipairs(companions.conversationCandidates(player, 100000)) do
+                if row.profileKey == entry.profileKey then person = row; break end
+            end
+        end
+        if not person then return nil, 'no-speaker' end
+        local outputs = battleOutputs or reactionOutputs(player)
+        generation = generation + 1
+        local now = os.time()
+        local context = {generation = generation, entity = person.entity, name = person.name, bodyType = person.bodyType, profileKey = person.profileKey,
+            sentAt = now, text = 'A scripted line. The pack supplies the words.', holocall = person.holocall, voiceOnly = person.voiceOnly,
+            reaction = {kind = 'scripted', pack = entry.pack, line = entry.id, channel = entry.channel, expiresAt = math.floor((now + 60) * 1000)}}
+        context.requestId = tostring(now) .. '-' .. generation .. '-' .. context.entity
+        automatic = context
+        captureReactionGuard(true, outputs, person)
+        if reactionLease(true) and sendRequest(context) then
+            speech.target = person.npc
+            convaiQuestSpeaker = {requestId = context.requestId, npc = person.npc}
+            lastAutomatic = {at = now, requestId = context.requestId, kind = 'scripted'}
+            log('Scripted line: ' .. tostring(entry.pack) .. ' ' .. tostring(entry.id) .. ' speaker=' .. person.profileKey)
+            return context.requestId
+        end
+        cancelAutomatic('request-write-failed')
+        return nil, 'request-write-failed'
+    end
+    -- Her body is still there (attached and alive), read fresh.
+    function convaiQuestSpeakerHere(requestId)
+        local speaker = convaiQuestSpeaker
+        if not speaker or speaker.requestId ~= requestId or speaker.npc == nil then return false end
+        local ok, here = pcall(function() return speaker.npc:IsAttached() and not speaker.npc:IsDeadNoStatPool() end)
+        return ok and here == true
+    end
+    -- Each 0.1 s tick while a scripted line is in the air (the branch of updateBattles): it ends when it was said, when V or the world needs the channel, when it
+    -- is late, or when its speaker is gone.
+    function convaiQuestLineTick(player, now, worldReady, outputs, manual)
+        local reaction = automatic.reaction
+        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+            or (not automatic.playbackAt and now * 1000 > reaction.expiresAt) and 'expired'
+            or not convaiQuestSpeakerHere(automatic.requestId) and 'speaker-gone'
+        if reason then
+            cancelAutomatic('scripted-' .. reason)
+        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
+            cancelAutomatic('completed')
+        elseif not reactionLease(true) then
+            cancelAutomatic('lease-write-failed')
+        end
+    end
+    -- cancelAutomatic ended a scripted line, whatever the reason: the line player learns how (heard to its end, or not).
+    function convaiQuestLineEnded(context, reason)
+        if convaiQuestSpeaker and convaiQuestSpeaker.requestId == context.requestId then convaiQuestSpeaker = nil end
+        local lines = convaiQuestLines
+        if lines then lines.stopped(context.requestId, (reason == 'finished' or (reason == 'completed' and context.playbackAt ~= nil)) and 'finished' or reason) end
+    end
+    -- The speech of a line was heard to its end (speech.onStopped): done at once, not when its caption has faded.
+    function convaiQuestStopped(requestId, reason)
+        if reason ~= 'finished' then return end
+        local lines = convaiQuestLines
+        if lines then lines.stopped(requestId, 'finished') end
+        if automatic and automatic.requestId == requestId and automatic.reaction and automatic.reaction.kind == 'scripted' then cancelAutomatic('finished', true) end
+    end
+    local function nameOf(profileKey)
+        local ok, definition = pcall(companions.definition, profileKey)
+        return ok and type(definition) == 'table' and (definition.profileName or definition.name) or 'Someone'
+    end
+    function convaiQuestSubtitle(profileKey, text)
+        return pcall(subtitles.showAnyway, nameOf(profileKey), text, nil, nil)
+    end
+    -- Johnny speaks up first (a reach-out with via voice): only while his route is free (mod/johnny-head.lua refusal: he is in V's head and the game has no floor), his fixed
+    -- words as a caption, no model and no audio. UNVERIFIED in the game.
+    function convaiQuestReachVoice(text)
+        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
+        local player = Game.GetPlayer()
+        if not head or not player or head:refusal(player) ~= nil then return false end
+        local ok, shown = pcall(subtitles.showAnyway, head.name or 'Johnny Silverhand', text, nil, nil)
+        return ok and shown == true
+    end
+    -- A scripted line whose audio file the bridge could not play (reply.missingAudio): the caption is shown by the reply as always, and the line goes into the character's
+    -- Phone Chat too, once per line (the same path as a text row). Called from the branch of the main tick that reads the reply.
+    function convaiQuestMissingAudio(pending, reply)
+        if type(pending) ~= 'table' or type(reply) ~= 'table' or reply.missingAudio ~= true then return false end
+        local reaction = pending.reaction
+        if type(reaction) ~= 'table' or reaction.kind ~= 'scripted' or type(reply.text) ~= 'string' or reply.text == '' then return false end
+        if convaiQuestMissingSeen == pending.requestId then return false end
+        convaiQuestMissingSeen = pending.requestId
+        return convaiQuestPhone(pending.profileKey, reply.text, nil)
+    end
+    -- A text row of a quest: into her Phone Chat thread, with a notice like the appointment texts have.
+    function convaiQuestPhone(profileKey, text, image)
+        local ok, sent = pcall(phoneChat.deliverScripted, profileKey, text, image)
+        if not ok or sent ~= true then return false end
+        local player = Game.GetPlayer()
+        if player then
+            local line = text
+            if #line > 140 then line = line:sub(1, 137):gsub('[\128-\191]+$', '') .. '...' end
+            pcall(convaiNotices.send, player, 'immersive-text', nameOf(profileKey) .. ': ' .. line)
+        end
+        return true
+    end
+end
+
+-- A story pack can take a character's own car away for a while (mod/bonds.lua vehicleBlocked): the party car choice (mod/companion-vehicles.lua) and an
+-- invited visitor's car arrival (mod/immersive-world.lua) ask at their decision. One function; the answer is false at once while a setting is Off.
+companions.vehicleBlocked = function(profileKey) return convaiBondsVehicleBlocked(profileKey) end
+
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
     local chosen = convaiCharacterOptions
-    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return nil end
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) and not (convaiBonds and convaiBonds.anyOutfit()) then return nil end
     local module = convaiOutfitModule()
     return module and module.spawnAppearance(record, key) or nil
 end
@@ -6955,6 +7439,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
     if convaiSpeakUpReset then pcall(convaiSpeakUpReset, 'world-change') end
+    if convaiQuestReset then pcall(convaiQuestReset, reason) end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     if convaiJohnnyRelic then convaiJohnnyRelic:reset() end
@@ -7095,6 +7580,8 @@ registerForEvent('onInit', function()
         ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function()
             if not worldSuspended and convaiSettleWake then convaiSettleWake() end
             if not worldSuspended and convaiHousemateWake then convaiHousemateWake() end
+            -- Characters text first: one evaluation per district change, a nil check while its timer does not run (mod/quest-reach.lua).
+            if not worldSuspended and convaiReach then pcall(convaiReach.districtChanged) end
         end)
     end)
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
@@ -7510,6 +7997,9 @@ registerForEvent('onUpdate', function(delta)
     if not ambushOk then convaiLogOnce('ambush-tick', 'Revenge ambushes failed: ' .. tostring(ambushError)) end
     -- Eddies with characters (off by default): one nil check per tick unless a proposal is awaited or its pop-up is open.
     if convaiEddies and worldReady then convaiEddiesTick(player) end
+    if convaiBonds and worldReady then convaiBondsTick(player) end
+    -- Bond quests (docs/QUEST_PRIMITIVES.md): one nil check per tick while no quest is armed.
+    if (convaiQuestPlay or convaiQuestDue) and worldReady then convaiQuestTick(player, elapsedPoll) end
     mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
@@ -7792,6 +8282,8 @@ registerForEvent('onUpdate', function(delta)
                             pcall(convaiPartyReplyText, pending, reply.text)
                         end
                         speech.start(pending, reply)
+                        -- A scripted quest line the bridge could not voice (its audio file is missing): the caption above, and the line in her Phone Chat too (once).
+                        if reply.missingAudio == true and convaiQuestMissingAudio then pcall(convaiQuestMissingAudio, pending, reply) end
                     end
                 end)
                 if shown then

@@ -1,0 +1,84 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "johnny-hangout-perimeter",
+  "character": "johnny-silverhand",
+  "title": "Perimeter",
+  "summary": "Johnny makes V run a timed scavenger walk through a Santo Domingo cul-de-sac, calling out three vantage points.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Johnny wants to see how V would hold a cul-de-sac. Bring up, in your own way and grumpy, a walk through the Rancho Coronado cul-de-sac in Santo Domingo with three points to reach in eight game minutes."
+  },
+  "places": {
+    "hedge": {"name": "a hedge at the mouth of a Rancho Coronado cul-de-sac", "radius": 10, "district": "Santo Domingo"},
+    "garage": {"name": "the roof of a garage on the cul-de-sac, the second point", "radius": 10, "district": "Santo Domingo"},
+    "mailbox": {"name": "a corner mailbox at the far end of the cul-de-sac", "radius": 10, "district": "Santo Domingo"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Would you live here? Honest. Fence, lawn, and everyone knows your car.",
+      "know": "The timer is running, a barbecue neighbour has V's ear, and Johnny cannot talk to the neighbour.",
+      "secret": "He almost lived like this once.",
+      "wants": "V to answer fast and move on.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 300,
+      "resumeOn": ["place:mailbox:arrived"]
+    }
+  },
+  "stages": [
+    {
+      "id": "walk",
+      "type": "play",
+      "label": "Reach the three points in eight game minutes",
+      "know": "Johnny calls out three vantage points in order: a hedge, a garage roof and a corner mailbox. You have eight game minutes, and a neighbour at a barbecue may stop V at the garage roof.",
+      "wants": "V to reach the three points in order before the time runs out.",
+      "do": [
+        {"p": "pin", "at": "hedge"},
+        {"p": "place", "at": "hedge"},
+        {"p": "place", "at": "garage"},
+        {"p": "place", "at": "mailbox"},
+        {"p": "timer", "id": "walk", "seconds": 480, "clock": "game"},
+        {"p": "cast", "id": "neighbour", "who": "a neighbour at a barbecue", "at": "garage", "archetype": "suburban neighbour"},
+        {"p": "npc-react", "id": "neighbour-react", "cast": "neighbour"},
+        {"p": "check", "id": "hour", "what": "hour"},
+        {"p": "check", "id": "weather", "what": "weather"}
+      ],
+      "script": [
+        {"when": "place:garage:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "perfect", "on": "event:place:mailbox:arrived", "next": "perfect"},
+        {"id": "walk-of-shame", "on": "event:timer:walk", "next": "walk-of-shame"}
+      ],
+      "timeout": {"gameHours": 0.14, "next": "walk-of-shame"}
+    }
+  ],
+  "endings": {
+    "perfect": {
+      "memory": "You walked a Santo Domingo cul-de-sac in eight game minutes, reaching all three points Johnny called out.",
+      "bond": 14
+    },
+    "walk-of-shame": {
+      "memory": "You ran Johnny's cul-de-sac walk too slowly, and he called it a walk of shame.",
+      "bond": 6
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dawn-patrol", "know": "It is dawn with light fog. The second point is the school-bus stop, not the garage roof."},
+      {"id": "night-patrol", "know": "It is night and the sprinklers are on. The points are a trash can, a parked truck and an upstairs window."},
+      {"id": "rain", "know": "It is raining and the neighbours stay indoors. The twist is a leaf blower left running beside a fence."}
+    ]
+  }
+}

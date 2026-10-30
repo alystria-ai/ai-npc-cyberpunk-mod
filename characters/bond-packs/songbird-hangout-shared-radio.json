@@ -1,0 +1,90 @@
+{
+  "format": 2,
+  "id": "songbird-hangout-shared-radio",
+  "kind": "hangout",
+  "character": "songbird",
+  "title": "Shared Radio",
+  "summary": "Songbird picks a station by memory from V's car by the Dogtown Wall market, and is often wrong.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird wants to tune a radio by memory, with V in the car, and she has already decided she will be wrong about the station."
+  },
+  "places": {
+    "spot": {"name": "the parking lot by the Dogtown Wall market", "radius": 25},
+    "spot-b": {"name": "the far end of the same parking lot", "radius": 25}
+  },
+  "lines": {
+    "SBH1.ask.01": {"text": "Is it the right song, or only the right mood?", "emotion": "neutral", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Is it the right song, or only the right mood?",
+      "know": "The current song and the station you tuned to.",
+      "secret": "She was trying to remember a person.",
+      "wants": "Your take on the song.",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "flatter", "kind": "flatter"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "talk", "know": "Only talk stations are on the air today.", "places": {"spot": "spot-b"}},
+      {"id": "one-genre", "know": "The station you can tune to plays only one genre tonight."},
+      {"id": "decade", "wants": "V picks the station and she guesses the decade of the song."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "hangout",
+      "type": "play",
+      "label": "Songbird picks a station by memory",
+      "know": "V is parked by the market with the radio on. You picked the station by memory and you expect to be wrong.",
+      "wants": "V's ear for the station, and V's honest take on the song.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [
+        {"p": "pin", "at": "spot"},
+        {"p": "place", "at": "spot"},
+        {"p": "check", "id": "radio", "what": "radio"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "place:spot:arrived", "say": "SBH1.ask.01"},
+        {"when": "line:SBH1.ask.01:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
+        {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
+        {"id": "flatter", "on": "event:gap:g1:flatter", "next": "faked"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "honest": {
+      "memory": "You sat in the car by the Dogtown Wall market and told Songbird the truth about the song she picked by memory.",
+      "bond": 8
+    },
+    "faked": {
+      "memory": "You pretended the station was the one Songbird remembered. She could tell, and she let you have it anyway.",
+      "bond": 4
+    },
+    "left": {
+      "memory": "You let Songbird's radio play by the Dogtown Wall market and did not say much about it."
+    },
+    "stood-up": {
+      "memory": "You never came to the parking lot by the Dogtown Wall market, and Songbird's radio played on alone."
+    }
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "format": 1,
+  "character": "kerry-eurodyne",
+  "requires": {
+    "questsFinished": [
+      "quests/side_quest/sq011_kerry"
+    ]
+  },
+  "triggers": [
+    {
+      "id": "kr-concert",
+      "via": "text",
+      "text": "Still ringing in my ears. Best night in years. Come by the villa. Bring coffee.",
+      "after": [
+        {
+          "kind": "quest",
+          "path": "quests/side_quest/sq011_concert"
+        }
+      ],
+      "once": true,
+      "note": "The Red Dirt concert and his mixed feelings about Johnny."
+    },
+    {
+      "id": "kr-level-up",
+      "via": "text",
+      "text": "You keep showing up. That's rare. Don't ruin it.",
+      "after": [
+        {
+          "kind": "bond",
+          "levels": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        }
+      ],
+      "note": "The level title. He makes a joke about being liked."
+    },
+    {
+      "id": "kr-riot-club",
+      "via": "call",
+      "text": "Thursday. Riot club. I need a drinking partner who doesn't want an autograph.",
+      "when": {
+        "kind": "hours",
+        "from": 20,
+        "to": 23
+      },
+      "cooldownDays": 7,
+      "note": "The Riot club quest, Us Cracks, and his love of low-key venues."
+    },
+    {
+      "id": "kr-north-oak",
+      "via": "text",
+      "text": "I can see you from the balcony. Come in. Stop loitering.",
+      "when": {
+        "kind": "district",
+        "is": "North Oak",
+        "minutes": 5
+      },
+      "cooldownDays": 1,
+      "note": "North Oak, his villa, and coffee."
+    },
+    {
+      "id": "kr-radio-song",
+      "via": "text",
+      "text": "That's my song. Ha. Were you listening, or did the radio decide?",
+      "when": {
+        "kind": "song",
+        "contains": "SAMURAI"
+      },
+      "cooldownDays": 1,
+      "note": "The song title comes from the radio. He does not quote lyrics and he is ambivalent about it."
+    },
+    {
+      "id": "kr-romance",
+      "via": "text",
+      "text": "Last night was good. Don't overthink it. Overthink it a little.",
+      "after": [
+        {
+          "kind": "quest",
+          "path": "quests/side_quest/sq028_kerry_romance"
+        }
+      ],
+      "once": true,
+      "note": "The marina, the relationship with V, and his bisexuality as a plain fact."
+    },
+    {
+      "id": "kr-low-health",
+      "via": "call",
+      "text": "You alright? You look like hell. Come have a coffee.",
+      "when": {
+        "kind": "fight-end",
+        "healthBelow": 20
+      },
+      "cooldownDays": 1,
+      "note": "V's recent fight. He checks that V is all right, and he is blunt."
+    },
+    {
+      "id": "kr-bond-quest",
+      "via": "text",
+      "text": "That was strange. Good strange. Let's do it again someday.",
+      "after": [
+        {
+          "kind": "pack",
+          "ids": [
+            "kerry-caliente",
+            "kerry-incognito",
+            "kerry-guinevere-race",
+            "kerry-bootleg",
+            "kerry-tomorrow-tokyo",
+            "kerry-first-string"
+          ]
+        }
+      ],
+      "note": "The quest just finished."
+    },
+    {
+      "id": "kh-pick-the-pick",
+      "via": "text",
+      "text": "I need strings. And a witness. North Oak, the little shop with the bad sign.",
+      "minBond": 3,
+      "cooldownDays": 7,
+      "offer": "kerry-hangout-pick-the-pick",
+      "note": "A blind guitar match in a North Oak instrument shop, where you pick the guitar that sounds warm and sad."
+    },
+    {
+      "id": "kh-driftwood-fire",
+      "via": "text",
+      "text": "Beach. Sunset. We're making a fire out of garbage. You'll love it.",
+      "minBond": 4,
+      "cooldownDays": 7,
+      "offer": "kerry-hangout-driftwood-fire",
+      "note": "A driftwood fire on the Pacifica beach at sunset."
+    },
+    {
+      "id": "kh-fridge-run",
+      "via": "call",
+      "text": "I'm starving. Staff is asleep. Come sneak with me.",
+      "when": {"kind": "hours", "from": 0, "to": 2},
+      "minBond": 5,
+      "cooldownDays": 7,
+      "offer": "kerry-hangout-midnight-fridge-run",
+      "note": "A night raid on the fridge at his North Oak villa while the staff sleep."
+    },
+    {
+      "id": "kh-echo-pier",
+      "via": "text",
+      "text": "Old pier. Great echo. Bring your voice. Not for singing.",
+      "minBond": 6,
+      "cooldownDays": 7,
+      "offer": "kerry-hangout-echo-pier",
+      "note": "An old pier at Pacifica with a great echo, and the shouting he likes there."
+    },
+    {
+      "id": "kh-garden-party",
+      "via": "text",
+      "text": "Neighbour's party. Not invited. We're going as plus-ones. You're my cousin.",
+      "minBond": 8,
+      "cooldownDays": 7,
+      "offer": "kerry-hangout-garden-party-crashers",
+      "note": "A neighbour's garden party in North Oak that he was not invited to, where V is his cousin."
+    }
+  ]
+}

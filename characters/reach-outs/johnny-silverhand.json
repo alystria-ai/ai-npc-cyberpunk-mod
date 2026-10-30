@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "character": "johnny-silverhand",
+  "requires": {
+    "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
+    "notBegun": ["quests/main_quest/act_01/q115_afterlife"]
+  },
+  "triggers": [
+    {
+      "id": "jn-level-up",
+      "via": "voice",
+      "text": "Huh. Level up. You're keeping me around. Fine. Don't make it weird.",
+      "after": [{"kind": "bond", "levels": [3, 4, 5, 6, 8, 10]}],
+      "note": "The new level title. V did not ask him to speak, and he is gruff about being liked."
+    },
+    {
+      "id": "jn-tower",
+      "via": "voice",
+      "text": "That tower. Don't ask me about the tower. ... Ask me about the tower.",
+      "after": [{"kind": "quest", "path": "quests/main_quest/act_01/q101_01_firestorm"}],
+      "once": true,
+      "note": "The 2023 memory V just relived. His guilt is his own testimony, with no figures."
+    },
+    {
+      "id": "jn-radio-song",
+      "via": "voice",
+      "text": "Turn it up. No. Down. This is a copy of a copy of something we did first.",
+      "when": {"kind": "song"},
+      "cooldownDays": 0.5,
+      "note": "The song title from the radio, his critic's ear, no lyrics. The rock filter cannot be checked, so any radio song can trigger it."
+    },
+    {
+      "id": "jn-insomnia",
+      "via": "voice",
+      "text": "You're up. I'm up. We're a pair of insomniacs sharing a skull.",
+      "when": {"kind": "hours", "from": 3, "to": 5, "idle": 3},
+      "cooldownDays": 1,
+      "note": "The hour and V's activity. He may bring up Alt in two sentences if the bond is 5 or more."
+    },
+    {
+      "id": "jn-city-center",
+      "via": "voice",
+      "text": "Look at that tower. Bigger than the last one. They always rebuild bigger.",
+      "when": {"kind": "district", "is": "City Center"},
+      "cooldownDays": 1,
+      "note": "The district, Arasaka, his 2023 guilt, and V's last view of the tower."
+    },
+    {
+      "id": "jn-after-rogue",
+      "via": "voice",
+      "text": "That went... better than I expected. Rogue looked at me. Through you. I felt it.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq031_rogue"}],
+      "once": true,
+      "note": "Rogue's role, the hunt for Smasher, and Johnny's unresolved history with her."
+    },
+    {
+      "id": "jn-bond-quest",
+      "via": "voice",
+      "text": "That was fine. I'll deny it. But it was fine.",
+      "after": [{"kind": "pack", "ids": ["johnny-street-poll", "johnny-dial-surf", "johnny-field-manual", "johnny-licensed", "johnny-the-count", "johnny-soundcheck"]}],
+      "note": "The quest just finished, its ending, and what he took from it."
+    },
+    {
+      "id": "inv-perimeter",
+      "via": "voice",
+      "text": "Suburbs. Disgusting. But I want to know how I'd hold a cul-de-sac. Come on.",
+      "when": {"kind": "district", "is": "Santo Domingo"},
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-perimeter",
+      "note": "Johnny invites V to a timed walk through a Santo Domingo cul-de-sac."
+    },
+    {
+      "id": "inv-bet",
+      "via": "voice",
+      "text": "Here's a game. I bet how a stranger reacts. You make it happen. Loser buys nothing.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-bet-bystander",
+      "note": "Johnny invites V to a bet on how strangers in Arroyo will react."
+    },
+    {
+      "id": "inv-wardrobe",
+      "via": "voice",
+      "text": "That jacket. No. We're going shopping. Don't argue.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-wardrobe-veto",
+      "note": "Johnny invites V to an arcade near Corpo Plaza to try on looks he will judge."
+    },
+    {
+      "id": "inv-what-i-know",
+      "via": "voice",
+      "text": "Sit at a bar. Order something. I'll tell you four things about you. One is a lie.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-what-i-know",
+      "note": "Johnny invites V to a Heywood bar for a game where he names four things about V and one is false."
+    },
+    {
+      "id": "inv-shakedown",
+      "via": "voice",
+      "text": "Three punks are leaning on a cart vendor. Not my fight. Not my body. Your call.",
+      "minBond": 7,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-shakedown",
+      "note": "Johnny tells V about three punks leaning on a cart vendor in Heywood and leaves the choice to V."
+    }
+  ]
+}

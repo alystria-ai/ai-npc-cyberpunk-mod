@@ -1,0 +1,85 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "river-hangout-time-capsule",
+  "character": "river-ward",
+  "title": "Time Capsule",
+  "summary": "River takes you to a pullout with one tree on the Badlands west road to bury a tin with something you will miss.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "River wants to bury a tin at a pullout on the Badlands west road and asks V to bring something they will miss."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dig-up", "know": "The last tin is still in the red dirt by the tree, and the spade is stuck upright beside it.", "wants": "The old note read out loud."},
+      {"id": "for-randy", "know": "River has brought an extra tin, and he wants to bury something for Randy this time.", "wants": "Something for Randy, and a reason."},
+      {"id": "promise", "know": "The pullout is quiet, and V has brought a promise instead of an object.", "wants": "V's promise to be buried honestly."}
+    ]
+  },
+  "places": {
+    "pullout": {"name": "the pullout on the Badlands west road with one tree", "radius": 25}
+  },
+  "images": {
+    "time-capsule": {"file": "images/time-capsule.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RWH4.inv": {"text": "Badlands west road, a pullout with one tree. Bring something you won't miss and something you will.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What are you putting in, and who is it for?",
+      "know": "You are at the pullout with the tin and the spade. The tree is the only thing standing near the red dirt.",
+      "secret": "His own note is a single line.",
+      "wants": "V to name who it is for.",
+      "idle": "lean",
+      "tags": [{"id": "someone", "kind": "yes"}, {"id": "nobody", "kind": "no"}],
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "bury",
+      "type": "play",
+      "label": "River and V bury the tin under the tree",
+      "know": "You are at the pullout on the Badlands west road with one tree. River has a rusted ammo tin and a spade, and V has brought the item and the note.",
+      "wants": "V to bury the tin and say who it is for.",
+      "do": [
+        {"p": "cast", "id": "river", "who": "self", "at": "pullout", "carry": true},
+        {"p": "place", "at": "pullout"},
+        {"p": "timer", "id": "burying", "seconds": 60}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RWH4.inv", "image": "time-capsule"},
+        {"when": "timer:burying", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "someone", "on": "event:gap:g1:someone", "next": "for-someone"},
+        {"id": "nobody", "on": "event:gap:g1:nobody", "next": "buried"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "for-someone": {
+      "memory": "You buried a tin with a note at the pullout on the Badlands west road, and you named who it was for.",
+      "bond": 8
+    },
+    "buried": {
+      "memory": "You buried a tin at the pullout on the Badlands west road, and the note stayed private.",
+      "bond": 4
+    },
+    "stood-up": {
+      "memory": "You never came to the pullout on the Badlands west road, and River buried his tin under the tree alone."
+    }
+  }
+}

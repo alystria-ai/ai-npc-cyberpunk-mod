@@ -1,0 +1,163 @@
+{
+  "format": 2,
+  "id": "judy-stolen-signal",
+  "character": "judy-alvarez",
+  "title": "Stolen Signal",
+  "summary": "Someone stole the dolls' testimonies from Judy's storeroom, and a courier is carrying them across Watson right now.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq026_02_maiko"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Someone broke into the Mox storeroom and took the dolls' testimonies. Bring up, in your own way, that a courier is taking them across Watson right now and you need V to stop him."
+  },
+  "places": {
+    "roundabout": {"name": "the Kabuki roundabout", "radius": 40},
+    "little-china": {"name": "the Little China checkpoint on Watson's edge", "radius": 40},
+    "warehouse": {"name": "the scav buyers' warehouse in Northside", "radius": 30}
+  },
+  "images": {
+    "stolen-signal-case": {"file": "images/stolen-signal-case.png", "width": 1024, "height": 576}
+  },
+  "calls": {
+    "alarm": {
+      "caller": "self",
+      "picture": "live",
+      "steps": [
+        {"say": "J3.call.01"},
+        {"say": "J3.call.02"},
+        {"say": "J3.call.03"},
+        {"say": "J3.call.04"}
+      ]
+    }
+  },
+  "lines": {
+    "J3.call.01": {"text": "Someone hit the storeroom. They took the testimonies. The dolls' testimonies, V.", "emotion": "fear", "gesture": "judy", "channel": "holocall"},
+    "J3.call.02": {"text": "If the wrong people see those, the girls in them are dead.", "emotion": "angry", "channel": "holocall"},
+    "J3.call.03": {"text": "Courier on a bike, Kabuki roundabout, right now. Sending you the ping.", "emotion": "emphatic", "channel": "holocall"},
+    "J3.call.04": {"text": "Go. Please. Go.", "emotion": "fear", "channel": "holocall"},
+    "J3.chase.01": {"text": "That's him! Red bike, the case is strapped on the back.", "emotion": "emphatic"},
+    "J3.chase.02": {"text": "Closer. Closer! Don't hit the case, hit the bike!", "emotion": "fear"},
+    "J3.chase.03": {"text": "He's down. Get the case. If he runs, let him.", "emotion": "neutral"},
+    "J3.chase.04": {"text": "He made it to the warehouse. There are more of them.", "emotion": "fear"},
+    "J3.bark.01": {"text": "V, where are you? He's getting away!", "emotion": "fear"},
+    "J3.buyer.01": {"text": "Is the case okay? Tell me the case is okay.", "emotion": "fear"},
+    "J3.burn.01": {"text": "You got it. You actually got it.", "emotion": "sad", "gesture": "judy"},
+    "J3.burn.02": {"text": "I don't know if I should finish the edit or burn every chip.", "emotion": "sad", "gesture": "sad"},
+    "J3.burn.03": {"text": "Okay. I finish it. And I lock it somewhere nobody's ever going to find.", "emotion": "emphatic"},
+    "J3.burn.04": {"text": "Okay. I burn it. And I tell them myself.", "emotion": "sad"},
+    "J3.end.01": {"text": "They got away with it. I'm warning the girls. Don't come by tonight.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What would you do?",
+      "know": "The testimonies' content in general terms, who is at risk, and that the Mox need them as evidence.",
+      "secret": "Evelyn once asked her to make a testimony like these, and she never finished it.",
+      "wants": "V's honest view.",
+      "idle": "chair",
+      "resumeAfterSeconds": 900
+    }
+  },
+  "stages": [
+    {
+      "id": "alarm",
+      "type": "play",
+      "label": "Judy's holocall: the case is moving across Watson",
+      "know": "Someone broke into the Mox storeroom and took raw testimonies from the dolls. A courier on a red bike is taking the case across Watson right now.",
+      "wants": "V to get to the roundabout and catch the courier.",
+      "do": [
+        {"p": "pin", "at": "roundabout"},
+        {"p": "place", "at": "roundabout"},
+        {"p": "call-in", "id": "alarm-ring", "call": "alarm", "ringSeconds": 20, "text": true}
+      ],
+      "choices": [{"id": "moving", "on": "event:place:roundabout:arrived", "next": "chase"}],
+      "timeout": {"gameHours": 0.5, "next": "lost"}
+    },
+    {
+      "id": "chase",
+      "type": "play",
+      "label": "V chases the courier across Watson",
+      "know": "The courier's bike is on a fixed route from the Kabuki roundabout through Little China to a Northside warehouse. Judy is watching the ping from her workshop.",
+      "wants": "V to stop the bike before it reaches the warehouse.",
+      "do": [
+        {"p": "runner", "id": "courier", "route": ["roundabout", "little-china", "warehouse"], "vehicle": "red bike", "caughtMetres": 10, "stoppedSeconds": 30},
+        {"p": "timer", "id": "chase-close", "seconds": 90, "clock": "real"},
+        {"p": "timer", "id": "chase-late", "seconds": 1200, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J3.chase.01"},
+        {"when": "timer:chase-close", "say": "J3.chase.02"},
+        {"when": "timer:chase-late", "say": "J3.bark.01"},
+        {"when": "runner:courier:stopped", "say": "J3.chase.03"},
+        {"when": "runner:courier:lost", "say": "J3.chase.04"}
+      ],
+      "choices": [
+        {"id": "stopped", "on": "event:runner:courier:stopped", "next": "burn"},
+        {"id": "lost", "on": "event:runner:courier:lost", "next": "buyer"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    },
+    {
+      "id": "buyer",
+      "type": "play",
+      "label": "The courier's buyers are at the warehouse",
+      "know": "Three scav buyers are taking the case at a Northside warehouse. They are the people who would sell the women's identities.",
+      "wants": "V to stop the buyers and take the case back.",
+      "do": [
+        {"p": "place", "at": "warehouse"},
+        {"p": "squad", "id": "buyers", "at": "warehouse", "faction": "scav", "count": 3, "hostile": true}
+      ],
+      "script": [
+        {"when": "squad:buyers:down", "say": "J3.buyer.01"}
+      ],
+      "choices": [
+        {"id": "down", "on": "event:squad:buyers:down", "next": "recovered"},
+        {"id": "fled", "on": "event:squad:buyers:fled", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    },
+    {
+      "id": "burn",
+      "type": "talk",
+      "label": "Judy decides what to do with the testimonies",
+      "know": "You have the case back. The testimonies are yours to finish or destroy, and you are not sure which you should do.",
+      "wants": "V's opinion on whether to finish the edit or burn the chips.",
+      "tags": [{"id": "keep", "kind": "yes"}, {"id": "burn", "kind": "no"}],
+      "script": [
+        {"when": "stage:enter", "say": "J3.burn.01"},
+        {"when": "line:J3.burn.01:done", "say": "J3.burn.02"},
+        {"when": "line:J3.burn.02:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "keep", "on": "tag", "means": "V says Judy should finish the edit and lock the testimonies away", "kind": "yes", "next": "caught-keep"},
+        {"id": "burn", "on": "tag", "means": "V says Judy should burn the chips and tell the women herself", "kind": "no", "next": "caught-burn"}
+      ],
+      "timeout": {"gameHours": 2, "next": "caught-keep"}
+    }
+  ],
+  "endings": {
+    "caught-keep": {
+      "memory": "You chased down the courier who stole the dolls' testimonies across Watson, and Judy chose to finish the edit and lock it away.",
+      "bond": 60,
+      "script": [{"when": "ending:caught-keep", "say": "J3.burn.03"}]
+    },
+    "caught-burn": {
+      "memory": "You chased down the courier who stole the dolls' testimonies across Watson, and Judy burned the chips and told the women herself.",
+      "bond": 60,
+      "script": [{"when": "ending:caught-burn", "say": "J3.burn.04"}]
+    },
+    "recovered": {
+      "memory": "You stopped the scav buyers at a Northside warehouse and got the dolls' testimonies back before they were sold.",
+      "bond": 50
+    },
+    "lost": {
+      "memory": "The dolls' testimonies were sold to scavs while you chased the courier. You tried, and Judy is warning the women.",
+      "bond": -10,
+      "script": [{"when": "ending:lost", "say": "J3.end.01"}]
+    }
+  }
+}

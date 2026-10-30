@@ -10,7 +10,8 @@ local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 local M = convaiJohnnyProbe or {modules = {}, ticking = {}}
 convaiJohnnyProbe = M
 
-M.FEATURES = {relic = 'johnny-relic-probe.lua', feats = 'combat-feats-probe.lua', media = 'media-probe.lua'}   -- media: Music and TV (docs/DYNAMIC_INFO.md), not about Johnny
+M.FEATURES = {relic = 'johnny-relic-probe.lua', feats = 'combat-feats-probe.lua', media = 'media-probe.lua',
+    phoneimage = 'phone-image-probe.lua', quest = 'quest-probe.lua'}   -- quest: the bond quest primitives (docs/QUEST_PRIMITIVES.md), media: Music and TV (docs/DYNAMIC_INFO.md), phoneimage: a picture in the phone Chat (docs/PHONE_IMAGES.md), neither about Johnny
 M.RESPONSE = 'runtime/johnny-probe.json'
 local MAX_REQUEST, MAX_REPORT = 200, 262144
 
@@ -21,7 +22,7 @@ function M.parse(request)
     for part in request:gmatch('[^:]+') do parts[#parts + 1] = part end
     if #parts < 4 or parts[1] ~= 'johnny-probe' or not parts[2]:match('^[a-z]+$') then return nil end
     local action = table.concat(parts, ':', 3, #parts - 1)
-    if not action:match('^[%w%-:_]+$') then return nil end
+    if not action:match('^[%w%-:_%.]+$') then return nil end   -- a dot too: a scripted line id is P1.walk.02
     return parts[2], action
 end
 

@@ -444,7 +444,7 @@ test('manager home owns the five destinations and every inner page has one paren
       assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
       local first = loaded.categories[1].settings
       assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
-      for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
+      for _, name in ipairs({'characters', 'party', 'models', 'bonds', 'key-bindings', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
       local count = 0
@@ -461,8 +461,8 @@ test('manager home owns the five destinations and every inner page has one paren
         'party status, the limit or the last action leaked onto the page')
     end
     assert(managerUi.inspect().view == 'home' and #loaded.categories == 1)
-    assert(#category('navigation').settings == 5 and not row('party-count'))
-    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
+    assert(#category('navigation').settings == 6 and not row('party-count'))
+    for _, name in ipairs({'characters', 'party', 'models', 'bonds', 'key-bindings', 'settings'}) do
       local destination = row('tab:' .. name)
       assert(destination and destination.value == 'Open' and not destination.disabled)
       assert(invoke(destination.id).ok)
@@ -6220,8 +6220,8 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
       local gameplay
       for _, category in ipairs(loaded.categories) do if category.id == 'gameplay' then gameplay = category end end
-      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 10, 'Gameplay: ten rows')
-      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices', 'battleReactions', 'lootReactions'}
+      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 13, 'Gameplay: thirteen rows')
+      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'characterBonds', 'storyPacks', 'reachOuts', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices', 'battleReactions', 'lootReactions'}
       for index, id in ipairs(want) do assert(gameplay.settings[index].id == id, 'Gameplay row ' .. index .. ': ' .. tostring(gameplay.settings[index].id)) end
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
@@ -6475,7 +6475,7 @@ test('Home offers the Character editor as the fourth row, then Key bindings, abo
     assert(managerUi.inspect().view == 'home')
     local nav = loaded.categories[1].settings
     -- The owner's order: the Character editor, then Key bindings, above Settings, which stays last.
-    assert(#nav == 6 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:key-bindings' and nav[6].id == 'tab:settings', 'six rows, the editor and Key bindings above Settings: ' .. #nav)
+    assert(#nav == 7 and nav[3].id == 'tab:models' and nav[4].id == 'tab:bonds' and nav[5].id == 'character-editor:home' and nav[6].id == 'tab:key-bindings' and nav[7].id == 'tab:settings', 'seven rows, Relationships right after the Model browser, the editor and Key bindings above Settings: ' .. #nav)
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
@@ -6483,7 +6483,7 @@ test('Home offers the Character editor as the fourth row, then Key bindings, abo
     -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
-    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
+    for _, name in ipairs({'characters', 'party', 'models', 'bonds', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
     -- It is on Home only: an inner page has neither it nor a second Back.
     assert(invoke('tab:settings').ok and not row('character-editor:home'))
     local settingsRow = row('character-editor:open')
@@ -6542,7 +6542,7 @@ test('Home > Character editor says so when the service is stopped or the write f
 
 test('Home has no Character editor row without the editor module, and the other destinations are as before', () => {
   run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
-    assert(#loaded.categories[1].settings == 5 and not row('character-editor:home'), 'no row without the module')
+    assert(#loaded.categories[1].settings == 6 and not row('character-editor:home'), 'no row without the module')
     assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
     assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);
@@ -7022,3 +7022,134 @@ test('V’s voice for microphone lines is migrated once: a file saved before it 
     assert(state.vVoice == true and state.vVoiceMic == false and saved.vVoiceMicOwn == true)
   `);
 });
+
+// ---- Home > Relationships (the characters V has talked to, with their bond details) ----------------------------------------------------------
+const bondsPageFixture = `${nsuiFixture}
+  local calls, list = 0, nil
+  convaiBondsList = function() calls = calls + 1; return list end
+  local DAY = 86400000
+  local function now() return os.time() * 1000.0 end
+  local function rows() local out = {} for _, category in ipairs(loaded.categories) do for _, item in ipairs(category.settings) do out[#out + 1] = item end end return out end
+  local function reload() loaded = registered.loadMod('manager') end
+  local function open() assert(invoke('tab:bonds').ok); reload() end
+  local function leave() assert(invoke('bonds:back').ok); reload() end
+  local judy = {profileKey = 'judy-alvarez', name = 'Judy Alvarez', level = 5, title = 'Good friend', points = 262, from = 240, next = 350, warm = 120, hurt = 12,
+    hurtDays = 6, story = 150, talk = 112, arcDone = 6, arcTotal = 9, lastAt = now() - 3 * DAY - 5000,
+    packs = {{title = 'Dressed for Dinner', state = 'active', label = 'She wants your honest eye on a dress'}, {title = 'The Long Debt', state = 'done', label = ''}}}
+`;
+
+test('Relationships sits right after the Model browser on Home, opens its own page with one Back, and nothing is read until it opens', () => run(`${bondsPageFixture}
+  assert(managerUi.inspect().view == 'home')
+  local nav = loaded.categories[1].settings
+  assert(nav[3].id == 'tab:models' and nav[4].id == 'tab:bonds' and nav[4].label == 'Relationships' and nav[4].value == 'Open', 'right after the Model browser')
+  assert(nav[4].description:find('how close each one is to you', 1, true))
+  assert(calls == 0, 'Home reads nothing')
+  assert(manager.applySettings(player, {characterBonds = true}))
+  list = {judy}
+  reload()
+  assert(calls == 0, 'Home still reads nothing')
+  open()
+  local opened = calls
+  assert(managerUi.inspect().view == 'bonds' and opened >= 1 and opened <= 2, 'the list is asked for when the page is built (the status file behind it is cached): ' .. calls)
+  assert(loaded.categories[1].id == 'navigation' and #loaded.categories[1].settings == 1 and loaded.categories[1].settings[1].id == 'bonds:back' and loaded.categories[1].settings[1].value == 'Back')
+  assert(not row('tab:models'), 'no destinations on an inner page')
+  -- Ticks while the page is open read nothing more.
+  for _ = 1, 30 do core.tick(player) end
+  assert(calls == opened, 'no polling: ' .. calls)
+  assert(invoke('bonds:back').ok and managerUi.inspect().view == 'home')
+`));
+
+test('Relationships with Character bonds off says so and where to turn it on and asks for nothing; with nobody listed it says nobody yet', () => run(`${bondsPageFixture}
+  list = {judy}
+  open()
+  local off = row('bonds-off')
+  assert(off and off.label == 'Character bonds are off' and off.description:find('Turn it on in Settings, under Gameplay', 1, true), 'off state')
+  assert(calls == 0, 'the list is not asked for while the setting is off')
+  assert(not row('bond:1') and not row('ui:page'))
+  leave()
+  assert(manager.applySettings(player, {characterBonds = true}))
+  list = {}
+  open()
+  local empty = row('bonds-empty')
+  assert(empty and empty.label == 'Nobody yet' and empty.description == 'Talk to a character and your bond with them shows here.', 'empty state')
+  assert(not row('bonds-off') and not row('bond:1'))
+  -- The bridge's file unreadable or the module missing: the same empty page, no error.
+  leave()
+  list = nil
+  open()
+  assert(row('bonds-empty') and (managerUi.inspect().error or '') == '')
+  leave()
+  convaiBondsList = function() error('boom') end
+  open()
+  assert(row('bonds-empty') and (managerUi.inspect().error or '') == '', 'a throwing list is an empty page')
+  leave()
+  convaiBondsList = nil
+  open()
+  assert(row('bonds-empty'), 'no list function at all')
+`));
+
+test('Relationships lists each character with level, progress, warmth, hurt, both parts, quests, last talk and stories, in the order given', () => run(`${bondsPageFixture}
+  assert(manager.applySettings(player, {characterBonds = true, storyPacks = true}))
+  local ann = {name = 'Ann', level = 10, title = 'Ride or die', points = 3000, from = 2000, warm = 40, hurt = 0, story = 10, talk = 30, arcDone = 3, arcTotal = 3, lastAt = now() - 1000, packs = {}}
+  local bob = {name = 'Bob', level = 2, title = 'Familiar face', lastAt = now() - 1 * DAY - 1000, packs = {{title = 'One Pack', state = 'active'}}}
+  list = {judy, ann, bob}
+  open()
+  local first = row('bond:1')
+  assert(first.label == 'Judy Alvarez' and first.value == 'Level 5')
+  assert(first.description == table.concat({'Bond: level 5, Good friend', '262 of 350 points to level 6', 'Warmth: 120', 'Hurt: 12, gone in about 6 game days',
+    'From their story: 150, from talking: 112', 'Their quests: 6 of 9 finished', 'Last talked: 3 days ago'}, '\\n'), first.description)
+  assert(row('bond:1:pack:1').label == 'Dressed for Dinner: She wants your honest eye on a dress')
+  assert(row('bond:1:pack:2').label == 'The Long Debt (finished)')
+  -- The rows come in the bridge's order: Judy, her stories, Ann, Bob.
+  local order = {}
+  for _, item in ipairs(rows()) do if item.id:match('^bond:') then order[#order + 1] = item.id end end
+  assert(table.concat(order, ' ') == 'bond:1 bond:1:pack:1 bond:1:pack:2 bond:2 bond:3 bond:3:pack:1', table.concat(order, ' '))
+  -- Level 10: highest level, no hurt line without hurt, and a character with no story says so.
+  assert(row('bond:2').description == table.concat({'Bond: level 10, Ride or die', 'Highest level', 'Warmth: 40', 'From their story: 10, from talking: 30',
+    'Their quests: 3 of 3 finished', 'Last talked: today', 'No story yet'}, '\\n'), row('bond:2').description)
+  -- Almost nothing known: only what is there (a story with no label shows its title).
+  assert(row('bond:3').description == 'Bond: level 2, Familiar face\\nLast talked: yesterday', row('bond:3').description)
+  assert(row('bond:3:pack:1').label == 'One Pack')
+  -- One hurt day, an unknown time, and a quests line only with an arc.
+  list = {{name = 'Cat', level = 3, title = 'Friendly', points = 5, next = 100, hurt = 4, hurtDays = 1, arcTotal = 0, arcDone = 0, packs = {}},
+    {name = 'Dan', level = 3, title = 'Friendly', hurt = 4, packs = {}}}
+  leave(); open()
+  assert(row('bond:1').description:find('Hurt: 4, gone in about a game day', 1, true) and not row('bond:1').description:find('Their quests', 1, true))
+  assert(row('bond:2').description:find('Hurt: 4', 1, true) and not row('bond:2').description:find('gone in', 1, true))
+  -- Story packs off: no story rows and no "No story yet".
+  assert(manager.applySettings(player, {storyPacks = false}))
+  list = {judy}
+  leave(); open()
+  assert(row('bond:1') and not row('bond:1:pack:1') and not row('bond:1').description:find('No story yet', 1, true))
+`));
+
+test('Relationships turns pages like the Characters list, and a character with little data is still a row and never an error', () => run(`${bondsPageFixture}
+  assert(manager.applySettings(player, {characterBonds = true, storyPacks = true}))
+  list = {}
+  for index = 1, 30 do list[index] = {name = 'Person ' .. index, level = 1 + index % 10, title = 'T', packs = {}} end
+  list[2] = {name = 'Only a name'}
+  list[3] = {name = 'Odd', level = 4, title = 'Friend', points = 'x', next = {}, hurt = 'y', arcTotal = 'z', lastAt = 'never', packs = {}}
+  open()
+  local slider = row('ui:page')
+  assert(slider and slider.max == 3, 'thirty characters are three pages of twelve')
+  assert(row('bond:12') and not row('bond:13'))
+  assert(row('bond:2').label == 'Only a name' and row('bond:2').value == '' and row('bond:2').description == 'No story yet')
+  assert(row('bond:3').description == 'Bond: level 4, Friend\\nNo story yet', row('bond:3').description)
+  assert(core.setUi('ui:page', 3)); reload()
+  assert(row('bond:25') and row('bond:30') and not row('bond:12'))
+  assert(row('list-range').description:find('characters 25 to 30', 1, true), row('list-range').description)
+  -- Leaving and coming back starts on the first page.
+  leave(); open()
+  assert(row('bond:1') and not row('bond:25'))
+`));
+
+test('Relationships: the fullest English description fits the host\'s description limit uncut', () => run(`${bondsPageFixture}
+  assert(manager.applySettings(player, {characterBonds = true, storyPacks = true}))
+  list = {{name = 'Judy Alvarez', level = 9, title = 'Confidant', points = 1234567, next = 2345678, warm = 1234567, hurt = 123456, hurtDays = 12345,
+    story = 1234567, talk = 1234567, arcDone = 12345, arcTotal = 12345, lastAt = now() - 400.0 * DAY, packs = {}}}
+  open()
+  local text = row('bond:1').description
+  assert(text:find('Last talked: 400 days ago', 1, true), text)
+  local count = select(2, text:gsub('[^\\128-\\191]', ''))
+  assert(count <= 420 and managerUi.fitDescription(text) == text, 'the details are not cut: ' .. count)
+`));

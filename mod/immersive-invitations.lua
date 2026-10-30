@@ -202,11 +202,14 @@ function M.new(env)
         if existing then quiet(existing, 'replaced') end
         local options = settings()
         nextId = nextId + 1
-        local method = options.arrival == 'car' and carsInUse() < M.MAX_CARS and spec.road and 'car' or 'walk'
-        -- Why a Car request walks (one code word for the log): the setting, too many cars, or what the road lookup said.
+        -- Her own car may be unavailable for a while (a story pack, mod/bonds.lua): then she walks, whatever the setting says.
+        local carBlocked = options.arrival == 'car' and env.world.carBlocked ~= nil and env.world.carBlocked(spec) == true
+        local method = options.arrival == 'car' and carsInUse() < M.MAX_CARS and spec.road and not carBlocked and 'car' or 'walk'
+        -- Why a Car request walks (one code word for the log): the setting, too many cars, her car, or what the road lookup said.
         local why
         if method == 'walk' then
-            why = options.arrival ~= 'car' and 'setting-walk' or carsInUse() >= M.MAX_CARS and 'cars-busy' or 'no-road:' .. tostring(spec.roadWhy or '?')
+            why = options.arrival ~= 'car' and 'setting-walk' or carsInUse() >= M.MAX_CARS and 'cars-busy' or carBlocked and 'car-blocked'
+                or 'no-road:' .. tostring(spec.roadWhy or '?')
         end
         local delay = (tonumber(options.delay) or 0) * 60
         local a = {id = nextId, key = spec.key, profileKey = spec.profileKey, name = spec.name, kind = spec.kind,
@@ -580,6 +583,14 @@ function M.new(env)
             a.job = id
         end
         if not a.spot then
+            -- Her car went away after the invitation was made: she walks instead (checked once per appointment, when its spot is first looked for).
+            if a.method == 'car' and not a.carChecked then
+                a.carChecked = true
+                if env.world.carBlocked and env.world.carBlocked(a) == true then
+                    a.method, a.spotTries = 'walk', 0
+                    log(tostring(a.name) .. ': no car arrival, walking (car-blocked)')
+                end
+            end
             if a.spotTries >= M.SPOT_TRIES then
                 if a.method == 'car' then
                     a.method, a.spotTries = 'walk', 0

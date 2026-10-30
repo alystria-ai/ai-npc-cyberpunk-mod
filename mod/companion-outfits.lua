@@ -29,6 +29,11 @@ local M = {}
 --   random()               a number in [0, 1) (optional: the module's own generator is used without it)
 --   pinned(key)            the look the player chose for a profile key in the character editor (docs/CHARACTER_EDITOR.md, "Look and moves"), or nil (optional)
 --   anyPinned()            true while any character has such a look (optional); the module then runs even with the setting off, for those characters only
+--   story(key)             a story pack (mod/bonds.lua, docs/RELATIONSHIPS_AND_QUESTS.md 7.4 `outfit`) asks for a look of this profile for a while: 'wear' (another
+--                          look of hers, M.storyLook), 'restore' (her own look again) or nil (optional). It works like a chosen look but belongs to the stage:
+--                          a look the player chose in the editor wins over it, and it runs with the setting off too (anyStory)
+--   anyStory()             true while some profile has such a request (optional; a nil check and a table walk, asked every tick)
+--   storyDone(key)         the copy of this profile shows the look that was asked for (optional): a 'restore' request is over
 --   log(line)
 M.deps = nil
 M.data = nil
@@ -75,20 +80,34 @@ end
 -- The player's own pick for a character (mod/character-options.lua), when it is one of that character's looks in the curated list; nil otherwise.
 local function pinnedLook(key, record)
     local deps = M.deps
-    if not deps or type(deps.pinned) ~= 'function' or key == nil then return nil end
-    local ok, name = pcall(deps.pinned, key)
-    if not ok or type(name) ~= 'string' or name == '' then return nil end
-    local character = M.character(record)
-    if character and kindOf(character, name) ~= nil then return name end
-    return nil
+    if not deps or key == nil then return nil end
+    if type(deps.pinned) == 'function' then
+        local ok, name = pcall(deps.pinned, key)
+        if ok and type(name) == 'string' and name ~= '' then
+            local character = M.character(record)
+            if character and kindOf(character, name) ~= nil then return name end
+        end
+    end
+    -- No look of the player's own: the one a story pack asks for, if any (second result: the request came from a story).
+    if type(deps.story) ~= 'function' then return nil end
+    local okStory, state = pcall(deps.story, key)
+    if not okStory or (state ~= 'wear' and state ~= 'restore') then return nil end
+    return M.storyLook(record, state), true
 end
 
--- True while some character has a look chosen by the player. A page of choices may call this at any time; it is a boolean from a table.
+-- True while some character has a look chosen by the player, or a story pack asks for one. A page of choices may call this at any time; it is a boolean from a table.
 local function anyPinned()
     local deps = M.deps
-    if not deps or type(deps.anyPinned) ~= 'function' then return false end
-    local ok, any = pcall(deps.anyPinned)
-    return ok and any == true
+    if not deps then return false end
+    if type(deps.anyPinned) == 'function' then
+        local ok, any = pcall(deps.anyPinned)
+        if ok and any == true then return true end
+    end
+    if type(deps.anyStory) == 'function' then
+        local ok, any = pcall(deps.anyStory)
+        if ok and any == true then return true end
+    end
+    return false
 end
 M.anyPinned = anyPinned
 
@@ -108,6 +127,19 @@ function M.character(record)
 end
 
 function M.known(record) return M.character(record) ~= nil end
+
+-- The look a story stage puts a copy in: 'wear' is the first look of the character's list that is neither her base look nor her home clothes (the template's
+-- own looks only: no new clothes), 'restore' is her base look. nil when the character has no such look (a stage then changes nothing for her).
+function M.storyLook(record, state)
+    local character = M.character(record)
+    if not character then return nil end
+    if state == 'restore' then return character.base end
+    if state ~= 'wear' then return nil end
+    for _, row in ipairs(character.outfits) do
+        if row[1] ~= character.base and row[2] ~= 'home' then return row[1] end
+    end
+    return nil
+end
 
 function kindOf(character, name)
     for _, row in ipairs(character.outfits) do
@@ -334,7 +366,9 @@ local function step(row, player, ctx)
 
     local home = M.isHome(m.key, m.record)
     if home == nil then home = ctx.atHome == true end
-    local pin = pinnedLook(m.key, m.record)
+    local pin, fromStory = pinnedLook(m.key, m.record)
+    -- A look a story asked for is on: nothing more is asked for it (a 'restore' request is over).
+    if pin and fromStory and m.current == pin and deps.storyDone then pcall(deps.storyDone, m.key) end
     local target, why
     -- With the setting off only a look the player chose is ever put on.
     if pin or wanted() then

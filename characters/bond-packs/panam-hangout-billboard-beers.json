@@ -1,0 +1,69 @@
+{
+  "kind": "hangout",
+  "format": 2,
+  "id": "panam-hangout-billboard-beers",
+  "character": "panam-palmer",
+  "title": "Billboard Beers",
+  "summary": "Panam is already on top of an old billboard with two beers. V has to find the way up before the warm one goes flat.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "You are sitting on a billboard with two beers, and one is getting warm. Bring up, in your own way, that V has to figure out how to get up there."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dusk", "know": "It is dusk, and the beers are still cold.", "wants": "V to climb up before the light goes."},
+      {"id": "headlights", "know": "Headlights run along the highway under the billboard, and Panam calls each car.", "wants": "V to guess one car's owner from the lights."},
+      {"id": "dust-storm", "know": "A dust storm is rolling in from the south and the beers will not last.", "wants": "V to get up before the storm reaches the billboard."}
+    ]
+  },
+  "places": {
+    "billboard-base": {"name": "the foot of the old billboard over the highway north of Biotechnica Flats", "radius": 15},
+    "billboard-top": {"name": "the top of the billboard, where Panam waits with the beers", "radius": 6}
+  },
+  "stages": [
+    {
+      "id": "climb",
+      "type": "play",
+      "label": "V climbs the billboard to Panam",
+      "know": "Panam is already on top of the old billboard with two beers, out of V's sight. The climb is the puzzle, and she heckles V's route from above.",
+      "wants": "V to get up to the top before the three minutes run out.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [
+        {"p": "pin", "at": "billboard-base"},
+        {"p": "place", "at": "billboard-base"},
+        {"p": "place", "at": "billboard-top"},
+        {"p": "timer", "id": "climb", "seconds": 180, "clock": "game"},
+        {"p": "workspot", "id": "ledge", "who": "self", "at": "billboard-top", "key": "sit-ledge"}
+      ],
+      "choices": [
+        {"id": "fast", "on": "event:place:billboard-top:arrived", "next": "reached-fast"},
+        {"id": "slow", "on": "event:timer:climb", "next": "reached-slow"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 4, "next": "reached-slow"}
+    }
+  ],
+  "endings": {
+    "reached-fast": {
+      "memory": "You got up the billboard to Panam in under three minutes, and she handed you a beer that had gone warm.",
+      "bond": 14
+    },
+    "reached-slow": {
+      "memory": "You got up the billboard to Panam slower than she liked, and she made you drink the warm one.",
+      "bond": 10
+    },
+    "stood-up": {
+      "memory": "You never came to the billboard, and Panam drank both beers alone."
+    }
+  }
+}

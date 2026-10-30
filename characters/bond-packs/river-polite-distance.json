@@ -1,0 +1,205 @@
+{
+  "format": 2,
+  "id": "river-polite-distance",
+  "character": "river-ward",
+  "title": "Polite Distance",
+  "summary": "River needs a nice, boring driver to lose an unmarked sedan that has followed him for two days, then wait for the driver to show.",
+  "requires": {
+    "bond": 6,
+    "after": ["river-open-window"],
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams", "quests/minor_quest/mq057_motorbreath"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "An unmarked sedan has followed River for two days. He wants a boring driver to lose it with him, and he does not want a shooting. Bring it up as a favour."
+  },
+  "places": {
+    "watson": {"name": "the Watson meeting place", "radius": 25},
+    "japantown-loop": {"name": "the Japantown loop", "radius": 25},
+    "charter-hill": {"name": "the Charter Hill street", "radius": 25},
+    "tunnel": {"name": "the tunnel out of Watson", "radius": 25},
+    "heywood-underpass": {"name": "the Heywood underpass", "radius": 25},
+    "carpark": {"name": "the car park by the Heywood stairwell", "radius": 25}
+  },
+  "lines": {
+    "RW4.open.01": {"text": "V. It's River. Don't turn around if you're outside.", "emotion": "neutral", "channel": "holocall"},
+    "RW4.open.02": {"text": "Unmarked sedan, two days now. Dark. Too clean to be a cop.", "emotion": "emphatic", "channel": "holocall"},
+    "RW4.open.03": {"text": "I don't want a shooting. I want to know who's in it.", "emotion": "angry", "channel": "holocall"},
+    "RW4.open.04": {"text": "You drive, I read the mirror. Can you be a very boring driver?", "emotion": "neutral", "channel": "holocall"},
+    "RW4.open.05": {"text": "Watson. I'll send the pin. Don't speed.", "emotion": "nod", "channel": "holocall"},
+    "RW4.open.06": {"text": "And V. Thanks. For being easy to ask.", "emotion": "happy", "channel": "holocall"},
+    "RW4.s2.01": {"text": "Left side, two cars back. He's too clean to be a cop.", "emotion": "emphatic"},
+    "RW4.s2.02": {"text": "Never run. Never turn quickly. Make them think you're lost.", "emotion": "nod"},
+    "RW4.s2.03": {"text": "Good. Normal. Boring. You're a natural.", "emotion": "happy"},
+    "RW4.s2.04": {"text": "He's still there. He's good. Not that good.", "emotion": "shrug"},
+    "RW4.s2.05": {"text": "He's closing. Slow down. Let him sit on you.", "emotion": "emphatic"},
+    "RW4.s2.06": {"text": "Tunnel. Brake lights only. Nothing flashy.", "emotion": "emphatic"},
+    "RW4.s2.07": {"text": "He's gone. Don't celebrate. Turn right.", "emotion": "nod"},
+    "RW4.s2.08": {"text": "Cops. The one thing worse than him. Ease off.", "emotion": "fear"},
+    "RW4.s3.01": {"text": "Park here. I'll wait by the door. You stay in the car.", "emotion": "nod"},
+    "RW4.s3.02": {"text": "While we wait. Do you ever feel followed when nobody is?", "emotion": "neutral"},
+    "RW4.s3.03": {"text": "Evening. Long drive. Want to tell me who sent you?", "emotion": "neutral"},
+    "RW4.s4.01": {"text": "He gave a name I know. I don't like it.", "emotion": "disgust"},
+    "RW4.s4.02": {"text": "Jamie Sheen taught me. Let a man think he's winning.", "emotion": "nod"},
+    "RW4.bark.lost.a": {"text": "Two blocks. Take the underpass.", "emotion": "nod"},
+    "RW4.bark.lost.b": {"text": "That's a good turn. He won't read it.", "emotion": "happy"},
+    "RW4.close.01": {"text": "Lost a tail and cornered a man. No shots. A good day.", "emotion": "happy"},
+    "RW4.close.03": {"text": "Lost him, not found him. A week of mirrors.", "emotion": "shrug"},
+    "RW4.close.04": {"text": "The police noticed before he did. That's a joke. I'm laughing.", "emotion": "surprise"},
+    "RW4.close.05": {"text": "He drew. We handled it. Don't tell Joss.", "emotion": "angry"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you be a very boring driver?",
+      "know": "You know the plan and the route, and that police heat ruins it. You suspect who is in the sedan.",
+      "secret": "You suspect who it is.",
+      "wants": "V to commit.",
+      "idle": "talk",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Do you ever feel followed when nobody is?",
+      "know": "You know V's life and what V has said about threats.",
+      "secret": "You have felt followed since the badge.",
+      "wants": "Company in the quiet.",
+      "idle": "talk",
+      "resumeAfterSeconds": 45
+    }
+  },
+  "calls": {
+    "polite-call": {
+      "caller": "self",
+      "picture": "live",
+      "steps": [
+        {"say": "RW4.open.01"},
+        {"say": "RW4.open.02"},
+        {"say": "RW4.open.03"},
+        {"say": "RW4.open.04"},
+        {"gap": "g1"},
+        {"say": "RW4.open.05"},
+        {"say": "RW4.open.06"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "River calls for a boring driver",
+      "know": "You are in the Watson meeting place, or heading there, with an unmarked sedan on your tail for two days. You called V because V is easy to ask.",
+      "wants": "V to come to the Watson meeting place and drive.",
+      "do": [
+        {"p": "pin", "at": "watson"},
+        {"p": "place", "at": "watson"},
+        {"p": "call-in", "id": "ring", "call": "polite-call", "ringSeconds": 30}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:watson:arrived", "next": "tail"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no-ride"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no-ride"}
+    },
+    {
+      "id": "tail",
+      "type": "play",
+      "label": "V drives River through Watson with a tail",
+      "know": "A dark sedan is following V's car at a distance of about 60 metres. The route runs through Japantown, Charter Hill, a tunnel and the Heywood underpass, and police heat ruins the plan.",
+      "wants": "V to lose the sedan by distance and keep the heat down.",
+      "do": [
+        {"p": "ride", "to": "carpark", "checkpoints": ["japantown-loop", "charter-hill", "tunnel", "heywood-underpass"], "limitMinutes": 30, "heat": true},
+        {"p": "tail", "id": "car", "at": "watson", "gap": 60, "vehicle": "dark sedan", "noticeMetres": 20, "lostMetres": 200},
+        {"p": "timer", "id": "steady", "seconds": 20}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW4.s2.01"},
+        {"when": "timer:steady", "say": "RW4.s2.02"},
+        {"when": "ride:checkpoint:japantown-loop", "say": "RW4.s2.03"},
+        {"when": "ride:checkpoint:charter-hill", "say": "RW4.s2.04"},
+        {"when": "ride:checkpoint:tunnel", "say": "RW4.s2.06"},
+        {"when": "tail:car:noticed", "say": "RW4.s2.05"},
+        {"when": "tail:car:lost", "say": "RW4.s2.07"},
+        {"when": "line:RW4.s2.07:done", "say": "RW4.bark.lost.a"},
+        {"when": "line:RW4.bark.lost.a:done", "say": "RW4.bark.lost.b"},
+        {"when": "ride:failed-heat", "say": "RW4.s2.08"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "wait"},
+        {"id": "timed-out", "on": "event:ride:timeout", "next": "wait"},
+        {"id": "hot", "on": "event:ride:failed-heat", "next": "hot"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "no-ride"}
+      ],
+      "timeout": {"gameHours": 2, "next": "lost-only"}
+    },
+    {
+      "id": "wait",
+      "type": "play",
+      "label": "River waits for the driver in the car park",
+      "know": "V is parked in the Heywood car park. River is waiting by the stairwell door, and the sedan's driver is coming to the car park.",
+      "wants": "V to stay in the car within 20 metres and let River talk to the driver.",
+      "do": [
+        {"p": "place", "at": "carpark"},
+        {"p": "cast", "id": "driver", "who": "extra", "at": "carpark"},
+        {"p": "npc-react", "id": "driver-react", "cast": "driver"},
+        {"p": "timer", "id": "driver-in", "seconds": 45}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW4.s3.01"},
+        {"when": "line:RW4.s3.01:done", "say": "RW4.s3.02"},
+        {"when": "line:RW4.s3.02:done", "gap": "g2"},
+        {"when": "timer:driver-in", "say": "RW4.s3.03"}
+      ],
+      "choices": [
+        {"id": "talked", "on": "event:npc:driver-react:obey", "next": "name"},
+        {"id": "ran", "on": "event:npc:driver-react:leave", "next": "lost-only"},
+        {"id": "drew", "on": "event:npc:driver-react:attack", "next": "fight"},
+        {"id": "police", "on": "event:npc:driver-react:call-police", "next": "hot"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost-only"}
+    },
+    {
+      "id": "name",
+      "type": "play",
+      "label": "River hears who sent the driver",
+      "know": "The driver has talked. He gave a name you know, and River does not like it.",
+      "wants": "V to hear the name and decide what to do with it.",
+      "do": [{"p": "place", "at": "carpark"}, {"p": "timer", "id": "talk-done", "seconds": 60}],
+      "script": [
+        {"when": "stage:enter", "say": "RW4.s4.01"},
+        {"when": "line:RW4.s4.01:done", "say": "RW4.s4.02"}
+      ],
+      "choices": [{"id": "done", "on": "event:timer:talk-done", "next": "named"}],
+      "timeout": {"gameHours": 1, "next": "named"}
+    }
+  ],
+  "endings": {
+    "named": {
+      "memory": "You and River lost a tail in Watson and cornered the man behind it with a single sentence.",
+      "bond": 70,
+      "script": [{"when": "ending:named", "say": "RW4.close.01"}]
+    },
+    "lost-only": {
+      "memory": "You and River lost the tail in Watson, but the man behind it was never found, and River kept checking his mirrors for a week.",
+      "bond": 50,
+      "script": [{"when": "ending:lost-only", "say": "RW4.close.03"}]
+    },
+    "hot": {
+      "memory": "The police noticed the tail before it noticed you, and River laughed at the irony.",
+      "bond": 25,
+      "script": [{"when": "ending:hot", "say": "RW4.close.04"}]
+    },
+    "fight": {
+      "memory": "The driver drew in the car park, and you and River handled it.",
+      "bond": 45,
+      "script": [{"when": "ending:fight", "say": "RW4.close.05"}]
+    },
+    "no-ride": {
+      "memory": "You did not come to Watson, and River drove back into the city alone.",
+      "bond": -5
+    }
+  }
+}

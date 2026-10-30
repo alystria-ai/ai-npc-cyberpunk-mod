@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "about": "Gifts both ways (docs/BOND_QUESTS.md section 17). gives: what a character hands V by tier (item, second when V already owns the item). likes: rules on what V gives a character (loved, liked, disliked), each {id}, {prefix} or {contains}. takes: false means the character never takes an item (the reaction is to V doing it). Every id here is the allowlist for community packs and is checked in the game by the developer probe 'quest gifts' (a missing record is dropped). The ids come from community lists and are not checked against this build.",
+  "characters": {
+    "panam-palmer": {
+      "gives": {
+        "common": {"item": "Items.Nomad_01_Set_TShirt"},
+        "uncommon": {"item": "Items.Nomad_01_Set_Boots"},
+        "rare": {"item": "Items.Preset_Ajax_Moron"},
+        "epic": {"item": "Items.Preset_Copperhead_Genesis"},
+        "legendary": {"item": "Items.Preset_Grad_Panam", "note": "Overwatch is story-given in Ghost Town: the second choice is her bracelet from P6, record id unknown, verify"}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Nomad_"}],
+        "liked": [{"id": "Items.LowQualityAlcohol9"}],
+        "disliked": [{"contains": "Biotech"}, {"contains": "Militech"}]
+      },
+      "verify": ["car parts and tools (junk) ids", "beer id", "corporate clothing ids", "synth food ids"]
+    },
+    "judy-alvarez": {
+      "gives": {
+        "common": {"item": "Items.LowQualityDrink11"},
+        "uncommon": {"item": "Items.BiotechUncommonMKI"},
+        "rare": {"item": "Items.BiotechRareMKII"},
+        "epic": {"item": "Items.BiotechRareMKIII"},
+        "legendary": {"item": "Items.StephensonLegendaryMKIV", "note": "her diving suit from Pyramid Song is story-only"}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Biotech"}, {"id": "Items.LowQualityDrink11"}],
+        "liked": [{"id": "Items.MediumQualityFood4"}, {"id": "Items.GoodQualityDrink3"}],
+        "disliked": [{"contains": "TygerClaws"}, {"id": "Items.LowQualityAlcohol3"}]
+      },
+      "verify": ["tech junk ids"]
+    },
+    "johnny-silverhand": {
+      "takes": false,
+      "gives": {
+        "common": {"item": "Items.LowQualityAlcohol9"},
+        "uncommon": {"item": "Items.Rockerboy_01_Set_Glasses"},
+        "rare": {"item": "Items.Rockerboy_01_Set_Jacket"},
+        "epic": {"item": "Items.Pants_02_basic_02"},
+        "legendary": {"item": "Items.Preset_Silverhand_3516", "note": "the Malorian is story-given in Chippin In: a second choice is needed, none chosen yet"}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Rockerboy_"}, {"id": "Items.LowQualityAlcohol9"}],
+        "liked": [{"contains": "Samurai"}],
+        "disliked": [{"contains": "Arasaka"}, {"contains": "Militech"}]
+      },
+      "verify": ["cigarette ids"]
+    },
+    "viktor-vektor": {
+      "gives": {
+        "common": {"item": "Items.MicroGeneratorCommon"},
+        "uncommon": {"item": "Items.SandevistanC2MK1"},
+        "rare": {"item": "Items.KiroshiOpticsRare"},
+        "epic": {"item": "Items.KiroshiOpticsEpic"},
+        "legendary": {"item": "Items.SandevistanC2MK4", "second": "Items.SandevistanC4MK5", "note": "Falcon Mk.5 is a Phantom Liberty item"}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Kiroshi"}, {"prefix": "Items.Sandevistan"}],
+        "liked": [{"prefix": "Items.GoodQualityDrink"}],
+        "disliked": []
+      },
+      "verify": ["boxing things ids", "cheap chrome ids", "synth booze ids"]
+    },
+    "jackie-welles": {
+      "gives": {
+        "common": {"item": "Items.Solo_01_Set_TShirt"},
+        "uncommon": {"item": "Items.Vest_10_basic_02"},
+        "rare": {"item": "Items.Jacket_03_basic_04"},
+        "epic": {"item": "Items.Jacket_17_rich_05"}
+      },
+      "noLegendary": "none in Act 1: his La Chingona Dorada (Items.Preset_Nue_Jackie) is the story's gift in Heroes, so his top tier is a promise the game itself keeps",
+      "likes": {
+        "loved": [{"id": "Items.LowQualityAlcohol9"}, {"id": "Items.Jacket_03_basic_04"}, {"id": "Items.ValentinosJewellery1"}],
+        "liked": [{"prefix": "Items.GoodQualityFood"}],
+        "disliked": [{"contains": "Maelstrom"}]
+      },
+      "verify": ["bike parts ids", "corpo clothes ids"]
+    },
+    "rogue-amendiares": {
+      "gives": {
+        "common": {"item": "Items.Fixer_01_Set_TShirt"},
+        "uncommon": {"item": "Items.Fixer_01_Set_Pants"},
+        "rare": {"item": "Items.Fixer_01_Set_Coat"},
+        "epic": {"item": "Items.Preset_Masamune_Rogue"},
+        "legendary": {"item": "Items.Preset_Liberty_Rogue"}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Fixer_"}],
+        "liked": [],
+        "disliked": [{"contains": "Arasaka"}]
+      },
+      "verify": ["a fine pistol ids", "an old-fashioned drink id"]
+    },
+    "kerry-eurodyne": {
+      "gives": {
+        "common": {"item": "Items.Rockerboy_01_Set_TShirt"},
+        "uncommon": {"item": "Items.Rockerboy_01_Set_Pants"},
+        "epic": {"item": "Items.Preset_Overture_Kerry"},
+        "legendary": {"item": null, "vehicle": null, "second": "Items.Preset_Overture_Kerry",
+          "note": "Guinevere, added to the garage with the garage primitive (this changes the save). The vehicle record id is unknown, verify. Until the id is known a gift of this tier hands over Archangel."}
+      },
+      "likes": {
+        "loved": [{"prefix": "Items.Rockerboy_"}],
+        "liked": [{"id": "Items.LowQualityAlcohol9"}, {"id": "Items.GoodQualityDrink3"}],
+        "disliked": [{"id": "Items.LowQualityAlcohol3"}]
+      },
+      "verify": ["the rare tier: a Rockerboy piece Johnny does not give", "music junk ids", "Archangel may be story-given"]
+    },
+    "river-ward": {
+      "gives": {
+        "common": {"item": "Items.Cop_01_Set_Glasses"},
+        "uncommon": {"item": "Items.Cop_01_Set_Jacket"},
+        "rare": {"item": "Items.Preset_Overture_Default_R"},
+        "epic": {"item": "Items.Preset_Overture_Default_E"},
+        "legendary": {"item": "Items.Preset_Overture_River", "note": "Crash may be story-given: verify"}
+      },
+      "likes": {
+        "loved": [],
+        "liked": [{"prefix": "Items.Cop_"}],
+        "disliked": [{"id": "Items.LowQualityAlcohol3"}]
+      },
+      "verify": ["real food and spices ids", "notebook ids"]
+    },
+    "takemura": {
+      "gives": {
+        "common": {"item": "Items.TygerClawsJunkItem1"},
+        "uncommon": {"item": "Items.GoodQualityDrink6"},
+        "rare": {"item": "Items.GoodQualityFood6"},
+        "epic": {"item": "Items.ArasakaEpicMKIII"},
+        "legendary": {"item": "Items.Preset_Katana_Takemura"}
+      },
+      "likes": {
+        "loved": [{"id": "Items.GoodQualityFood6"}, {"id": "Items.GoodQualityDrink6"}, {"id": "Items.TygerClawsJunkItem1"}],
+        "liked": [],
+        "disliked": [{"id": "Items.LowQualityDrink4"}]
+      },
+      "verify": ["a quality notebook id", "synthetic food ids", "cigarette ids"]
+    },
+    "songbird": {
+      "takes": false,
+      "gives": {
+        "common": {"item": "Items.CyberdeckSplinter"},
+        "uncommon": {"item": "Items.ContagionProgram"},
+        "rare": {"item": "Items.BiotechRareMKII"},
+        "epic": {"item": "Items.ContagionLvl3Program"},
+        "legendary": {"item": "Items.Preset_Power_SubmachineGun_Canto", "note": "Erebus is a Phantom Liberty item; a Militech Canto Mk.6 id was not found"}
+      },
+      "likes": {
+        "loved": [],
+        "liked": [{"contains": "Program"}],
+        "disliked": [{"contains": "NUSA"}, {"contains": "FIA"}]
+      },
+      "verify": ["music is a track list image, no item moves"]
+    }
+  }
+}

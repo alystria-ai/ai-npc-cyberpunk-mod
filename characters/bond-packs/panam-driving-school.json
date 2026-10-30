@@ -1,0 +1,137 @@
+{
+  "format": 2,
+  "id": "panam-driving-school",
+  "character": "panam-palmer",
+  "title": "Nomad Driving School",
+  "summary": "Panam bets V cannot run the clan kids' route through the Badlands under her time, then rides shotgun and grades the run.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You've seen V drive and you have opinions. Bring up, in your own way, the clan kids' route through the Badlands and bet V cannot run it under your time."
+  },
+  "places": {
+    "meet": {"name": "the camp at Rocky Ridge where the trucks are parked", "radius": 25},
+    "riverbed": {"name": "the dry riverbed below Rocky Ridge", "radius": 25},
+    "turbines": {"name": "the wind turbines near Biotechnica Flats", "radius": 25},
+    "ramp": {"name": "the dirt ramp off the canyon road", "radius": 15},
+    "bridge": {"name": "the old rail bridge", "radius": 25},
+    "sunset": {"name": "the Sunset Motel forecourt in Rocky Ridge", "radius": 25}
+  },
+  "images": {
+    "driving-school-dust": {"file": "images/driving-school-dust.png", "width": 1920, "height": 1080}
+  },
+  "lines": {
+    "P3.dare.01": {"text": "I've seen you drive. It's like watching a man fight a vending machine.", "emotion": "happy", "gesture": "panam_hips", "channel": "own"},
+    "P3.dare.02": {"text": "Clan kids run a route out here. Bet you can't beat my time.", "emotion": "emphatic", "gesture": "point", "channel": "own"},
+    "P3.run.01": {"text": "Riverbed first. Brake before the dip, not in it.", "emotion": "neutral", "channel": "own"},
+    "P3.run.02a": {"text": "Not bad.", "emotion": "nod", "channel": "own"},
+    "P3.run.02b": {"text": "You braked in it.", "emotion": "shrug", "channel": "own"},
+    "P3.run.03": {"text": "Turbines. Stay left, the right side's soft sand.", "emotion": "neutral", "channel": "own"},
+    "P3.run.04": {"text": "Ramp. Commit or don't, nothing in between.", "emotion": "emphatic", "channel": "own"},
+    "P3.run.05": {"text": "Bridge. Mitch lost a bumper here in sixty-eight.", "emotion": "happy", "channel": "own"},
+    "P3.run.06": {"text": "Stop the clock.", "emotion": "neutral", "channel": "own"},
+    "P3.her.01": {"text": "My turn. Watch the line, not the speedometer.", "emotion": "happy", "channel": "own"},
+    "P3.grade.01": {"text": "Under my time. I hate you. I'm also a little proud.", "emotion": "surprise", "gesture": "happy", "channel": "own"},
+    "P3.grade.02": {"text": "For a city driver? Respectable. For a nomad, a disgrace.", "emotion": "happy", "gesture": "shrug", "channel": "own"},
+    "P3.grade.03": {"text": "Five stars for the crash. Zero for everything else.", "emotion": "happy", "channel": "own"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What's it going to be, a bet or are you scared?",
+      "know": "The clan kids' route through the Badlands, the five checkpoints, her time, and an eddies stake may be put on the bet.",
+      "secret": "Her time was set years ago and she is not sure she can still beat it herself.",
+      "wants": "The bet, with stakes.",
+      "idle": "panam_hips",
+      "tags": [{"id": "bet", "kind": "yes"}, {"id": "pass", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "dare",
+      "type": "play",
+      "label": "Panam bets V cannot beat the kids' route",
+      "know": "You are at the camp by the trucks. Panam thinks V drives like a city driver and wants to see the kids' route run under her time.",
+      "wants": "V to take the bet or refuse it.",
+      "do": [
+        {"p": "pin", "at": "meet"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P3.dare.01"},
+        {"when": "stage:enter", "say": "P3.dare.02"},
+        {"when": "line:P3.dare.02:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "bet", "on": "event:gap:g1:bet", "next": "run"},
+        {"id": "pass", "on": "event:gap:g1:pass", "next": "chicken"}
+      ],
+      "timeout": {"gameHours": 2, "next": "chicken"}
+    },
+    {
+      "id": "run",
+      "type": "play",
+      "label": "V drives the kids' route with Panam in the passenger seat",
+      "know": "V is at the wheel of the car and Panam is in the passenger seat. The route runs through the riverbed, the turbines, the ramp and the old rail bridge, back to the Sunset Motel. The time limit is six game minutes.",
+      "wants": "V to run the route under Panam's time.",
+      "do": [
+        {"p": "ride", "to": "sunset", "checkpoints": ["riverbed", "turbines", "ramp", "bridge"], "limitMinutes": 6}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P3.run.01"},
+        {"when": "ride:checkpoint:riverbed", "say": "P3.run.02a"},
+        {"when": "ride:checkpoint:turbines", "say": "P3.run.03"},
+        {"when": "ride:checkpoint:ramp", "say": "P3.run.04"},
+        {"when": "ride:checkpoint:bridge", "say": "P3.run.05"},
+        {"when": "ride:arrived", "say": "P3.run.06"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "her-turn"},
+        {"id": "late", "on": "event:ride:timeout", "next": "pass-grade"},
+        {"id": "crashed", "on": "event:ride:abandoned", "next": "crash-out"}
+      ],
+      "timeout": {"gameHours": 2, "next": "crash-out"}
+    },
+    {
+      "id": "her-turn",
+      "type": "play",
+      "label": "Panam shows V her line",
+      "know": "V finished the kids' route. Panam wants to show V how it is done.",
+      "wants": "V to watch and learn the line.",
+      "do": [
+        {"p": "pin", "at": "sunset"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P3.her.01"}
+      ],
+      "timeout": {"gameHours": 1, "next": "ace"}
+    }
+  ],
+  "endings": {
+    "ace": {
+      "memory": "You beat the kids' route through the Badlands under Panam's time, and she made you swear not to tell Mitch.",
+      "bond": 50,
+      "script": [{"when": "ending:ace", "text": "P3.grade.01", "image": "driving-school-dust"}]
+    },
+    "pass-grade": {
+      "memory": "You ran the kids' route through the Badlands and ran out of time, but Panam says you are not bad for a city driver.",
+      "bond": 40,
+      "script": [{"when": "ending:pass-grade", "say": "P3.grade.02"}]
+    },
+    "crash-out": {
+      "memory": "You gave up on the kids' route, or wrecked the car, and Panam is still laughing about it.",
+      "bond": 25,
+      "script": [{"when": "ending:crash-out", "say": "P3.grade.03"}]
+    },
+    "chicken": {
+      "memory": "You would not take Panam's bet on the kids' route, and she called you chicken.",
+      "bond": 5
+    }
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "format": 2,
+  "id": "songbird-return-to-sender",
+  "character": "songbird",
+  "title": "Return to Sender",
+  "summary": "Songbird asks V to carry an unsent message to Alex at the Moth and report exactly what Alex says.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird wrote something to Alex and cannot decide whether it is an apology or a request. She sends you the unsent text on a shard and asks you to carry it to the Moth, where Alex works behind the bar. She does not want you to read it first. She wants you to listen to what Alex says and tell her exactly what was said."
+  },
+  "places": {
+    "moth": {"name": "the Moth bar in Dogtown", "radius": 8}
+  },
+  "images": {
+    "return-unsent": {"file": "images/return-unsent.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "S3.open.01": {"text": "I wrote something for Alex. I can't send it. Will you carry it?", "emotion": "sad"},
+    "S3.open.02": {"text": "Don't read it. If you know, I'll hear you knowing it.", "emotion": "neutral"},
+    "S3.open.03": {"text": "She's behind the bar. Tell her it's from a friend. Nothing else yet.", "emotion": "nod", "channel": "remote"},
+    "S3.open.04": {"text": "Do you think she'll want to hear it? Tell me honestly.", "emotion": "neutral", "channel": "remote"},
+    "S3.bark.deliver.a": {"text": "I'm here. I'm not saying anything.", "emotion": "fear", "channel": "remote"},
+    "S3.bark.deliver.b": {"text": "Say it as written. Don't improve it.", "emotion": "emphatic", "channel": "remote"},
+    "S3.bark.wait.a": {"text": "Take your time. Order something.", "emotion": "nod", "channel": "remote"},
+    "S3.report.01": {"text": "Tell me exactly what she said. Don't improve it.", "emotion": "neutral", "channel": "remote"},
+    "S3.close.01": {"text": "Thank you. I don't know what I wanted. This was it.", "emotion": "sad", "channel": "remote"},
+    "S3.close.02": {"text": "What did you change? ...Okay. Okay.", "emotion": "surprise", "channel": "remote"},
+    "S3.close.03": {"text": "I understand. Keep it. For now.", "emotion": "sad", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do you think she'll want to hear it?",
+      "know": "You know the shard, the Moth and the hour. It is after 2 AM where V is, so the bar has few people in it.",
+      "secret": "You want to be forgiven, and you do not want to be forgiven for something you are not sorry for.",
+      "wants": "V's honest guess.",
+      "tags": [{"id": "hopeful", "kind": "yes"}, {"id": "doubtful", "kind": "no"}]
+    },
+    "g2": {
+      "asks": "Tell me exactly what she said.",
+      "know": "You know the message you wrote and what V handed over.",
+      "secret": "You have rehearsed three possible replies from Alex.",
+      "wants": "The exact words.",
+      "tags": [{"id": "recount", "kind": "honest"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "text",
+      "type": "play",
+      "label": "Songbird sends V the unsent message",
+      "know": "You have written something to Alex and cannot send it. You want V to carry it without reading it first.",
+      "wants": "V to say yes and carry the message to the Moth.",
+      "do": [{"p": "timer", "id": "nosee", "seconds": 60}],
+      "script": [
+        {"when": "stage:enter", "text": "S3.open.01", "image": "return-unsent"},
+        {"when": "timer:nosee", "text": "S3.open.02"}
+      ],
+      "choices": [
+        {"id": "carry", "on": "tag", "means": "V agrees to carry the message to the Moth", "kind": "yes", "next": "moth"},
+        {"id": "refuse", "on": "tag", "means": "V refuses to carry the message", "kind": "no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "moth",
+      "type": "play",
+      "label": "Songbird waits with V for Alex at the Moth",
+      "know": "V is at the Moth, behind the bar Alex works. You are asking V to look, to wait and to tell you if Alex will listen.",
+      "wants": "V to reach Alex at the bar.",
+      "do": [
+        {"p": "remote"},
+        {"p": "place", "at": "moth"},
+        {"p": "timer", "id": "wait", "seconds": 600}
+      ],
+      "script": [
+        {"when": "place:moth:arrived", "say": "S3.open.03"},
+        {"when": "line:S3.open.03:done", "say": "S3.open.04"},
+        {"when": "line:S3.open.04:done", "gap": "g1"},
+        {"when": "timer:wait", "say": "S3.bark.wait.a"}
+      ],
+      "choices": [
+        {"id": "hopeful", "on": "event:gap:g1:hopeful", "next": "deliver"},
+        {"id": "doubtful", "on": "event:gap:g1:doubtful", "next": "deliver"}
+      ],
+      "timeout": {"gameHours": 3, "next": "deliver"}
+    },
+    {
+      "id": "deliver",
+      "type": "play",
+      "label": "V gives Alex the shard and passes on the message",
+      "know": "V is handing Alex the shard. You are listening in V's ear and cannot answer. You will hear whether V plays the message as written, softens it, or keeps it back.",
+      "wants": "V to pass the message on, and to say exactly what happens.",
+      "do": [{"p": "remote"}],
+      "script": [
+        {"when": "stage:enter", "say": "S3.bark.deliver.a"},
+        {"when": "line:S3.bark.deliver.a:done", "say": "S3.bark.deliver.b"}
+      ],
+      "choices": [
+        {"id": "as-written", "on": "tag", "means": "V gives Alex the shard and reads the message out exactly as it was written", "kind": "honest", "next": "report"},
+        {"id": "softened", "on": "tag", "means": "V gives Alex the shard but changes or softens the words first", "kind": "flatter", "next": "softened"},
+        {"id": "withheld", "on": "tag", "means": "V keeps the shard and only says that Songbird is alive", "kind": "no", "next": "withheld"}
+      ],
+      "timeout": {"gameHours": 3, "next": "no"}
+    },
+    {
+      "id": "report",
+      "type": "play",
+      "label": "Songbird asks V to repeat what Alex said",
+      "know": "V delivered the message as written. You want the exact words Alex used, and you have rehearsed three replies in case the answer is bad.",
+      "wants": "V's exact retelling of what Alex said.",
+      "do": [{"p": "remote"}],
+      "script": [
+        {"when": "stage:enter", "say": "S3.report.01"},
+        {"when": "line:S3.report.01:done", "gap": "g2"}
+      ],
+      "choices": [{"id": "retold", "on": "event:gap:g2:recount", "next": "as-written"}],
+      "timeout": {"gameHours": 3, "next": "as-written"}
+    }
+  ],
+  "endings": {
+    "as-written": {
+      "memory": "You carried Songbird's message to Alex at the Moth and told her exactly what Alex said.",
+      "bond": 50,
+      "script": [{"when": "ending:as-written", "say": "S3.close.01"}]
+    },
+    "softened": {
+      "memory": "You carried Songbird's message to Alex at the Moth and changed some of the words first.",
+      "bond": 45,
+      "script": [{"when": "ending:softened", "say": "S3.close.02"}]
+    },
+    "withheld": {
+      "memory": "You kept Songbird's message from Alex and only told her that Songbird is alive.",
+      "bond": 20,
+      "script": [{"when": "ending:withheld", "say": "S3.close.03"}]
+    },
+    "no": {
+      "memory": "You never carried Songbird's message to the Moth.",
+      "bond": -5
+    }
+  }
+}

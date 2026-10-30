@@ -1,0 +1,155 @@
+{
+  "format": 2,
+  "id": "songbird-the-locker",
+  "character": "songbird",
+  "title": "The Locker",
+  "summary": "Songbird asks V to climb a Dogtown roof past a patrol and fetch a locker she left years ago.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Before Reed brought her into Dogtown's mess, Songbird left a locker on a roof near the Black Sapphire. She calls you with a favour she is embarrassed to ask: go up and get what is in it. Her information about the patrols is seven weeks old, and she admits it, then forgets to account for it."
+  },
+  "places": {
+    "roof": {"name": "the roof near the Black Sapphire", "radius": 25},
+    "locker": {"name": "the rusted locker on that roof", "radius": 4}
+  },
+  "lines": {
+    "S2.open.01": {"text": "Hi. I need a favour. A stupid one.", "emotion": "shrug", "channel": "holocall"},
+    "S2.open.02": {"text": "There's a locker on a roof near the Black Sapphire. Number nine. I think.", "emotion": "neutral", "channel": "holocall"},
+    "S2.open.03": {"text": "Patrols were two on the east side, one on the stair. That was seven weeks ago.", "emotion": "emphatic", "channel": "holocall"},
+    "S2.open.04": {"text": "Do you trust a seven-week-old plan? Say no. It's the right answer.", "emotion": "neutral", "channel": "holocall"},
+    "S2.bark.count.a": {"text": "The third one turns at the count of twenty.", "emotion": "emphatic", "channel": "remote"},
+    "S2.bark.count.b": {"text": "Two on the left. Wait. Wait. Now.", "emotion": "emphatic", "channel": "remote"},
+    "S2.bark.locker.a": {"text": "That's it. Don't open it until you're clear.", "emotion": "nod", "channel": "remote"},
+    "S2.bark.breath.a": {"text": "Give me a few seconds.", "emotion": "sad", "channel": "remote"},
+    "S2.listen.01": {"text": "Read me the first track. Just the name.", "emotion": "neutral", "channel": "remote"},
+    "S2.close.01": {"text": "You got it. You didn't have to. I won't say it twice.", "emotion": "happy", "channel": "remote"},
+    "S2.close.02": {"text": "I'm sorry about the intel. Next time I'll check twice.", "emotion": "sad", "channel": "remote"},
+    "S2.close.03": {"text": "You turned back. That was the right call.", "emotion": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do you trust a seven-week-old plan?",
+      "know": "You know the stash, the roof and that your patrol numbers are stale.",
+      "secret": "You hope V will not realise how much V matters to you.",
+      "wants": "V to go ahead without false confidence.",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}]
+    },
+    "g2": {
+      "asks": "Read me the first track. Just the name.",
+      "know": "You know the tracks on the player and the feeling of each one.",
+      "secret": "The first track is the one you played the night before the oath.",
+      "wants": "To hear the name said by someone else.",
+      "tags": [{"id": "read", "kind": "yes"}]
+    }
+  },
+  "calls": {
+    "c2": {
+      "caller": "self",
+      "picture": "voice",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "S2.open.01"},
+        {"say": "S2.open.02"},
+        {"say": "S2.open.03"},
+        {"say": "S2.open.04"},
+        {"gap": "g1"}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Songbird asks V to fetch her locker",
+      "know": "You are calling V with a favour. You remember the roof, the locker number and the patrol rhythm, and the patrol rhythm is seven weeks old.",
+      "wants": "V to go up to the roof and check the patrol before going.",
+      "do": [{"p": "call-in", "id": "ring", "call": "c2", "ringSeconds": 30}],
+      "choices": [
+        {"id": "trust", "on": "event:gap:g1:yes", "next": "approach"},
+        {"id": "doubt", "on": "event:gap:g1:no", "next": "approach"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
+      ],
+      "timeout": {"gameHours": 2, "next": "no"}
+    },
+    {
+      "id": "approach",
+      "type": "play",
+      "label": "Songbird counts the guards on the roof",
+      "know": "V is climbing toward the roof. You can hear the patrol through V, and you count it out loud, and you are not sure the count is still right.",
+      "wants": "V to reach the roof without being seen.",
+      "do": [
+        {"p": "remote"},
+        {"p": "place", "at": "roof"},
+        {"p": "squad", "id": "guards", "at": "roof", "faction": "maelstrom", "count": 5, "hostile": false},
+        {"p": "unseen", "id": "sneak", "squad": "guards", "at": "roof"},
+        {"p": "timer", "id": "breath", "seconds": 45}
+      ],
+      "script": [
+        {"when": "squad:guards:spawned", "say": "S2.bark.count.a"},
+        {"when": "line:S2.bark.count.a:done", "say": "S2.bark.count.b"},
+        {"when": "timer:breath", "say": "S2.bark.breath.a"}
+      ],
+      "choices": [
+        {"id": "quiet", "on": "event:unseen:sneak:reached", "next": "locker"},
+        {"id": "noisy", "on": "event:unseen:sneak:spotted", "next": "noisy"}
+      ],
+      "timeout": {"gameHours": 2, "next": "empty-handed"}
+    },
+    {
+      "id": "locker",
+      "type": "play",
+      "label": "V opens the locker on the roof",
+      "know": "V is at the locker. You want it open quietly, and you say very little while V works.",
+      "wants": "V to open the locker and take what is in it.",
+      "do": [{"p": "remote"}, {"p": "place", "at": "locker", "dwell": 6}],
+      "script": [{"when": "place:locker:arrived", "say": "S2.bark.locker.a"}],
+      "choices": [{"id": "taken", "on": "event:line:S2.bark.locker.a:done", "next": "listen"}],
+      "timeout": {"gameHours": 2, "next": "empty-handed"}
+    },
+    {
+      "id": "listen",
+      "type": "play",
+      "label": "Songbird asks V to read the first track",
+      "know": "V is driving away from the roof with the player. You want V to read the first track name, and you will tell V only the feeling of the track, never its real title.",
+      "wants": "V to read out the first track name.",
+      "do": [{"p": "remote"}],
+      "script": [
+        {"when": "stage:enter", "say": "S2.listen.01"},
+        {"when": "line:S2.listen.01:done", "gap": "g2"}
+      ],
+      "choices": [{"id": "read", "on": "event:gap:g2:read", "next": "quiet"}],
+      "timeout": {"gameHours": 2, "next": "quiet"}
+    }
+  ],
+  "endings": {
+    "quiet": {
+      "memory": "You went up a Dogtown roof past a patrol for Songbird's old music player and never fired a shot.",
+      "history": "She asks you to keep the player.",
+      "bond": 55,
+      "script": [{"when": "ending:quiet", "say": "S2.close.01"}]
+    },
+    "noisy": {
+      "memory": "You went up a Dogtown roof for Songbird's locker, got into a fight on the way, and she apologised for her old intel.",
+      "bond": 40,
+      "script": [{"when": "ending:noisy", "say": "S2.close.02"}]
+    },
+    "empty-handed": {
+      "memory": "You turned back before the locker, and Songbird said it was the right call.",
+      "bond": 15,
+      "script": [{"when": "ending:empty-handed", "text": "S2.close.03"}]
+    },
+    "no": {
+      "memory": "You did not go up the roof for Songbird's locker, and she did not call for a while.",
+      "bond": -5
+    }
+  }
+}

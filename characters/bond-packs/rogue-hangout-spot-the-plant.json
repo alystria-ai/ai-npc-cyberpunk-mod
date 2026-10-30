@@ -1,0 +1,210 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "rogue-hangout-spot-the-plant",
+  "character": "rogue-amendiares",
+  "title": "Spot the Plant",
+  "summary": "Rogue has V sit on a Charter Hill terrace and name the one passer-by who is carrying something they should not.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": [
+      "quests/side_quest/sq031_rogue",
+      "quests/side_quest/sq031_smack_my_bitch_up"
+    ],
+    "notActive": [
+      "quests/main_quest/act_01/q103",
+      "quests/side_quest/sq031",
+      "quests/main_quest/act_01/q115"
+    ],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": [
+      "own",
+      "phone",
+      "holocall"
+    ],
+    "chance": 0.05,
+    "bringUp": "You want V on a Charter Hill terrace to sit and watch people walk past. Bring up, briefly and in your own way, that you have an afternoon free and want company."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {
+        "id": "rain",
+        "know": "It is raining. Umbrellas hide hands, and the terrace is wet.",
+        "places": {
+          "terrace": "terrace-rain"
+        }
+      },
+      {
+        "id": "evening",
+        "know": "It is evening, and a wedding crowd crosses the terrace.",
+        "places": {
+          "terrace": "terrace-evening"
+        }
+      },
+      {
+        "id": "two-plants",
+        "know": "Two plants walk the terrace. Rogue wants both found, and V names the one carrying the concealed item.",
+        "places": {
+          "terrace": "terrace-two"
+        }
+      }
+    ]
+  },
+  "places": {
+    "terrace": {
+      "name": "the Charter Hill cafe terrace",
+      "radius": 25
+    },
+    "terrace-rain": {
+      "name": "the Charter Hill cafe terrace in the rain",
+      "radius": 25
+    },
+    "terrace-evening": {
+      "name": "the Charter Hill cafe terrace at dusk",
+      "radius": 25
+    },
+    "terrace-two": {
+      "name": "the Charter Hill cafe terrace with two plants",
+      "radius": 25
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What gave it away so far? Don't guess, tell me what you saw.",
+      "know": "Five passers-by walk the terrace path. One carries a concealed item under a coat. Two others are decoys, a courier with a briefcase and a man who keeps checking his watch. Rogue gives hints only if V asks.",
+      "secret": "Which one it is.",
+      "wants": "V to reason out loud.",
+      "idle": "chair",
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "spot",
+      "type": "play",
+      "label": "Rogue has V name the plant on the terrace",
+      "know": "You and V sit on the Charter Hill terrace with coffee. Five passers-by walk the path. One carries a concealed item, and two are decoys. You give hints only if V asks.",
+      "wants": "V to name the one carrying the concealed item, and to say why.",
+      "do": [
+        {
+          "p": "pin",
+          "at": "terrace"
+        },
+        {
+          "p": "place",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "p1",
+          "who": "passer-by in a grey coat, walking the path",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "p2",
+          "who": "courier with a briefcase, a decoy",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "p3",
+          "who": "man with a gun holster under his coat, the one carrying the item",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "p4",
+          "who": "man who keeps checking his watch, a decoy",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "p5",
+          "who": "woman with a shopping bag, passing",
+          "at": "terrace"
+        },
+        {
+          "p": "cast",
+          "id": "rogue",
+          "who": "self",
+          "at": "terrace"
+        },
+        {
+          "p": "check",
+          "id": "sky",
+          "what": "weather",
+          "now": true
+        },
+        {
+          "p": "seat"
+        }
+      ],
+      "script": [
+        {
+          "when": "stage:enter",
+          "gap": "g1"
+        }
+      ],
+      "choices": [
+        {
+          "id": "pick-yes",
+          "on": "tag",
+          "means": "V names one of the decoys, the courier with the briefcase or the man checking his watch",
+          "kind": "yes",
+          "next": "wrong"
+        },
+        {
+          "id": "pick-flatter",
+          "on": "tag",
+          "means": "V names the man with the holster under his coat",
+          "kind": "flatter",
+          "next": "right"
+        },
+        {
+          "id": "pick-none",
+          "on": "tag",
+          "means": "V names none of them, or says any of them could be it",
+          "kind": "no",
+          "next": "unsure"
+        },
+        {
+          "id": "stood",
+          "on": "meet:stood-up",
+          "next": "stood-up"
+        }
+      ],
+      "meet": {
+        "where": "waypoint",
+        "inGameHours": 3
+      },
+      "timeout": {
+        "gameHours": 0.1,
+        "next": "unsure"
+      }
+    }
+  ],
+  "endings": {
+    "right": {
+      "memory": "You named the passer-by with the holster under his coat, and Rogue told you what she had been watching for.",
+      "bond": 10
+    },
+    "wrong": {
+      "memory": "You named the wrong passer-by but said why, and Rogue said that was a fair try.",
+      "bond": 8
+    },
+    "unsure": {
+      "memory": "You sat on the terrace and watched, and named nobody.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "V did not come to the Charter Hill terrace, and Rogue drank her coffee alone."
+    }
+  }
+}

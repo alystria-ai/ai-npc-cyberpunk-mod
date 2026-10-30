@@ -1,0 +1,81 @@
+{
+  "kind": "hangout",
+  "format": 2,
+  "id": "panam-hangout-diner-rules",
+  "character": "panam-palmer",
+  "title": "Diner Rules",
+  "summary": "Panam buys V a meal at a roadside diner and orders for both of them. V has to guess what she ordered.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "You are hungry and you are buying, and you mean it. Bring up, in your own way, that V should come to the diner at the Old Turbine Farm road junction and let you order."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "breakfast", "know": "It is breakfast, and Panam has ordered the whole menu in her head.", "wants": "V to guess the order from her description."},
+      {"id": "midnight", "know": "It is midnight and the cook is still awake, and he has opinions about Panam.", "wants": "V to ask the cook what he thinks she ordered."},
+      {"id": "storm", "know": "A storm has them stuck in the diner, and the jukebox keeps playing the same song.", "wants": "V to pick a different song and guess the order."}
+    ]
+  },
+  "places": {
+    "diner": {"name": "the roadside diner at the Old Turbine Farm road junction", "radius": 25},
+    "counter": {"name": "the counter stool where Panam orders for both of you", "radius": 3}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Tell me something you're bad at. I've told you plenty.",
+      "know": "Panam has ordered for both of you, and V guesses what she ordered from her description.",
+      "secret": "She likes being the one who orders.",
+      "wants": "One guess, then the truth.",
+      "idle": "panam",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "order",
+      "type": "play",
+      "label": "Panam orders for both of you at the diner counter",
+      "know": "V is at the roadside diner. Panam has ordered for both of you, and V must guess what she ordered from her description.",
+      "wants": "V to guess the order, once.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [
+        {"p": "pin", "at": "diner"},
+        {"p": "place", "at": "diner"},
+        {"p": "place", "at": "counter"},
+        {"p": "seat"},
+        {"p": "cast", "id": "cook", "who": "cook", "at": "diner", "archetype": "cook"}
+      ],
+      "script": [
+        {"when": "place:counter:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "ate", "on": "event:gap:g1:resume", "next": "ate"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "ate": {
+      "memory": "You ate at the diner with Panam and guessed what she ordered, or came close enough that she let it count.",
+      "bond": 12
+    },
+    "left": {
+      "memory": "You left the diner before Panam finished ordering for you.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You never came to the diner, and Panam ate both meals herself."
+    }
+  }
+}

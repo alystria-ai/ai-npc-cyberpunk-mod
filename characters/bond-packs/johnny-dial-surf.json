@@ -1,0 +1,161 @@
+{
+  "format": 2,
+  "id": "johnny-dial-surf",
+  "character": "johnny-silverhand",
+  "title": "Dial Surf",
+  "summary": "Johnny cannot sleep, so V takes the pocket radio onto the balcony and judges the city's stations with him.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
+    "notActive": ["quests/main_quest/act_01/q108", "quests/side_quest/sq011"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.5,
+    "bringUp": "You cannot sleep and V's body is awake anyway. Bring up, in your own way and grumpy, that V should go out on the balcony with the little radio and turn it on, because you want to know if any station still plays something you would admit to."
+  },
+  "places": {
+    "balcony": {"name": "the balcony of V's flat in Megabuilding H10, Kabuki", "radius": 4, "district": "Kabuki"}
+  },
+  "images": {
+    "dial-surf-balcony": {"file": "images/dial-surf-balcony.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SH2.open.01": {"text": "You're awake. So am I. Unfortunately we share the lights.", "emotion": "neutral", "channel": "head"},
+    "SH2.open.02": {"text": "Go out on the balcony. Take the little radio. I want to hear what they play now.", "emotion": "neutral", "channel": "head"},
+    "SH2.open.03": {"text": "Fine view. Shame about the neighbours. Turn it on.", "emotion": "nod"},
+    "SH2.bark.song.a": {"text": "Bought. Every note of it.", "emotion": "disgust"},
+    "SH2.bark.station.a": {"text": "No. Further.", "emotion": "angry"},
+    "SH2.stage.quiet.01": {"text": "Now turn it off. Just the city. That's the real rhythm section.", "emotion": "neutral"},
+    "SH2.close.01": {"text": "Night before a show was always this quiet. Then the noise came and it was the best thing in the world.", "emotion": "sad"},
+    "SH2.close.02": {"text": "Alt hated silence. Said it had no edges. Anyway. Go to bed.", "emotion": "sad"},
+    "SH2.close.03": {"text": "Whatever's chewing you, sleep on it. It'll look smaller. It won't, but it's polite.", "emotion": "nod"},
+    "SH2.sent.caption": {"text": "Turn it up. No, off. Leave it.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do you ever just listen? Not to people. To the noise?",
+      "know": "V is on the balcony of the H10 flat with the pocket radio. The radio is for judging songs, you cannot sleep, and V can change stations freely.",
+      "secret": "You have not heard a song you did not write or sneer at in years, and you miss it.",
+      "wants": "V to start the dial and say what V would defend.",
+      "idle": "johnny_smoke",
+      "resumeAfterSeconds": 300,
+      "resumeOn": ["check:dial:station"]
+    },
+    "g2": {
+      "asks": "What's the first thing you hear when it's quiet? Be honest.",
+      "know": "Ten minutes of quiet and the radio is off. You mention Alt in two sentences at most.",
+      "secret": "Alt's name, and that the quiet reminds you of the night before a show.",
+      "wants": "V to stay still.",
+      "idle": "johnny_smoke",
+      "tags": [{"id": "sound", "kind": "yes"}, {"id": "worry", "kind": "honest"}],
+      "resumeAfterSeconds": 600,
+      "resumeOn": ["together:listen:done"]
+    }
+  },
+  "stages": [
+    {
+      "id": "night",
+      "type": "talk",
+      "label": "Johnny asks V to go out on the balcony",
+      "know": "It is late and you cannot sleep. You want V to take the little radio out on the balcony and turn it on, grumpy and a little embarrassed to ask.",
+      "wants": "V to agree to go out on the balcony with the radio.",
+      "script": [
+        {"when": "stage:enter", "say": "SH2.open.01"},
+        {"when": "line:SH2.open.01:done", "say": "SH2.open.02"},
+        {"when": "line:SH2.open.02:done", "say": "SH2.open.03"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "tag", "means": "V agrees to go out on the balcony and turn the radio on", "kind": "yes", "next": "dial"},
+        {"id": "later", "on": "tag", "means": "V says not now", "kind": "no", "next": "later"}
+      ]
+    },
+    {
+      "id": "dial",
+      "type": "play",
+      "label": "Judge the radio from the balcony",
+      "know": "V is on the balcony of the Megabuilding H10 flat with the pocket radio on. You judge every station and song V passes, and you want to hear what V would stand behind.",
+      "wants": "V to keep the radio on the balcony and say what V hears.",
+      "do": [
+        {"p": "pin", "at": "balcony"},
+        {"p": "place", "at": "balcony"},
+        {"p": "together", "id": "balcony", "minutes": 20, "metres": 4, "breakSeconds": 600, "at": "balcony"},
+        {"p": "check", "id": "dial", "what": "radio"}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g1"},
+        {"when": "check:dial:song", "say": "SH2.bark.song.a", "bark": true},
+        {"when": "check:dial:station", "say": "SH2.bark.station.a", "bark": true}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:balcony:done", "next": "ask"},
+        {"id": "left", "on": "event:together:balcony:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "left"}
+    },
+    {
+      "id": "ask",
+      "type": "talk",
+      "label": "Johnny asks what V would defend",
+      "know": "You have heard V judge the radio from the balcony. You ask V to leave it on the one thing V would defend, and you want to know why.",
+      "wants": "V to name the one thing V would defend, or to say it is only noise.",
+      "choices": [
+        {"id": "defends", "on": "tag", "means": "V names the song or station V would defend, and why", "kind": "honest", "next": "listen"},
+        {"id": "noise", "on": "tag", "means": "V says it is only noise", "kind": "no", "next": "listen"}
+      ],
+      "timeout": {"gameHours": 2, "next": "listen"}
+    },
+    {
+      "id": "listen",
+      "type": "play",
+      "label": "Switch the radio off and listen to the city",
+      "know": "The radio is off and you want V to listen to the city for ten minutes. You talk about the dead quiet of the night before a show and, for the first time, you mention Alt, in two sentences.",
+      "wants": "V to sit still on the balcony and listen.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "listen", "minutes": 10, "metres": 4, "seated": true, "breakSeconds": 600, "at": "balcony"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH2.stage.quiet.01"},
+        {"when": "line:SH2.stage.quiet.01:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "sound", "on": "event:gap:g2:sound", "next": "quiet"},
+        {"id": "worry", "on": "event:gap:g2:worry", "next": "quiet-worry"},
+        {"id": "listened", "on": "event:together:listen:done", "next": "quiet"},
+        {"id": "gone", "on": "event:together:listen:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "left"}
+    }
+  ],
+  "endings": {
+    "quiet": {
+      "memory": "On a night V could not sleep, you made V go out on the balcony and judge the radio together, and you did not say what you were listening for.",
+      "history": "Johnny now comments on the radio in V's cars and calls it the dial surf.",
+      "bond": 45,
+      "script": [
+        {"when": "ending:quiet", "text": "SH2.sent.caption", "image": "dial-surf-balcony"},
+        {"when": "ending:quiet", "say": "SH2.close.01"},
+        {"when": "ending:quiet", "say": "SH2.close.02"}
+      ]
+    },
+    "quiet-worry": {
+      "memory": "You went out on the balcony with Johnny and told him what was keeping you awake.",
+      "bond": 45,
+      "script": [
+        {"when": "ending:quiet-worry", "text": "SH2.sent.caption", "image": "dial-surf-balcony"},
+        {"when": "ending:quiet-worry", "say": "SH2.close.03"}
+      ]
+    },
+    "later": {
+      "memory": "You told Johnny not now, and he said the offer stands.",
+      "bond": 5
+    },
+    "left": {
+      "memory": "You went in from the balcony before Johnny was done judging the radio.",
+      "bond": 15
+    }
+  }
+}

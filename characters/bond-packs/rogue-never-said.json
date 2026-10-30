@@ -1,0 +1,286 @@
+{
+  "format": 2,
+  "id": "rogue-never-said",
+  "character": "rogue-amendiares",
+  "title": "What I Never Said",
+  "summary": "Rogue asks V to meet her at three in the morning in a Little China laundromat and says what she never said to Johnny while the machines turn.",
+  "requires": {
+    "bond": 10,
+    "after": ["rogue-whos-listening"],
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You want to meet V at three in the morning, somewhere nobody knows who you are, and you will not say why on the phone. Bring up, briefly and in your own way, that you need V to come to you tonight."
+  },
+  "places": {
+    "laundromat": {"name": "the all-night laundromat in Little China", "radius": 8}
+  },
+  "images": {
+    "never-said-laundromat": {"file": "images/never-said-laundromat.png", "width": 1024, "height": 576},
+    "never-said-door": {"file": "images/never-said-door.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R6.open.01": {"text": "Three a.m. The laundromat in Little China. Bring nothing.", "emotion": "neutral", "channel": "remote"},
+    "R6.open.02": {"text": "I've got the soap. And something I need to say.", "emotion": "sad", "channel": "remote"},
+    "R6.open.03": {"text": "You know who else will be listening. That's the point.", "emotion": "emphatic", "channel": "remote"},
+    "R6.stage.spin.01": {"text": "Sit. I fold while I talk. It keeps my hands honest.", "emotion": "neutral"},
+    "R6.stage.spin.02": {"text": "I know you're in there, Johnny. Don't answer yet.", "emotion": "sad"},
+    "R6.stage.spin.03": {"text": "I wasn't angry about the tower. I was angry you didn't tell me what it would cost.", "emotion": "angry"},
+    "R6.stage.spin.04": {"text": "I've not forgiven you. I've not stopped either. Both are true.", "emotion": "sad"},
+    "R6.stage.spin.05": {"text": "I do my own washing. Always have. It's the only honest chore I've got.", "emotion": "shrug"},
+    "R6.stage.spin.06": {"text": "He made me laugh once. Years ago. Over something stupid. I never told him.", "emotion": "sad"},
+    "R6.stage.reply.01": {"text": "He said that? ... Tell him I know the difference between him and what he did.", "emotion": "sad"},
+    "R6.stage.reply.02": {"text": "You keep it, then. That's decent. Thank you.", "emotion": "nod"},
+    "R6.stage.reply.03": {"text": "You don't have to protect me, V. ... But thanks.", "emotion": "sad"},
+    "R6.stage.walkout.01": {"text": "Come on. I'll walk you to the corner. I don't drive tonight.", "emotion": "neutral"},
+    "R6.close.01": {"text": "He'd have liked that. Don't tell him I said so.", "emotion": "nod"},
+    "R6.close.02": {"text": "Hard. Fair. He'd have said the same to himself.", "emotion": "shrug"},
+    "R6.close.03": {"text": "Good. Because I'd hate to lose you.", "emotion": "sad"},
+    "R6.close.04": {"text": "Fair enough. Most people do.", "emotion": "shrug"},
+    "R6.close.05": {"text": "Go home, V. Get some sleep. And thank you.", "emotion": "nod"},
+    "R6.bark.fold.a": {"text": "Don't just sit. Hand me that. No, the other one.", "emotion": "shrug"},
+    "R6.bark.fold.b": {"text": "Folding keeps my hands quiet. Try it sometime.", "emotion": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you come? And if he has something to say, let him say it later.",
+      "know": "The meeting is at an all-night laundromat in Little China at three in the morning. Johnny is in V's head and will hear everything.",
+      "secret": "What you want to say to Johnny.",
+      "wants": "V to come.",
+      "tags": [{"id": "yes", "kind": "yes"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "Does he say anything? Tell me, V. Even if it's rude.",
+      "know": "Johnny can answer privately, in V's ear only. V decides whether to relay what he said, keep it or let it lie. Nothing in the pack states what Johnny says.",
+      "secret": "That you want him to say sorry, and do not expect it.",
+      "wants": "V to be honest about whether he spoke.",
+      "idle": "chair",
+      "tags": [{"id": "relay", "kind": "honest"}, {"id": "keep", "kind": "flatter"}, {"id": "lie", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g3": {
+      "asks": "What would you say to him, if you could say anything and he'd listen? Say it to me instead.",
+      "know": "V carries Johnny, the laundromat is quiet, and you are aging and honest tonight.",
+      "secret": "You are afraid of what the answer would be.",
+      "wants": "V's own word, not Johnny's.",
+      "idle": "chair",
+      "tags": [{"id": "gentle", "kind": "honest"}, {"id": "hard", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g4": {
+      "asks": "Do you ever wish you'd never met either of us?",
+      "know": "The walk to the corner, your bag, and whatever Johnny said was either relayed or kept.",
+      "secret": "You are grateful to V in a way you have no word for.",
+      "wants": "An honest answer.",
+      "idle": "lean",
+      "tags": [{"id": "no", "kind": "no"}, {"id": "yes", "kind": "yes"}],
+      "resumeAfterSeconds": 180
+    }
+  },
+  "calls": {},
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Rogue asks V to meet her at the laundromat at three",
+      "know": "You have asked V to come to the all-night laundromat in Little China at three in the morning. You bring the soap and something you need to say.",
+      "wants": "V to come to the laundromat.",
+      "do": [
+        {"p": "pin", "at": "laundromat"},
+        {"p": "place", "at": "laundromat"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "laundromat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "R6.open.01"},
+        {"when": "line:R6.open.01:done", "say": "R6.open.02"},
+        {"when": "line:R6.open.02:done", "say": "R6.open.03"},
+        {"when": "line:R6.open.03:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:laundromat:arrived", "next": "spin"}],
+      "timeout": {"gameHours": 3, "next": "stood-up"}
+    },
+    {
+      "id": "spin",
+      "type": "play",
+      "label": "V sits with Rogue while she folds and talks",
+      "know": "You fold laundry in the laundromat and talk while the machines turn. You have not forgiven Johnny and have not stopped either. You will ask V what Johnny said.",
+      "wants": "V to sit with you and be honest about what Johnny said.",
+      "do": [
+        {"p": "pin", "at": "laundromat"},
+        {"p": "place", "at": "laundromat"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "laundromat"},
+        {"p": "together", "id": "sit", "minutes": 20, "seated": true, "at": "laundromat"},
+        {"p": "timer", "id": "fold", "seconds": 180, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.spin.01"},
+        {"when": "line:R6.stage.spin.01:done", "say": "R6.stage.spin.02"},
+        {"when": "line:R6.stage.spin.02:done", "say": "R6.stage.spin.03"},
+        {"when": "line:R6.stage.spin.03:done", "say": "R6.stage.spin.04"},
+        {"when": "line:R6.stage.spin.04:done", "gap": "g2"},
+        {"when": "gap:g2:relay", "say": "R6.stage.reply.01"},
+        {"when": "gap:g2:keep", "say": "R6.stage.reply.02"},
+        {"when": "gap:g2:lie", "say": "R6.stage.reply.03"},
+        {"when": "timer:fold", "say": "R6.bark.fold.a"},
+        {"when": "line:R6.bark.fold.a:done", "say": "R6.bark.fold.b"}
+      ],
+      "choices": [
+        {"id": "relay", "on": "event:gap:g2:relay", "next": "spin-2-relay"},
+        {"id": "keep", "on": "event:gap:g2:keep", "next": "spin-2-keep"},
+        {"id": "lie", "on": "event:gap:g2:lie", "next": "spin-2-lie"}
+      ],
+      "timeout": {"gameHours": 1, "next": "spin-2-lie"}
+    },
+    {
+      "id": "spin-2-relay",
+      "type": "play",
+      "label": "Rogue talks on after V relays what Johnny said",
+      "know": "V has relayed what Johnny said. You fold a shirt and say what you have to say, while the laundromat hums.",
+      "wants": "V's own word, not Johnny's.",
+      "do": [
+        {"p": "place", "at": "laundromat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.spin.05"},
+        {"when": "line:R6.stage.spin.05:done", "say": "R6.stage.spin.06"},
+        {"when": "line:R6.stage.spin.06:done", "gap": "g3"},
+        {"when": "gap:g3:gentle", "say": "R6.close.01"},
+        {"when": "gap:g3:hard", "say": "R6.close.02"}
+      ],
+      "choices": [
+        {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-tell"},
+        {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-tell"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walk-out-tell"}
+    },
+    {
+      "id": "spin-2-keep",
+      "type": "play",
+      "label": "Rogue talks on after V keeps what Johnny said",
+      "know": "V has kept what Johnny said to himself. You fold a shirt and say what you have to say, while the laundromat hums.",
+      "wants": "V's own word, not Johnny's.",
+      "do": [
+        {"p": "place", "at": "laundromat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.spin.05"},
+        {"when": "line:R6.stage.spin.05:done", "say": "R6.stage.spin.06"},
+        {"when": "line:R6.stage.spin.06:done", "gap": "g3"},
+        {"when": "gap:g3:gentle", "say": "R6.close.01"},
+        {"when": "gap:g3:hard", "say": "R6.close.02"}
+      ],
+      "choices": [
+        {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-keep"},
+        {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-keep"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walk-out-keep"}
+    },
+    {
+      "id": "spin-2-lie",
+      "type": "play",
+      "label": "Rogue talks on after V lets what Johnny said lie",
+      "know": "V has let what Johnny said lie. You fold a shirt and say what you have to say, while the laundromat hums.",
+      "wants": "V's own word, not Johnny's.",
+      "do": [
+        {"p": "place", "at": "laundromat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.spin.05"},
+        {"when": "line:R6.stage.spin.05:done", "say": "R6.stage.spin.06"},
+        {"when": "line:R6.stage.spin.06:done", "gap": "g3"},
+        {"when": "gap:g3:gentle", "say": "R6.close.01"},
+        {"when": "gap:g3:hard", "say": "R6.close.02"}
+      ],
+      "choices": [
+        {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-lie"},
+        {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-lie"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walk-out-lie"}
+    },
+    {
+      "id": "walk-out-tell",
+      "type": "play",
+      "label": "Rogue walks V to the corner after V relayed Johnny's answer",
+      "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
+      "wants": "V to walk with you to the corner.",
+      "do": [{"p": "place", "at": "laundromat"}],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.walkout.01"},
+        {"when": "line:R6.stage.walkout.01:done", "gap": "g4"},
+        {"when": "gap:g4:no", "say": "R6.close.03"},
+        {"when": "gap:g4:yes", "say": "R6.close.04"}
+      ],
+      "choices": [
+        {"id": "no", "on": "event:gap:g4:no", "next": "tell"},
+        {"id": "yes", "on": "event:gap:g4:yes", "next": "tell"}
+      ],
+      "timeout": {"gameHours": 1, "next": "tell"}
+    },
+    {
+      "id": "walk-out-keep",
+      "type": "play",
+      "label": "Rogue walks V to the corner after V kept Johnny's answer",
+      "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
+      "wants": "V to walk with you to the corner.",
+      "do": [{"p": "place", "at": "laundromat"}],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.walkout.01"},
+        {"when": "line:R6.stage.walkout.01:done", "gap": "g4"},
+        {"when": "gap:g4:no", "say": "R6.close.03"},
+        {"when": "gap:g4:yes", "say": "R6.close.04"}
+      ],
+      "choices": [
+        {"id": "no", "on": "event:gap:g4:no", "next": "keep"},
+        {"id": "yes", "on": "event:gap:g4:yes", "next": "keep"}
+      ],
+      "timeout": {"gameHours": 1, "next": "keep"}
+    },
+    {
+      "id": "walk-out-lie",
+      "type": "play",
+      "label": "Rogue walks V to the corner after V let Johnny's answer lie",
+      "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
+      "wants": "V to walk with you to the corner.",
+      "do": [{"p": "place", "at": "laundromat"}],
+      "script": [
+        {"when": "stage:enter", "say": "R6.stage.walkout.01"},
+        {"when": "line:R6.stage.walkout.01:done", "gap": "g4"},
+        {"when": "gap:g4:no", "say": "R6.close.03"},
+        {"when": "gap:g4:yes", "say": "R6.close.04"}
+      ],
+      "choices": [
+        {"id": "no", "on": "event:gap:g4:no", "next": "lie"},
+        {"id": "yes", "on": "event:gap:g4:yes", "next": "lie"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lie"}
+    }
+  ],
+  "endings": {
+    "tell": {
+      "memory": "Rogue told you what she never said to Johnny, in a laundromat at three in the morning, and you told her what he said back.",
+      "history": "Rogue sometimes speaks to V and, a little, past V.",
+      "bond": 100,
+      "script": [{"when": "ending:tell", "say": "R6.close.05"}]
+    },
+    "keep": {
+      "memory": "You kept what Johnny said to yourself, and Rogue thanked you for it as a bargain.",
+      "bond": 95,
+      "script": [{"when": "ending:keep", "say": "R6.close.05"}]
+    },
+    "lie": {
+      "memory": "You let it lie, and she did not ask again.",
+      "bond": 85,
+      "script": [{"when": "ending:lie", "say": "R6.close.05"}]
+    },
+    "stood-up": {
+      "memory": "You did not come to the laundromat, and Rogue folded her last shirt alone.",
+      "bond": -5
+    }
+  }
+}

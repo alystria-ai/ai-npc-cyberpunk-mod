@@ -1,0 +1,68 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "takemura-hangout-stillness",
+  "character": "takemura",
+  "title": "Stillness",
+  "summary": "Takemura proposes a silence contest on a Wellsprings promenade bench, where the one who speaks first buys the tea.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Takemura proposes a contest: the one who speaks first loses, and the loser buys tea."
+  },
+  "places": {
+    "spot": {"name": "the promenade bench in Wellsprings", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What did you think about, in the silence?",
+      "know": "The silence contest has ended, and a street performer has just bowed and left.",
+      "secret": "He thought of Chiba-11 and the canal.",
+      "wants": "V's thoughts.",
+      "idle": "lean",
+      "resumeAfterSeconds": 40
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 1,
+    "stoodUp": -5,
+    "variations": [
+      {"id": "long-silence", "know": "The silence will last longer than any before it.", "wants": "V to keep quiet until the end."},
+      {"id": "noisy-day", "know": "The promenade is loud, and the silence is harder to keep.", "wants": "V to hold the silence through the noise."},
+      {"id": "one-word", "know": "V is allowed one word before the silence starts.", "wants": "V to choose the word carefully."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V and Takemura sit in silence on the promenade",
+      "know": "You are on a promenade bench in Wellsprings with Takemura. You are keeping a silence, and a street performer is trying to make you both laugh.",
+      "wants": "V to keep the silence and not speak first.",
+      "meet": {"where": "waypoint", "inGameHours": 2},
+      "do": [{"p": "place", "at": "spot"}],
+      "script": [{"when": "place:spot:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "done"},
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+      ]
+    }
+  ],
+  "endings": {
+    "done": {
+      "memory": "You and Takemura sat on a Wellsprings bench for ten minutes without a word, and he did not move while a street performer tried to make him laugh.",
+      "bond": 8
+    },
+    "stood-up": {
+      "memory": "You did not come to the promenade, and Takemura sat on the bench in silence until he gave up."
+    }
+  }
+}

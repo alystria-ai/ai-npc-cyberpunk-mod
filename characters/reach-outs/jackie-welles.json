@@ -1,0 +1,103 @@
+{
+  "format": 1,
+  "character": "jackie-welles",
+  "requires": {
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true}
+  },
+  "triggers": [
+    {
+      "id": "jk-level-up",
+      "via": "text",
+      "text": "Hey, choom. Level up! That's friendship, hermano. Real. Let's celebrate.",
+      "after": [{"kind": "bond", "levels": [2, 3, 4, 5, 6]}],
+      "cooldownDays": 1,
+      "note": "The new bond level title is what you just reached. He is excited about it and suggests a hangout."
+    },
+    {
+      "id": "jk-noon",
+      "via": "text",
+      "text": "Noon and I'm starving. Where are you? Let's eat. I'm buying. ... Okay, you're buying.",
+      "when": {"kind": "hours", "from": 12, "to": 14},
+      "cooldownDays": 1,
+      "note": "It is around noon and he is hungry. Food is how he shows he cares. He knows no place by name except Little China."
+    },
+    {
+      "id": "jk-pickup",
+      "via": "call",
+      "text": "That job. The Maelstrom. Hermano, I've seen that crowd. Be careful, yeah?",
+      "after": [{"kind": "quest", "path": "quests/main_quest/prologue/q003_maelstrom"}],
+      "once": true,
+      "note": "The Pickup just ended. He distrusts the Maelstrom and sticks to the Valentino code."
+    },
+    {
+      "id": "jk-evening-tea",
+      "via": "text",
+      "text": "Misty's making tea. Come by. Bring nothing. Or bring tacos.",
+      "when": {"kind": "hours", "from": 19, "to": 22},
+      "cooldownDays": 1.5,
+      "note": "It is evening. Misty's shop in Little China is his favourite place, with Viktor's clinic behind it, and he has plans."
+    },
+    {
+      "id": "jk-invite-slowest-wins",
+      "via": "text",
+      "text": "Race. But backwards. Last one to the finish wins. No stopping, no putting a foot down. I'll beat you at going slow.",
+      "minBond": 2,
+      "cooldownDays": 3,
+      "offer": "jackie-hangout-slowest-wins",
+      "note": "He is inviting you to a reversed race on the Northside back roads."
+    },
+    {
+      "id": "jk-invite-gone-fishing",
+      "via": "text",
+      "text": "Pier. Bring patience. I brought a line and a bad attitude.",
+      "minBond": 2,
+      "cooldownDays": 3,
+      "offer": "jackie-hangout-gone-fishing",
+      "note": "He is inviting you to fish off the pier on the Arasaka Waterfront."
+    },
+    {
+      "id": "jk-invite-salsa",
+      "via": "text",
+      "text": "Dance lesson. Tonight. You're terrible, I'm free. Kabuki, ten.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "jackie-hangout-salsa-for-beginners",
+      "note": "He is inviting you to a dance lesson at a club in Kabuki."
+    },
+    {
+      "id": "jk-invite-grease",
+      "via": "text",
+      "text": "My bike is coughing. Come hold the light and help me listen. You'll learn something.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "jackie-hangout-grease-monkeys",
+      "note": "He is inviting you to his garage in Kabuki to listen to the bike."
+    },
+    {
+      "id": "jk-invite-constellations",
+      "via": "text",
+      "text": "Rooftop. Northside. Bring a jacket. I'm naming stars.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "jackie-hangout-constellations-of-northside",
+      "note": "He is inviting you to a Northside rooftop to name constellations."
+    },
+    {
+      "id": "jk-after-hangout",
+      "via": "text",
+      "text": "That was fun! We do that again. Pick the next one.",
+      "after": [{"kind": "pack", "ids": ["jackie-hangout-slowest-wins", "jackie-hangout-gone-fishing", "jackie-hangout-salsa-for-beginners", "jackie-hangout-grease-monkeys", "jackie-hangout-constellations-of-northside"]}],
+      "note": "You just finished a hangout with him. He is happy about it and suggests the next one."
+    },
+    {
+      "id": "jk-afterlife",
+      "via": "call",
+      "text": "Look at the Afterlife. One day they'll chant my name. Tell me I'm not crazy.",
+      "when": {"kind": "district", "is": "Little China", "minutes": 5},
+      "cooldownDays": 1,
+      "note": "You are near the Afterlife. He dreams of legend, the Afterlife and Rogue's booth, and says nothing about any outcome."
+    }
+  ]
+}

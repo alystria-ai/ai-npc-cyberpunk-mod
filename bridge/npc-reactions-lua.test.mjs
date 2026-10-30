@@ -785,3 +785,76 @@ test("wiring: no setting, no notice, no settings row: the feature is the NPC's o
   assert.doesNotMatch(read('../mod/manager.lua'), /npcReaction|NpcReaction/);
   assert.doesNotMatch(moduleSource, /convaiNotices|ui\.t\(/);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// The outcome sink of the bond quests (options.onOutcome(kind, entityKey), mod/init.lua convaiQuestNpcOutcome, the npc-react primitive)
+
+test('outcome sink: leave, attack and call-police are reported once, where the reaction starts, with the person key; a refused or dropped reaction is not', () => withService(`
+  local seen = {}
+  local S = build({onOutcome = function(kind, key) seen[#seen + 1] = kind .. '@' .. tostring(key) end})
+  assert(S.start('leave', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
+  assert(#seen == 0, 'accepted is not started')
+  S.update(); now = now + 2; S.update()
+  assert(#seen == 1 and seen[1] == 'leave@44ULL', table.concat(seen, ','))
+  now = now + 100; S.update(); assert(#seen == 1, 'once')
+  seen = {}
+  local A = build({onOutcome = function(kind, key) seen[#seen + 1] = kind .. '@' .. tostring(key) end})
+  assert(A.start('attack', offerFor(A, 'maelstrom', 'gang', '55ULL'), '55ULL', 'r2'))
+  A.update(); now = now + 2; A.update()
+  assert(#seen == 1 and seen[1] == 'attack@55ULL', table.concat(seen, ','))
+  seen = {}
+  state.heat = 0
+  local P = build({onOutcome = function(kind, key) seen[#seen + 1] = kind .. '@' .. tostring(key) end})
+  assert(P.start('call-police', offerFor(P, 'street-resident', 'resident', '55ULL'), '55ULL', 'r3'))
+  P.update(); now = now + 2; P.update()
+  assert(seen[1] == 'call-police@55ULL' and #seen == 1, table.concat(seen, ','))
+  -- A call that failed is no outcome.
+  seen = {}; state.failCall = true; state.heat = 0
+  local F = build({onOutcome = function(kind, key) seen[#seen + 1] = kind end})
+  assert(F.start('call-police', offerFor(F, 'street-resident', 'resident', '44ULL'), '44ULL', 'r4'))
+  F.update(); now = now + 2; F.update()
+  assert(not (seen[1] == 'call-police'), 'a police call that failed is not reported')
+  -- A person who is gone before the reaction starts is no outcome.
+  seen = {}; state.failCall = false
+  local G = build({onOutcome = function(kind, key) seen[#seen + 1] = kind end})
+  assert(G.start('leave', offerFor(G, 'street-resident', 'resident', '55ULL'), '55ULL', 'r5'))
+  state.alive = false; G.update(); now = now + 2; G.update()
+  assert(#seen == 0 and logged('the person is gone'))
+`));
+
+test('outcome sink: a sink that raises or is absent changes nothing, and the Street reputation hook is told as before', () => withService(`
+  local deeds = {}
+  local S = build({onOutcome = function() error('the quest module broke') end, onReaction = function(kind) deeds[#deeds + 1] = kind end})
+  assert(S.start('leave', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
+  S.update(); now = now + 2; S.update()
+  assert(calls.walkTo == 1 and deeds[1] == 'leave', 'the reaction went on and the reputation was told')
+  local plain = build()
+  assert(plain.start('leave', offerFor(plain, 'street-resident', 'resident', '55ULL'), '55ULL', 'r2'))
+  plain.update(); now = now + 2; plain.update()
+  assert(calls.walkTo == 2)
+`));
+
+test('outcome sink: mod/init.lua passes the sink to the module and exposes convaiQuestNpcOutcome(key, kind) over a list of listeners', () => {
+  assert.match(init, /convaiNpcReactions\.options\.onOutcome = function\(kind, key\) convaiQuestNpcOutcome\(key, kind\) end/);
+  assert.match(init, /convaiQuestNpcSinks = \{\}/);
+  assert.match(init, /function convaiQuestNpcOutcome\(key, kind\)/);
+  const text = init.replace(/\r\n/g, '\n');
+  const from = text.indexOf('convaiQuestNpcSinks = {}');
+  const block = text.slice(from, text.indexOf('\ndo\n    local failed = false', from));
+  assert.ok(block.length > 100 && block.length < 1500, 'the block is the few lines of the sink');
+  run(`
+    convaiNpcReactions = {options = {}}
+    ${block}
+    local seen = {}
+    convaiQuestNpcSinks[1] = function(key, kind) seen[#seen + 1] = key .. ':' .. kind end
+    convaiQuestNpcSinks[2] = function() error('a broken listener') end
+    convaiQuestNpcSinks[3] = function(key, kind) seen[#seen + 1] = 'third ' .. key end
+    convaiNpcReactions.options.onOutcome('leave', '77')
+    assert(#seen == 2 and seen[1] == '77:leave' and seen[2] == 'third 77', table.concat(seen, ','))
+    -- A listener that removes itself while the list is walked does not skip another.
+    convaiQuestNpcSinks[1] = function() table.remove(convaiQuestNpcSinks, 1) end
+    seen = {}
+    convaiQuestNpcOutcome('9', 'attack')
+    assert(#seen == 1 and seen[1] == 'third 9')
+  `);
+});

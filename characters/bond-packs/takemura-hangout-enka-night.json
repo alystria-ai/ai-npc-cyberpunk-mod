@@ -1,0 +1,68 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "takemura-hangout-enka-night",
+  "character": "takemura",
+  "title": "Enka Night",
+  "summary": "Takemura takes you to a karaoke bar in Japantown, where he insists on singing one enka verse with total dignity.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Takemura proposes a small bar in Japantown with a machine that sings back, which he is told is entertainment."
+  },
+  "places": {
+    "spot": {"name": "the karaoke bar in Japantown", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "I will sing a verse. You will not laugh. Agreed?",
+      "know": "The bar's machine only knows pop, and Takemura intends to sing enka anyway.",
+      "secret": "He has rehearsed the verse.",
+      "wants": "V's promise.",
+      "idle": "bar",
+      "resumeAfterSeconds": 40
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 1,
+    "stoodUp": -5,
+    "variations": [
+      {"id": "v-first", "know": "V sings first, and Takemura listens to every line.", "wants": "V to pick a song that suits them."},
+      {"id": "duet", "know": "The two of you sing a duet, and the bar has gone quiet to listen.", "wants": "A duet that does not embarrass either of you."},
+      {"id": "word-quiz", "know": "The evening is a quiz of Japanese words, sung and spoken in turn.", "wants": "V to answer the next word."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V and Takemura sing at the karaoke bar",
+      "know": "You are at a small karaoke bar in Japantown with Takemura. The machine has only pop, and he has decided to sing enka.",
+      "wants": "V to sing and to keep a straight face.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [{"p": "place", "at": "spot"}],
+      "script": [{"when": "place:spot:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "done"},
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+      ]
+    }
+  ],
+  "endings": {
+    "done": {
+      "memory": "You sang at a Japantown karaoke bar with Takemura, and he sang one enka verse flat and with total dignity while the bar went quiet.",
+      "bond": 8
+    },
+    "stood-up": {
+      "memory": "You did not come to the karaoke bar, and Takemura sang nothing that night."
+    }
+  }
+}

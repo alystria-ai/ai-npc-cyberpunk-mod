@@ -1019,6 +1019,8 @@ function M.new(options)
     -- A brawl is the same deed as an attack and a cower the same as a person fleeing; a command V gave is no deed (reputation.lua ignores it).
     local DEED = {brawl = 'attack', cower = 'leave'}
     local function started(kind, p)
+        -- The outcome sink of the bond quests (options.onOutcome(kind, entityKey), set by mod/init.lua): the raw kind, a command included, once where the reaction starts.
+        if type(options.onOutcome) == 'function' then pcall(options.onOutcome, kind, p.entity) end
         kind = DEED[kind] or kind
         if type(options.onReaction) == 'function' then
             pcall(options.onReaction, kind, {base = p.base, category = p.category, affiliation = p.affiliation})

@@ -1,0 +1,94 @@
+{
+  "format": 2,
+  "id": "songbird-hangout-window-shopping",
+  "kind": "hangout",
+  "character": "songbird",
+  "title": "Window Shopping",
+  "summary": "Songbird picks small things from shop to shop in the Grand Imperial Mall, and then asks what V would buy for V.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird wants to choose small things for V, and she needs a mall with shops to do it."
+  },
+  "places": {
+    "spot": {"name": "the Grand Imperial Mall in Pacifica", "radius": 25},
+    "spot-b": {"name": "the second shop inside the Grand Imperial Mall", "radius": 15}
+  },
+  "images": {
+    "window-shopping": {"file": "images/window-shopping.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SBH3.ask.01": {"text": "Which would you buy if I were not here?", "emotion": "neutral", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which would you buy if I were not here?",
+      "know": "The items on the list you have walked past so far.",
+      "secret": "She never bought anything for herself.",
+      "wants": "A refusal she can learn from.",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "flatter", "kind": "flatter"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "food", "know": "A food stall is open on the upper level, and it is the only one with a queue.", "places": {"spot": "spot-b"}},
+      {"id": "toys", "know": "The toy aisle is closed except for one stall with a broken sign."},
+      {"id": "music", "wants": "V does not buy anything, and she picks a record for V to hear."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "hangout",
+      "type": "play",
+      "label": "Songbird picks small things from shop to shop",
+      "know": "V is walking through the Grand Imperial Mall. You pick one small item per shop for V, and you watch what V looks at.",
+      "wants": "V's honest choice, and a refusal you can learn from.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [
+        {"p": "pin", "at": "spot"},
+        {"p": "place", "at": "spot"},
+        {"p": "place", "at": "spot-b"},
+        {"p": "check", "id": "gear", "what": "gear"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "place:spot-b:arrived", "text": "SBH3.ask.01", "image": "window-shopping"},
+        {"when": "place:spot-b:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
+        {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
+        {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "honest": {
+      "memory": "You walked the Grand Imperial Mall with Songbird and told her what you would really buy if she were not there.",
+      "bond": 8
+    },
+    "flattered": {
+      "memory": "You walked the Grand Imperial Mall with Songbird and agreed with every pick she made for you.",
+      "bond": 4
+    },
+    "left": {
+      "memory": "You looked through a few shops in the Grand Imperial Mall with Songbird and left before the lights went down."
+    },
+    "stood-up": {
+      "memory": "You never came to the Grand Imperial Mall, and Songbird picked nothing for you."
+    }
+  }
+}

@@ -92,7 +92,10 @@ test('the page modules the hidden browser loads are exactly the clientModules th
   const host = closureText.get('bridge/realtime-host.mjs');
   const listed = /const PCM_MODULES = Object\.freeze\(\[([^\]]+)\]\)/.exec(host)?.[1];
   assert(listed, 'realtime-host.mjs lists PCM_MODULES');
-  const modules = [...listed.matchAll(/'([^']+)'/g)].map(match => match[1]).sort();
+  // The media page (a story pack's music and sounds) has three more, read when that page is first opened.
+  const mediaListed = /export const MEDIA_MODULES = Object\.freeze\(\[([^\]]+)\]\)/.exec(host)?.[1];
+  assert(mediaListed, 'realtime-host.mjs lists MEDIA_MODULES');
+  const modules = [...listed.matchAll(/'([^']+)'/g), ...mediaListed.matchAll(/'([^']+)'/g)].map(match => match[1]).sort();
   assert.deepEqual(modules, [...config.clientModules].sort());
   // The browser bundle itself comes from bridge/realtime-client.mjs through esbuild, never through the Node closure.
   assert(!closure.includes('bridge/realtime-client.mjs'));

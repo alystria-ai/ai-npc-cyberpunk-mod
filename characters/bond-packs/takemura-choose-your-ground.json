@@ -1,0 +1,296 @@
+{
+  "format": 2,
+  "id": "takemura-choose-your-ground",
+  "character": "takemura",
+  "title": "Choose Your Ground",
+  "summary": "Word of Takemura's hideout has leaked, freelancers come in three waves, and he asks you to choose a position and hold it with him.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
+    "notActive": ["quests/main_quest/act_01/q112", "quests/main_quest/act_01/q113"],
+    "relationship": "any",
+    "invitations": true,
+    "after": ["takemura-word-of-honour"],
+    "facts": {"takemura-alive": true}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "T5.call.text",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "T5.open.01"},
+        {"say": "T5.open.02"},
+        {"say": "T5.open.03"},
+        {"say": "T5.open.04"},
+        {"gap": "g1"},
+        {"say": "T5.open.05"}
+      ]
+    }
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Word of Takemura's hideout has leaked to the freelancers who still hope the old bounty on a traitor pays. He calls you on a live holocall from a dim room, says he will not move, and asks whether you will stand with him."
+  },
+  "places": {
+    "hideout": {"name": "Takemura's hideout in Japantown", "radius": 25},
+    "door": {"name": "the hideout door", "radius": 8},
+    "window": {"name": "the stair window of the hideout", "radius": 8},
+    "roof": {"name": "the roof edge of the hideout", "radius": 8}
+  },
+  "images": {
+    "ground-doorway": {"file": "images/ground-doorway.png", "width": 1024, "height": 576},
+    "ground-roof": {"file": "images/ground-roof.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "T5.call.text": {"text": "I will hold it alone if I must."},
+    "T5.open.01": {"text": "V. My address is known.", "emotion": "neutral", "channel": "holocall"},
+    "T5.open.02": {"text": "Freelancers will come tonight. The old bounty still pays, to fools.", "emotion": "emphatic", "channel": "holocall"},
+    "T5.open.03": {"text": "I will not move. A position is not abandoned for being inconvenient.", "emotion": "emphatic", "channel": "holocall"},
+    "T5.open.04": {"text": "I would be honoured if you stood with me. Will you?", "emotion": "neutral", "channel": "holocall"},
+    "T5.open.05": {"text": "Come within forty minutes. I will teach you ground.", "emotion": "nod", "channel": "holocall"},
+    "T5.s2.01": {"text": "Three positions. The door, the stair window, the roof edge. Each has a price.", "emotion": "emphatic"},
+    "T5.s2.02": {"text": "The door sees everything and is seen. The window sees little and is safe.", "emotion": "nod"},
+    "T5.s2.03": {"text": "The roof sees most and is alone.", "emotion": "nod"},
+    "T5.s2.04": {"text": "Where would you stand? Choose. I will not argue. I will adapt.", "emotion": "neutral"},
+    "T5.w1.01": {"text": "Four, at the door. Let them come.", "emotion": "nod"},
+    "T5.w1.02": {"text": "Breathe, then move.", "emotion": "emphatic"},
+    "T5.w1.03": {"text": "A rifle on the opposite roof. Shadows, V.", "emotion": "fear"},
+    "T5.w1.05": {"text": "You will leave now, politely. I count to three. Politely.", "emotion": "angry"},
+    "T5.w1.06": {"text": "Do you listen to him? A man who listens is not a traitor.", "emotion": "neutral"},
+    "T5.w1.07": {"text": "Thank you.", "emotion": "nod"},
+    "T5.w1.08": {"text": "That was your decision.", "emotion": "sad"},
+    "T5.w1.09": {"text": "Two heavies from behind. The back is mine.", "emotion": "emphatic"},
+    "T5.q.01": {"text": "Tea. I have only one cup. We will share it.", "emotion": "nod"},
+    "T5.q.02": {"text": "I did not choose this ground out of pride. It is a post, V.", "emotion": "emphatic"},
+    "T5.q.03": {"text": "Take this key. The door opens for you at any hour.", "emotion": "happy"},
+    "T5.q.04": {"text": "What do you see when you hold a position all night?", "emotion": "neutral"},
+    "T5.bark.down.a": {"text": "One fewer. Hold your sector.", "emotion": "emphatic"},
+    "T5.bark.down.b": {"text": "Good. They are learning to hurry.", "emotion": "shrug"},
+    "T5.close.01": {"text": "We held. And you refused the money in front of me. I will not forget it.", "emotion": "happy"},
+    "T5.close.02": {"text": "You listened. Fair. You also stayed.", "emotion": "nod"},
+    "T5.close.03": {"text": "That was your decision.", "emotion": "sad"},
+    "T5.close.04": {"text": "I understand.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "I would be honoured if you stood with me. Will you?",
+      "know": "The bounty, the hideout and the plan are all known to you through the call.",
+      "secret": "He expects you to decline, and he has already accepted it.",
+      "wants": "A considered answer.",
+      "idle": "takemura",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Where would you stand? Choose.",
+      "know": "The three positions are open to you, the door, the stair window and the roof edge, each with its own sightline.",
+      "secret": "He wants you on the window.",
+      "wants": "Your judgement.",
+      "idle": "bodyguard_front",
+      "tags": [{"id": "door", "kind": "honest"}, {"id": "window", "kind": "yes"}, {"id": "roof", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "Do you listen to him?",
+      "know": "The negotiator has offered you 5,000 eddies to step aside and walk away from the hideout.",
+      "secret": "He will respect either answer.",
+      "wants": "You to decide for yourself.",
+      "idle": "bodyguard_front",
+      "tags": [{"id": "refuse", "kind": "yes"}, {"id": "listen", "kind": "honest"}, {"id": "take", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g4": {
+      "asks": "What do you see when you hold a position all night?",
+      "know": "The wave is over and the room is quiet, with one cup of tea between you.",
+      "secret": "He sees the door of Saburo's study when he closes his eyes.",
+      "wants": "Your answer, then his own.",
+      "idle": "bar",
+      "resumeAfterSeconds": 45
+    }
+  },
+  "stages": [
+    {
+      "id": "warning",
+      "type": "play",
+      "label": "Takemura warns V that the hideout is known",
+      "know": "Takemura calls on a live holocall from a dim room with a lamp being moved. He says his address is known, that freelancers will come tonight, and that he will not move.",
+      "wants": "V to come to the hideout within forty minutes and stand with him.",
+      "do": [{"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "ground"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "abandoned"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "abandoned"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "abandoned"}
+      ],
+      "timeout": {"gameHours": 1, "next": "abandoned"}
+    },
+    {
+      "id": "ground",
+      "type": "play",
+      "label": "V reaches the hideout and chooses a position",
+      "know": "You are at the hideout with Takemura. He explains the three positions, the door, the stair window and the roof edge, and takes the front post himself.",
+      "wants": "V to reach the hideout and choose a position.",
+      "do": [
+        {"p": "pin", "at": "hideout"},
+        {"p": "place", "at": "hideout"},
+        {"p": "cast", "id": "takemura", "who": "self", "at": "hideout", "carry": true},
+        {"p": "party"},
+        {"p": "place", "at": "door"},
+        {"p": "place", "at": "window"},
+        {"p": "place", "at": "roof"},
+        {"p": "post", "id": "front", "at": "door"}
+      ],
+      "script": [
+        {"when": "place:hideout:arrived", "say": "T5.s2.01"},
+        {"when": "line:T5.s2.01:done", "say": "T5.s2.02"},
+        {"when": "line:T5.s2.02:done", "say": "T5.s2.03"},
+        {"when": "line:T5.s2.03:done", "say": "T5.s2.04"},
+        {"when": "line:T5.s2.04:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "door", "on": "event:gap:g2:door", "next": "waves"},
+        {"id": "window", "on": "event:gap:g2:window", "next": "waves"},
+        {"id": "roof", "on": "event:gap:g2:roof", "next": "waves"}
+      ],
+      "timeout": {"gameHours": 0.67, "next": "late"}
+    },
+    {
+      "id": "waves",
+      "type": "play",
+      "label": "Two waves of freelancers come at the hideout",
+      "know": "The first wave of four comes to the door and the second pair comes with a marksman on the opposite roof. A negotiator walks up with his hands open, and Takemura waits for your answer.",
+      "wants": "V to hold the position through the first two waves.",
+      "do": [
+        {"p": "squad", "id": "wave1", "at": "door", "faction": "freelancers", "count": 4, "hostile": true},
+        {"p": "squad", "id": "wave2", "at": "window", "faction": "freelancers", "count": 2, "hostile": true},
+        {"p": "cast", "id": "negotiator", "who": "a negotiator with his hands open and a fixer's voice", "at": "door"}
+      ],
+      "script": [
+        {"when": "squad:wave1:spawned", "say": "T5.w1.01"},
+        {"when": "squad:wave1:down", "say": "T5.w1.02"},
+        {"when": "squad:wave2:spawned", "say": "T5.w1.03"},
+        {"when": "squad:wave2:down", "say": "T5.bark.down.a"},
+        {"when": "line:T5.bark.down.a:done", "say": "T5.bark.down.b"},
+        {"when": "cast:negotiator:arrived", "say": "T5.w1.05"},
+        {"when": "line:T5.w1.05:done", "say": "T5.w1.06"},
+        {"when": "line:T5.w1.06:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "refuse", "on": "event:gap:g3:refuse", "next": "wave3-refuse"},
+        {"id": "listen", "on": "event:gap:g3:listen", "next": "wave3-listen"},
+        {"id": "take", "on": "event:gap:g3:take", "next": "wave3-take"}
+      ],
+      "timeout": {"gameHours": 1, "next": "abandoned"}
+    },
+    {
+      "id": "wave3-refuse",
+      "type": "play",
+      "label": "The last wave comes from behind after V refused the money",
+      "know": "You refused the negotiator's money in front of Takemura. Two heavies come from behind, and the back is his.",
+      "wants": "V to hold the last wave with Takemura.",
+      "do": [{"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true}],
+      "script": [
+        {"when": "stage:enter", "say": "T5.w1.07"},
+        {"when": "line:T5.w1.07:done", "say": "T5.w1.09"}
+      ],
+      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-refuse"}],
+      "timeout": {"gameHours": 1, "next": "abandoned"}
+    },
+    {
+      "id": "wave3-listen",
+      "type": "play",
+      "label": "The last wave comes after V heard the negotiator out",
+      "know": "You heard the negotiator out and stayed. Two heavies come from behind, and the back is Takemura's.",
+      "wants": "V to hold the last wave with Takemura.",
+      "do": [{"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true}],
+      "script": [{"when": "stage:enter", "say": "T5.w1.09"}],
+      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-listen"}],
+      "timeout": {"gameHours": 1, "next": "abandoned"}
+    },
+    {
+      "id": "wave3-take",
+      "type": "play",
+      "label": "V took the money and Takemura holds the last wave alone",
+      "know": "You took the negotiator's money and left. Takemura is holding the back alone against two heavies, and he will not say anything for a full minute.",
+      "wants": "V to watch Takemura hold the back alone.",
+      "do": [
+        {"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true},
+        {"p": "timer", "id": "hold", "seconds": 60}
+      ],
+      "script": [{"when": "stage:enter", "say": "T5.w1.08"}],
+      "choices": [{"id": "alone", "on": "event:timer:hold", "next": "take"}],
+      "timeout": {"gameHours": 1, "next": "take"}
+    },
+    {
+      "id": "quiet-refuse",
+      "type": "play",
+      "label": "The room after the fight, with tea and a key",
+      "know": "The fight is over and the room is quiet. Takemura makes tea on a small stove and has one cup, which he will share with you.",
+      "wants": "V to share the tea and answer him.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "quiet", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 60}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T5.q.01"},
+        {"when": "line:T5.q.01:done", "say": "T5.q.02"},
+        {"when": "line:T5.q.02:done", "say": "T5.q.03"},
+        {"when": "line:T5.q.03:done", "say": "T5.q.04"},
+        {"when": "line:T5.q.04:done", "gap": "g4"}
+      ],
+      "choices": [
+        {"id": "answered", "on": "event:gap:g4:resume", "next": "held-refuse"},
+        {"id": "done", "on": "event:together:quiet:done", "next": "held-refuse"}
+      ],
+      "timeout": {"gameHours": 1, "next": "held-refuse"}
+    },
+    {
+      "id": "quiet-listen",
+      "type": "play",
+      "label": "The room after the fight, with tea and a key",
+      "know": "The fight is over and the room is quiet. Takemura makes tea on a small stove and has one cup, which he will share with you.",
+      "wants": "V to share the tea.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "quiet", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 60}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T5.q.01"},
+        {"when": "line:T5.q.01:done", "say": "T5.q.02"},
+        {"when": "line:T5.q.02:done", "say": "T5.q.03"}
+      ],
+      "choices": [{"id": "done", "on": "event:together:quiet:done", "next": "held-listen"}],
+      "timeout": {"gameHours": 1, "next": "held-listen"}
+    }
+  ],
+  "endings": {
+    "held-refuse": {
+      "memory": "You and Takemura held his hideout against three waves, and you refused the freelancers' money in front of him.",
+      "history": "The hideout is yours too, and Takemura says so.",
+      "bond": 80,
+      "script": [{"when": "ending:held-refuse", "say": "T5.close.01"}]
+    },
+    "held-listen": {
+      "memory": "You and Takemura held his hideout against three waves, and you heard the negotiator out before you stayed.",
+      "bond": 70,
+      "script": [{"when": "ending:held-listen", "say": "T5.close.02"}]
+    },
+    "take": {
+      "memory": "You took the negotiator's money and left Takemura to hold the hideout alone, and he won, and he will not forget it.",
+      "bond": -40,
+      "script": [{"when": "ending:take", "say": "T5.close.03"}]
+    },
+    "abandoned": {
+      "memory": "You did not stand with Takemura at the hideout, and he said he understood.",
+      "bond": -15,
+      "script": [{"when": "ending:abandoned", "text": "T5.close.04"}]
+    },
+    "late": {
+      "memory": "You reached the hideout after the forty minutes Takemura gave you.",
+      "bond": -10
+    }
+  }
+}

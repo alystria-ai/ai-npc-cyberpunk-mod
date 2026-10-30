@@ -1,0 +1,191 @@
+{
+  "format": 2,
+  "id": "johnny-field-manual",
+  "character": "johnny-silverhand",
+  "title": "Field Manual",
+  "summary": "Johnny gives V three soldier's rules and takes V to a scav depot in the Badlands to use them.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
+    "notActive": ["quests/main_quest/act_01/q108", "quests/side_quest/sq011"],
+    "relationship": "any",
+    "invitations": true,
+    "after": ["johnny-dial-surf"]
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.5,
+    "bringUp": "You fight like a merc on payday, and you want to say what kept you alive in the army. Bring up, in your own way and grumpy, three rules and a depot in the Badlands where V can use them, since you cannot carry a gun and V is the demonstration."
+  },
+  "places": {
+    "depot": {"name": "the old scav depot at Jackson Plains in the Badlands", "radius": 25},
+    "tower": {"name": "the water tower over the depot, the high point", "radius": 5},
+    "retreat": {"name": "the road out of the depot toward the horizon", "radius": 25}
+  },
+  "lines": {
+    "SH3.open.01": {"text": "You fight like a merc on payday. I fought like a soldier on a bad day. Different mistakes.", "emotion": "neutral"},
+    "SH3.open.02": {"text": "Three rules. They kept me alive when nothing else did. I can't carry a gun, so you're the demonstration.", "emotion": "emphatic"},
+    "SH3.open.03": {"text": "One. Read the ground before you move. Two. Count before you pull the trigger.", "emotion": "emphatic"},
+    "SH3.open.04": {"text": "Three. Always leave one door. That's the one that matters.", "emotion": "emphatic"},
+    "SH3.stage.approach.01": {"text": "Look at the road. Where would you hide? Now where would they?", "emotion": "neutral"},
+    "SH3.bark.alert.a": {"text": "There's the second group. Tower. Now.", "emotion": "emphatic"},
+    "SH3.bark.last.a": {"text": "That's the last of them. Breathe. Rule three, where's your door?", "emotion": "neutral"},
+    "SH3.stage.walkback.01": {"text": "Sit. You're allowed to be tired.", "emotion": "sad"},
+    "SH3.close.01": {"text": "Rule one, two, three. All used. I'm not saying I'm proud. I'm saying I noticed.", "emotion": "nod"},
+    "SH3.close.02": {"text": "Good. The day you stop counting is the day you start losing. I know.", "emotion": "sad"},
+    "SH3.close.03": {"text": "Dodge it all you like. It'll still be there.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which rule do you break most? Don't lie, I've seen you.",
+      "know": "You know the three rules, a scav depot at Jackson Plains, two groups of three scavs, the water tower high point and the road out.",
+      "secret": "The day you stopped counting, which you only tell on the walk back.",
+      "wants": "V to say yes and drive.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "learn", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "When did you last count how many you've killed? Not for a boast. Just to know.",
+      "know": "The fight just ended. You are the soldier who stopped counting, and you will not give names.",
+      "secret": "Stopping the count was your worst mistake as a soldier.",
+      "wants": "V to answer honestly.",
+      "idle": "johnny_smoke",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "deflect", "kind": "no"}],
+      "resumeAfterSeconds": 600,
+      "resumeOn": ["place:depot:left"]
+    }
+  },
+  "stages": [
+    {
+      "id": "brief",
+      "type": "talk",
+      "label": "Johnny gives V the three rules",
+      "know": "You are in the car beside V and you want to hand over three rules in your own words, short and cold, with none of the usual swagger.",
+      "wants": "V to hear the three rules and say whether V will drive out with you.",
+      "script": [
+        {"when": "stage:enter", "say": "SH3.open.01"},
+        {"when": "line:SH3.open.01:done", "say": "SH3.open.02"},
+        {"when": "line:SH3.open.02:done", "say": "SH3.open.03"},
+        {"when": "line:SH3.open.03:done", "say": "SH3.open.04"},
+        {"when": "line:SH3.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "learn", "on": "event:gap:g1:learn", "next": "approach"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "approach",
+      "type": "play",
+      "label": "Drive out to the depot at Jackson Plains",
+      "know": "V drives you out to the depot at Jackson Plains. You sit in the passenger seat and read the road like a soldier would.",
+      "wants": "V to drive to the depot.",
+      "do": [
+        {"p": "pin", "at": "depot"},
+        {"p": "ride", "to": "depot"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH3.stage.approach.01"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:ride:arrived", "next": "rules"}],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "rules",
+      "type": "play",
+      "label": "Clear the depot with the three rules",
+      "know": "The depot holds six scavs in two groups of three. The first group is relaxed. The second group patrols and goes to alert after ninety seconds inside. You want V to clear the first group quietly, take the water tower and keep the road out open.",
+      "wants": "V to use the three rules: read the ground, count before the trigger, leave a door.",
+      "do": [
+        {"p": "place", "at": "depot"},
+        {"p": "squad", "id": "scavs", "at": "depot", "faction": "scav", "count": 6, "alertAfterSeconds": 90},
+        {"p": "unseen", "id": "sneak", "squad": "scavs", "at": "depot"},
+        {"p": "place", "at": "tower"},
+        {"p": "place", "at": "retreat"}
+      ],
+      "script": [
+        {"when": "squad:scavs:hostile", "say": "SH3.bark.alert.a", "bark": true},
+        {"when": "squad:scavs:down", "say": "SH3.bark.last.a", "bark": true}
+      ],
+      "choices": [
+        {"id": "alarm", "on": "event:squad:scavs:hostile", "next": "walk-loud"},
+        {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "walk-loud"},
+        {"id": "clean", "on": "event:squad:scavs:down", "next": "walk-clean"},
+        {"id": "fled", "on": "event:place:depot:left", "next": "fled"}
+      ],
+      "timeout": {"gameHours": 2, "next": "walk-loud"}
+    },
+    {
+      "id": "walk-clean",
+      "type": "play",
+      "label": "Sit on the tailgate and talk about counting",
+      "know": "The depot is clear and you are sitting on the tailgate with V. You talk about soldiers who stopped counting, and about your own mistakes, which were arithmetic as much as anger.",
+      "wants": "V to answer honestly about counting.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "walkback", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 600}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH3.stage.walkback.01"},
+        {"when": "line:SH3.stage.walkback.01:done", "gap": "g2"},
+        {"when": "gap:g2:honest", "say": "SH3.close.02"},
+        {"when": "gap:g2:deflect", "say": "SH3.close.03"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:gap:g2:honest", "next": "clean"},
+        {"id": "deflect", "on": "event:gap:g2:deflect", "next": "clean"},
+        {"id": "walked", "on": "event:together:walkback:done", "next": "clean"},
+        {"id": "left", "on": "event:together:walkback:broken", "next": "clean"}
+      ],
+      "timeout": {"gameHours": 2, "next": "clean"}
+    },
+    {
+      "id": "walk-loud",
+      "type": "play",
+      "label": "Sit on the tailgate after a loud fight",
+      "know": "The depot fight went loud and you are sitting on the tailgate with V. You talk about soldiers who stopped counting, and about your own mistakes, which were arithmetic as much as anger.",
+      "wants": "V to answer honestly about counting.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "walkback", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 600}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH3.stage.walkback.01"},
+        {"when": "line:SH3.stage.walkback.01:done", "gap": "g2"},
+        {"when": "gap:g2:honest", "say": "SH3.close.02"},
+        {"when": "gap:g2:deflect", "say": "SH3.close.03"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:gap:g2:honest", "next": "loud"},
+        {"id": "deflect", "on": "event:gap:g2:deflect", "next": "loud"},
+        {"id": "walked", "on": "event:together:walkback:done", "next": "loud"},
+        {"id": "left", "on": "event:together:walkback:broken", "next": "loud"}
+      ],
+      "timeout": {"gameHours": 2, "next": "loud"}
+    }
+  ],
+  "endings": {
+    "clean": {
+      "memory": "Johnny taught you three rules in a ruined depot in the Badlands, and you used all three.",
+      "history": "His fight remarks now name the rules.",
+      "bond": 55,
+      "script": [
+        {"when": "ending:clean", "say": "SH3.close.01"}
+      ]
+    },
+    "loud": {
+      "memory": "The depot fight went loud, and Johnny still taught you three rules before it started.",
+      "bond": 40
+    },
+    "fled": {
+      "memory": "You left Johnny's depot with the scavs still standing.",
+      "bond": 10
+    },
+    "no": {
+      "memory": "You told Johnny no to his three rules, and he said he would wait.",
+      "bond": 0
+    }
+  }
+}

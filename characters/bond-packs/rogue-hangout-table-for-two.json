@@ -1,0 +1,158 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "rogue-hangout-table-for-two",
+  "character": "rogue-amendiares",
+  "title": "Table for Two",
+  "summary": "Rogue sends V to a busy downtown restaurant with no free table and no eddies, to get one with words alone.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": [
+      "quests/side_quest/sq031_rogue",
+      "quests/side_quest/sq031_smack_my_bitch_up"
+    ],
+    "notActive": [
+      "quests/main_quest/act_01/q103",
+      "quests/side_quest/sq031",
+      "quests/main_quest/act_01/q115"
+    ],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": [
+      "own",
+      "phone",
+      "holocall"
+    ],
+    "chance": 0.05,
+    "bringUp": "You want V to get you a table at a busy downtown restaurant without money or threats. Bring up, briefly and in your own way, that the place is full and you are hungry."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {
+        "id": "critic",
+        "know": "The maitre d' might think V is a food critic, and V can use that name in the story."
+      },
+      {
+        "id": "tourist",
+        "know": "V can play a lost tourist who needs a table for the night, and the maitre d' is a soft touch for tourists."
+      },
+      {
+        "id": "birthday",
+        "know": "The table is for a birthday, and the maitre d' loves a celebration."
+      }
+    ]
+  },
+  "places": {
+    "restaurant": {
+      "name": "the busy restaurant in City Center Downtown",
+      "radius": 8
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Why should he say yes? Think like him. What does he want?",
+      "know": "The maitre d' has a note that he fears bad reviews and loves a good name. The rules are simple: V may use any story, but no eddies and no threats.",
+      "secret": "That you once got a table by lying about who you were.",
+      "wants": "V to try a different angle.",
+      "idle": "arms-crossed",
+      "resumeAfterSeconds": 180
+    }
+  },
+  "stages": [
+    {
+      "id": "table",
+      "type": "play",
+      "label": "Rogue sends V to get a table without money",
+      "know": "V is at a busy downtown restaurant at seven. There is no free table. You want V to get one using words only, and you will not help. You watch and say nothing.",
+      "wants": "V to get a table with words alone.",
+      "do": [
+        {
+          "p": "pin",
+          "at": "restaurant"
+        },
+        {
+          "p": "place",
+          "at": "restaurant"
+        },
+        {
+          "p": "cast",
+          "id": "maitre",
+          "who": "maitre d' at the door, who says the restaurant is full",
+          "at": "restaurant"
+        },
+        {
+          "p": "cast",
+          "id": "rogue",
+          "who": "self",
+          "at": "restaurant"
+        },
+        {
+          "p": "npc-react",
+          "id": "maitre-react",
+          "cast": "maitre"
+        },
+        {
+          "p": "seat"
+        }
+      ],
+      "script": [
+        {
+          "when": "stage:enter",
+          "gap": "g1"
+        }
+      ],
+      "choices": [
+        {
+          "id": "obey",
+          "on": "event:npc:maitre-react:obey",
+          "next": "table-ok"
+        },
+        {
+          "id": "leave",
+          "on": "event:npc:maitre-react:leave",
+          "next": "table-charm"
+        },
+        {
+          "id": "cower",
+          "on": "event:npc:maitre-react:cower",
+          "next": "failed"
+        },
+        {
+          "id": "stood",
+          "on": "meet:stood-up",
+          "next": "stood-up"
+        }
+      ],
+      "meet": {
+        "where": "waypoint",
+        "inGameHours": 3
+      },
+      "timeout": {
+        "gameHours": 1,
+        "next": "failed"
+      }
+    }
+  ],
+  "endings": {
+    "table-ok": {
+      "memory": "The maitre d' found you a table on your word alone, and Rogue watched without a word.",
+      "bond": 11
+    },
+    "table-charm": {
+      "memory": "You talked the maitre d' into finding a table with a clever story, and Rogue smiled once.",
+      "bond": 9
+    },
+    "failed": {
+      "memory": "The maitre d' would not give you a table, and Rogue lifted one eyebrow.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "V did not come to the restaurant, and Rogue ate alone at seven."
+    }
+  }
+}

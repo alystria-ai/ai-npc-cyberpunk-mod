@@ -457,6 +457,13 @@ function M.nativeAdapter()
         end
         return receipt
     end
+    -- A fight from a post (T.fightFrom): only the aggressive reaction preset, with no target and no attitude change, so the combat AI answers whoever is hostile to her.
+    -- The receipt goes back to N.stopReaction. UNVERIFIED live: that the preset alone makes a posted copy shoot, and that her hold command does not block it.
+    function N.armPost(companion)
+        local receipt = {}
+        startReaction(companion, nil, receipt)
+        return receipt
+    end
     function N.stopFight(receipt, companion, target)
         if receipt.persistence then companion:GetTargetTrackerComponent():SetThreatPersistence(target, false, receipt.persistence) end
         if receipt.companionToTarget then companion:GetAttitudeAgent():SetAttitudeTowards(target:GetAttitudeAgent(), attitude(receipt.companionToTarget)) end
@@ -498,6 +505,10 @@ function M.new(options)
     local settings = {}
     for key, value in pairs(DEFAULTS) do settings[key] = options[key] or value end
     local active, offers, sequence, clock, last = nil, {}, 0, 0, nil
+    -- Copies held on a post by a quest (T.fightFrom): serial -> {receipt}. A held copy fires from where she stands: tactics owns her movement decision as a hold
+    -- while the flag is set, and no fight order walks her anywhere. At most POST_MAX of them.
+    local holds = {}
+    local POST_MAX = 8
 
     local function get(fn, ...)
         if type(fn) ~= 'function' then return nil end
@@ -754,7 +765,40 @@ function M.new(options)
 
     -- Forget every handle without native calls (world teardown).
     function T.abandon()
-        active, offers, restoring = nil, {}, nil
+        active, offers, restoring, holds = nil, {}, nil, {}
+    end
+
+    -- The hold-position flag for a quest post (mod/quest-prims-drive.lua, post with fightFrom). on: her reaction preset is raised so the combat AI engages what is
+    -- hostile to her, and the flag is set (T.owns / T.decide give a party copy a hold). off: the preset goes back (only while she is still there) and the flag is
+    -- cleared. `npc` is looked up fresh by the caller for this one call and not kept. True when the state asked for is the state now.
+    function T.fightFrom(serial, on, npc)
+        if type(serial) ~= 'number' then return false end
+        if on ~= true then
+            local held = holds[serial]
+            if not held then return true end
+            holds[serial] = nil
+            if npc ~= nil and get(native.alive, npc) and type(native.stopReaction) == 'function' then
+                local restored, result = pcall(native.stopReaction, held.receipt, npc)
+                log('post ' .. serial .. ': ' .. (restored and tostring(result or 'preset left alone') or ('preset restore failed: ' .. tostring(result))))
+            else
+                log('post ' .. serial .. ': flag cleared, she is not reachable to restore the preset')
+            end
+            return true
+        end
+        if holds[serial] then return true end
+        if active and active.serial == serial then return false end
+        if npc == nil or not get(native.alive, npc) or type(native.armPost) ~= 'function' then return false end
+        local count = 0
+        for _ in pairs(holds) do count = count + 1 end
+        if count >= POST_MAX then return false end
+        local armed, receipt = pcall(native.armPost, npc)
+        if not armed or type(receipt) ~= 'table' then
+            log('post ' .. serial .. ': the fight from the post could not be armed: ' .. tostring(receipt))
+            return false
+        end
+        holds[serial] = {receipt = receipt}
+        for _, line in ipairs(type(receipt.reaction) == 'table' and receipt.reaction.notes or {}) do log('post ' .. serial .. ': ' .. tostring(line)) end
+        return true
     end
 
     local function actorFor(entity)
@@ -1014,11 +1058,14 @@ function M.new(options)
             .. ', gap ' .. gap .. diagnosisText(get(native.diagnose, a.companion, a.target)))
     end
 
-    function T.owns(serial) return active ~= nil and active.serial == serial end
+    function T.owns(serial) return (active ~= nil and active.serial == serial) or holds[serial] ~= nil end
 
     -- Movement decision for the owned copy, in the companion behavior schema.
     function T.decide(serial, context, _)
         local a = active
+        if (not a or a.serial ~= serial) and holds[serial] then
+            return {phase = 'tactic-hold', reason = 'post', operation = {ticket = 'tactic-post-' .. serial, kind = 'hold'}, look = 'none'}
+        end
         if not a or a.serial ~= serial then return nil end
         local operation
         if a.phase == 'fight-approach' then

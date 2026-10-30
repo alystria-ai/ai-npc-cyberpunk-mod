@@ -1,0 +1,80 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "judy-hangout-repair-night",
+  "character": "judy-alvarez",
+  "title": "Repair Night",
+  "summary": "Judy is in a fixing mood at her workbench in Lizzie's basement and wants V to bring her something broken.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Judy has a workbench in Lizzie's basement and wants you to bring her something broken to fix. Bring up, in your own way, that you have something you want her to look at."
+  },
+  "places": {
+    "workbench": {"name": "Judy's workbench in Lizzie's basement", "radius": 6}
+  },
+  "lines": {
+    "JH5.invite.01": {"text": "Bring me something broken. I'm in a fixing mood.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Why'd you keep this?",
+      "know": "The item V brought, and what she has made of it on the bench so far.",
+      "wants": "V's answer, which is the twist.",
+      "idle": "chair",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "repair",
+      "type": "play",
+      "label": "Judy repairs V's junk item at her workbench",
+      "know": "You are in Lizzie's basement at Judy's workbench. She is fixing a junk item from your inventory and wants to see what she can make of it.",
+      "wants": "V to watch her work and hand over the item.",
+      "do": [
+        {"p": "pin", "at": "workbench"},
+        {"p": "place", "at": "workbench"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "workbench"},
+        {"p": "workspot", "id": "repair", "who": "judy", "at": "workbench", "key": "mechanic", "fallback": "lean"},
+        {"p": "together", "id": "repair", "minutes": 8, "metres": 2, "breakSeconds": 120, "at": "workbench"},
+        {"p": "timer", "id": "fix-end", "seconds": 600, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JH5.invite.01"},
+        {"when": "timer:fix-end", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "repaired", "on": "event:together:repair:done", "next": "repaired"},
+        {"id": "left", "on": "event:together:repair:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "repaired": {
+      "memory": "You brought Judy something broken, and she fixed it at her workbench in Lizzie's basement and gave it back better.",
+      "bond": 8
+    },
+    "left": {
+      "memory": "You left Judy's workbench in Lizzie's basement before she had finished fixing your item.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "any-junk", "know": "Any junk item from V's inventory, and Judy wants to see what she can make of it.", "wants": "V's junk item.", "places": {"workbench": "workbench"}},
+      {"id": "by-category", "know": "A junk item from the category V picks, and Judy wants to match her repair to it.", "wants": "V's category.", "places": {"workbench": "workbench"}}
+    ]
+  }
+}

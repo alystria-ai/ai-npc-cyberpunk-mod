@@ -1,0 +1,233 @@
+{
+  "format": 2,
+  "id": "viktor-patient-confidentiality",
+  "character": "viktor-vektor",
+  "title": "Patient Confidentiality",
+  "summary": "Maelstrom takes Viktor off a Little China street to keep a wounded packmate alive, and V must get him out without shots in the ward.",
+  "requires": {
+    "bond": 8,
+    "after": ["viktor-off-the-books"],
+    "questsFinished": ["quests/minor_quest/mq045_victor_debt"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "A text arrives from an unknown number saying Viktor is with a crew, and that his doctor is working on a patient they have. Bring it up, briefly and in your own way, that the message came in and V has to decide whether to go alone."
+  },
+  "places": {
+    "warehouse": {"name": "a Watson waterfront warehouse", "radius": 20},
+    "ward": {"name": "the back room of the warehouse, a ward on two crates", "radius": 12},
+    "clinic": {"name": "a clinic in Little China", "radius": 25}
+  },
+  "images": {
+    "confidentiality-glasses": {"file": "images/confidentiality-glasses.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "V5.open.01": {"text": "Your doctor's with us. Come alone. He's busy.", "emotion": "neutral"},
+    "V5.open.02": {"text": "Clock's running. So is his patient.", "emotion": "angry"},
+    "V5.open.03": {"text": "Proof he's fine.", "emotion": "neutral"},
+    "V5.s2.01": {"text": "Alone. Doc said you'd come. Doc's working.", "emotion": "neutral"},
+    "V5.s2.02": {"text": "He finishes, then you both go. Nobody shoots in the room.", "emotion": "emphatic"},
+    "V5.s2.03": {"text": "Fine. Two minutes. Then you leave.", "emotion": "angry"},
+    "V5.s2.04": {"text": "Did you hear that?", "emotion": "fear"},
+    "V5.s3.01": {"text": "Don't touch me. Don't touch him. Close the door.", "emotion": "emphatic"},
+    "V5.s3.02": {"text": "I'm not leaving. He's open on the table. Help or wait outside.", "emotion": "angry"},
+    "V5.s3.03": {"text": "Can you keep the room quiet? Five minutes. No shots, no shouting.", "emotion": "neutral"},
+    "V5.s3.04": {"text": "Stay with me, kid. Pressure. Gauze. Stay.", "emotion": "emphatic"},
+    "V5.s3.05": {"text": "Another minute. Don't talk. Don't breathe loud.", "emotion": "angry"},
+    "V5.s3.07": {"text": "Done. He'll hold. Don't ask me for odds.", "emotion": "sad"},
+    "V5.bark.freed.a": {"text": "Not yet. Not yet.", "emotion": "angry"},
+    "V5.bark.freed.b": {"text": "Door. Close it.", "emotion": "emphatic"},
+    "V5.bark.down.a": {"text": "Good. Outside, not in here.", "emotion": "nod"},
+    "V5.bark.down.b": {"text": "That's enough noise.", "emotion": "angry"},
+    "V5.s4.01": {"text": "Walk me out. Slow. They'll let us.", "emotion": "nod"},
+    "V5.s4.02": {"text": "I'd like to say I'm fine. Give me a minute with the road.", "emotion": "sad"},
+    "V5.s4.03": {"text": "While the door was closed. What were you thinking?", "emotion": "neutral"},
+    "V5.close.01": {"text": "You waited. Most people can't. It's the hardest part of my job.", "emotion": "nod"},
+    "V5.close.02": {"text": "One favour, on the house. Any time. Remember I said it.", "emotion": "emphatic"},
+    "V5.close.04": {"text": "I'll say it plainly. Is there something about tonight you can't put down?", "emotion": "neutral"},
+    "V5.close.05": {"text": "I know it's not your fault. It isn't.", "emotion": "sad"},
+    "V5.close.06": {"text": "They let me go. Don't say anything.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you keep the room quiet?",
+      "know": "You know the ward's rule: no combat inside 12 metres for five minutes. You know the boss's mood and where you stopped at the door.",
+      "secret": "He fears you will not be able to hold it, and he will still ask.",
+      "wants": "A clear promise.",
+      "idle": "generic_front",
+      "tags": [{"id": "promise", "kind": "yes"}, {"id": "refuse", "kind": "no"}],
+      "resumeAfterSeconds": 40
+    },
+    "g2": {
+      "asks": "What were you thinking while the door was closed?",
+      "know": "Whether you fought, sneaked or talked, and how long you waited outside.",
+      "secret": "He was counting your steps outside.",
+      "wants": "To hear you were afraid too.",
+      "idle": "generic_front",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "bluster", "kind": "flatter"}],
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "Is there something about tonight you can't put down?",
+      "know": "The patient's fate and how the night ended.",
+      "secret": "He was the one who chose to go on the table that night.",
+      "wants": "You to say it to someone.",
+      "idle": "generic_front",
+      "tags": [{"id": "speaks", "kind": "honest"}, {"id": "silent", "kind": "no"}],
+      "resumeAfterSeconds": 45
+    }
+  },
+  "stages": [
+    {
+      "id": "text",
+      "type": "play",
+      "label": "A message from an unknown number",
+      "know": "A text arrives from an unknown number: Viktor is with a Maelstrom crew, and they want you to come alone to a warehouse on the Watson waterfront.",
+      "wants": "V to reach the warehouse before the clock runs out.",
+      "do": [
+        {"p": "pin", "at": "warehouse"},
+        {"p": "place", "at": "warehouse"},
+        {"p": "timer", "id": "clock", "seconds": 600}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "V5.open.01"},
+        {"when": "line:V5.open.01:done", "text": "V5.open.03", "image": "confidentiality-glasses"},
+        {"when": "timer:clock", "text": "V5.open.02"}
+      ],
+      "choices": [
+        {"id": "came", "on": "event:place:warehouse:arrived", "next": "approach"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "approach",
+      "type": "play",
+      "label": "Three ways in through the warehouse",
+      "know": "You are at the warehouse door. A Maelstrom boss stands in front of six crew, and Viktor is at a makeshift table at the back, his hands wrapped in gauze, a young patient on a door laid over two crates.",
+      "wants": "V to get to Viktor, by talk, by stealth or by force.",
+      "do": [
+        {"p": "place", "at": "warehouse"},
+        {"p": "squad", "id": "crew", "at": "warehouse", "faction": "maelstrom", "count": 6, "hostile": false},
+        {"p": "cast", "id": "boss", "who": "extra", "at": "warehouse"},
+        {"p": "npc-react", "id": "react", "cast": "boss"},
+        {"p": "unseen", "id": "sneak", "squad": "crew", "at": "ward"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "ward"},
+        {"p": "hostage", "id": "viktor-hold", "at": "ward", "cast": "viktor"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V5.s2.01"},
+        {"when": "npc:react:obey", "say": "V5.s2.02"},
+        {"when": "line:V5.s2.02:done", "say": "V5.s2.03"},
+        {"when": "unseen:sneak:spotted", "say": "V5.s2.04"},
+        {"when": "squad:crew:down", "say": "V5.bark.down.a"},
+        {"when": "line:V5.bark.down.a:done", "say": "V5.bark.down.b"}
+      ],
+      "choices": [
+        {"id": "talked", "on": "event:npc:react:obey", "next": "ward"},
+        {"id": "sneaked", "on": "event:unseen:sneak:reached", "next": "ward"},
+        {"id": "fought", "on": "event:squad:crew:hostile", "next": "ward"},
+        {"id": "attacked", "on": "event:npc:react:attack", "next": "ward"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "ward",
+      "type": "play",
+      "label": "V holds the ward while Viktor works",
+      "know": "V is within reach of Viktor, who will not leave the patient on the table. The rule is no shooting in the ward for five minutes while he works, and the crew is outside the door.",
+      "wants": "V to keep the ward quiet and let Viktor finish.",
+      "do": [
+        {"p": "place", "at": "ward"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "ward"},
+        {"p": "hostage", "id": "viktor-hold", "at": "ward", "cast": "viktor"},
+        {"p": "together", "id": "ward", "minutes": 5, "metres": 6, "breakSeconds": 300},
+        {"p": "timer", "id": "t60", "seconds": 60},
+        {"p": "timer", "id": "t180", "seconds": 180}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V5.s3.01"},
+        {"when": "line:V5.s3.01:done", "say": "V5.s3.02"},
+        {"when": "line:V5.s3.02:done", "say": "V5.s3.03"},
+        {"when": "line:V5.s3.03:done", "gap": "g1"},
+        {"when": "timer:t60", "say": "V5.s3.04"},
+        {"when": "timer:t180", "say": "V5.s3.05"},
+        {"when": "hostage:viktor-hold:freed", "say": "V5.bark.freed.a"},
+        {"when": "line:V5.bark.freed.a:done", "say": "V5.bark.freed.b"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:ward:done", "next": "out"},
+        {"id": "broken", "on": "event:together:ward:broken", "next": "too-late"},
+        {"id": "dead", "on": "event:hostage:viktor-hold:dead", "next": "lost-patient"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "out",
+      "type": "play",
+      "label": "V walks Viktor out and drives him to the clinic",
+      "know": "The patient is stable on the door-table and the crew is letting you go. Viktor walks beside you slowly, and you drive him to the clinic in Little China.",
+      "wants": "V to get Viktor to the clinic in one piece.",
+      "do": [
+        {"p": "cast", "id": "viktor", "who": "self", "at": "ward", "carry": true},
+        {"p": "escortee", "id": "out", "from": "viktor", "to": "clinic", "metres": 10},
+        {"p": "ride", "to": "clinic", "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V5.s3.07"},
+        {"when": "line:V5.s3.07:done", "say": "V5.s4.01"},
+        {"when": "line:V5.s4.01:done", "say": "V5.s4.02"},
+        {"when": "line:V5.s4.02:done", "say": "V5.s4.03"},
+        {"when": "line:V5.s4.03:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "close"},
+        {"id": "late", "on": "event:ride:timeout", "next": "close"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "too-late"}
+      ],
+      "timeout": {"gameHours": 1, "next": "close"}
+    },
+    {
+      "id": "close",
+      "type": "play",
+      "label": "Viktor sits in the car after the clinic",
+      "know": "The clinic door is shut behind Viktor, and he is quiet in the car. He asks whether you are hurt, then waits.",
+      "wants": "V to say what the night cost, or to say nothing.",
+      "do": [
+        {"p": "cast", "id": "viktor", "who": "self", "at": "clinic", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V5.close.04"},
+        {"when": "line:V5.close.04:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "spoke", "on": "tag", "kind": "honest", "means": "V says what the night was like.", "next": "clean"},
+        {"id": "silent", "on": "tag", "kind": "no", "means": "V stays silent, and Viktor accepts the silence.", "next": "clean"}
+      ],
+      "timeout": {"gameHours": 1, "next": "clean"}
+    }
+  ],
+  "endings": {
+    "clean": {
+      "memory": "You walked into a Maelstrom hideout and got Viktor out with his patient alive.",
+      "history": "He says V can ask him for anything, once. He calls it the one on the house.",
+      "bond": 90,
+      "script": [
+        {"when": "ending:clean", "say": "V5.close.01"},
+        {"when": "ending:clean", "say": "V5.close.02"}
+      ]
+    },
+    "lost-patient": {
+      "memory": "Shots went off in the back room, and the patient died on the table while you were still in the room.",
+      "bond": 30,
+      "script": [{"when": "ending:lost-patient", "say": "V5.close.05"}]
+    },
+    "too-late": {
+      "memory": "You were too slow, and the crew let Viktor go on their own.",
+      "bond": 10,
+      "script": [{"when": "ending:too-late", "say": "V5.close.06"}]
+    }
+  }
+}

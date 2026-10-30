@@ -1,0 +1,237 @@
+{
+  "format": 2,
+  "id": "viktor-off-the-books",
+  "character": "viktor-vektor",
+  "title": "Off the Books",
+  "summary": "Viktor needs V to go into a Kabuki back room as a patient and get the batch number off a street chopper's own lips.",
+  "requires": {
+    "bond": 6,
+    "after": ["viktor-third-card"],
+    "questsFinished": ["quests/minor_quest/mq045_victor_debt"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "A street chopper in Kabuki is installing cheap clones in people who cannot afford better, and three of them came to Viktor with infections and a lost hand. He is angry in his quiet way, and he cannot walk in because everyone there knows his face. Bring it up, briefly and in your own way, that he is calling you for a favour that needs a patient's face."
+  },
+  "places": {
+    "street": {"name": "a Kabuki street where V parks the car", "radius": 25},
+    "backroom": {"name": "the chopper's back room in a Kabuki alley", "radius": 8}
+  },
+  "lines": {
+    "V4.open.01": {"text": "V. It's Viktor. Are you somewhere you can talk?", "emotion": "neutral", "channel": "holocall"},
+    "V4.open.02": {"text": "Three patients this week, same chair. Infected. One lost a hand.", "emotion": "sad", "channel": "holocall"},
+    "V4.open.03": {"text": "A chopper in Kabuki. Cheap clones in a good box. Nobody reports him.", "emotion": "disgust", "channel": "holocall"},
+    "V4.open.04": {"text": "I can't walk in. Everyone there knows my face. Would you go in as a patient?", "emotion": "neutral", "channel": "holocall"},
+    "V4.open.05": {"text": "Good. Come to Kabuki. I'm in a parked car, I'll explain where nobody listens.", "emotion": "nod", "channel": "holocall"},
+    "V4.open.06": {"text": "And V. Bring the weapon you won't show.", "emotion": "emphatic", "channel": "holocall"},
+    "V4.s1.01": {"text": "In the chair, you say the arm lags when you reach. Nothing clever.", "emotion": "emphatic"},
+    "V4.s1.02": {"text": "He may ask for a weapon check. You came unarmed. You're a patient with a bad arm.", "emotion": "nod"},
+    "V4.s1.03": {"text": "Tell me one true thing about being tired of hurting. Use it in there.", "emotion": "neutral"},
+    "V4.s2.01": {"text": "Good. Sit. Don't touch the tray.", "emotion": "nod", "channel": "remote"},
+    "V4.s2.02": {"text": "Ask where the chrome comes from. Casually. Like the weather.", "emotion": "emphatic", "channel": "remote"},
+    "V4.s2.03": {"text": "Ask to see the box before you sign.", "emotion": "emphatic", "channel": "remote"},
+    "V4.s2.07": {"text": "Batch number. Say it back to me. I'll remember.", "emotion": "emphatic", "channel": "remote"},
+    "V4.s4.01": {"text": "Say what you saw. Plainly. No threats. He'll fill in the rest.", "emotion": "emphatic"},
+    "V4.bark.arrive.a": {"text": "Door's open. Walk like your arm hurts.", "emotion": "neutral", "channel": "remote"},
+    "V4.bark.arrive.b": {"text": "Breathe. You're a patient. Patients are boring.", "emotion": "shrug", "channel": "remote"},
+    "V4.bark.down.a": {"text": "That's enough. Walk away.", "emotion": "emphatic"},
+    "V4.bark.down.b": {"text": "I said no fight. Next time listen.", "emotion": "angry"},
+    "V4.close.01": {"text": "He closed. Without a shot. I'd have paid for that.", "emotion": "happy"},
+    "V4.close.02": {"text": "Three patients get a free follow-up. Did it feel like lying, or like acting?", "emotion": "neutral"},
+    "V4.close.03": {"text": "Supplier, batch, a name I don't like. It'll keep.", "emotion": "nod"},
+    "V4.close.04": {"text": "They know your face now. Stay out of Kabuki a few weeks.", "emotion": "angry"},
+    "V4.close.05": {"text": "Dropping the cover was right. A patient with a gun is a lie nobody believes.", "emotion": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Would you go in as a patient?",
+      "know": "You know the story of the chopper and the three patients. You know Viktor's skill with talk, and that you have already done the first check of his three patients.",
+      "secret": "He is angrier than he sounds. One of the three was a boy younger than you.",
+      "wants": "A yes without a speech.",
+      "idle": "chair",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "loud", "kind": "honest"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Tell me one true thing about being tired of hurting.",
+      "know": "You know the plan, Viktor's wounds, and the chair's layout in the back room.",
+      "secret": "He is asking because it is the only honest line a patient can say.",
+      "wants": "V to find a real detail to hang the lie on.",
+      "idle": "generic_front",
+      "tags": [{"id": "vivid", "kind": "honest"}],
+      "resumeAfterSeconds": 30
+    },
+    "g3": {
+      "asks": "Did it feel like lying, or like acting?",
+      "know": "You know how the back room ended, and whether V used any improvised lines.",
+      "secret": "He never could do it.",
+      "wants": "V's honest sense of it.",
+      "idle": "generic_front",
+      "tags": [{"id": "lying", "kind": "honest"}, {"id": "acting", "kind": "flatter"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "steps": [
+        {"say": "V4.open.01"},
+        {"say": "V4.open.02"},
+        {"say": "V4.open.03"},
+        {"say": "V4.open.04"},
+        {"gap": "g1"},
+        {"say": "V4.open.05"},
+        {"say": "V4.open.06"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Viktor calls V and asks for a patient's face",
+      "know": "Viktor calls you from a parked car in Kabuki. He asks you to go into a street chopper's back room as a patient, and he explains why he cannot walk in himself.",
+      "wants": "V to say yes, or at least to hear the job out.",
+      "do": [
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30}
+      ],
+      "choices": [
+        {"id": "refused", "on": "tag", "kind": "no", "means": "V refuses to go in as a patient, and Viktor ends the call.", "next": "no"},
+        {"id": "heard", "on": "event:call:ring:done", "next": "brief"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
+      ],
+      "timeout": {"gameHours": 2, "next": "no"}
+    },
+    {
+      "id": "brief",
+      "type": "play",
+      "label": "Viktor briefs V beside the car",
+      "know": "The call is done and you are parked on a Kabuki street with Viktor. He explains the plan through the window, and he asks one honest question before you go in.",
+      "wants": "V to go into the back room with a patient's story and nothing else.",
+      "do": [
+        {"p": "pin", "at": "street"},
+        {"p": "place", "at": "street"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "street", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V4.s1.01"},
+        {"when": "line:V4.s1.01:done", "say": "V4.s1.02"},
+        {"when": "line:V4.s1.02:done", "say": "V4.s1.03"},
+        {"when": "line:V4.s1.03:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "answered", "on": "tag", "kind": "honest", "means": "V gives a real detail to hang the lie on.", "next": "chair"}
+      ],
+      "timeout": {"gameHours": 1, "next": "chair"}
+    },
+    {
+      "id": "chair",
+      "type": "play",
+      "label": "V sits in the chopper's chair and talks",
+      "know": "You are in the chopper's back room, sitting in the chair, with Viktor speaking in your ear. You say the arm lags when you reach. You are asking where the chrome comes from, and you are looking for the box and the batch label.",
+      "wants": "V to get the batch label off the chopper's own mouth, and to keep the cover.",
+      "do": [
+        {"p": "place", "at": "backroom"},
+        {"p": "seat"},
+        {"p": "cast", "id": "chopper", "who": "extra", "at": "backroom"},
+        {"p": "npc-react", "id": "react", "cast": "chopper"},
+        {"p": "check", "id": "gear", "what": "gear"},
+        {"p": "check", "id": "label", "what": "item"},
+        {"p": "timer", "id": "t60", "seconds": 60},
+        {"p": "timer", "id": "t150", "seconds": 150}
+      ],
+      "script": [
+        {"when": "place:backroom:arrived", "say": "V4.bark.arrive.a"},
+        {"when": "line:V4.bark.arrive.a:done", "say": "V4.bark.arrive.b"},
+        {"when": "stage:enter", "say": "V4.s2.01"},
+        {"when": "timer:t60", "say": "V4.s2.02"},
+        {"when": "timer:t150", "say": "V4.s2.03"},
+        {"when": "check:label:read", "say": "V4.s2.07"}
+      ],
+      "choices": [
+        {"id": "police", "on": "event:npc:react:call-police", "next": "turn"},
+        {"id": "brawl", "on": "event:npc:react:attack", "next": "turn"},
+        {"id": "drawn", "on": "event:check:gear:drawn", "next": "blown"},
+        {"id": "read", "on": "event:check:label:read", "next": "close"}
+      ],
+      "timeout": {"gameHours": 2, "next": "turn"}
+    },
+    {
+      "id": "turn",
+      "type": "play",
+      "label": "The chopper calls his guards",
+      "know": "The chopper has called two guards from the next room and says he will check your papers. You can talk your way out, walk out the front door with the box number, or the guards turn and it becomes a short brawl in the alley. Viktor can only say one calm line in your ear.",
+      "wants": "V to get out of the alley with the box number and no fight.",
+      "do": [
+        {"p": "squad", "id": "guards", "at": "backroom", "faction": "street-crew", "count": 2, "hostile": false},
+        {"p": "cast", "id": "chopper", "who": "extra", "at": "backroom"},
+        {"p": "npc-react", "id": "papers", "cast": "chopper"}
+      ],
+      "script": [
+        {"when": "stage:enter", "event": "squad:guards:go"},
+        {"when": "squad:guards:down", "say": "V4.bark.down.a"},
+        {"when": "line:V4.bark.down.a:done", "say": "V4.bark.down.b"}
+      ],
+      "choices": [
+        {"id": "talked", "on": "event:npc:papers:leave", "next": "close"},
+        {"id": "attacked", "on": "event:npc:papers:attack", "next": "brawl"},
+        {"id": "turned", "on": "event:squad:guards:hostile", "next": "brawl"}
+      ],
+      "timeout": {"gameHours": 1, "next": "close"}
+    },
+    {
+      "id": "close",
+      "type": "play",
+      "label": "V says what was learned at the door",
+      "know": "V is at the door of the clinic and says what you learned. The chopper decides how to take it: he shuts the clinic, threatens you, or offers a bribe. Viktor steps out of the car at the end only to say one sentence to him.",
+      "wants": "The chopper to shut the clinic and leave the patients alone.",
+      "do": [
+        {"p": "cast", "id": "chopper", "who": "extra", "at": "backroom"},
+        {"p": "npc-react", "id": "close", "cast": "chopper"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V4.s4.01"},
+        {"when": "line:V4.s4.01:done", "say": "V4.close.02"},
+        {"when": "line:V4.close.02:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "left", "on": "event:npc:close:leave", "next": "quiet-close"},
+        {"id": "cowered", "on": "event:npc:close:cower", "next": "quiet-close"},
+        {"id": "bribed", "on": "event:npc:close:obey", "next": "box"},
+        {"id": "fought", "on": "event:npc:close:attack", "next": "brawl"}
+      ],
+      "timeout": {"gameHours": 1, "next": "quiet-close"}
+    }
+  ],
+  "endings": {
+    "quiet-close": {
+      "memory": "You posed as a patient and talked a street chopper in Kabuki out of installing cheap clones. Nobody was hurt.",
+      "history": "He adds your name to the short list of people he trusts with a lie.",
+      "bond": 70,
+      "script": [{"when": "ending:quiet-close", "say": "V4.close.01"}]
+    },
+    "box": {
+      "memory": "You got the supplier and the batch number from the chopper's own mouth and walked out clean.",
+      "bond": 60,
+      "script": [{"when": "ending:box", "say": "V4.close.03"}]
+    },
+    "brawl": {
+      "memory": "The guards turned on you. You got out, but the chopper knows your face now.",
+      "bond": 40,
+      "script": [{"when": "ending:brawl", "say": "V4.close.04"}]
+    },
+    "blown": {
+      "memory": "You drew a weapon in the back room and the cover was gone. Viktor says dropping it was right.",
+      "bond": 30,
+      "script": [{"when": "ending:blown", "say": "V4.close.05"}]
+    },
+    "no": {
+      "memory": "You told Viktor no, and he went looking for someone else to walk in.",
+      "bond": 0
+    }
+  }
+}

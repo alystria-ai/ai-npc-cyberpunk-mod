@@ -1,0 +1,171 @@
+{
+  "format": 2,
+  "id": "songbird-burned-billboard",
+  "character": "songbird",
+  "title": "Left at the Burned Billboard",
+  "summary": "Songbird guides V across Night City by landmarks alone, to a skyline she remembers from before the damage.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird wants to see one place in Night City again, a spot where she once parked to eat and watch the skyline. She cannot remember the address, only some of the landmarks, and she knows some of them are wrong. She asks you to find it with no map and only her directions."
+  },
+  "places": {
+    "billboard": {"name": "the burned billboard with a black and orange tyre ad", "radius": 25},
+    "tunnel": {"name": "the tunnel mouth with a broken light", "radius": 12},
+    "gas": {"name": "the gas station with one working pump", "radius": 25},
+    "ramp": {"name": "the freeway on-ramp with a crushed sign", "radius": 25},
+    "overlook": {"name": "the overpass overlook with the skyline", "radius": 25}
+  },
+  "images": {
+    "billboard-skyline": {"file": "images/billboard-skyline.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "S4.open.01": {"text": "It's me. Are you driving? Don't. Stop first.", "emotion": "neutral", "channel": "holocall"},
+    "S4.open.02": {"text": "I want to see a place again. I don't remember where it is.", "emotion": "sad", "channel": "holocall"},
+    "S4.open.03": {"text": "A burned billboard on the left. A tunnel with a broken light. After that, my memory is a mess.", "emotion": "emphatic", "channel": "holocall"},
+    "S4.open.04": {"text": "Will you help me find it with no map, only my bad directions?", "emotion": "neutral", "channel": "holocall"},
+    "S4.open.05": {"text": "Start at the edge of Dogtown. I'll talk. You drive.", "emotion": "nod", "channel": "holocall"},
+    "S4.d.01": {"text": "Left at the burned billboard. A tyre ad. Black and orange.", "emotion": "emphatic", "channel": "remote"},
+    "S4.d.03": {"text": "There was a gas station. One pump worked. The rest rusted.", "emotion": "neutral", "channel": "remote"},
+    "S4.d.04": {"text": "The tunnel. The light flickers. I always held my breath. Silly.", "emotion": "happy", "channel": "remote"},
+    "S4.d.06": {"text": "The sign was crushed. I remember green, and crushed.", "emotion": "neutral", "channel": "remote"},
+    "S4.d.07": {"text": "What colour is the sky right now? Tell me properly.", "emotion": "neutral", "channel": "remote"},
+    "S4.v.01": {"text": "Stop. That's it. That's the place.", "emotion": "surprise", "channel": "remote"},
+    "S4.v.02": {"text": "I sat here with a wrapper and a radio. I don't remember the song.", "emotion": "sad", "channel": "remote"},
+    "S4.v.03": {"text": "What does it look like from there? Everything.", "emotion": "neutral", "channel": "remote"},
+    "S4.v.04": {"text": "Same view. Different year.", "emotion": "neutral"},
+    "S4.close.01": {"text": "You found it. Without a pin. Almost without me.", "emotion": "happy", "channel": "remote"},
+    "S4.close.03": {"text": "I was remembering a different city. So I did live there.", "emotion": "sad", "channel": "remote"},
+    "S4.close.04": {"text": "Another day.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you help me find it with no map, only my bad directions?",
+      "know": "You know the five unmarked landmarks, the thirty-minute limit and how damaged your memory is.",
+      "secret": "It is the one place you remember loving.",
+      "wants": "Patience, not accuracy.",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}]
+    },
+    "g2": {
+      "asks": "What colour is the sky right now?",
+      "know": "You know the weather and the hour, and you have lost track of what the colours are.",
+      "secret": "You mistake colours since the damage.",
+      "wants": "A clear description.",
+      "tags": [{"id": "detail", "kind": "honest"}]
+    },
+    "g3": {
+      "asks": "What does it look like from there? Everything.",
+      "know": "You are at the overlook with the skyline in front of V.",
+      "secret": "You remember the view as warmer than it is.",
+      "wants": "V's eyes.",
+      "tags": [{"id": "described", "kind": "honest"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "calls": {
+    "c4": {
+      "caller": "self",
+      "picture": "voice",
+      "text": "S4.close.04",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "S4.open.01"},
+        {"say": "S4.open.02"},
+        {"say": "S4.open.03"},
+        {"say": "S4.open.04"},
+        {"gap": "g1"},
+        {"say": "S4.open.05"}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Songbird asks V to find a place with no map",
+      "know": "You are calling V from Dogtown's edge. You can tell V what you saw, not where it was, and you want V to be patient with you.",
+      "wants": "V to agree to drive with only your directions.",
+      "do": [{"p": "call-in", "id": "ring", "call": "c4", "ringSeconds": 30}],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "drive"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
+      ],
+      "timeout": {"gameHours": 2, "next": "no"}
+    },
+    {
+      "id": "drive",
+      "type": "play",
+      "label": "Songbird gives V landmarks and V drives",
+      "know": "V is driving alone toward the overlook. You give landmarks one at a time, and you are sometimes wrong and will know it a few seconds later.",
+      "wants": "V to pass each landmark and reach the overlook.",
+      "do": [
+        {"p": "remote"},
+        {"p": "ride", "to": "overlook", "checkpoints": ["billboard", "tunnel", "gas", "ramp"], "limitMinutes": 30, "heat": false}
+      ],
+      "script": [
+        {"when": "ride:checkpoint:billboard", "say": "S4.d.01"},
+        {"when": "ride:checkpoint:tunnel", "say": "S4.d.04"},
+        {"when": "ride:checkpoint:gas", "say": "S4.d.03"},
+        {"when": "ride:checkpoint:ramp", "say": "S4.d.06"},
+        {"when": "line:S4.d.06:done", "say": "S4.d.07"},
+        {"when": "line:S4.d.07:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "overlook"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "no"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    },
+    {
+      "id": "overlook",
+      "type": "play",
+      "label": "Songbird asks what V sees from the overlook",
+      "know": "V is at the overlook. You remember the skyline as it was, and you ask V to describe it to you.",
+      "wants": "V to describe everything V sees.",
+      "do": [
+        {"p": "remote"},
+        {"p": "place", "at": "overlook", "dwell": 300},
+        {"p": "timer", "id": "view", "seconds": 60}
+      ],
+      "script": [
+        {"when": "place:overlook:arrived", "say": "S4.v.01"},
+        {"when": "timer:view", "say": "S4.v.02"},
+        {"when": "line:S4.v.02:done", "say": "S4.v.03"},
+        {"when": "line:S4.v.03:done", "gap": "g3"},
+        {"when": "gap:g3:described", "text": "S4.v.04", "image": "billboard-skyline"}
+      ],
+      "choices": [
+        {"id": "seen", "on": "event:gap:g3:described", "next": "found"},
+        {"id": "waited", "on": "event:gap:g3:resume", "next": "found"}
+      ],
+      "timeout": {"gameHours": 1, "next": "found"}
+    }
+  ],
+  "endings": {
+    "found": {
+      "memory": "You followed Songbird's memory across Night City to a skyline she used to eat in front of.",
+      "history": "She calls it the overlook.",
+      "bond": 60,
+      "script": [{"when": "ending:found", "say": "S4.close.01"}]
+    },
+    "lost": {
+      "memory": "You ran out of time before the overlook, and Songbird said she remembered a different city.",
+      "bond": 30,
+      "script": [{"when": "ending:lost", "say": "S4.close.03"}]
+    },
+    "no": {
+      "memory": "You did not go looking for Songbird's old place, and she said another day.",
+      "bond": -5,
+      "script": [{"when": "ending:no", "text": "S4.close.04"}]
+    }
+  }
+}

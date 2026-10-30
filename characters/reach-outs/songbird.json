@@ -1,0 +1,120 @@
+{
+  "format": 1,
+  "character": "songbird",
+  "requires": {
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"]
+  },
+  "triggers": [
+    {
+      "id": "sb-level2-night",
+      "via": "call",
+      "text": "Hello. I woke up and wanted to say something. I don't have it yet. Stay a moment.",
+      "after": [{"kind": "bond", "level": 2}],
+      "when": {"kind": "hours", "from": 22, "to": 5},
+      "once": true,
+      "note": "Her condition and V's last topic."
+    },
+    {
+      "id": "sb-dogtown",
+      "via": "text",
+      "text": "You're in Dogtown. Watch the north stair. Seven weeks ago it was empty.",
+      "when": {"kind": "district", "is": "Dogtown"},
+      "cooldownDays": 3,
+      "note": "The district and any recent patrol event."
+    },
+    {
+      "id": "sb-low-health",
+      "via": "text",
+      "text": "You okay? I felt it. I know I can't. I'm saying it anyway.",
+      "when": {"kind": "fight-end", "healthBelow": 25},
+      "cooldownDays": 3,
+      "note": "The fight and V's wounds."
+    },
+    {
+      "id": "sb-dawn",
+      "via": "text",
+      "text": "It's late for me. Early for you. I'm sorry I'm awake.",
+      "when": {"kind": "hours", "from": 6, "to": 7},
+      "cooldownDays": 5,
+      "note": "The hour and her light-delay joke."
+    },
+    {
+      "id": "sb-song",
+      "via": "text",
+      "text": "Not that one. The one after. Trust me.",
+      "when": {"kind": "song"},
+      "cooldownDays": 5,
+      "note": "The song that is playing."
+    },
+    {
+      "id": "sb-idle",
+      "via": "text",
+      "text": "Ten days is a long time. Not long enough for an apology. Long enough for a hello.",
+      "after": [{"kind": "idle-days", "days": 10}],
+      "cooldownDays": 10,
+      "note": "The last topic."
+    },
+    {
+      "id": "sb-heywood",
+      "via": "text",
+      "text": "You're near the stoops, aren't you. Sit a minute for me.",
+      "when": {"kind": "district", "is": "Heywood"},
+      "cooldownDays": 4,
+      "note": "The district and the block from S1."
+    },
+    {
+      "id": "sb-rain",
+      "via": "text",
+      "text": "It's raining there? I can hear it. Some of it.",
+      "when": {"kind": "weather", "is": "rain"},
+      "cooldownDays": 4,
+      "note": "The weather."
+    },
+    {
+      "id": "sb-hangout-shared-radio",
+      "via": "text",
+      "text": "Park somewhere and tune your radio. I'm going to pick a station by memory, and I'll be wrong.",
+      "after": [{"kind": "bond", "level": 2}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-shared-radio",
+      "note": "She is asking V to park somewhere, tune the radio and listen along with her."
+    },
+    {
+      "id": "sb-hangout-card-count",
+      "via": "text",
+      "text": "I can't hack a table. I can count. Sit down at the card table and describe each hand to me.",
+      "after": [{"kind": "bond", "level": 3}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-card-count",
+      "note": "She cannot hack a card table, so she asks V to sit down and describe each hand to her."
+    },
+    {
+      "id": "sb-hangout-window-shopping",
+      "via": "text",
+      "text": "I want to choose things. Small things. Take me to a place with shops.",
+      "after": [{"kind": "bond", "level": 4}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-window-shopping",
+      "note": "She wants to choose small things and asks V to take her somewhere with shops."
+    },
+    {
+      "id": "sb-hangout-colour-hunt",
+      "via": "text",
+      "text": "Dogtown is grey. I'd like five colours. Find them for me, and tell me what they feel like.",
+      "after": [{"kind": "bond", "level": 6}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-colour-hunt",
+      "note": "Dogtown feels grey to her. She asks V to find five colours and say what they feel like."
+    },
+    {
+      "id": "sb-hangout-keep-watch",
+      "via": "text",
+      "text": "I haven't slept in two days. I can't tonight unless somebody keeps watch. Would you?",
+      "after": [{"kind": "bond", "level": 8}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-keep-watch",
+      "note": "She has not slept in two days and asks V to keep watch while she sleeps."
+    }
+  ]
+}

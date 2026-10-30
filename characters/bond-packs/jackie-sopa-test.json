@@ -1,0 +1,161 @@
+{
+  "format": 2,
+  "id": "jackie-sopa-test",
+  "character": "jackie-welles",
+  "title": "Not Quite Mama's",
+  "summary": "Jackie has not been home in a week and wants a noodle bowl that tastes like his mother's sopa de fideos, with you as the judge.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Jackie has not been home for a week, because the job he is on keeps him in Watson, and he misses his mother's sopa de fideos more than he says. He can't go until the job is done, so he texts you: he wants to find the nearest thing to her bowl in Little China, one noodle stall at a time, with you as the judge. It is the first time he lets you see that he is homesick."
+  },
+  "places": {
+    "lane": {"name": "the noodle lane in Little China", "radius": 25},
+    "stall": {"name": "the best noodle stall on the lane", "radius": 8}
+  },
+  "lines": {
+    "JW1.open.01": {"text": "Choom, I'm starving. Not hungry. Starving.", "emotion": "emphatic"},
+    "JW1.open.02": {"text": "I need a bowl that tastes like my mama's sopa de fideos.", "emotion": "neutral"},
+    "JW1.open.03": {"text": "Little China, noodle lane. Be my judge. Two hours.", "emotion": "neutral"},
+    "JW1.bark.rate.a": {"text": "Too much salt. Mama would cry.", "emotion": "disgust"},
+    "JW1.bark.rate.b": {"text": "Okay, okay. That's close. Don't tell the others.", "emotion": "nod"},
+    "JW1.stage.call.01": {"text": "Give me a minute, choom. I gotta call home before I lose my nerve.", "emotion": "neutral"},
+    "JW1.bark.best.a": {"text": "This one. Number three. Hot, and it tastes like someone cared.", "emotion": "happy"},
+    "JW1.bark.best.b": {"text": "Not Mama's. But it's hot. That's what I need tonight.", "emotion": "nod"},
+    "JW1.close.01": {"text": "When this job's done, I'm bringing her here. She'll hate it and finish the bowl.", "emotion": "happy"},
+    "JW1.close.02": {"text": "Thanks for eating with me. Seriously. Feels less like I'm missing something.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You coming, hermano? And do you like it spicy or are you one of those?",
+      "know": "You are meeting Jackie on the noodle lane in Little China in two game hours, with three stalls to try. He is homesick and jokes about it.",
+      "secret": "He has not been home in a week and misses his mother more than he says.",
+      "wants": "A plain yes from you and an appetite.",
+      "tags": [{"id": "yes", "kind": "yes"}],
+      "resumeAfterSeconds": 7200,
+      "resumeOn": ["place:lane:arrived"]
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Jackie texts V to meet on the noodle lane",
+      "know": "You texted V to meet on the noodle lane in Little China in two hours to taste noodles and judge them. You are waiting there, homesick, and you joke about it so nobody notices.",
+      "wants": "V to say yes and come to the lane.",
+      "do": [
+        {"p": "pin", "at": "lane"},
+        {"p": "place", "at": "lane"},
+        {"p": "cast", "id": "jackie", "who": "self", "at": "lane", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "JW1.open.01"},
+        {"when": "line:JW1.open.01:done", "text": "JW1.open.02"},
+        {"when": "line:JW1.open.02:done", "text": "JW1.open.03"},
+        {"when": "line:JW1.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "came", "on": "event:place:lane:arrived", "next": "crawl"},
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "crawl"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "crawl",
+      "type": "play",
+      "label": "Jackie and V try the noodle stall",
+      "know": "V is at the noodle stall with you. You order a bowl and compare it to your mother's with comic exactness, and you go quiet when it is close.",
+      "wants": "V to taste the bowl and give an honest rating.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "stall"},
+        {"p": "seat"},
+        {"p": "together", "id": "eat", "minutes": 8, "metres": 5, "breakSeconds": 90, "seated": true, "at": "stall"}
+      ],
+      "script": [
+        {"when": "seat:seated", "say": "JW1.bark.rate.a"},
+        {"when": "line:JW1.bark.rate.a:done", "say": "JW1.bark.rate.b"}
+      ],
+      "choices": [
+        {"id": "walked", "on": "event:together:eat:done", "next": "call"},
+        {"id": "broken", "on": "event:together:eat:broken", "next": "incomplete"}
+      ],
+      "timeout": {"gameHours": 3, "next": "incomplete"}
+    },
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Jackie calls his mother from outside the stall",
+      "know": "Outside the best stall you call your mother. You hear only his side. She asks whether he has eaten, whether V has eaten and whether he has seen Misty. You can wait or step away.",
+      "wants": "V to wait for the call, or to give him room to make it alone.",
+      "do": [
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW1.stage.call.01"}
+      ],
+      "choices": [
+        {"id": "stay", "on": "tag", "means": "V stays close and waits while Jackie talks to his mother", "kind": "yes", "next": "pick"},
+        {"id": "step-away", "on": "tag", "means": "V steps away to give Jackie room for his call", "kind": "honest", "next": "verdict-away"}
+      ],
+      "timeout": {"gameHours": 1, "next": "pick"}
+    },
+    {
+      "id": "pick",
+      "type": "play",
+      "label": "Jackie picks the bowl that is closest to home",
+      "know": "The call is done and you are back at the stall. You picked the winner, and you will bring your mother here when things calm down.",
+      "wants": "V to sit with him at the winning stall while he eats.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "stall"},
+        {"p": "seat"},
+        {"p": "together", "id": "verdict", "minutes": 10, "metres": 5, "breakSeconds": 120, "seated": true, "at": "stall"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW1.bark.best.a"},
+        {"when": "line:JW1.bark.best.a:done", "say": "JW1.bark.best.b"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:verdict:done", "next": "verdict"},
+        {"id": "left", "on": "event:together:verdict:broken", "next": "incomplete"}
+      ],
+      "timeout": {"gameHours": 3, "next": "incomplete"}
+    }
+  ],
+  "endings": {
+    "verdict": {
+      "memory": "You and Jackie ate your way through Little China looking for a bowl like his mother's, and he called home from the best stall.",
+      "bond": 40,
+      "script": [
+        {"when": "ending:verdict", "say": "JW1.close.01"},
+        {"when": "ending:verdict", "say": "JW1.close.02"}
+      ]
+    },
+    "verdict-away": {
+      "memory": "You gave Jackie room to call his mother from a noodle stall in Little China, and he found the bowl that was closest to home.",
+      "bond": 45
+    },
+    "incomplete": {
+      "memory": "You and Jackie tried some noodles in Little China and never settled on the bowl he was looking for.",
+      "bond": 25
+    },
+    "stood-up": {
+      "memory": "Jackie waited for you on a noodle lane in Little China, and you never came.",
+      "bond": -5
+    },
+    "unfinished": {
+      "memory": "You and Jackie were going to find a noodle stand that tasted like his mother's sopa de fideos. Then The Heist came, and you never did.",
+      "bond": 0
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

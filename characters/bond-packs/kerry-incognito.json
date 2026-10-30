@@ -1,0 +1,160 @@
+{
+  "format": 2,
+  "id": "kerry-incognito",
+  "character": "kerry-eurodyne",
+  "title": "Incognito",
+  "summary": "Kerry wants one street food meal in Japantown without anyone lifting a phone, so he asks you to run interference in a hat and scarf.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq011_concert"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You have not eaten at a street stall in twelve years because somebody always lifts a phone. You want to cross the Japantown night food street in a hat and scarf and have V run interference. Ask V for it in your own way, with a dry joke that hides how much you want it."
+  },
+  "places": {
+    "street": {"name": "the entrance of the Japantown night food street", "radius": 25},
+    "fan-spot": {"name": "the lantern corner halfway down the food street", "radius": 12},
+    "guard-spot": {"name": "the noodle bar gate on the food street", "radius": 12},
+    "drone-spot": {"name": "the open square at the middle of the food street", "radius": 15},
+    "stall": {"name": "the food stall at the end of the street", "radius": 8}
+  },
+  "images": {
+    "incognito-coaster": {"file": "images/incognito-coaster.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "K2.open.01": {"text": "I haven't eaten at a stall in twelve years. Somebody always lifts a phone.", "emotion": "sad"},
+    "K2.open.02": {"text": "Hat. Scarf. Glasses. You run interference. If anyone looks, you distract them.", "emotion": "emphatic"},
+    "K2.bark.fan.a": {"text": "Shit. Teenager at two o'clock. Do something.", "emotion": "fear"},
+    "K2.bark.fan.b": {"text": "He saw me. He's looking. Distract him!", "emotion": "fear"},
+    "K2.bark.safe.a": {"text": "Gone. Good. Keep walking.", "emotion": "nod", "gesture": "nod"},
+    "K2.bark.safe.b": {"text": "That worked. I'm almost enjoying this.", "emotion": "happy"},
+    "K2.bark.phone.a": {"text": "Phone up. Damn. Back up, back up.", "emotion": "angry"},
+    "K2.bark.phone.b": {"text": "That's it. Seen. We try again.", "emotion": "angry"},
+    "K2.close.01": {"text": "Look at that. A kid. Hand me the coaster. I'll sign it.", "emotion": "happy"},
+    "K2.close.02": {"text": "We got seen. It's fine. It was a good bowl.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do I look like a nobody? Honestly. Don't flatter me.",
+      "know": "You are planning the walk through the Japantown night food street with V. The route is about 600 metres with five points, and there are three ways to be recognized: a teenage fan, a guard who lifts a phone, and a paparazzi drone.",
+      "secret": "You miss not being recognized, and you also need it.",
+      "wants": "V to take the job seriously.",
+      "idle": "kerry",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 240
+    },
+    "g2": {
+      "asks": "Does it taste better because nobody knows who I am? Or just because it's cheap?",
+      "know": "You are at the stall with a bowl in front of you, relaxed for the first time all night. A small kid is about to recognize you. You told V the stall beats any restaurant you own.",
+      "secret": "You wanted a kid to recognize you tonight.",
+      "wants": "V's honest answer.",
+      "idle": "stool",
+      "tags": [{"id": "real", "kind": "honest"}, {"id": "light", "kind": "flatter"}],
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "plan",
+      "label": "Kerry asks V to keep an eye out",
+      "know": "You have asked V to run interference for one meal on the Japantown night food street. You have a hat, a scarf and glasses. You need V to take it seriously.",
+      "wants": "V to say yes and mean it.",
+      "script": [
+        {"when": "stage:enter", "say": "K2.open.01"},
+        {"when": "line:K2.open.01:done", "say": "K2.open.02"},
+        {"when": "line:K2.open.02:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "crowd"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "crowd"}
+      ],
+      "timeout": {"gameHours": 1, "next": "crowd"}
+    },
+    {
+      "id": "crowd",
+      "type": "play",
+      "label": "Kerry crosses the food street in a hat and scarf",
+      "know": "You are walking the Japantown night food street with V in a hat and scarf. A teenage fan is near the lanterns, a guard by the noodle bar can lift a phone, and a drone hangs over the square. If the phone goes up, the route is over.",
+      "wants": "V to get you to the stall without anyone seeing.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "street"},
+        {"p": "cast", "id": "fan", "who": "teenage fan", "at": "fan-spot"},
+        {"p": "cast", "id": "guard", "who": "guard by the noodle bar", "at": "guard-spot"},
+        {"p": "cast", "id": "drone", "who": "paparazzi drone operator", "at": "drone-spot"},
+        {"p": "npc-react", "id": "fan", "cast": "fan"},
+        {"p": "npc-react", "id": "guard", "cast": "guard"},
+        {"p": "place", "at": "stall"}
+      ],
+      "script": [
+        {"when": "cast:fan:arrived", "say": "K2.bark.fan.a"},
+        {"when": "line:K2.bark.fan.a:done", "say": "K2.bark.fan.b"},
+        {"when": "npc:fan:leave", "say": "K2.bark.safe.a"},
+        {"when": "line:K2.bark.safe.a:done", "say": "K2.bark.safe.b"},
+        {"when": "npc:guard:call-police", "say": "K2.bark.phone.a"},
+        {"when": "line:K2.bark.phone.a:done", "say": "K2.bark.phone.b"}
+      ],
+      "choices": [
+        {"id": "stall", "on": "event:place:stall:arrived", "next": "stall"},
+        {"id": "seen", "on": "event:npc:guard:call-police", "next": "seen"}
+      ],
+      "timeout": {"gameHours": 1, "next": "retreat"}
+    },
+    {
+      "id": "stall",
+      "type": "play",
+      "label": "Kerry eats at the stall with V",
+      "know": "You are sitting at the food stall at the end of the street with a bowl. You are relaxed, and a small kid nearby is about to recognize you.",
+      "wants": "V to answer you honestly.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "stall-sit", "minutes": 15, "metres": 5, "seated": true, "at": "stall", "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "real", "on": "event:gap:g2:real", "next": "kid"},
+        {"id": "light", "on": "event:gap:g2:light", "next": "kid"},
+        {"id": "gone", "on": "event:together:stall-sit:broken", "next": "retreat"}
+      ],
+      "timeout": {"gameHours": 1, "next": "kid"}
+    },
+    {
+      "id": "kid",
+      "type": "play",
+      "label": "A small kid recognizes Kerry at the stall",
+      "know": "You are leaving the stall and a small kid has seen you. You can still say something to the kid, or let it happen.",
+      "wants": "The kid to get a signature.",
+      "do": [
+        {"p": "cast", "id": "kid", "who": "small kid", "at": "stall"}
+      ],
+      "choices": [
+        {"id": "seen-kid", "on": "event:cast:kid:arrived", "next": "unmasked"}
+      ],
+      "timeout": {"gameHours": 1, "next": "unmasked"}
+    }
+  ],
+  "endings": {
+    "unmasked": {
+      "memory": "You walked Kerry through a Japantown night market unrecognized, and he signed a coaster for one kid when he was.",
+      "history": "He wears a hat when V suggests it.",
+      "bond": 45,
+      "script": [{"when": "ending:unmasked", "text": "K2.close.01", "image": "incognito-coaster"}]
+    },
+    "seen": {
+      "memory": "A phone went up at the food street, and Kerry had to walk away from the bowl with you.",
+      "bond": 35,
+      "script": [{"when": "ending:seen", "text": "K2.close.02"}]
+    },
+    "retreat": {
+      "memory": "You called off the route and walked Kerry back to the car without the bowl.",
+      "bond": 10
+    }
+  }
+}
