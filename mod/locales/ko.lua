@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "성인 콘텐츠에서는 사용 안 함",
     ["Ready to choose in Companion voices"] = "동료 음성에서 선택할 준비 완료",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Inworld 키가 필요합니다 (설정 > 음성 > 사용자 지정 음성에서 추가)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "각 동료를 본인의 목소리로, 본인의 Inworld 키를 사용해 말하게 합니다. 영어만 지원합니다. 동료 음성에서 선택할 수 있으며, 키를 추가하면 맨 아래에 표시됩니다.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "각 동료를 본인의 목소리로, 본인의 Inworld 키를 사용해 말하게 합니다. 영어와 Inworld가 지원하는 다른 언어에서 사용할 수 있습니다. 동료 음성에서 선택할 수 있으며, 키를 추가하면 맨 아래에 표시됩니다.",
     ["{voice} · needs Inworld key"] = "{voice} · Inworld 키 필요",
     ["Choose a character to start editing."] = "편집을 시작할 캐릭터를 선택하세요.",
     ["Clear search"] = "검색 지우기",

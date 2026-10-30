@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Nepoužívá se s obsahem pro dospělé",
     ["Ready to choose in Companion voices"] = "Připraveno k výběru v Hlasech společníků",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Vyžaduje klíč Inworld (přidej ho v Nastavení > Hlasy > Vlastní hlasy)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Mluví každý společník vlastním hlasem přes tvůj klíč Inworld. Pouze angličtina. Vyber ho v Hlasech společníků, kde je po přidání klíče uveden jako poslední.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Mluví každý společník vlastním hlasem přes tvůj klíč Inworld. Funguje v angličtině i dalších jazycích, které Inworld podporuje. Vyber ho v Hlasech společníků, kde je po přidání klíče uveden jako poslední.",
     ["{voice} · needs Inworld key"] = "{voice} · vyžaduje klíč Inworld",
     ["Choose a character to start editing."] = "Vyber postavu, kterou začneš upravovat.",
     ["Clear search"] = "Vymazat hledání",

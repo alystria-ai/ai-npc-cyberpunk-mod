@@ -923,7 +923,7 @@ local function inworldRows(snapshot)
     elseif saved then status = ui.t('Ready to choose in Companion voices')
     else status = ui.t('Add a key to choose it') end
     rows[#rows + 1] = readonly('inworld-voice', 'Inworld voice', status,
-        'Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added.',
+        'Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added.',
         {value = true})
     return rows
 end

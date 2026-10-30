@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Nie używany z treściami dla dorosłych",
     ["Ready to choose in Companion voices"] = "Gotowe do wyboru w Głosach towarzyszy",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Wymaga klucza Inworld (dodaj go w Ustawienia > Głosy > Własne głosy)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Każdy towarzysz mówi własnym głosem, na twoim kluczu Inworld. Tylko po angielsku. Wybierz go w Głosach towarzyszy, gdzie po dodaniu klucza jest na końcu listy.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Każdy towarzysz mówi własnym głosem, na twoim kluczu Inworld. Działa po angielsku i w pozostałych językach obsługiwanych przez Inworld. Wybierz go w Głosach towarzyszy, gdzie po dodaniu klucza jest na końcu listy.",
     ["{voice} · needs Inworld key"] = "{voice} · wymaga klucza Inworld",
     ["Choose a character to start editing."] = "Wybierz postać, aby zacząć edycję.",
     ["Clear search"] = "Wyczyść wyszukiwanie",

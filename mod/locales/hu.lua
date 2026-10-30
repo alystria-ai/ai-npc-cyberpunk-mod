@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "Felnőtt tartalommal nem használják",
     ["Ready to choose in Companion voices"] = "Kiválasztásra kész a Társhangok között",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Inworld-kulcs szükséges (add hozzá a Beállítások > Hangok > Egyéni hangok menüpontban)",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "Minden társ a saját hangján szól, a saját Inworld-kulcsoddal. Csak angolul. A Társhangok között válaszd ki, ahol kulcs hozzáadása után az utolsó helyen áll.",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "Minden társ a saját hangján szól, a saját Inworld-kulcsoddal. Angolul és az Inworld által támogatott többi nyelven is működik. A Társhangok között válaszd ki, ahol kulcs hozzáadása után az utolsó helyen áll.",
     ["{voice} · needs Inworld key"] = "{voice} · Inworld-kulcs szükséges",
     ["Choose a character to start editing."] = "Válassz egy karaktert a szerkesztés megkezdéséhez.",
     ["Clear search"] = "Keresés törlése",

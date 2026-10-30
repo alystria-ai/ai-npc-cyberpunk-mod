@@ -8,6 +8,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {describeVoiceRoute} from './voice-routing-log.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {planTurnVoice, replyVoice} from './multilingual.mjs';
+import {MOD_LANGUAGES} from './speech-language.mjs';
 
 // A Base64 text of the shape the Inworld portal copies (never a real key).
 const KEY = Buffer.from('test-key-id-0123456789:test-key-secret-abcdefghijklmnopqrstuvwxyz').toString('base64');
@@ -615,18 +616,73 @@ test('a consumer error or a cancelled reply is not a fallback to Pocket', async 
   } finally { await server.close(); }
 });
 
-test('Inworld speaks English only here: a reply in another language is written, not given to Pocket or the Convai voice', async () => {
+test('Inworld speaks the languages it lists: a reply in one of them is spoken on Pocket\'s route, an unlisted language is written, never given to Pocket or the Convai voice', async () => {
   const server = await serve();
   try {
     const h = selection(server);
     await choose(h);
-    const local = {uses: true, provider: 'pocket', convai: false, cloud: 'inworld', speaks: () => true, pocket: {speaks: () => true, packMissing: () => false}};
+    // The bridge's shape (convai-bridge.mjs localChoice): Inworld runs on Pocket's route and says so with cloud: 'inworld'; speaks is the voice's own.
+    const local = {uses: true, provider: 'pocket', convai: false, cloud: 'inworld', speaks: language => h.cloud.speaks(language), pocket: {speaks: () => true, packMissing: () => false}};
     const english = planTurnVoice({textProvider: true, language: 'en', local});
     assert.equal(english.engine, 'pocket');
     const spanish = planTurnVoice({textProvider: true, language: 'es', local});
-    assert.equal(spanish.reason, 'voice-language-unsupported', 'Pocket\'s language models are not offered beside a cloud voice');
-    const reply = replyVoice({plan: spanish, text: 'Hola, que tal, amigo mio, todo bien por aqui, ya sabes que si.', local});
-    assert.equal(reply.engine, 'none'); assert.equal(reply.reason, 'voice-language-unsupported');
+    assert.deepEqual([spanish.engine, spanish.language, spanish.reason], ['pocket', 'es', 'inworld'], 'Inworld speaks it');
+    const spanishText = 'Hola, que tal, amigo mio, todo bien por aqui, ya sabes que si.';
+    assert.deepEqual(replyVoice({plan: spanish, text: spanishText, local}), {engine: 'pocket', language: 'es'});
+    // Every language of the mod is spoken, on the Convai-twin route (enabled) and on the text-provider route alike.
+    for (const language of MOD_LANGUAGES) {
+      for (const options of [{textProvider: true}, {enabled: true}]) {
+        const plan = planTurnVoice({...options, language, local});
+        assert.equal(plan.engine, 'pocket', language);
+        assert.equal(plan.reason, language === 'en' ? 'english' : 'inworld', language);
+      }
+    }
+    // A language Inworld does not list (Esperanto is Tier 3) is shown as text, never Pocket's or the Convai voice's.
+    const esperanto = planTurnVoice({textProvider: true, language: 'eo', local});
+    assert.deepEqual([esperanto.engine, esperanto.reason], ['pocket', 'voice-language-unsupported']);
+    assert.deepEqual(replyVoice({plan: esperanto, text: 'Saluton amiko, kiel vi fartas hodiaux?', local}), {engine: 'none', language: 'eo', reason: 'voice-language-unsupported'});
+    const strict = planTurnVoice({enabled: true, language: 'eo', local});
+    assert.deepEqual([strict.engine, strict.reason], ['none', 'voice-language-unsupported']);
+    // No key (the bridge says uses: false) is a written reply, whatever the language.
+    assert.equal(planTurnVoice({textProvider: true, language: 'ru', local: {...local, uses: false}}).engine, 'none');
+  } finally { await server.close(); }
+});
+
+test('the speech request carries the reply\'s language for a language Inworld lists, and nothing for English or an unlisted one; the clone stays English', async () => {
+  const server = await serve();
+  try {
+    const {voice} = voiceFor(server);
+    await voice.synthesizeStream('judy-alvarez', 'Hello.', collect());
+    await voice.synthesizeStream('judy-alvarez', 'Privet, kak dela?', {...collect(), language: 'ru'});
+    await voice.synthesizeStream('judy-alvarez', 'Guten Tag.', {...collect(), language: 'de'});
+    await voice.synthesizeStream('judy-alvarez', 'Hei, hvordan har du det?', {...collect(), language: 'no'});
+    await voice.synthesizeStream('judy-alvarez', 'Again English.', {...collect(), language: 'en'});
+    await voice.synthesizeStream('judy-alvarez', 'Saluton.', {...collect(), language: 'eo'});
+    const speech = server.requests.filter(item => item.path === '/speech').map(item => item.body);
+    assert.deepEqual(speech.map(body => body.language), [undefined, 'ru', 'de', 'nb', undefined, undefined]);
+    assert.ok(speech.every(body => body.modelId === 'inworld-tts-2-flash' && body.voiceId === speech[0].voiceId), 'the same English-cloned voice speaks every language');
+    assert.equal(Object.hasOwn(speech[0], 'language'), false, 'English keeps the request it always had');
+    assert.deepEqual(Object.keys(speech[1]).sort(), ['audioConfig', 'language', 'modelId', 'text', 'voiceId']);
+    assert.equal(server.count('POST', '/clone'), 1, 'no clone per language');
+    assert.equal(server.requests.find(item => item.path === '/clone').body.languageCode, 'en-US');
+  } finally { await server.close(); }
+});
+
+test('through the voice selection, the language of a reply reaches the Inworld request, and the retry of it', async () => {
+  let calls = 0;
+  const server = await serve({'POST /speech': (request, response) => {
+    if (++calls === 1) { response.writeHead(503); response.end('{}'); return; }
+    response.writeHead(200, {'content-type': 'application/json'}); response.end(line(bytesOf(ints(2400))));
+  }});
+  try {
+    const h = selection(server);
+    await choose(h); await h.cloud.ensureVoice('judy-alvarez');
+    await h.voice.synthesizeStream('judy-alvarez', 'Privet, kak dela?', {onPcm() {}, language: 'ru'});
+    const speech = server.requests.filter(item => item.path === '/speech');
+    assert.equal(speech.length, 2, 'the first ask failed and was asked again once');
+    assert.deepEqual(speech.map(item => item.body.language), ['ru', 'ru']);
+    assert.equal(h.workers.length, 0, 'no local voice model is loaded for it');
+    await h.voice.close();
   } finally { await server.close(); }
 });
 

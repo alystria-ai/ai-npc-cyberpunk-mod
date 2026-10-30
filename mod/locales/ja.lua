@@ -1761,7 +1761,7 @@ return {
     ["Not used with Mature content"] = "成人向けでは未使用",
     ["Ready to choose in Companion voices"] = "コンパニオンの音声で選択できます",
     ["Requires an Inworld key (add it in Settings > Voices > Custom voices)"] = "Inworld キーが必要です（設定 > 音声 > カスタムボイス で追加）",
-    ["Speaks each companion in their own voice, on your own Inworld key. English only. Choose it under Companion voices, where it is listed last once a key is added."] = "各コンパニオンをそれぞれの声で話させます。ご自身の Inworld キーを使用します。英語のみ。コンパニオンの音声で選択でき、キーを追加すると一番下に表示されます。",
+    ["Speaks each companion in their own voice, on your own Inworld key. Works in English and the other languages Inworld supports. Choose it under Companion voices, where it is listed last once a key is added."] = "各コンパニオンをそれぞれの声で話させます。ご自身の Inworld キーを使用します。英語のほか、Inworld が対応するその他の言語でも使えます。コンパニオンの音声で選択でき、キーを追加すると一番下に表示されます。",
     ["{voice} · needs Inworld key"] = "{voice} · Inworld キーが必要",
     ["Choose a character to start editing."] = "編集するキャラクターを選択してください。",
     ["Clear search"] = "検索をクリア",

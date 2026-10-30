@@ -66,8 +66,8 @@ Now there is no setting and no twin: while a text provider answers, the reply-la
   conversation is in another language. A recording with nothing said yet follows the language the microphone last heard or the one remembered
   from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
 - the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Voxtral (Mistral cloud, Voxtral TTS 3,
-  2026-10-21) speaks it for the languages its model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
-  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their PocketTTS model and multilingual pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
+  2026-10-21) and Inworld (TTS-2 Flash, 2026-10-31, `bridge/inworld-languages.mjs`) speak it for the languages their model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
+  Voxtral's API has no language field, the model speaks the language of the text, so nothing is passed. Inworld's takes a `language` code, which the voice adds itself); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their PocketTTS model and multilingual pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
   unlisted language keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`, reason `english-only-voice` or
   `voice-language-unsupported`), with one `voice-language` notice per game session ("Replies in some languages show as text: this voice does not speak
   them. OmniVoice speaks them all, and Voxtral most of them."). No voice model is loaded for it. An English conversation keeps the chosen voice untouched.
@@ -391,7 +391,7 @@ nothing foreign was heard. Night City names, street slang and the Spanish and Ja
 "preem gig choom" and "hey hermano what's up" stay English, and "¿Qué pasa, choom?" is Spanish. Short capitals ("CET", "LOL") are ignored. A call costs
 about 20 to 60 microseconds for a chat line and a quarter of a millisecond for a 1,200 character reply; loading the lists takes about 100 ms once.
 Languages: English, Spanish, Portuguese, French, German, Italian, Dutch, Polish, Czech, Hungarian, Turkish, Swedish, Romanian, Catalan, Norwegian, Vietnamese
-(Latin); Russian, Ukrainian, Japanese, Chinese, Korean, Greek, Arabic, Hebrew, Hindi, Thai (by script). That covers every language Voxtral TTS 3 lists and
+(Latin); Russian, Ukrainian, Japanese, Chinese, Korean, Greek, Arabic, Hebrew, Hindi, Thai (by script). That covers every language the mod's interface ships in, and most of those Voxtral TTS 3 and Inworld list, and
 every language the mod's interface ships in (`bridge/reply-language.test.mjs` checks both).
 Measurement: `node scripts/Eval-LanguageDetection.mjs [--set=dev|heldout|blind] [--errors]` prints precision and recall per language on the labelled short
 lines (`bridge/reply-language.cases.mjs`, `.heldout.json`, `.blind.json`); `node scripts/Eval-LanguageCorpus.mjs [--parity=even]` runs it on the mod's own
@@ -472,8 +472,8 @@ No voice setting is moved, refused or switched any more (the staged-Apply rules 
 message and checked against the finished reply (`planTurnVoice`, `replyVoice`; the bridge passes `textProvider: true` on every route):
 
 - English: the chosen voice, untouched (the characters' Spanish slang is never muted).
-- OmniVoice speaks any language and is told the reply's language. The Voxtral voice speaks the languages Voxtral TTS 3 lists (22), the language of the text.
-- Pocket TTS (English only, plus the languages with an installed PocketTTS model and voice pack) and Voxtral for a language it does not list keep the plan; a reply in another language is shown as text, with one
+- OmniVoice speaks any language and is told the reply's language. The Voxtral voice speaks the languages Voxtral TTS 3 lists (38 since 2026-10-31, before that the 22 Mistral's announcement named, which left Czech as text), the language of the text. The Inworld voice speaks the 94 languages of Tier 1 and 2 of TTS-2 Flash (all 15 of the mod's among them), and the request carries the language code.
+- Pocket TTS (English only, plus the languages with an installed PocketTTS model and voice pack) and Voxtral or Inworld for a language they do not list keep the plan; a reply in another language is shown as text, with one
   `voice-language` notice per game session (and one `pocket-pack-<language>` notice per language when the PocketTTS model is installed but its voice pack is not). The Convai cloud voice is only the voice when the player chose it (the twins have Azure multilingual voices).
   No voice ever hands a reply to a cloud voice it was not chosen for.
 - An OmniVoice choice that cannot run shows the replies as text, never Pocket in its place and never a cloud voice (`VoiceSelection.resolve`, route `text`;
