@@ -460,7 +460,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
   assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[2] == 'ui:page:next' and mcm.config().footerActions[3] == 'characters:back')
   assert(listed('Previous page') == nil and listed('Next page') == nil, 'not rows of the list')
-  assert(headings() == 'Main characters to invite · Page 1 / 2', headings())
+  assert(headings() == 'Search characters | Main characters to invite · Page 1 / 2', headings())
   assert(mcm.config().navigation.pageId == 'characters|1|1')
   -- Both buttons are buttons at every page: at the first page Previous does nothing, and nothing is drawn again.
   local loads = mcm.loads
@@ -470,7 +470,7 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(footerLabels() == 'Previous page | Next page | Back', 'the footer never changes shape')
   press('Next page')
   assert(invites() == 10 and mcm.row('Viktor Vektor') and not mcm.row('Johnny Silverhand'), 'the second page')
-  assert(headings() == 'Main characters to invite · Page 2 / 2', headings())
+  assert(headings() == 'Search characters | Main characters to invite · Page 2 / 2', headings())
   assert(footerLabels() == 'Previous page | Next page | Back')
   assert(mcm.config().navigation.pageId == 'characters|2|1', 'a new page id: MCM scrolls to the top of it')
   loads = mcm.loads
@@ -1068,7 +1068,7 @@ test('at the main menu the pages that need a save say so in their heading, not i
   -- A list of buttons: the status is in the heading and its help is the heading's description. A line of the list would be drawn 16 px
   -- right of the names under it (MCM's read-only line has an inset of its own; labelIndent does not reach it).
   press('Main characters to invite')
-  assert(headings():find('^Main characters to invite · Load a save first · Page 1 / %d+$'), headings())
+  assert(headings():find('^Search characters | Main characters to invite · Load a save first · Page 1 / %d+$'), headings())
   assert(not listed('Characters and party') and not mcm.row('needs-save'), labels())
   assert(mcm.description() == 'Inviting characters and managing your party need a loaded game.', mcm.description())
   for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
@@ -1247,6 +1247,54 @@ test('an MCM that refuses the provider search mode keeps its own filter on the b
   local seen = false
   for _, line in ipairs(logged) do if line:find('provider search mode', 1, true) then seen = true end end
   assert(seen, 'one line says why')
+`));
+
+// ---- The Search section of the two character lists (2026-10-31, owner: MCM's own Search box is drawn too dim to be noticed).
+
+test('Main characters to invite has a Search section above the list: a button that says where to type, then what was found and a Clear search that empties MCM\'s box', () => withScreen(`
+  ${footer}
+  press('Main characters to invite')
+  local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
+  assert(headings() == 'Search characters | Main characters to invite · Page 1 / 2', headings())
+  assert(mcm.rows()[2].id == 'search:help', 'the search row follows Back: ' .. tostring(mcm.rows()[2].id))
+  local help = mcm.row('search:help')
+  assert(help.type == 'action' and help.value == 'How to search' and help.label == 'Use the Search box, top right' and not help.disabled)
+  press('search:help')
+  assert(core.feedback() == 'Click the Search box at the top right of this panel and type a name.', tostring(core.feedback()))
+  -- The player types in MCM's box: the list shows the matches from every page, and the heading and the section say what was found.
+  mcm.search('JOHNNY'); frames(8)
+  assert(core.search() == 'johnny' and invites() == 1 and mcm.row('Johnny Silverhand'), 'one match')
+  assert(headings() == 'Search characters | Main characters to invite · search: johnny · 1 found', headings())
+  assert(mcm.row('search:clear').label == 'search: johnny · 1 found' and mcm.row('search:clear').value == 'Clear search' and mcm.row('search:help') == nil)
+  mcm.search('silver john'); frames(8)
+  assert(invites() == 1 and mcm.row('Johnny Silverhand'), 'every word, any order')
+  mcm.search('hand'); frames(8)
+  assert(invites() == 0 and mcm.row('character-status').label == 'search: hand · 0 found' and mcm.row('search:clear').label == 'search: hand · 0 found', 'the middle of a word is no match: ' .. headings())
+  -- Clear search empties MCM's own box and the search, and the whole list is back.
+  press('search:clear'); frames(8)
+  assert(mcm.searchText() == '' and core.search() == '' and invites() == 12 and mcm.row('search:help'), 'the box: ' .. mcm.searchText())
+  assert(headings() == 'Search characters | Main characters to invite · Page 1 / 2', headings())
+  -- The Model browser keeps its own search (no section there), and Parties' box is still the name for Rename.
+  press('Back to Companion Manager'); press('Model browser')
+  assert(mcm.row('search:help') == nil and not headings():find('Search characters', 1, true), headings())
+`));
+
+test('Clear search does not let the old text of MCM\'s box bring the search back while MCM takes the empty text', () => withScreen(`
+  ${footer}
+  press('Main characters to invite')
+  mcm.search('johnny'); frames(8)
+  assert(core.search() == 'johnny')
+  -- An MCM that takes the new text late: the context still says "johnny" for a while after setSearch('').
+  local setSearch = mcm.api.ui.setSearch
+  local late
+  mcm.api.ui.setSearch = function(key, text) late = {key, text}; return 1 end
+  press('search:clear'); frames(4)
+  assert(late and late[2] == '' and core.search() == '', 'the search stays empty while the old text is still in the context: ' .. core.search())
+  mcm.api.ui.setSearch = setSearch
+  setSearch(late[1], late[2]); frames(8)
+  assert(mcm.searchText() == '' and core.search() == '', 'MCM took the empty text')
+  mcm.search('rita'); frames(8)
+  assert(core.search() == 'rita', 'a new text is followed again')
 `));
 
 // ---- MCM 0.10.6 UI API (private preview from MCM's author, 2026-10-20): close, setActionVisibility, labelIndent, highlightModifiedValues,

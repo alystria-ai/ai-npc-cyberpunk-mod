@@ -387,11 +387,56 @@ local function modelMatches(model, words)
 end
 M.searchWords, M.modelMatches = searchWords, modelMatches
 
--- Whether a character of Characters to invite answers a search: every word is in its name or its key.
-local function profileMatches(profile, words)
-    local haystack = (tostring(profile.name or '') .. ' ' .. tostring(profile.key or '')):lower()
-    for _, word in ipairs(words) do
-        if not haystack:find(word, 1, true) then return false end
+-- The name search of the two character lists (the rule of the phone's Chat search): case and accents do not count (an accented Latin letter is
+-- its plain letter), a word is a run of anything but spaces and punctuation, and a character answers when every typed word is the start of
+-- a word of her name (or of her key). Functions of M, not locals, so the chunk gains no local.
+function M.foldText(text)
+    if type(text) ~= 'string' then return '' end
+    if not text:find('[\128-\255]') then return text:lower() end
+    local map = M.foldMap
+    if not map then
+        local groups = {
+            a = 'àáâãäåāăąÀÁÂÃÄÅĀĂĄ', c = 'çćĉċčÇĆĈĊČ', d = 'ďđĎĐ', e = 'èéêëēĕėęěÈÉÊËĒĔĖĘĚ', g = 'ĝğġģĜĞĠĢ', h = 'ĥħĤĦ',
+            i = 'ìíîïĩīĭįıÌÍÎÏĨĪĬĮİ', j = 'ĵĴ', k = 'ķĶ', l = 'ĺļľŀłĹĻĽĿŁ', n = 'ñńņňÑŃŅŇ', o = 'òóôõöøōŏőÒÓÔÕÖØŌŎŐ',
+            r = 'ŕŗřŔŖŘ', s = 'śŝşšŚŜŞŠ', t = 'ţťŧŢŤŦ', u = 'ùúûüũūŭůűųÙÚÛÜŨŪŬŮŰŲ', w = 'ŵŴ', y = 'ýÿŷÝŸŶ', z = 'źżžŹŻŽ',
+        }
+        map = {['ß'] = 'ss', ['æ'] = 'ae', ['Æ'] = 'ae', ['œ'] = 'oe', ['Œ'] = 'oe', ['ð'] = 'd', ['Ð'] = 'd', ['þ'] = 'th', ['Þ'] = 'th'}
+        for base, chars in pairs(groups) do
+            for ch in chars:gmatch('[\1-\127\194-\244][\128-\191]*') do map[ch] = base end
+        end
+        M.foldMap = map
+    end
+    local out = {}
+    for ch in text:gmatch('[\1-\127\194-\244][\128-\191]*') do
+        out[#out + 1] = #ch == 1 and ch:lower() or map[ch] or ch
+    end
+    return table.concat(out)
+end
+function M.nameWords(text)
+    local words = {}
+    for word in M.foldText(text):gmatch('[^%s%p]+') do words[#words + 1] = word end
+    return words
+end
+-- Whether a character of the lists answers the search text (modelFind.text). The words of her name and key are worked out once per
+-- character, the typed words once per text: a keystroke costs one pass over the list, never a page build.
+local function profileMatches(profile)
+    local index = modelFind.index
+    if not index then index = setmetatable({}, {__mode = 'k'}); modelFind.index = index end
+    local name, key = tostring(profile.name or ''), tostring(profile.key or '')
+    local entry = index[profile]
+    if not entry or entry.name ~= name or entry.key ~= key then
+        local all = M.nameWords(name)
+        for _, word in ipairs(M.nameWords(key)) do all[#all + 1] = word end
+        entry = {name = name, key = key, words = all}
+        index[profile] = entry
+    end
+    if modelFind.foldedFor ~= modelFind.text then modelFind.foldedFor, modelFind.folded = modelFind.text, M.nameWords(modelFind.text) end
+    for _, want in ipairs(modelFind.folded) do
+        local found = false
+        for _, word in ipairs(entry.words) do
+            if word:sub(1, #want) == want then found = true; break end
+        end
+        if not found then return false end
     end
     return true
 end
@@ -1698,9 +1743,14 @@ local function favoriteRows(scope, list, nameOf, inviteOf)
                 shown = shown + 1
                 local name = nameOf(item)
                 rows[#rows + 1] = inviteOf(item, 'invite:favorite:' .. key)
-                rows[#rows + 1] = action('favorite:remove:' .. key, 'Remove from favorites', 'Remove',
+                -- The row under her Invite row names her ("Remove Panam Palmer from favorites"), so it never reads as a character called
+                -- "Remove from favorites". A name too long for the label gets the short form, then a cut.
+                local label = ui.t('Remove {name} from favorites', {name = name})
+                if optionUnits(label) > BUTTON_LABEL_UNITS then label = ui.t('Remove {name}', {name = name}) end
+                if optionUnits(label) > BUTTON_LABEL_UNITS then label = cutToUnits(label, BUTTON_LABEL_UNITS) end
+                rows[#rows + 1] = action('favorite:remove:' .. key, label, 'Remove',
                     ui.t('Takes {name} out of your favorites. Her place in the list below stays.', {name = name}),
-                    function() return setFavorite(scope, key, name, false) end, nil, {description = true})
+                    function() return setFavorite(scope, key, name, false) end, nil, {label = true, description = true})
             else more = more + 1 end
         end
     end
@@ -2303,6 +2353,32 @@ settingsPages['settings-privacy'] = function(snapshot)
     return {category('privacy', 'Privacy and help', rows)}
 end
 
+-- ---- Search on the two character lists (docs/SIDE_CHARACTERS.md "Search") --------------------------------------------------------
+-- The only text box a settings screen gives the manager is the Search box of Mod Configuration Menu (api.ui has no text row), drawn dim until it is
+-- clicked, so the lists carry a section of their own above everything else: a heading, and one button row that says where to type (How to search)
+-- or, once a search is on, what it found and how to empty it (Clear search). Native Settings UI has no text box (offerSearch is never called there):
+-- the section is not drawn and the lists keep Starts with and the page slider. Page build only, never per frame.
+-- The title of a list while a search is on: "search: pan · 2 found" (the query is the words typed, cut when long).
+function M.searchLabel(count)
+    local query = modelFind.text
+    if optionUnits(query) > 18 then query = cutToUnits(query, 18) end
+    return ui.t('search: {query} · {count} found', {query = query, count = count})
+end
+-- The section for a list of `count` matches; nil where the host has no text box.
+function M.searchCategory(count)
+    if not modelFind.offered then return nil end
+    local row
+    if #modelFind.words > 0 then
+        row = action('search:clear', M.searchLabel(count), 'Clear search',
+            'Empties the Search box and shows the whole list again.', function() return M.clearSearch() end, nil, {label = true})
+    else
+        row = action('search:help', 'Use the Search box, top right', 'How to search',
+            'Click the Search box at the top right of this panel (it is dim until you click it) and type a name. The list shows every match on every page and letter. Case and accents do not matter, and every word you type has to match the start of a word in the name.',
+            function() return true, ui.t('Click the Search box at the top right of this panel and type a name.') end)
+    end
+    return category('character-search', 'Search characters', {row})
+end
+
 -- ---- Side characters to invite (docs/SIDE_CHARACTERS.md) ---------------------------------------------------------------------------
 -- The minor characters of the roster (snapshot.side, built once by the manager): a search, the first letter of the name as a group (the Model
 -- browser's Starts with), and twelve rows a page like the other long lists. The letter groups are worked out the first time the page is built for a
@@ -2339,8 +2415,8 @@ function M.sideRows(snapshot, party, canInvite, rows, categories)
     local first, last, pages = pageRange(#profiles)
     if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
             'Inviting characters and managing your party need a loaded game.') end
-    rows[#rows + 1] = readonly('character-status', ui.t('{count} matching characters', {count = #profiles}), '',
-        ui.t('{count} matching characters', {count = #profiles}), {label = true, description = true})
+    local statusText = searching and M.searchLabel(#profiles) or ui.t('{count} matching characters', {count = #profiles})
+    rows[#rows + 1] = readonly('character-status', statusText, '', statusText, {label = true, description = true})
     if #groups > 0 then
         rows[#rows + 1] = setting('ui:group', 'Starts with', 'select', listGroup, 1,
             'Show only the characters whose name starts with this letter.', groupElements, {elements = true})
@@ -2355,6 +2431,8 @@ function M.sideRows(snapshot, party, canInvite, rows, categories)
             available and (count > 0 and ui.t('Add copy ({count})', {count = count}) or 'Invite') or 'Profile only',
             profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
     end
+    local searchBlock = M.searchCategory(#profiles)
+    if searchBlock then categories[#categories + 1] = searchBlock end
     categories[#categories + 1] = category('side', 'Side characters to invite', rows,
         'Everyday people of Night City, from shopkeepers to fixers. Each joins as your own copy with their own personality.')
 end
@@ -2427,8 +2505,8 @@ local function schema()
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.') end
         if searching then
-            rows[#rows + 1] = readonly('character-status', ui.t('{count} matching characters', {count = #profiles}), '', ui.t('{count} matching characters', {count = #profiles}),
-                {label = true, description = true})
+            local statusText = M.searchLabel(#profiles)
+            rows[#rows + 1] = readonly('character-status', statusText, '', statusText, {label = true, description = true})
         end
         for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end, 'characters', #profiles)) do rows[#rows + 1] = row end
         local function inviteOf(profile, id)
@@ -2438,7 +2516,9 @@ local function schema()
             return action(id, profile.name, available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
         end
-        -- The Favorites block above the list, on page 1.
+        -- The search section above everything (a host with a text box), then the Favorites block above the list, on page 1.
+        local searchBlock = M.searchCategory(#profiles)
+        if searchBlock then categories[#categories + 1] = searchBlock end
         local favorites = favoriteRows('characters', profiles, function(profile) return profile.name end, inviteOf)
         if #favorites > 0 then categories[#categories + 1] = category('favorites', 'Favorites', favorites) end
         for index = first, last do
@@ -2804,8 +2884,9 @@ end
 -- The Model browser's search. A host that has a search box hands over its text here (a change is drawn on the next page build, never per
 -- keystroke) and says it has one with offerSearch, which only adds the hint to the page. The text is the words of what was typed, so it is
 -- also the page's identity (M.pageId). Returns whether the search changed.
-function M.offerSearch(offered)
+function M.offerSearch(offered, clearBox)
     modelFind.offered = offered == true
+    modelFind.clearBox = offered == true and type(clearBox) == 'function' and clearBox or nil
 end
 function M.setSearch(text)
     -- Parties does not search: the box holds the name the Rename button takes (case kept), and nothing is drawn again for it.
@@ -2821,6 +2902,15 @@ function M.setSearch(text)
     return true
 end
 function M.search() return modelFind.text end
+-- Clear search: the search is emptied here and, through the host's own function, in the host's box (offerSearch). Returns true.
+function M.clearSearch()
+    if modelFind.clearBox then pcall(modelFind.clearBox) end
+    if modelFind.text ~= '' then
+        modelFind.text, modelFind.words = '', {}
+        listPage = 1
+    end
+    return true
+end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
