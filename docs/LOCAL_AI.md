@@ -386,6 +386,7 @@ replaced by an environment variable, and the model is only ever configuration:
 | `CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL` | The embedding model file |
 | `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` | `--cache-ram` in MiB (default from free system memory: 4096 at 12 GB free, 2048 at 8 GB, else 1024) |
 | `CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB` | tests: the free system memory in MiB the supervisor sees (decides the check before a load with part on the CPU, `start-failed` / `low-ram`) |
+| `CYBERPUNK_CONVAI_LOCAL_TUNING` | Extra llama-server flags to try, off by default: a list such as `checkpoint-step=256,poll=0` (names: `checkpoint-step`, `cache-reuse`, `threads`, `poll`, `ubatch`, `backend-sampling`). Read once per model start, logged as `[local] launch tuning`. Remove it to go back. docs/LOCAL_AI_PERFORMANCE.md |
 
 Then set `conversationProvider` to `local` in Settings > Conversation provider (or in `settings.json`) and Apply. Nothing is copied into the
 repository.
