@@ -14,7 +14,7 @@ import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';
-import {accessViolationFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
+import {accessViolationFailed, endedFromOutsideFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -784,6 +784,8 @@ export class VoiceSelection {
   // A worker with no CUDA (an AMD or Intel card with OmniVoice chosen) is reported too since 0.3.3: those players had no voice and no report told us (a 9070 XT player, 27 Oct 2026).
   noteFailure(engine,reason,gpu,tail){
     if(engine==='omni'&&this.remoteWanted)return;
+    // A worker that Windows ended from outside because the game closed or the session ended is no failure of the voice (reports 24332da7 and 8df15641 fell on the second the game ended).
+    if(endedFromOutsideFailed(reason))return;
     try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{}),cause:voiceFailureCause(reason),
       requested:this.requestedProvider,active:this.provider,fellBackTo:engine==='v-helper'?'silent':this.resolvedProvider,silent:this.silent,tail:tailLines(tail)});}catch{}
   }

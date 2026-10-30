@@ -17,6 +17,7 @@ import {dirname, isAbsolute, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {REPORT_FOLDER, collectCrashInfo, crashLogLines, exitCodeWords, prepareReportFolder, reportArguments} from './bridge-diagnostics.mjs';
+import {endedFromOutsideCode} from './voice-failures.mjs';
 import {capLogFile} from './log-cap.mjs';
 import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {parseKeyFileText} from './convai-key.mjs';
@@ -549,7 +550,8 @@ export class BridgeSupervisor {
     const words = exitCodeWords(exit?.code);
     this.log(`The bridge${pid ? ` (PID ${pid})` : ''} exited unexpectedly (${describeExit(exit)}${words ? `; ${words}` : ''}).`);
     for (const line of crashLogLines(crashInfo)) this.log(line);
-    if (this.reporter) void this.reporter.bridgeExited(describeExit(exit), crashInfo).catch(() => {});
+    // A bridge that Windows ended from outside while the game closed or the session ended is logged (above) but never reported: nothing in it can be fixed (reports 5aff7ff8, 3d7ebef0).
+    if (this.reporter && !endedFromOutsideCode(exit?.code)) void this.reporter.bridgeExited(describeExit(exit), crashInfo).catch(() => {});
     if (this.crashes.length >= this.timings.maxCrashes) {
       this.log(`Giving up after ${this.crashes.length} exits in ${Math.round(this.timings.crashWindowMs / 60000)} minutes. Check bridge.stderr.log.`);
       this.retrySetup = false;

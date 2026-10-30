@@ -542,3 +542,28 @@ test('an unexpected exit is logged with the exit code in words, the stage the br
   assert.equal(seen[0].description, 'exit code 4294967295', 'the description (and so the report signature) is what it was before');
   assert.equal(seen[0].crash.exit.hex, '0xFFFFFFFF'); assert.equal(seen[0].crash.stage.name, 'voice.worker-start'); assert.equal(seen[0].crash.nodeReport.event, 'Fatal error');
 });
+
+test('a bridge that Windows ended from outside as the game closed (0x40010004, 0xC000026B) is logged and restarted as before but sends no crash report (reports 5aff7ff8, 3d7ebef0)', async t => {
+  const f = await fixture(t);
+  const seen = [];
+  const supervisor = new BridgeSupervisor({project: f.project, stateDirectory: f.state, keyFile: join(f.state, 'convai-key.txt'), gameRoot: f.game, lifeline: null, timings,
+    browserAvailable: () => true});
+  supervisor.reporter = {bridgeExited: async (description, crash) => { seen.push({description, crash}); }};
+  supervisor.launchedAt = Date.now() - 60_000;
+  await supervisor.onBridgeExit(4242, {code: 1073807364});
+  await supervisor.onBridgeExit(4243, {code: 3221226091});
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  assert.match(log, /exited unexpectedly \(exit code 1073807364; 0x40010004, terminated by a debugger\)/, 'the service log still says what happened');
+  assert.match(log, /exited unexpectedly \(exit code 3221226091; 0xC000026B/);
+  assert.equal(supervisor.restarts, 2, 'the exits are still counted and the bridge is still started again');
+  assert.equal(supervisor.mode, 'backoff', 'and it is not given up on yet');
+  assert.deepEqual(seen, [], 'but nothing is reported');
+  // A real crash (an access violation) is still reported.
+  const real = new BridgeSupervisor({project: f.project, stateDirectory: f.state, keyFile: join(f.state, 'convai-key.txt'), gameRoot: f.game, lifeline: null, timings,
+    browserAvailable: () => true});
+  real.reporter = {bridgeExited: async (description, crash) => { seen.push({description, crash}); }};
+  real.launchedAt = Date.now() - 60_000;
+  await real.onBridgeExit(4244, {code: 3221225477});
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].description, 'exit code 3221225477');
+});

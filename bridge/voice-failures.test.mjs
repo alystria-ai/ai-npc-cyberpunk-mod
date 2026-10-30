@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {describeExitCode, stderrReason, accessViolationFailed, pagingFileFailed, pocketIntegrityFailed, missingFilesFailed} from './voice-failures.mjs';
+import {describeExitCode, stderrReason, accessViolationFailed, pagingFileFailed, pocketIntegrityFailed, missingFilesFailed, endedFromOutsideCode, endedFromOutsideFailed} from './voice-failures.mjs';
 
 test('Windows fault exit codes are named, other codes stay plain numbers', () => {
   assert.equal(describeExitCode(3221225477), '3221225477 = access violation (0xC0000005)');
@@ -59,4 +59,16 @@ test('the reason of a worker that died on a native fault names the innermost fra
   assert.equal(stderrReason(dump).includes('Games'), false, 'no folder');
   assert.equal(stderrReason(dump.split('Current thread')[0]), 'Windows fatal exception: access violation', 'no crashing-thread block: the old rule');
   assert.match(stderrReason('OSError: The paging file is too small for this operation to complete. (os error 1455)\r\n' + dump), /paging file/, 'a paging-file line still wins');
+});
+
+test('a worker Windows ended from outside as the game closed is not a failure to report, a real fault still is (reports 24332da7, 8df15641)', () => {
+  for (const code of [1073807364, 3221226091, 3221225786, -1073741510]) assert.equal(endedFromOutsideCode(code), true, String(code));
+  for (const code of [0, 1, 3, 3221225477, 3221225794, 4294967295, null, undefined, 'x']) assert.equal(endedFromOutsideCode(code), false, String(code));
+  assert.equal(endedFromOutsideFailed('Pocket worker exited (1073807364)'), true);
+  assert.equal(endedFromOutsideFailed('Pocket worker exited (1073807364): faulthandler line'), true);
+  assert.equal(endedFromOutsideFailed(`Pocket worker exited (${describeExitCode(3221225786)})`), true, 'also with the code in words');
+  assert.equal(endedFromOutsideFailed('Pocket worker exited (3221225477 = access violation (0xC0000005))'), false);
+  assert.equal(endedFromOutsideFailed('Pocket worker exited (1)'), false);
+  assert.equal(endedFromOutsideFailed('Pocket student startup timed out'), false);
+  assert.equal(endedFromOutsideFailed(undefined), false);
 });
