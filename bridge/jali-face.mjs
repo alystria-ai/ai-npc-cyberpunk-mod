@@ -32,11 +32,16 @@ export class JaliFace {
     if (process.env.CYBERPUNK_CONVAI_FACE_MODEL === 'off') return null;
     const meta = resolve(directory, 'face-model.json'), weights = resolve(directory, 'face-model.bin');
     try { await access(meta); await access(weights); } catch { return null; }
-    // Optional text path (docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md): face-text.{json,bin} + face-lexicon.txt.gz.
+    // Optional text path (docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md): face-text.{json,bin} + face-lexicon.txt (an older install may only have face-lexicon.txt.gz, which is read the same).
     let text;
     if (process.env.CYBERPUNK_CONVAI_FACE_TEXT !== 'off') {
-      const files = {meta: resolve(directory, 'face-text.json'), weights: resolve(directory, 'face-text.bin'), lexicon: resolve(directory, 'face-lexicon.txt.gz')};
-      try { await access(files.meta); await access(files.weights); await access(files.lexicon); text = files; } catch { text = undefined; }
+      const files = {meta: resolve(directory, 'face-text.json'), weights: resolve(directory, 'face-text.bin'), lexicon: resolve(directory, 'face-lexicon.txt')};
+      try {
+        await access(files.meta); await access(files.weights);
+        // The plain table wins. The gzip is the older packaging of the same table and is read the same way (jali-face-text.mjs parseLexicon).
+        try { await access(files.lexicon); } catch { files.lexicon = resolve(directory, 'face-lexicon.txt.gz'); await access(files.lexicon); }
+        text = files;
+      } catch { text = undefined; }
     }
     const face = new JaliFace({meta, weights, text, WorkerImpl, respawnMs});
     try { await face.ready; } catch (error) { face.close(); throw error; }

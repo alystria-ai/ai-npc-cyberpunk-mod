@@ -759,7 +759,7 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
   assert.match(builder, /the Mature packs ship Apache-2\.0 base models only/);
   assert.match(builder, /lite and good, one model each/);
-  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \.\.\.\(engine\.server \? \{server: engine\.server\} : \{\}\), \[tierKey\]: \{file: [^\n]*embed: engine\.embed\}\);/, 'each pack writes its own marker with its own model only, and the server and the embedding model');
+  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \.\.\.\(engine\.server \? \{server: engine\.server\} : \{\}\), \[tierKey\]: \{file: [^\n]*\.\.\.\(engine\.embed \? \{embed: engine\.embed\} : \{\}\)\}\);/, 'each pack writes its own marker with its own model only, and the server and, while a pack carries it, the embedding model');
   assert.match(builder, /THIRD-PARTY-NOTICES-\$\{packKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
   assert.match(builder, /mature-pack-\$\{packKey\}\.json/);
   // A marker of that shape, for each pinned model, is what the detector accepts alone, and it is not the Local AI pack.

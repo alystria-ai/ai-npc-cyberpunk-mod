@@ -128,6 +128,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/live-voices.mjs',
   'bridge/local-ai-pack.mjs',
   'bridge/local-embed.mjs',
+  'bridge/local-launch-tuning.mjs',
   'bridge/local-llm-server.mjs',
   'bridge/local-model-choice.mjs',
   'bridge/local-pcm-host.mjs',

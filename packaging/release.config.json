@@ -138,7 +138,7 @@
     }
   },
   "localAi": {
-    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks is false since 0.2.9: the packs carry models only and their manifests name no server, so they need the Runtime of 0.2.7 or newer; set it true and each pack carries a copy in llama/ again, for a pack used with an older Runtime). Each pack carries the embedding model and its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. Each chat model has a vision projector (`mmproj` on the tier: the Q8_0 projector made for that model, pinned the same way). It is NOT in the pack: it is a separate small zip (visionFiles below, the vision/ folder of local-ai on Hugging Face), written to models/ beside the model when the player extracts it. The pack's manifest only NAMES it (`mmproj: 'models/<file>'`), so bridge/local-llm-server.mjs loads it without guessing when it is there, and tells the player where to get it when it is not (only while Companions can see is on, docs/LOCAL_AI.md, 'Pictures'). packaging/lib/pack-projector.mjs checks its size and hash when the zip is built. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
+    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks is false since 0.2.9: the packs carry models only and their manifests name no server, so they need the Runtime of 0.2.7 or newer; set it true and each pack carries a copy in llama/ again, for a pack used with an older Runtime). The embedding model of the memory search is in the RUNTIME, in app/<embed.runtimeFolder>/ (embed.inPacks is false since the release after 0.4.x: every text provider's memory uses it, with or without a pack, and the Runtime's engine runs it on the CPU), so the packs carry no embedding model and their manifests name no `embed`. Each pack carries its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. Each chat model has a vision projector (`mmproj` on the tier: the Q8_0 projector made for that model, pinned the same way). It is NOT in the pack: it is a separate small zip (visionFiles below, the vision/ folder of local-ai on Hugging Face), written to models/ beside the model when the player extracts it. The pack's manifest only NAMES it (`mmproj: 'models/<file>'`), so bridge/local-llm-server.mjs loads it without guessing when it is there, and tells the player where to get it when it is not (only while Companions can see is on, docs/LOCAL_AI.md, 'Pictures'). packaging/lib/pack-projector.mjs checks its size and hash when the zip is built. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
     "server": {
       "name": "llama.cpp llama-server (Vulkan build)",
       "version": "b11782",
@@ -162,6 +162,8 @@
       "size": 121020096,
       "sha256": "15691dfe830257f569a1e3521977351d16eac18e48e414908dc98ed9b8455e07",
       "local": "dl-granite-emb/granite-embedding-107m-multilingual-Q8_0.gguf",
+      "inPacks": false,
+      "runtimeFolder": "models/embed",
       "dim": 384,
       "license": "Apache-2.0"
     },
@@ -350,7 +352,8 @@
       {"bucket": "final/pocket-voice/student-v2-s2000-ema-decv2/", "local": "runtime/pocket-student-v2-s2000-ema-decv2/", "target": "app/models/pocket/",
        "files": ["model.safetensors", "inference.yaml", "tokenizer.json", "receipt.json", "decoder-receipt.json"]},
       {"bucket": "final/lipsync-model/", "local": "runtime/lipsync-model/", "target": "app/models/lipsync/",
-       "files": ["face-model.json", "face-model.bin", "face-text.json", "face-text.bin", "face-lexicon.txt.gz", "face-lexicon-NOTICE.txt"]},
+       "files": ["face-model.json", "face-model.bin", "face-text.json", "face-text.bin", "face-lexicon.txt.gz", "face-lexicon-NOTICE.txt"],
+       "unpack": {"face-lexicon.txt.gz": "face-lexicon.txt"}},
       {"bucket": "final/stt-model/moonshine-tiny-en-int8/", "local": "runtime/stt-model/moonshine-tiny-en-int8/", "target": "app/models/stt/moonshine-tiny-en-int8/",
        "files": ["preprocess.onnx", "encode.int8.onnx", "uncached_decode.int8.onnx", "cached_decode.int8.onnx", "tokens.txt", "LICENSE"]},
       {"bucket": "final/voice-configs/", "local": "runtime/", "target": "voice-configs/",

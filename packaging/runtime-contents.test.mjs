@@ -35,7 +35,7 @@ test('the required files come from the repository: the V manifest and the OmniVo
 
 test('a Runtime ships no double-click support report tool: the report is made in the game (Settings > Help) or sent automatically', async () => {
   const config = JSON.parse(await read('packaging/release.config.json'));
-  assert.deepEqual(Object.keys(required), ["V's voice clips", 'stand-in voices (Pocket clips)', "Runtime's OmniVoice lists", "Runtime's sign-in settings", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
+  assert.deepEqual(Object.keys(required), ["V's voice clips", 'stand-in voices (Pocket clips)', "Runtime's OmniVoice lists", "Runtime's sign-in settings", 'llama.cpp engine', 'embedding model', 'vgmstream decoder', 'vgmstream licences']);
   assert(!allNames.some(name => name.endsWith('.bat')));
 });
 

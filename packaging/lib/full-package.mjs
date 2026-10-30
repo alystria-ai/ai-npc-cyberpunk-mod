@@ -9,7 +9,7 @@
 import {CODE_FOLDER, compareVersions, isCodeGamePath} from './code-payload.mjs';
 import {INSTALL_NOTE_PATH} from './pack-overlap.mjs';
 import {GAME_VARIANTS, LEGACY_GAME} from './game-variants.mjs';
-import {BASE_MARKER, forbiddenEntry} from './package-guards.mjs';
+import {BASE_MARKER, archiveEntry, forbiddenEntry} from './package-guards.mjs';
 import {shippedButWritten} from './package-writes.mjs';
 
 // The names are the mod page's name on Nexus Mods (owner decision 2026-10-28).
@@ -108,6 +108,8 @@ export function planFull({update, runtime, config, game, version}) {
   for (const entry of union) {
     const why = forbiddenEntry(entry.name, layout);
     if (why) problems.push(`${entry.name} ${why}.`);
+    const archive = archiveEntry(entry.name, null);
+    if (archive) problems.push(`${entry.name} ${archive}: the main file holds no archive.`);
     if (entry.name.length > layout.maxPathLength - layout.maxGameRootLength - 1) problems.push(`${entry.name} is too long for a typical game folder.`);
   }
   const written = shippedButWritten(union.map(entry => entry.name), {layout, game, codeRemoves: update.extra?.removes ?? [], removes: runtime.extra?.removes ?? []});

@@ -60,6 +60,7 @@
 //   --python EXE       host CPython used to run pip (default: python)
 //   --out DIR, --cache DIR   output and download-cache folders (default dist/release, dist/release-cache)
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
 import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile, copyFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
@@ -84,7 +85,7 @@ import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
 import {clipsLeftOut as voiceClipsLeftOut} from './lib/voice-clips-left-out.mjs';
-import {BASE_MARKER, forbiddenEntry} from './lib/package-guards.mjs';
+import {ARCHIVE_GUARDED_PACKAGES, BASE_MARKER, archivesInZip, assertNoArchives, forbiddenEntry} from './lib/package-guards.mjs';
 import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_APP, CODE_FOLDER, CODE_MANIFEST, INSTALLER, RUNTIME_APP, isCodePath, isCodeGamePath, manifestOf} from './lib/code-payload.mjs';
 
@@ -569,7 +570,14 @@ async function runtimePackage(source, config, models, auth) {
   const group = prefix => config.models.groups.find(item => item.target === prefix);
   for (const target of ['app/models/pocket/', 'app/models/lipsync/', 'app/models/stt/moonshine-tiny-en-int8/']) {
     const item = group(target);
-    for (const name of item.files) pkg.file(`${plugin}/${target}${name}`, models.files.get(item.bucket + name));
+    for (const name of item.files) {
+      const path = models.files.get(item.bucket + name), as = item.unpack?.[name];
+      if (!as) { pkg.file(`${plugin}/${target}${name}`, path); continue; }
+      // A file the model bucket keeps as a gzip (the lip-sync table) ships unpacked: the main file holds no archive (packaging/lib/package-guards.mjs).
+      const bytes = gunzipSync(await readFile(path));
+      if (!bytes.length || bytes[0] === 0x1f) throw Error(`${name} did not unpack to plain text`);
+      pkg.add(`${plugin}/${target}${as}`, {buffer: bytes});
+    }
   }
   const configs = group('voice-configs/');
   const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
@@ -607,6 +615,8 @@ async function runtimePackage(source, config, models, auth) {
 
   // The llama.cpp engine of Local AI: the server, llama-fit-params and their libraries (docs/LOCAL_AI.md, "The engine is in the Runtime").
   log(`llama.cpp engine: ${await addRuntimeEngine(pkg, source, config, app, notices)} files in app/${config.localAi.server.runtimeFolder}/.`);
+  // The embedding model of the memory search (docs/LOCAL_AI.md, "The embedding model is in the Runtime"): every text provider's memory uses it, so it is here and not in the Local AI packs.
+  log(`Embedding model: ${await addRuntimeEmbed(pkg, source, config, app, notices)} MiB in app/${config.localAi.embed.runtimeFolder}/.`);
   // vgmstream-cli and its libraries: the decoder of a player's V voice mod (docs/PACKAGING.md, "vgmstream in the Runtime").
   log(`vgmstream ${tool.vgmstream.version}: ${await addRuntimeVgmstream(pkg, source, config, app, notices)} files in app/${tool.vgmstream.runtimeFolder}/.`);
 
@@ -629,7 +639,7 @@ async function runtimePackage(source, config, models, auth) {
 
   notices.push('The mod\'s own code (app/bridge, app/launcher, app/assets and the character data) is copied into this app/ folder from the Scripts'
     + ` (${CODE_FOLDER}), whose THIRD-PARTY-NOTICES.txt lists what is compiled into it (the Convai Web SDK, Apache-2.0) and the native plugin's licences.`);
-  notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt.gz): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
+  notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
     + ' plus 6553 game-vocabulary pronunciations generated with espeak-ng (espeak-ng is not shipped); see app/models/lipsync/face-lexicon-NOTICE.txt');
   notices.push('Pocket voice model (app/models/pocket/): adapted from Kyutai Pocket TTS (kyutai/pocket-tts), weights CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), code MIT.'
     + ' Changes: the flow language-model tensors are weights trained for this mod and the Mimi decoder tensors are retrained. Kyutai prohibits voice impersonation or cloning without explicit and lawful consent.');
@@ -931,6 +941,19 @@ async function addRuntimeEngine(pkg, source, config, app, notices) {
   return shipped.length;
 }
 
+// The embedding model in the Runtime (localAi.embed.runtimeFolder), with the Apache-2.0 text beside the other licences and a line in the Runtime's THIRD-PARTY-NOTICES. The Runtime's
+// llama.cpp engine runs it on the CPU (bridge/local-embed.mjs). Returns its size in MiB.
+async function addRuntimeEmbed(pkg, source, config, app, notices) {
+  const spec = config.localAi.embed, folder = spec.runtimeFolder;
+  if (!folder || !/^[a-z0-9/-]+$/.test(folder)) throw Error('localAi.embed.runtimeFolder in release.config.json names the Runtime folder of the embedding model.');
+  const path = await localAiFile(spec, `https://huggingface.co/${spec.repository}/resolve/${spec.revision}/${spec.file}`, spec.file);
+  pkg.file(`${app}/${folder}/${spec.file}`, path);
+  pkg.file(`${app}/licenses/Apache-2.0.txt`, resolve(source.root, 'packaging/licenses/Apache-2.0.txt'));
+  notices.push(`${spec.name} (embedding model for the memory search, app/${folder}/) - IBM Granite, ${spec.license}: app/licenses/Apache-2.0.txt`
+    + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.repository}`);
+  return Math.round(spec.size / 1048576);
+}
+
 // vgmstream-cli.exe and the ten libraries it loads, in app/vgmstream/ (docs/PACKAGING.md, "vgmstream in the Runtime"). The bridge decodes the Wwise voice-over of a
 // player's V voice mod with it. The unmodified files of the official release are read from <checkout>/vendor/vgmstream/ (git-ignored, never downloaded) and each is checked
 // against the size and SHA-256 pinned in release.config.json (toolchain.vgmstream); a missing or different file stops the build. The licence texts are committed in
@@ -969,18 +992,19 @@ async function addRuntimeVgmstream(pkg, source, config, app, notices) {
 async function addEngine(pkg, source, config) {
   const spec = config.localAi, root = config.layout.localAiDirectory;
   const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.file}`;
-  const inPacks = spec.server.inPacks !== false;
+  const inPacks = spec.server.inPacks !== false, embedInPacks = spec.embed.inPacks !== false;
   if (inPacks) {
     const {extracted, shipped} = await engineFiles(config);
     for (const name of shipped) pkg.file(`${root}/llama/${name}`, resolve(extracted, name));
   }
-  pkg.file(`${root}/models/${spec.embed.file}`, await localAiFile(spec.embed, huggingFace(spec.embed), spec.embed.file));
+  // While localAi.embed.inPacks is true (packs before the embedding model moved into the Runtime) the model is in models/ too.
+  if (embedInPacks) pkg.file(`${root}/models/${spec.embed.file}`, await localAiFile(spec.embed, huggingFace(spec.embed), spec.embed.file));
   const licences = resolve(source.root, 'packaging/licenses');
   pkg.file(`${root}/licenses/Apache-2.0.txt`, resolve(licences, 'Apache-2.0.txt'));
   if (inPacks) pkg.file(`${root}/licenses/llama.cpp-MIT.txt`, resolve(licences, 'llama.cpp-MIT.txt'));
   pkg.text(`${root}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
   return {server: inPacks ? 'llama/llama-server.exe' : null,
-    embed: {file: `models/${spec.embed.file}`, dim: spec.embed.dim, id: spec.embed.file.replace(/\.gguf$/i, '').toLowerCase()}};
+    embed: embedInPacks ? {file: `models/${spec.embed.file}`, dim: spec.embed.dim, id: spec.embed.file.replace(/\.gguf$/i, '').toLowerCase()} : null};
 }
 
 // The notice lines for the engine (llama.cpp with its bundled OpenMP runtime, the Granite embedding model); the same text in every pack that has the engine.
@@ -991,8 +1015,8 @@ function engineNotices(spec, bothPacks) {
         + ' not of this pack - https://github.com/ggml-org/llama.cpp/tree/' + spec.server.version
       : `llama.cpp ${spec.server.version} (llama-server, Vulkan build for Windows x64, the unmodified official release without its other command line tools) - ${spec.server.license}, Copyright (c) 2023-2026 The ggml authors: licenses/llama.cpp-MIT.txt;`
         + ' the LLVM OpenMP runtime it includes (libomp.dll) has its licence in llama/LICENSE-LLVM-OpenMP - https://github.com/ggml-org/llama.cpp/tree/' + spec.server.version,
-    `${spec.embed.name} (embedding model for memory search; ${bothPacks}) - IBM Granite, ${spec.embed.license}: licenses/Apache-2.0.txt`
-      + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.embed.repository}`,
+    ...(spec.embed.inPacks === false ? [] : [`${spec.embed.name} (embedding model for memory search; ${bothPacks}) - IBM Granite, ${spec.embed.license}: licenses/Apache-2.0.txt`
+      + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.embed.repository}`]),
   ];
 }
 
@@ -1011,7 +1035,7 @@ async function localAiPackage(source, config, tierKey) {
   // while Companion vision is on) and tells the player where to get it when it is not.
   const projector = tierProjector(tier, `Local AI ${tierKey}`);
 
-  pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name, ...projectorField(projector)}, embed: engine.embed});
+  pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name, ...projectorField(projector)}, ...(engine.embed ? {embed: engine.embed} : {})});
 
   // Notices. The same bytes in both Local AI packs.
   const standard = spec.tiers.standard, lite = spec.tiers.lite;
@@ -1023,7 +1047,7 @@ async function localAiPackage(source, config, tierKey) {
     `${lite.name} (ternary Q2_0 GGUF, a Qwen3.5-based model; Local AI lite only) - ${lite.publisher}, ${lite.license}: licenses/Apache-2.0.txt;`
       + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
       + ` - https://huggingface.co/${lite.repository}`,
-    embedNotice,
+    ...(embedNotice ? [embedNotice] : []),
     ...(spec.server.inPacks === false ? ['This pack carries models only and needs the Runtime of version 0.2.7 or newer: the llama.cpp engine that runs the models is part of the Runtime, not of this pack.'] : []),
     'The model files are the unmodified converted files of the publishers named above.',
     'AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.',
@@ -1031,7 +1055,7 @@ async function localAiPackage(source, config, tierKey) {
   pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${root}/local-ai-${tierKey}.json`, {product: config.product, package: `localai-${tierKey}`, version, commit: '' + source.commit,
     llamaCpp: spec.server.version, model: `${tier.repository}@${tier.revision}`, modelFile: tier.file, modelSha256: tier.sha256,
-    embedModel: `${spec.embed.repository}@${spec.embed.revision}`});
+    ...(spec.embed.inPacks === false ? {} : {embedModel: `${spec.embed.repository}@${spec.embed.revision}`})});
   return pkg;
 }
 
@@ -1075,16 +1099,16 @@ async function maturePackage(source, config, tierKey) {
   const projector = tierProjector(model, `Mature ${packKey}`);
   // This pack's own marker, so the other pack's marker is never overwritten and either one alone is detected. It names the server and the
   // embedding model too (bridge/local-ai-pack.mjs reads those two fields), so a Mature-only install counts as installed.
-  pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family, ...projectorField(projector)}, embed: engine.embed});
+  pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family, ...projectorField(projector)}, ...(engine.embed ? {embed: engine.embed} : {})});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
   const [llamaNotice, embedNotice] = engineNotices(config.localAi, 'every Local AI pack and Mature pack');
   pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`AI NPC Cyberpunk Mod Mature ${packKey} pack - third-party components`, '',
     `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
     `- The model is a community fine-tune of the Apache-2.0 base model named above.${tierKey === 'good' ? ' Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy' : ''}`,
-    `- ${llamaNotice}`, `- ${embedNotice}`,
+    `- ${llamaNotice}`, ...(embedNotice ? [`- ${embedNotice}`] : []),
     config.localAi.server.inPacks === false
-      ? '- The pack includes the embedding model and uses the llama-server engine that is part of the Runtime, so it needs the Runtime of version 0.2.7 or newer. The same embedding model is in the Local AI packs; installing one pack over another only overwrites identical files.'
+      ? '- The pack carries the model only and uses the llama-server engine that is part of the Runtime, so it needs the Runtime of version 0.2.7 or newer. The embedding model of the memory search is in the Runtime too.'
       : '- The pack includes the llama-server build and the embedding model, so it works without a Local AI pack. The same files are in the Local AI packs; installing one pack over another only overwrites identical files.',
     '- The licence paths above (licenses/...) are in the Local AI folder, one level up from this folder; the Apache-2.0 text is also in mature/licenses/.',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see ../LICENSE.txt.', ''].join('\r\n'));
@@ -1245,6 +1269,8 @@ async function main() {
     log(`Staging the ${titles[id]} package.`);
     const pkg = await builders[id]();
     pkg.text(INSTALL_NOTE_NAME, INSTALL_NOTE);
+    // The main file (Scripts = the Update zip, and the Runtime base) holds no archive: refused before anything is written, and again on the finished zips below.
+    if (ARCHIVE_GUARDED_PACKAGES.includes(id)) await assertNoArchives(id, pkg.entries);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
     // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> being the oldest
@@ -1262,6 +1288,14 @@ async function main() {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
       const why = forbiddenEntry(entry.name, config.layout);
       if (why) throw Error(`${item.file} ${why}: ${entry.name}`);
+    }
+  }
+  // The packages the main file is made of: no entry is an archive, by its name or by its first bytes, read back from the finished zips.
+  for (const [id, entry] of Object.entries(report.packages)) {
+    if (!ARCHIVE_GUARDED_PACKAGES.includes(id)) continue;
+    for (const item of entry.archives) {
+      const found = await archivesInZip(resolve(out, 'packages', item.file));
+      if (found.length) throw Error(`${item.file} holds an archive, which the main file must not: ${found.slice(0, 6).join(', ')}`);
     }
   }
   if (!useWorktree) await rm(source.root, {recursive: true, force: true});

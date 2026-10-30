@@ -74,6 +74,8 @@ export function installLayout({appDirectory, gameRoot, dataHome = null, packRoot
     // The llama.cpp engine (llama-server, its DLLs, llama-fit-params) is part of the Runtime: bridge/local-ai-pack.mjs uses it before the copy an older pack carries.
     // It is in the Runtime's own folder, which under Mod Organizer 2 is the real folder of the Runtime's mod, so the server and its DLLs are neighbours.
     engine: resolve(app, 'llama-cpp'),
+    // The embedding model of the memory search (every text provider uses it, with or without a pack); the engine above runs it on the CPU (bridge/local-embed.mjs).
+    embedModel: resolve(app, 'models/embed/granite-embedding-107m-multilingual-Q8_0.gguf'),
     // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, models/; llama/ in a pack that still carries the engine).
     localAi: packRoots.localAi ? resolve(packRoots.localAi) : resolve(app, 'local-ai'),
     ...(packRoots.stt ? {sttPacks: resolve(packRoots.stt)} : {}),
@@ -187,8 +189,14 @@ export async function prepareState(layout, {log = () => {}} = {}) {
   // The bridge loads the lip-sync model from <data>/lipsync-model (bridge/convai-bridge.mjs).
   const faceTarget = resolve(layout.state, 'lipsync-model');
   await mkdir(faceTarget, {recursive: true});
-  for (const name of (await readdir(layout.faceModel).catch(() => [])).sort()) {
+  const faceFiles = (await readdir(layout.faceModel).catch(() => [])).sort();
+  for (const name of faceFiles) {
     if (await writeIfChanged(resolve(faceTarget, name), await readFile(resolve(layout.faceModel, name)))) log(`Installed lipsync-model/${name}.`);
+  }
+  // The pronunciation table ships as plain text (face-lexicon.txt, the main file holds no archive). The gzip an older Runtime left here is the same table: removed once the plain one is in place.
+  if (faceFiles.includes('face-lexicon.txt') && await stat(resolve(faceTarget, 'face-lexicon.txt.gz')).then(() => true, () => false)) {
+    await rm(resolve(faceTarget, 'face-lexicon.txt.gz'), {force: true}).catch(() => {});
+    log('Removed the older lipsync-model/face-lexicon.txt.gz.');
   }
 
   const pocket = JSON.parse(await readFile(resolve(layout.defaults, POCKET_CONFIG), 'utf8'));
@@ -222,7 +230,7 @@ export function serviceEnvironment(layout, {omni, keyFile, usvfs = false}, sourc
     'CYBERPUNK_CONVAI_DAILY_LIMIT', 'CYBERPUNK_CONVAI_GAME_STATE',
     // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
     'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
-    'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL', 'CYBERPUNK_CONVAI_LOCAL_ENGINE']) delete env[name];
+    'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL', 'CYBERPUNK_CONVAI_LOCAL_ENGINE', 'CYBERPUNK_CONVAI_LOCAL_RUNTIME_EMBED']) delete env[name];
   Object.assign(env, {
     PYTHONNOUSERSITE: '1',
     CYBERPUNK_CONVAI_GAME: layout.gameRoot,
@@ -231,6 +239,7 @@ export function serviceEnvironment(layout, {omni, keyFile, usvfs = false}, sourc
     CYBERPUNK_CONVAI_CLIENT_ASSETS: layout.assets,
     CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi,
     CYBERPUNK_CONVAI_LOCAL_ENGINE: layout.engine,
+    CYBERPUNK_CONVAI_LOCAL_RUNTIME_EMBED: layout.embedModel,
     // The folder 'runtime/voice-references/' maps to. Besides OmniVoice, the Mistral cloud voice (Voxtral) reads its reference clips
     // and its pre-built prepared/ clips from here, so it is set with or without the OmniVoice pack.
     CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,

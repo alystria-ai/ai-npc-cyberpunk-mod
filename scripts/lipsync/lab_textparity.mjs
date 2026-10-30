@@ -2,7 +2,7 @@
 //   node lab_textparity.mjs <model-dir> <fixture.json>
 // Streams every case in 80 ms packets and in odd 333-sample packets; reports the largest row difference,
 // normalization agreement and whether streaming changed anything. Exit code 1 on failure.
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {parseFaceModel, FaceModelStream} from '../../bridge/jali-face-model.mjs';
 import {parseFaceText, normalizeText, buildStates} from '../../bridge/jali-face-text.mjs';
@@ -10,7 +10,7 @@ import {parseFaceText, normalizeText, buildStates} from '../../bridge/jali-face-
 const [dir, fixturePath] = process.argv.slice(2);
 const model = parseFaceModel(JSON.parse(readFileSync(join(dir, 'face-model.json'), 'utf8')), readFileSync(join(dir, 'face-model.bin')));
 const text = parseFaceText(JSON.parse(readFileSync(join(dir, 'face-text.json'), 'utf8')), readFileSync(join(dir, 'face-text.bin')),
-  readFileSync(join(dir, 'face-lexicon.txt.gz')), model);
+  readFileSync(join(dir, existsSync(join(dir, 'face-lexicon.txt')) ? 'face-lexicon.txt' : 'face-lexicon.txt.gz')), model);
 const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
 let failed = false;
 for (const vector of fixture.normalize) {

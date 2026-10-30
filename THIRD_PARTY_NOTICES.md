@@ -127,7 +127,7 @@ separate from the Runtime package.
 ## Bundled in the optional Local AI packs
 
 Two optional downloads, "Local AI standard" and "Local AI lite" (`docs/LOCAL_AI.md`). Both unpack into
-`red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` and each carries the same server, embedding model,
+`red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` and each carries the same
 licence texts and `THIRD-PARTY-NOTICES.txt`. Every file is the unmodified upstream file, pinned by
 revision and SHA-256 in `packaging/release.config.json`. The licences below are what each
 publisher's model card or repository states; the Gemma 4 card says Apache-2.0 and links Google's
@@ -143,7 +143,7 @@ Apache-2.0 page, and Google also publishes a prohibited use policy for Gemma
 | Gemma 4 E4B vision projector, Q8_0 GGUF (a separate vision file, `Vision-Gemma-4-E4B-projector.zip`, for Local AI standard and Mature standard, used only while Companion vision is on) | `ggml-org/gemma-4-E4B-it-GGUF`, revision `a69f018d` | Apache-2.0 (Google) | `app/local-ai/licenses/Apache-2.0.txt` |
 | Bonsai 2 4B vision projector, Q8_0 GGUF (a separate vision file, `Vision-Bonsai-2-4B-projector.zip`, for Local AI lite, used only while Companion vision is on) | `prism-ml/Ternary-Bonsai-2-4B-gguf`, revision `8d655716` | Apache-2.0 (PrismML) | `app/local-ai/licenses/Apache-2.0.txt` |
 | Qwen3.5-4B vision projector, BF16 GGUF (a separate vision file, `Vision-Qwen3.5-4B-projector.zip`, for Mature lite, used only while Companion vision is on) | `HauhauCS/Qwen3.5-4B-Uncensored-HauhauCS-Aggressive`, revision `c09cdbcd` | Apache-2.0 (HauhauCS, for the Qwen3.5-4B model of Alibaba Cloud, Apache-2.0) | `app/local-ai/licenses/Apache-2.0.txt` |
-| granite-embedding-107m-multilingual Q8_0 GGUF (both packs; memory search) | `lmstudio-community/granite-embedding-107m-multilingual-GGUF`, revision `fe02f281`; model: ibm-granite/granite-embedding-107m-multilingual | Apache-2.0 (IBM) | `app/local-ai/licenses/Apache-2.0.txt` |
+| granite-embedding-107m-multilingual Q8_0 GGUF (in the Runtime at `app/models/embed/`, memory search of every text provider, which the packs of 0.2.9 to 0.4.x carried too) | `lmstudio-community/granite-embedding-107m-multilingual-GGUF`, revision `fe02f281`; model: ibm-granite/granite-embedding-107m-multilingual | Apache-2.0 (IBM) | `app/licenses/Apache-2.0.txt` (Runtime) |
 
 Apache-2.0 and MIT both allow redistribution, including commercially, if the licence text and
 copyright notice travel with the files, which the packs do. The models are unmodified, so no

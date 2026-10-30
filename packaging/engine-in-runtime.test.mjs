@@ -101,7 +101,7 @@ test('the build writes the engine into the Runtime from the same pinned download
 
 test('a pack built with inPacks false carries models only: no llama/ folder, no licence for it, no server in its marker, and the notices say where the engine is', () => {
   const add = body('addEngine');
-  assert.match(add, /const inPacks = spec\.server\.inPacks !== false;/);
+  assert.match(add, /const inPacks = spec\.server\.inPacks !== false, embedInPacks = spec\.embed\.inPacks !== false;/);
   assert.match(add, /if \(inPacks\) \{[\s\S]*?\$\{root\}\/llama\/\$\{name\}/, 'the pack\'s copy of the engine only with inPacks');
   assert.match(add, /if \(inPacks\) pkg\.file\(`\$\{root\}\/licenses\/llama\.cpp-MIT\.txt`/);
   assert.match(add, /server: inPacks \? 'llama\/llama-server\.exe' : null/);

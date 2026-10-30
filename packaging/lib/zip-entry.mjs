@@ -4,7 +4,7 @@ import {createReadStream, createWriteStream} from 'node:fs';
 import {open} from 'node:fs/promises';
 import {Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
-import {crc32, createInflateRaw} from 'node:zlib';
+import {constants, crc32, createInflateRaw, inflateRawSync} from 'node:zlib';
 
 // Where the entry's data starts: its local header (30 bytes, then the name and an extra field whose lengths may differ from the directory's).
 async function dataStart(zip, entry) {
@@ -30,6 +30,22 @@ export async function* entryChunks(zip, entry) {
   let crc = 0, bytes = 0;
   for await (const chunk of source) { crc = crc32(chunk, crc); bytes += chunk.length; yield chunk; }
   if (bytes !== entry.uncompressed || (crc >>> 0) !== (entry.crc >>> 0)) throw Error(`${entry.name} in ${zip} failed its size or CRC-32 check.`);
+}
+
+// The first `count` bytes of the entry (fewer for a short file), read without unpacking the rest and without the CRC-32 check (a look at the start,
+// not a copy). A stored entry is read as it is, a deflated one from its first compressed bytes.
+export async function entryHead(zip, entry, count = 512) {
+  if (entry.method !== 0 && entry.method !== 8) throw Error(`${entry.name}: unsupported compression method ${entry.method}.`);
+  if (entry.uncompressed === 0 || entry.compressed === 0) return Buffer.alloc(0);
+  const start = await dataStart(zip, entry);
+  const handle = await open(zip, 'r');
+  try {
+    const want = entry.method === 0 ? Math.min(count, entry.compressed) : Math.min(entry.compressed, 64 * 1024);
+    const buffer = Buffer.alloc(want);
+    const {bytesRead} = await handle.read(buffer, 0, want, start);
+    const raw = buffer.subarray(0, bytesRead);
+    return entry.method === 0 ? raw : inflateRawSync(raw, {finishFlush: constants.Z_SYNC_FLUSH}).subarray(0, count);
+  } finally { await handle.close(); }
 }
 
 // Writes the entry to `destination` (a file) and returns its size.

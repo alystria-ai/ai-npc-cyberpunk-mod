@@ -17,6 +17,10 @@
   "r6/audioware/CyberpunkConvai/reply-4.wav",
   "r6/audioware/CyberpunkConvai/reply-5.wav",
   "r6/audioware/CyberpunkConvai/reply-6.wav",
-  "r6/audioware/CyberpunkConvai/reply-7.wav"
+  "r6/audioware/CyberpunkConvai/reply-7.wav",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/models/lipsync/face-lexicon.txt.gz",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/networkx/generators/atlas.dat.gz",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/scipy/stats/_sobol_direction_numbers.npz",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl"
  ]
 }

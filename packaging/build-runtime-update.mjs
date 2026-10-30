@@ -29,7 +29,8 @@ import {tmpdir} from 'node:os';
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
-import {extractEntry, readEntry} from './lib/zip-entry.mjs';
+import {entryHead, extractEntry, readEntry} from './lib/zip-entry.mjs';
+import {ARCHIVE_HEAD_BYTES, archiveEntry} from './lib/package-guards.mjs';
 import {sha256File} from './lib/files.mjs';
 import {PLUGIN} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
@@ -131,12 +132,19 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     // The name of a game other than the default carries its suffix (Runtime-Update-0.3.1-to-0.3.2-for-2.31.zip), so the zips cannot be mixed up.
     const base = `Runtime-Update-${from}-to-${to}${GAME_VARIANTS[game].suffix}`;
     const zipPath = resolve(out, `${base}.zip`), temporary = `${zipPath}.tmp`;
-    const writer = await ZipWriter.create(temporary);
     const files = [];
     // The version stamp always goes (it is what the next start and the next update read); the removal list is the one made above.
     const release = after.get(RELEASE_ENTRY.toLowerCase());
     const copy = [...diff.added, ...diff.changed, ...(release && !diff.changed.includes(release) && !diff.added.includes(release) ? [release] : [])]
       .filter(item => item.name.toLowerCase() !== REMOVALS_ENTRY.toLowerCase() && !item.name.toLowerCase().startsWith(STEPS_PREFIX));
+    // The update is part of the main file's family: it holds no archive either (packaging/lib/package-guards.mjs). Refused before anything is written.
+    const archives = [];
+    for (const item of copy) {
+      const why = archiveEntry(item.name, await entryHead(item.zip, item.entry, ARCHIVE_HEAD_BYTES));
+      if (why) archives.push(`${item.name} ${why}`);
+    }
+    if (archives.length) throw Error(`The Runtime update would hold an archive, which the main file's packages must not: ${archives.slice(0, 6).join(', ')}`);
+    const writer = await ZipWriter.create(temporary);
     const stepEntry = `${PLUGIN}/app/${STEPS_DIR}/${stepFileName(from, to)}`;
     const listText = Buffer.from(removalListText(to, checked.ok), 'utf8');
     const entries = [...copy.map(item => ({name: item.name, item})), {name: REMOVALS_ENTRY, buffer: listText},
