@@ -83,6 +83,7 @@ import {PYTHON_SKIP, nodePackagePruned, pocketShipped, pythonPruned} from './lib
 import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
+import {clipsLeftOut as voiceClipsLeftOut} from './lib/voice-clips-left-out.mjs';
 import {BASE_MARKER, forbiddenEntry} from './lib/package-guards.mjs';
 import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_APP, CODE_FOLDER, CODE_MANIFEST, INSTALLER, RUNTIME_APP, isCodePath, isCodeGamePath, manifestOf} from './lib/code-payload.mjs';
@@ -586,7 +587,10 @@ async function runtimePackage(source, config, models, auth) {
   // (voiceClips.fromGame in release.config.json: the clips are checked against their hashes as ever but not packed, because the player's PC builds them from the game's own
   // voice files, bridge/voice-clips.mjs and docs/VOICE_EXTRACTION.md. Off until the clips are on Hugging Face for players without the English voice files.)
   const pocketRefs = await referencesOf(pocketConfig, models);
-  if (!config.voiceClips?.fromGame) for (const [rel, path] of pocketRefs) pkg.file(`${plugin}/voices/${rel}`, path);
+  const leftOutPocket = await clipsLeftOut(source, config, pocketConfig);
+  let pocketLeftOut = 0;
+  for (const [rel, path] of pocketRefs) { if (leftOutPocket(rel)) pocketLeftOut++; else pkg.file(`${plugin}/voices/${rel}`, path); }
+  if (config.voiceClips?.fromGame) log(`Voice clips built on the player's PC (voiceClips.fromGame): ${pocketLeftOut} Pocket clips left out of the Runtime, ${pocketRefs.size - pocketLeftOut} kept (Lucy, the clips that cannot be rebuilt, the two stand-in voices).`);
   // V's voice for typed lines (docs/V_VOICE.md): the two clips cut from the game's own V lines, beside the other voice references. They
   // are kept out of git (assets/v-voice/*.wav), so they are packed from the local copy, like an add-on's voice clips. A build without
   // them still works: the setting then has no voice to use and says so in the log.
@@ -753,6 +757,13 @@ async function referencesOf(config, models) {
   return result;
 }
 
+// voiceClips.fromGame: which reference clips the packages leave out (packaging/lib/voice-clips-left-out.mjs). Returns rel => boolean for the clip paths below
+// runtime/voice-references/; with the switch off nothing is left out.
+async function clipsLeftOut(source, config, ...configs) {
+  const manifestText = config.voiceClips?.fromGame ? await readFile(resolve(source.root, 'characters/voice-clips-manifest.json'), 'utf8') : '';
+  return voiceClipsLeftOut({fromGame: config.voiceClips?.fromGame === true, manifestText, configs});
+}
+
 async function omniPackage(source, config, models) {
   const pkg = new Package('omni');
   const plugin = config.layout.pluginDirectory, omni = `${plugin}/app/omni`;
@@ -805,17 +816,19 @@ async function omniPackage(source, config, models) {
   // The clips the Runtime carries for the voices added after this pack was frozen stay in the Runtime (the Mistral voice reads them without the pack):
   // the pack never ships the same path (packaging/check-pack-overlap.mjs). A clip the pack would skip must be the very bytes the Runtime has.
   const runtimeClips = runtimeClipSet(await readJson(resolve(source.root, config.omniPack.runtimeClips)));
-  let leftToRuntime = 0;
-  const seen = new Set(), values = {};
+  let leftToRuntime = 0, leftOut = 0;
+  const seen = new Set(), values = {}, leftOutPaths = new Set();
+  for (const name of OMNI_LIST_NAMES) values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
+  const leftOutOmni = await clipsLeftOut(source, config, ...OMNI_LIST_NAMES.map(name => values[name]));
   for (const name of OMNI_LIST_NAMES) {
-    const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
+    const value = values[name];
     // The Runtime carries the same list in app/defaults (a newer one, once this pack is reused by a later version), which the launcher prefers
     // (packaging/runtime/prepare-state.mjs).
     pkg.json(`${omni}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, model));
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
       seen.add(rel);
-      if (config.voiceClips?.fromGame) continue;          // built on the player's PC (voiceClips.fromGame): neither the pack nor the Runtime carries it
+      if (leftOutOmni(rel)) { leftOut++; leftOutPaths.add(`${plugin}/voices/${rel}`.toLowerCase()); continue; }   // built on the player's PC (voiceClips.fromGame): neither the pack nor the Runtime carries it
       const held = runtimeClips.get(`${plugin}/voices/${rel}`.toLowerCase());
       if (held) {
         if ((await stat(path)).size !== held.size || await crcOfFile(path) !== held.crc) throw Error(`The Runtime carries voices/${rel} with other bytes than this build's clip.`);
@@ -824,8 +837,10 @@ async function omniPackage(source, config, models) {
       pkg.file(`${plugin}/voices/${rel}`, path);
     }
   }
-  if (!config.voiceClips?.fromGame && leftToRuntime !== runtimeClips.size) throw Error(`The Runtime clip listing names ${runtimeClips.size} clips but the lists use ${leftToRuntime} of them.`);
-  log(`OmniVoice reference clips: ${leftToRuntime} left to the Runtime package (they are in it already).`);
+  // With voiceClips.fromGame the Runtime no longer carries the clips of the characters built on the player's PC, so the listing is held to what is still shipped.
+  const listedKept = [...runtimeClips.keys()].filter(path => !leftOutPaths.has(path)).length;
+  if (leftToRuntime !== listedKept) throw Error(`The Runtime clip listing names ${listedKept} clips${leftOut ? ' that are still shipped' : ''} but the lists use ${leftToRuntime} of them.`);
+  log(`OmniVoice reference clips: ${leftToRuntime} left to the Runtime package (they are in it already)${leftOut ? `, ${leftOut} left out (built on the player's PC, voiceClips.fromGame)` : ''}.`);
   // The Mistral voice clones from the OmniVoice clips (long first, then short, then Pocket's) when this pack is installed, and its
   // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips in its own folder
   // (voices/prepared-runtime); this pack's slots, for the clips whose hash differs, go in voices/prepared, and the bridge finds either by

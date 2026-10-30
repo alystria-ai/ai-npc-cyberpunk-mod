@@ -34,9 +34,13 @@ export const OMNI_PACK_MISSING_MESSAGE = 'Requires the optional OmniVoice pack (
 // replies are written. This names them so the bridge can say so once in its log. `referenceDirectory` is the folder the worker reads clips from
 // (CYBERPUNK_CONVAI_OMNI_REFERENCES); a clip is "runtime/voice-references/<path>" in the configuration. Returns {total, missing: [path, ...]}.
 const REFERENCE_PREFIX = 'runtime/voice-references/';
-export function missingOmniClips({config = {}, referenceDirectory, exists = fileExists} = {}) {
+// `except`: keys whose clips are built on the player's PC from the game's own voice files (characters/voice-clips-manifest.json, bridge/voice-clips.mjs): a clip of those that is
+// not on disk is the normal state with the clips left out of the packages (voiceClips.fromGame), not a pack that stopped half way, so they are not counted.
+export function missingOmniClips({config = {}, referenceDirectory, exists = fileExists, except = []} = {}) {
   const wanted = new Set();
-  for (const voice of Object.values(config?.voices ?? {})) {
+  const built = new Set(except);
+  for (const [key, voice] of Object.entries(config?.voices ?? {})) {
+    if (built.has(key)) continue;
     const reference = voice?.reference;
     // Player clips (<state>/player-voices) and anything else outside the shipped folder are not the pack's.
     if (typeof reference === 'string' && reference.startsWith(REFERENCE_PREFIX) && !/\.\.|\|:/.test(reference)) wanted.add(reference.slice(REFERENCE_PREFIX.length));

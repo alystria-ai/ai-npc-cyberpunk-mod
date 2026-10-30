@@ -98,7 +98,7 @@ import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
-import {GameVoiceClips, applyReadyClips, builderFiles, readManifest as readVoiceClipManifest} from './voice-clips.mjs';
+import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, readManifest as readVoiceClipManifest, standInDescriptors} from './voice-clips.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -344,17 +344,6 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
-// An OmniVoice pack that is installed but short of reference clips (an extraction that stopped, a folder a mod manager cleared) leaves some characters
-// without an OmniVoice voice; say so once in the log (bridge/omni-pack.mjs). File checks only, once, at start.
-try {
-  if (detectOmniPack({project, config: omniVoiceConfigs.long}).installed) {
-    for (const mode of ['short', 'long']) {
-      const line = missingOmniClipsLine(missingOmniClips({config: omniVoiceConfigs[mode],
-        referenceDirectory: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(project, 'runtime/voice-references')}), mode);
-      if (line) console.error(line);
-    }
-  }
-} catch (error) { console.error('[OmniPack] clip check failed:', error?.message ?? error); }
 // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
 // found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
 const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});
@@ -365,6 +354,12 @@ await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] sca
 // and nothing is started at start: the builder is a process of its own, below normal priority, that exits when the character's clips are written.
 const shippedVoiceTables = shippedVoicesReader(originalVoiceConfigPaths);
 let gameVoiceClips = null;
+const standInVoices = {pocket: {}, short: {}, long: {}};
+// 'female' or 'male' for the stand-in voice: the roster's word, else the archetype key's (npc-valentinos-female).
+const genderOfVoiceKey = key => {
+  const gender = String(roster.find(row => row?.key === key)?.gender ?? '').toLowerCase();
+  return gender === 'female' || gender === 'male' ? gender : /(^|-)female(-|$)/.test(String(key)) ? 'female' : 'male';
+};
 try {
   const manifestPath = resolve(project, 'characters/voice-clips-manifest.json');
   const manifest = existsSync(manifestPath) ? readVoiceClipManifest(await readFile(manifestPath, 'utf8')) : {};
@@ -373,8 +368,14 @@ try {
     ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
     prefer: process.env.CYBERPUNK_CONVAI_GAME_CLIPS === '1', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},
     onBuilt: key => liveVoices?.refresh(key), log: message => console.error('[VoiceClips] ' + message)});
-  const named = applyReadyClips(gameVoiceClips, {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)});
+  const tables = {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)};
+  // The stand-in voices (the two archetype voices that always ship) as the shipped tables have them, kept for the live tables (standInDescriptors).
+  for (const engine of Object.keys(tables)) standInVoices[engine] = Object.fromEntries(Object.values(STAND_IN_VOICES).map(key => [key, tables[engine]?.[key]]).filter(([, row]) => row));
+  const named = applyReadyClips(gameVoiceClips, tables);
   if (named.length) console.error(`[VoiceClips] ${named.length} character(s) speak with clips built from the game's files`);
+  // Packages without the clips (voiceClips.fromGame): a character whose clips are not built yet speaks with the stand-in voice of its gender until they are, with no error.
+  const waiting = applyStandIns(gameVoiceClips, tables, genderOfVoiceKey);
+  if (waiting.length) console.error(`[VoiceClips] ${waiting.length} character(s) speak with a stand-in voice until their clips are built from the game's files`);
 } catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
 // A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
 const wantVoiceClips = (profile, reason) => {
@@ -386,7 +387,7 @@ const wantVoiceClips = (profile, reason) => {
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
   voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
   shipped: shippedVoiceTables, log: message => console.error('[PlayerVoices] ' + message),
-  generated: (key, shipped) => gameVoiceClips?.descriptors(key, shipped) ?? null,
+  generated: (key, shipped) => gameVoiceClips?.descriptors(key, shipped) ?? (gameVoiceClips ? standInDescriptors(gameVoiceClips, key, shipped, standInVoices, genderOfVoiceKey(key)) : null),
   // V is not in the shipped configurations (its voices are merged in as extras, from the mod-built or shipped clip copied to voice-references/addons):
   // with the player's clip gone V goes back to that reference, with no restart.
   fallback: key => {
@@ -394,6 +395,18 @@ liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed,
     return voice ? {reference: `runtime/voice-references/addons/${key}.wav`, sha256: voice.sha256, transcript: voice.transcript} : null;
   },
   apply: update => { const applied = localVoice.setVoices(update); if (applied) { dropPrefetch(); prefetchObserved = ''; } return applied; }});
+// An OmniVoice pack that is installed but short of reference clips (an extraction that stopped, a folder a mod manager cleared) leaves some characters
+// without an OmniVoice voice; say so once in the log (bridge/omni-pack.mjs). File checks only, once, at start. It runs after the voice clip service has put the stand-in
+// voices into the tables: a character whose clips are built on this PC (voiceClips.fromGame) names a clip that is there, so the line never lists the whole cast.
+try {
+  if (detectOmniPack({project, config: omniVoiceConfigs.long}).installed) {
+    for (const mode of ['short', 'long']) {
+      const line = missingOmniClipsLine(missingOmniClips({config: omniVoiceConfigs[mode], except: gameVoiceClips ? Object.keys(gameVoiceClips.manifest) : [],
+        referenceDirectory: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(project, 'runtime/voice-references')}), mode);
+      if (line) console.error(line);
+    }
+  }
+} catch (error) { console.error('[OmniPack] clip check failed:', error?.message ?? error); }
 // What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
 // start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
 // <reference root>/addons/. Nothing else is touched (releaseVoiceFiles names exactly the files it may remove). Voxtral's slots of player clips
