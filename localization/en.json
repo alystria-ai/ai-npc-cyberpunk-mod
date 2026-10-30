@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1808,
+    "strings": 1817,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -155,6 +155,7 @@
     "Another saved party already has that name.": "Another saved party already has that name.",
     "Another setup is already running. Wait for it to finish.": "Another setup is already running. Wait for it to finish.",
     "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.": "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.",
+    "Arasaka work clothes, no jacket": "Arasaka work clothes, no jacket",
     "As shipped": "As shipped",
     "Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.": "Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.",
     "Ask me": "Ask me",
@@ -736,6 +737,7 @@
     "Memory service": "Memory service",
     "Memory: remembers your conversations": "Memory: remembers your conversations",
     "Menu": "Menu",
+    "Merc look": "Merc look",
     "Message could not be delivered. Please try again.": "Message could not be delivered. Please try again.",
     "Message sent. Waiting for reply.": "Message sent. Waiting for reply.",
     "Microphone": "Microphone",
@@ -925,6 +927,7 @@
     "Partner paragraph: nothing invented": "Partner paragraph: nothing invented",
     "Parts of the character": "Parts of the character",
     "Party": "Party",
+    "Party dress": "Party dress",
     "Party: {count}": "Party: {count}",
     "Paste": "Paste",
     "Paste API key": "Paste API key",
@@ -1002,6 +1005,8 @@
     "Recent game dialogue": "Recent game dialogue",
     "Recently edited": "Recently edited",
     "Record names": "Record names",
+    "Red parade dress": "Red parade dress",
+    "Red parade dress with bracelets": "Red parade dress with bracelets",
     "Redscript log": "Redscript log",
     "Reinstall": "Reinstall",
     "Relationship: {mode}": "Relationship: {mode}",
@@ -1193,6 +1198,7 @@
     "Stopping the trip. Wait for the car to stop before stepping out.": "Stopping the trip. Wait for the car to stop before stepping out.",
     "Story": "Story",
     "Story character": "Story character",
+    "Street clothes": "Street clothes",
     "Street reputation": "Street reputation",
     "Strong": "Strong",
     "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.": "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.",
@@ -1216,6 +1222,7 @@
     "Talk to story characters": "Talk to story characters",
     "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.": "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.",
     "Talking gestures": "Talking gestures",
+    "Tank top": "Tank top",
     "Temperature": "Temperature",
     "Test": "Test",
     "Test connection": "Test connection",
@@ -1565,6 +1572,7 @@
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
     "V speaks with the voice of your installed V voice mod, or the shipped V voice.": "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
     "Valentino look": "Valentino look",
+    "Valentino look, collar open": "Valentino look, collar open",
     "Vehicle exit workspot state is unavailable.": "Vehicle exit workspot state is unavailable.",
     "Vehicle information became unavailable.": "Vehicle information became unavailable.",
     "Vehicle information is not ready.": "Vehicle information is not ready.",
@@ -1573,6 +1581,7 @@
     "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.": "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.",
     "Very short: up to about {words} words": "Very short: up to about {words} words",
     "Vest": "Vest",
+    "Vest and rucksack": "Vest and rucksack",
     "View": "View",
     "Voice": "Voice",
     "Voice activation": "Voice activation",
@@ -2813,6 +2822,7 @@
       "Another saved party already has that name.",
       "Another setup is already running. Wait for it to finish.",
       "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.",
+      "Arasaka work clothes, no jacket",
       "As shipped",
       "Ask me",
       "Asking Convai for the payment page…",
@@ -3143,6 +3153,7 @@
       "Memory",
       "Memory clear confirmed for {target}.",
       "Memory: remembers your conversations",
+      "Merc look",
       "Microphone",
       "Microphone connection timed out. Please try again.",
       "Microphone unavailable. Check your Windows input device.",
@@ -3284,6 +3295,7 @@
       "Partner paragraph: nothing invented",
       "Parts of the character",
       "Party",
+      "Party dress",
       "Paste",
       "Paste API key",
       "Paste address",
@@ -3331,6 +3343,8 @@
       "Ready. OmniVoice runs on {card} with AMD’s ROCm.",
       "Recently edited",
       "Record names",
+      "Red parade dress",
+      "Red parade dress with bracelets",
       "Reinstall",
       "Relationship: {mode}",
       "Remove",
@@ -3445,6 +3459,7 @@
       "Stopping the trip. Wait for the car to stop before stepping out.",
       "Story",
       "Story character",
+      "Street clothes",
       "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.",
       "Suit",
       "Support report saved: {path}",
@@ -3458,6 +3473,7 @@
       "Talk to Johnny by voice",
       "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.",
       "Talking gestures",
+      "Tank top",
       "Temperature",
       "Test",
       "Test connection",
@@ -3727,11 +3743,13 @@
       "V (male voice)",
       "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
       "Valentino look",
+      "Valentino look, collar open",
       "Version {version}.",
       "Version {version}. The mod is tested on {game} only, so some things may not work.",
       "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.",
       "Very short: up to about {words} words",
       "Vest",
+      "Vest and rucksack",
       "Voice",
       "Voice activation could not open the microphone. Check your Windows input device.",
       "Voice conversation failed. Check your microphone and try again.",
@@ -4263,7 +4281,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:384"
+        "mod/character-editor.lua:393"
       ]
     },
     "A saved party holds {count} characters, so the rest were left out.": {
@@ -4296,7 +4314,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:371"
+        "mod/character-editor.lua:380"
       ]
     },
     "A speaker with a reply length of its own": {
@@ -4742,6 +4760,14 @@
         "mod/character-editor.lua:191"
       ]
     },
+    "Arasaka work clothes, no jacket": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:359"
+      ]
+    },
     "As shipped": {
       "contexts": [
         "ui.localized"
@@ -4831,7 +4857,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:362",
+        "mod/character-editor.lua:371",
         "mod/init.lua:5801",
         "mod/manager-ui.lua:216"
       ]
@@ -4848,7 +4874,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:361"
+        "mod/character-editor.lua:370"
       ]
     },
     "Back": {
@@ -4907,7 +4933,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:358"
+        "mod/character-editor.lua:367"
       ]
     },
     "Backspace": {
@@ -5109,7 +5135,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:367"
+        "mod/character-editor.lua:376"
       ]
     },
     "Cancel": {
@@ -5393,7 +5419,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:359"
+        "mod/character-editor.lua:368"
       ]
     },
     "Choose 16 or 32 voice steps.": {
@@ -6048,7 +6074,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:378"
+        "mod/character-editor.lua:387"
       ]
     },
     "Companion": {
@@ -8021,7 +8047,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:357"
+        "mod/character-editor.lua:366"
       ]
     },
     "Google Gemini (free plan)": {
@@ -8553,7 +8579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:365"
+        "mod/character-editor.lua:374"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -8602,7 +8628,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:372"
+        "mod/character-editor.lua:381"
       ]
     },
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": {
@@ -9177,7 +9203,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:368"
+        "mod/character-editor.lua:377"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -9446,7 +9472,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:385"
+        "mod/character-editor.lua:394"
       ]
     },
     "MIOpen convolutions (AMD)": {
@@ -9647,6 +9673,14 @@
       ],
       "references": [
         "mod/key-bindings.lua:85"
+      ]
+    },
+    "Merc look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:365"
       ]
     },
     "Message could not be delivered. Please try again.": {
@@ -10279,7 +10313,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:7680"
+        "mod/init.lua:7694"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -10329,7 +10363,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:370"
+        "mod/character-editor.lua:379"
       ]
     },
     "None found: installed by hand.": {
@@ -10361,7 +10395,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:369"
+        "mod/character-editor.lua:378"
       ]
     },
     "None: they keep the stance they have": {
@@ -10369,7 +10403,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:375"
+        "mod/character-editor.lua:384"
       ]
     },
     "Normal": {
@@ -10377,7 +10411,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:366"
+        "mod/character-editor.lua:375"
       ]
     },
     "Normal memory": {
@@ -11015,7 +11049,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:418"
+        "mod/character-editor.lua:427"
       ]
     },
     "Opening the page in your browser…": {
@@ -11112,7 +11146,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:360"
+        "mod/character-editor.lua:369"
       ]
     },
     "Output rules": {
@@ -11232,6 +11266,14 @@
         "mod/manager-ui.lua:1860"
       ]
     },
+    "Party dress": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:362"
+      ]
+    },
     "Party: {count}": {
       "contexts": [
         "legacy.manager"
@@ -11326,7 +11368,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:374"
+        "mod/character-editor.lua:383"
       ]
     },
     "Plans": {
@@ -11864,6 +11906,22 @@
         "mod/character-editor.lua:123"
       ]
     },
+    "Red parade dress": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:360"
+      ]
+    },
+    "Red parade dress with bracelets": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:361"
+      ]
+    },
     "Redscript log": {
       "contexts": [
         "page.readonly"
@@ -12107,7 +12165,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:380"
+        "mod/character-editor.lua:389"
       ]
     },
     "Reply length in words": {
@@ -12969,7 +13027,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:382"
+        "mod/character-editor.lua:391"
       ]
     },
     "Show companion reply subtitles during conversations.": {
@@ -13041,7 +13099,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:376"
+        "mod/character-editor.lua:385"
       ]
     },
     "Solo look": {
@@ -13457,6 +13515,14 @@
         "mod/character-editor.lua:179"
       ]
     },
+    "Street clothes": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:364"
+      ]
+    },
     "Street reputation": {
       "contexts": [
         "page.setting"
@@ -13518,7 +13584,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:379"
+        "mod/character-editor.lua:388"
       ]
     },
     "T-shirt": {
@@ -13561,7 +13627,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:377"
+        "mod/character-editor.lua:386"
       ]
     },
     "Takes {name} out of your favorites. Her place in the list below stays.": {
@@ -13650,7 +13716,15 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:364"
+        "mod/character-editor.lua:373"
+      ]
+    },
+    "Tank top": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:363"
       ]
     },
     "Temperature": {
@@ -14588,7 +14662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:403"
+        "mod/character-editor.lua:412"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -14819,7 +14893,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:417"
+        "mod/character-editor.lua:426"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -15150,7 +15224,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:381"
+        "mod/character-editor.lua:390"
       ]
     },
     "The manager could not be prepared: {reason}": {
@@ -15783,7 +15857,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:363"
+        "mod/character-editor.lua:372"
       ]
     },
     "This character needs Google Gemini, Local AI or Custom to answer.": {
@@ -16621,6 +16695,14 @@
         "mod/character-editor.lua:342"
       ]
     },
+    "Valentino look, collar open": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:357"
+      ]
+    },
     "Vehicle exit workspot state is unavailable.": {
       "contexts": [
         "party.vehicle-transition-feedback"
@@ -16676,7 +16758,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:383"
+        "mod/character-editor.lua:392"
       ]
     },
     "Vest": {
@@ -16685,6 +16767,14 @@
       ],
       "references": [
         "mod/character-editor.lua:348"
+      ]
+    },
+    "Vest and rucksack": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:358"
       ]
     },
     "View": {
@@ -17216,7 +17306,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:373"
+        "mod/character-editor.lua:382"
       ]
     },
     "What to do": {

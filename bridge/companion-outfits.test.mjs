@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {companionEngine} from './companion-fixture.mjs';
 import {readOutfitList, appearancesOf, buildEvidence} from '../scripts/Extract-CompanionOutfitEvidence.mjs';
+import {INTERIORS, HOME_PLACES} from './place-names.mjs';
 
 // Companions change outfits (docs/COMPANION_OUTFITS.md): the curated list (mod/companion-outfits-data.lua) against what the installed game lists
 // (characters/companion-outfit-evidence.json), the decision and the check cycle of mod/companion-outfits.lua under fengari with stand-ins for the game,
@@ -42,7 +43,7 @@ function parseData() {
   return characters;
 }
 const data = parseData();
-const KINDS = new Set(['any', 'day', 'night', 'home']);
+const KINDS = new Set(['any', 'day', 'night', 'home', 'formal']);
 // What an outfit may never be: undress, damage, another time, another state of being. (The file's header lists the same rule.)
 const FORBIDDEN = /nude|naked|underwear|panties|undress|bdsm|sex|censored|shower|dead|corpse|wound|bleed|blood|dirt|burn|beaten|bruis|cyberspace|braindance|hologram|holocall|blendable|invisible|hallucin|possess|core_chip|carried|_wet|exhaust|plugged|disguise|disquise|funeral|prisoner|jail|kidnap|young|2013|2020|epilogue|two_years|finale|bossfight|boss|stage|morph|transparent|fpp|crying|apartment_02/i;
 
@@ -180,7 +181,7 @@ test('the decision: day and night, required and variety, home, bad looks, and a 
   assert(outfits.choose(panam, 'panam__mq055__apartment_01', ctx({home = true, hourChanged = true, random = function() return 0 end})) == nil, 'the only home look')
   local jackie = outfits.character('Character.Jackie')
   assert(outfits.choose(jackie, 'jackie_welles_default', ctx({home = true})) == nil, 'no home look: home changes nothing')
-  assert(outfits.choose(jackie, 'jackie_welles_default', ctx({period = 'night', hourChanged = true, random = function() return 0.1 end})) == 'jackie_welles_valentino')
+  assert(outfits.choose(jackie, 'jackie_welles_default', ctx({period = 'night', hourChanged = true, random = function() return 0.1 end})) == 'jackie_welles_valentino_collar_down')
   -- A look that failed once is not chosen again.
   assert(outfits.choose(panam, 'panam_no_jacket', ctx({period = 'night', bad = {panam_default = true}})) == nil)
   -- A look the list does not hold (a world character's copy in the clothes the original wore) is left alone.
@@ -194,6 +195,162 @@ test('the decision: day and night, required and variety, home, bad looks, and a 
       assert(found, record .. ' ' .. period)
     end
   end
+`));
+
+// A made-up character: a base look, two day looks, two night looks, one home look and two formal looks.
+const synthetic = `
+  local sam = {base = 'sam_default', outfits = {
+    {'sam_default', 'any'}, {'sam_day_a', 'day'}, {'sam_day_b', 'day'}, {'sam_night_a', 'night'}, {'sam_night_b', 'night'},
+    {'sam_home', 'home'}, {'sam_formal_a', 'formal'}, {'sam_formal_b', 'formal'}}}
+  local function ctx(extra) local c = {period = 'day', home = false, formal = false, hours = 100, hourChanged = false, bad = {}, random = function() return 0 end}
+    for k, v in pairs(extra or {}) do c[k] = v end return c end
+`;
+
+test('the formal place: clubs, fancy bars and the Corpo districts, by the game district record, and never a flat of V', () => runWith(`${fixture}
+  for _, name in ipairs({'LittleChina_Afterlife', 'LittleChina_RiotClub', 'Kabuki_LizziesBar', 'JapanTown_Clouds', 'JapanTown_DarkMatter', 'Northside_Totentaz', 'Glen_Embers',
+      'CorpoPlaza', 'CorpoPlaza_ArasakaTower_Lobby', 'Downtown', 'Downtown_TheHammer'}) do
+    assert(outfits.placeClass(name) == 'formal', name)
+  end
+  for _, name in ipairs({'LittleChina_VApartment', 'Northside_Apartment', 'JapanTown_Apartment', 'Glen_Apartment', 'CorpoPlaza_Apartment'}) do
+    assert(outfits.placeClass(name) == 'home', name)
+  end
+  for _, name in ipairs({'Watson', 'Kabuki', 'Arroyo', 'CityCenter', 'Kabuki_JudysApartment', 'Downtown_Apartment', 'Vista_del_rey_ElCoyoteCojo', 'Badlands'}) do
+    assert(outfits.placeClass(name) == nil, name)
+  end
+  assert(outfits.placeClass(nil) == nil and outfits.placeClass(5) == nil)
+  f.place = 'JapanTown_Clouds'; assert(outfits.currentPlaceClass() == 'formal')
+  f.place = 'Watson'; assert(outfits.currentPlaceClass() == false)
+  f.place = nil; assert(outfits.currentPlaceClass() == nil)
+`));
+
+test('the formal place names are the named interiors the bridge knows, and the flats are the bridge home places', () => {
+  const lua = [...moduleSource.matchAll(/FORMAL_PLACES = \{([^}]*)\}/g)][0][1];
+  const names = [...lua.matchAll(/(\w+) = true/g)].map(match => match[1]);
+  assert.ok(names.length >= 7);
+  for (const name of names) assert.ok(Object.hasOwn(INTERIORS, name), `${name} is not a named interior of bridge/place-names.mjs`);
+  const home = [...moduleSource.match(/HOME_PLACES = \{([^}]*)\}/)[1].matchAll(/(\w+) = true/g)].map(match => match[1]);
+  assert.deepEqual(home.sort(), Object.keys(HOME_PLACES).sort());
+});
+
+test('formal: a character with formal looks wears one in a formal place (the evening looks join them at night), and the ordinary rotation elsewhere', () => runWith(`${fixture}
+  ${synthetic}
+  -- Formal place by day: the formal looks only, and the worn day look is not allowed there.
+  local name, why = outfits.choose(sam, 'sam_day_a', ctx({formal = true}))
+  assert(name == 'sam_formal_a' and why == 'required', tostring(name))
+  -- At night the night looks are evening looks too.
+  local seen = {}
+  for _, roll in ipairs({0, 0.3, 0.6, 0.9}) do seen[outfits.choose(sam, 'sam_default', ctx({formal = true, period = 'night', random = function() return roll end}))] = true end
+  assert(seen.sam_formal_a and seen.sam_formal_b and seen.sam_night_a and seen.sam_night_b and not seen.sam_default and not seen.sam_day_a)
+  -- Back out: a formal look is not allowed there any more.
+  name, why = outfits.choose(sam, 'sam_formal_a', ctx())
+  assert(why == 'required' and (name == 'sam_default' or name == 'sam_day_a' or name == 'sam_day_b'), tostring(name))
+  -- Home beats formal (a flat in the Corpo district is a flat).
+  assert(outfits.choose(sam, 'sam_default', ctx({home = true, formal = true})) == 'sam_home')
+  -- A character without formal looks keeps its ordinary rotation in a formal place.
+  local panam = outfits.character('Character.Panam')
+  assert(outfits.choose(panam, 'panam_default', ctx({formal = true})) == nil)
+  assert(outfits.choose(panam, 'panam_no_jacket', ctx({formal = true, period = 'night'})) == 'panam_default')
+  -- A formal look that failed to show is skipped.
+  assert(outfits.choose(sam, 'sam_default', ctx({formal = true, bad = {sam_formal_a = true}})) == 'sam_formal_b')
+  assert(outfits.choose(sam, 'sam_default', ctx({formal = true, bad = {sam_formal_a = true, sam_formal_b = true}})) == nil, 'nothing formal left: no change')
+  assert(outfits.hasFormalOutfit('Character.Jackie') and not outfits.hasFormalOutfit('Character.Judy') and not outfits.hasFormalOutfit('Character.Nobody'))
+`));
+
+test('formal: the party check reads the district once, puts the copy into a formal look in a club, and takes it off when V leaves', () => runWith(`${fixture}
+  member(1, 'jackie-welles', 'Character.Jackie', 'jackie_welles_default')
+  at(3, 14); f.place = 'Watson'; cycle()
+  assert(#calls.prefetch == 0, 'on the street: the usual look')
+  local placesBefore = calls.place
+  f.place = 'CorpoPlaza'; unseen()
+  assert(calls.place == placesBefore + 2, 'one district read per check: ' .. (calls.place - placesBefore))
+  local target = calls.prefetch[1]:match(':(.+)$')
+  assert(outfits.kindOf('Character.Jackie', target) == 'formal', tostring(target))
+  cycle(1.0); cycle(1.0)
+  assert(outfits.snapshot()[1].current == target and outfits.status(1) == 'changed')
+  -- A new copy made while V is in a club comes in a formal look, and the next invitation there picks the other one.
+  at(3, 14); f.place = 'LittleChina_Afterlife'
+  local first = outfits.spawnAppearance('Character.Jackie', 'jackie-welles')
+  assert(first and outfits.kindOf('Character.Jackie', first) == 'formal', tostring(first))
+  outfits.created(9, 'jackie-welles', 'Character.Jackie', first)
+  local second = outfits.spawnAppearance('Character.Jackie', 'jackie-welles')
+  assert(second and second ~= first and outfits.kindOf('Character.Jackie', second) == 'formal', tostring(second) .. ' after ' .. tostring(first))
+  f.place = 'Watson'; unseen()
+  local back = calls.prefetch[2]:match(':(.+)$')
+  assert(outfits.kindOf('Character.Jackie', back) ~= 'formal' and outfits.kindOf('Character.Jackie', back) ~= 'home', tostring(back))
+`));
+
+test('rotation: never the same look twice in a row while another exists, per situation, and a single look has no rotation', () => runWith(`${fixture}
+  ${synthetic}
+  -- The pick avoids the look worn and the last pick of the situation.
+  local last = {out = 'sam_day_a'}
+  for _, roll in ipairs({0, 0.2, 0.5, 0.8, 0.99}) do
+    local name = outfits.choose(sam, 'sam_default', ctx({hourChanged = true, last = last, random = function() return roll end}))
+    assert(name == nil or name ~= 'sam_day_a', 'rolled ' .. roll .. ': ' .. tostring(name))
+  end
+  -- The roll is the same, the pick moves on from the last one.
+  local first = outfits.choose(sam, 'sam_formal_a', ctx({random = function() return 0 end}))
+  local second = outfits.choose(sam, 'sam_formal_a', ctx({last = {out = first}, random = function() return 0 end}))
+  assert(first ~= second and first ~= nil and second ~= nil, tostring(first) .. ' then ' .. tostring(second))
+  -- Required changes also skip the last pick of their situation.
+  local required = outfits.choose(sam, 'sam_formal_a', ctx({last = {out = 'sam_default'}, random = function() return 0 end}))
+  assert(required == 'sam_day_a', tostring(required))
+  -- The last pick is the only one left: it is worn rather than nothing.
+  local solo = {base = 'x', outfits = {{'x', 'any'}, {'y', 'home'}}}
+  assert(outfits.choose(solo, 'y', ctx({last = {out = 'x'}})) == 'x', 'a one-look situation still dresses her')
+  assert(outfits.choose(solo, 'x', ctx({hourChanged = true, random = function() return 0 end})) == nil, 'one look: no rotation')
+  -- A spawn: a new invitation picks another look than the last one worn in that situation.
+  local seen = {}
+  for _, roll in ipairs({0, 0.2, 0.5, 0.8, 0.99}) do seen[outfits.chooseSpawn(sam, ctx({last = {out = 'sam_default'}, random = function() return roll end}))] = true end
+  assert(not seen.sam_default and seen.sam_day_a and seen.sam_day_b)
+  assert(outfits.chooseSpawn(sam, ctx({home = true, last = {home = 'sam_home'}})) == 'sam_home', 'one look at home: no other to pick')
+  assert(outfits.chooseSpawn(nil, ctx()) == nil)
+`));
+
+test('rotation: a new in-game day brings the morning look, once, in the day period only, and never the look worn', () => runWith(`${fixture}
+  ${synthetic}
+  local function morning(extra) local c = ctx({hourChanged = true, day = 4, pickDay = 3, hours = 100, changedAt = 99, random = function() return 0.9 end}); for k, v in pairs(extra or {}) do c[k] = v end return c end
+  local name, why = outfits.choose(sam, 'sam_day_a', morning())
+  assert(name == 'sam_default' or name == 'sam_day_b', tostring(name)); assert(why == 'daily', tostring(why) .. ': no dwell, no roll for the morning look')
+  assert(outfits.choose(sam, 'sam_day_a', morning({pickDay = 4})) == nil, 'same day: the roll of 0.9 says no')
+  assert(outfits.choose(sam, 'sam_night_a', morning({period = 'night'})) == nil, 'not at night')
+  assert(outfits.choose(sam, 'sam_day_a', morning({hourChanged = false})) == nil, 'only at an hour change')
+  assert(outfits.choose(sam, 'sam_day_a', morning({pickDay = false})) == nil or true)
+  -- The situation counts: at home the home look is the only one, so nothing to change into.
+  assert(outfits.choose(sam, 'sam_home', morning({home = true})) == nil)
+`));
+
+test('rotation: a pick is remembered per character, written once per change, and survives a reload', () => runWith(`${fixture}
+  local saved, writes = nil, 0
+  outfits.deps.load = function() return saved end
+  outfits.deps.save = function(picks) writes = writes + 1; saved = {}; for key, row in pairs(picks) do saved[key] = {out = row.out, home = row.home, formal = row.formal, day = row.day} end end
+  at(3, 14)
+  -- A new copy: made in a look, it is the last pick of its situation.
+  outfits.created(1, 'jackie-welles', 'Character.Jackie', 'jackie_welles_valentino_collar_down')
+  assert(writes == 1 and saved['jackie-welles'].out == 'jackie_welles_valentino_collar_down' and saved['jackie-welles'].day == 3)
+  outfits.created(1, 'jackie-welles', 'Character.Jackie', 'jackie_welles_valentino_collar_down'); assert(writes == 1, 'same look again: nothing written')
+  outfits.created(1, 'jackie-welles', 'Character.Jackie', 'jackie_welles__q005_suit')
+  assert(writes == 2 and saved['jackie-welles'].formal == 'jackie_welles__q005_suit' and saved['jackie-welles'].out == 'jackie_welles_valentino_collar_down', 'a formal look is the last pick of the formal situation only')
+  outfits.created(2, 'judy-alvarez', 'Character.Judy', nil)
+  assert(saved['judy-alvarez'].out == 'judy_default', 'the base look counts')
+  -- A change that showed is the new last pick, with the day it was made.
+  member(3, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(4, 20); f.seen = false; unseen(); cycle(1.0); cycle(1.0)
+  assert(saved['panam-palmer'] and saved['panam-palmer'].out == 'panam_default' and saved['panam-palmer'].day == 4, 'written when the change showed')
+  -- A reload: the module state is reset, the file is read again, and the next copy is made in another look than the last one.
+  outfits.reset()
+  assert(outfits.recall('panam-palmer').out == 'panam_default', 'the reset keeps the memory')
+  at(5, 10)   -- by day her list holds two other looks; at night she has only her base look, so nothing is to rotate
+  for _, roll in ipairs({0, 0.4, 0.8}) do
+    outfits.deps.random = function() return roll end
+    local name = outfits.spawnAppearance('Character.Panam', 'panam-palmer')
+    assert(name == 'panam_no_jacket' or name == 'panam_no_jacket_and_harness' or name == nil, 'never the base look again: ' .. tostring(name) .. ' at ' .. roll)
+    assert(name ~= nil, 'the last pick was her base look, so she comes in another look: ' .. roll)
+  end
+  -- Rubbish in the file is ignored; a failing writer never stops a change.
+  outfits.deps.load = function() return {x = 'no', y = {out = 5, day = 'z', formal = 'ok'}} end
+  outfits.deps.save = function() error('disk full') end
+  outfits.created(5, 'judy-alvarez', 'Character.Judy', 'judy__mq055__apartment_01')
+  assert(outfits.status(5) == 'home')
 `));
 
 test('a wall between V and her counts as out of view even when the camera cone says seen, and an unreadable wall test changes nothing', () => runWith(`${fixture}

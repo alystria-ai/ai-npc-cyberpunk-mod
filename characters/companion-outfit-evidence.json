@@ -25,6 +25,16 @@
     "evelyn_wounded"
    ]
   },
+  "Character.Hanako": {
+   "template": "base/quest/secondary_characters/hanako.ent",
+   "templateDefault": "hanako_default",
+   "listedAppearances": [
+    "hanako_default",
+    "hanako_no_coat",
+    "hanako_parade",
+    "hanako_parade_no_coat"
+   ]
+  },
   "Character.Jackie": {
    "template": "base/quest/secondary_characters/jackie.ent",
    "templateDefault": "jackie_welles_default",
@@ -203,6 +213,25 @@
     "alex_default_bartender"
    ]
   },
+  "Character.dante": {
+   "template": "ep1/quest/tertiary_characters/dante.ent",
+   "templateDefault": "man_average__mq305__dante",
+   "listedAppearances": [
+    "man_average__mq305__dante",
+    "man_average__mq305__dante_merc"
+   ]
+  },
+  "Character.mq306_aaron": {
+   "template": "ep1/quest/minor_quests/mq306/characters/mq306_aaron.ent",
+   "templateDefault": "man_big__mq306__aaron_default",
+   "listedAppearances": [
+    "man_big__mq306__aaron_bandage",
+    "man_big__mq306__aaron_casual",
+    "man_big__mq306__aaron_casual_bandage",
+    "man_big__mq306__aaron_default",
+    "man_big__mq306__aaron_shirt"
+   ]
+  },
   "Character.reed": {
    "template": "ep1/quest/primary_characters/reed.ent",
    "templateDefault": "reed_default",
@@ -224,6 +253,51 @@
     "reed_vest_leg_wound",
     "reed_vest_leg_wound_censored",
     "reed_vest_with_bag"
+   ]
+  },
+  "Character.songbird": {
+   "template": "ep1/quest/primary_characters/songbird.ent",
+   "templateDefault": "songbird_default",
+   "listedAppearances": [
+    "songbird__q304__core_chip",
+    "songbird__q304__dirty",
+    "songbird__q304__exhausted",
+    "songbird__q305__possessed",
+    "songbird__q305__possessed_with_tears",
+    "songbird__q305__possession_off",
+    "songbird__q306__blackwall",
+    "songbird__q306__blackwall_carried",
+    "songbird__q306__blackwall_carried_wet",
+    "songbird__q306__burnt_out",
+    "songbird__q306__exhausted",
+    "songbird__q306__exhausted_plugged_in",
+    "songbird_blendable",
+    "songbird_blendable_closeup",
+    "songbird_default",
+    "songbird_default_hallucination",
+    "songbird_default_no_cyberware",
+    "songbird_disquise",
+    "songbird_hologram",
+    "songbird_invisible",
+    "songbird_paradise",
+    "songbird_young_1",
+    "songbird_young_1_blendable",
+    "songbird_young_1b",
+    "songbird_young_2",
+    "songbird_young_2_blendable",
+    "songbird_young_3",
+    "songbird_young_3_2",
+    "songbird_young_3_blendable",
+    "songbird_young_3b",
+    "songbird_young_3b_blendable",
+    "songbird_young_4",
+    "songbird_young_4_blendable",
+    "songbird_young_5",
+    "songbird_young_5_blendable",
+    "songbird_young_6",
+    "songbird_young_7",
+    "songbird_young_8",
+    "songbird_young_9"
    ]
   },
   "Character.sq021_joss": {

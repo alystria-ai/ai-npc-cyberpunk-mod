@@ -546,6 +546,8 @@ export function editorClient() {
     'Vest': T('Vest'), 'Paradise look': T('Paradise look'), 'Bartender': T('Bartender'), 'Dress without the fur coat': T('Dress without the fur coat'),
     'Trench coat': T('Trench coat'), 'Without the coat': T('Without the coat'), 'CEO look with coat': T('CEO look with coat'), 'CEO look': T('CEO look'),
     'Pyjamas': T('Pyjamas'),
+    'Valentino look, collar open': T('Valentino look, collar open'), 'Vest and rucksack': T('Vest and rucksack'), 'Arasaka work clothes, no jacket': T('Arasaka work clothes, no jacket'), 'Red parade dress': T('Red parade dress'),
+    'Red parade dress with bracelets': T('Red parade dress with bracelets'), 'Party dress': T('Party dress'), 'Tank top': T('Tank top'), 'Street clothes': T('Street clothes'), 'Merc look': T('Merc look'),
   })[text] || text;
   const lookPatch = (draft, saved) => {
     const was = lookDraft(saved), patch = {};

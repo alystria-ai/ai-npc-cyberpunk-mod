@@ -1,0 +1,155 @@
+{
+ "default": [
+  {
+   "name": "s1_001_wa_shoe__panam1178",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\s1_001_wa_shoe__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_001_wa_pants__panam2866",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_001_wa_pants__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_059_ma_pants__quilted_leather_backle",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_059_ma_pants__quilted_leather_backle.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "0"
+  },
+  {
+   "name": "i1_001_wa_belt__panam2642",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\i1_001_wa_belt__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "t2_001_wa_jacket__panam",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t2_001_wa_jacket__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "t0_002_wa__c_base_tah5424",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\common\\base_bodies\\woman_average\\t0_000_wa_base__full_hql.mesh",
+   "meshAppearance": "04_ca_almond",
+   "chunkMask": "18446735342072511495"
+  },
+  {
+   "name": "t1_001_wa_shirt__panam_noarms2215",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t1_001_wa_shirt__panam_noarms.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "g1_001_wa_gloves__panam0112",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\g1_001_wa_gloves__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  }
+ ],
+ "no_jacket": [
+  {
+   "name": "s1_001_wa_shoe__panam1178",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\s1_001_wa_shoe__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_001_wa_pants__panam2866",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_001_wa_pants__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_059_ma_pants__quilted_leather_backle",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_059_ma_pants__quilted_leather_backle.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "0"
+  },
+  {
+   "name": "t0_002_wa__c_base_tah5424",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\common\\base_bodies\\woman_average\\t0_000_wa_base__full_hql.mesh",
+   "meshAppearance": "04_ca_almond",
+   "chunkMask": "18446741942365077255"
+  },
+  {
+   "name": "t1_001_wa_shirt__panam7726",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t1_001_wa_shirt__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "i1_001_wa_belt__panam2642",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\i1_001_wa_belt__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "t0_001_wa_body__panam_dec_scar5816",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t0_001_wa_body__panam_dec_scar.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  }
+ ],
+ "no_jacket_and_harness": [
+  {
+   "name": "s1_001_wa_shoe__panam1178",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\s1_001_wa_shoe__panam.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_001_wa_pants__panam2866",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_001_wa_pants__panam.mesh",
+   "meshAppearance": "no_dirt",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "l1_059_ma_pants__quilted_leather_backle",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\l1_059_ma_pants__quilted_leather_backle.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "t0_002_wa__c_base_tah5424",
+   "type": "entGarmentSkinnedMeshComponent",
+   "mesh": "base\\characters\\common\\base_bodies\\woman_average\\t0_000_wa_base__full_hql.mesh",
+   "meshAppearance": "04_ca_almond",
+   "chunkMask": "18446741942365077255"
+  },
+  {
+   "name": "t1_001_wa_shirt__panam7726",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t1_001_wa_shirt__panam.mesh",
+   "meshAppearance": "no_dirt",
+   "chunkMask": "9223372036854775807"
+  },
+  {
+   "name": "t0_001_wa_body__panam_dec_scar5816",
+   "type": "entSkinnedMeshComponent",
+   "mesh": "base\\characters\\main_npc\\panam\\t0_001_wa_body__panam_dec_scar.mesh",
+   "meshAppearance": "default",
+   "chunkMask": "9223372036854775807"
+  }
+ ]
+}
