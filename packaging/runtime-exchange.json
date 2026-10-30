@@ -35,6 +35,7 @@
     "gemini-provider-command.json",
     "gemini-provider-state.json",
     "group-prefetch.json",
+    "inworld-key-command.json",
     "knowledge-active.json",
     "knowledge-history.json",
     "knowledge-pack-lua.json",

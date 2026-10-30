@@ -45,6 +45,8 @@ import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection, voiceFailureCause} from './voice-selection.mjs';
 import {browserFailureTail, lastBrowserStartFailure} from './system-browser.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
+import {InworldVoice} from './inworld-voice.mjs';
+import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
@@ -430,6 +432,12 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks, keepsReference: vModKeepsReference,
   prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
+// The Inworld cloud voice (docs/INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in the state folder, added in
+// Settings > Voices > Custom voices). Each character is cloned once from the same reference clips; the voice ids are kept in player-inworld-voices.json in the
+// state folder. Nothing of it runs until the player chooses it: no connection is made and no clip is read until a reply (or the warm-up of a chosen Inworld voice) asks.
+const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
+  storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 // The graphics card vendors (names only, bridge/gpu-vendors.mjs), from the card list the setup check and the error report read too (looked up once):
 // the OmniVoice start line names them and the game's voice menu says OmniVoice needs an NVIDIA card when the PC has none. The lookup starts the first time
 // OmniVoice is wanted (chosen or starting; VoiceSelection passes `wanted`), never at start-up, which runs no process of its own. null until the list is read;
@@ -517,7 +525,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
+  voxtral:voxtralVoice,inworld:inworldVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
   // OmniVoice's start does not warm the English startup voices when every reply is in a fixed language that a voice pack speaks (they would only delay the first line).
   skipStartupWarm: () => { const fixed = multilingual.fixed; return !!fixed && fixed !== 'en' && languagePacks.installed; },
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
@@ -593,7 +601,7 @@ const quota = new QuotaWatch({keys});
 const customEndpoint = await new CustomEndpoint({path: resolve(stateDirectory, CUSTOM_FILE), log: message => console.error('[Custom] ' + message)}).load();
 // Google Gemini (bridge/gemini-provider.mjs): the same client on a second endpoint with its own saved key (player-gemini-endpoint.txt), a provider of its own in the list.
 const geminiEndpoint = await openGeminiEndpoint(stateDirectory, message => console.error('[Gemini] ' + message));
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), custom: customEndpoint, gemini: geminiEndpoint}).load();
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey, custom: customEndpoint, gemini: geminiEndpoint}).load();
 // runtime/mistral-state.json is not written until the first settings poll has applied the saved provider (released after it, at the end of
 // start-up): until then the provider is the default, Convai, and the game would read that as the player's choice for a moment.
 mistral.statusHeld = true;
@@ -1482,7 +1490,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
     } catch {}
     // What the Mistral voice really clones from (known once the reference was built; the line's ref is the registry's first choice).
     let sent;
-    try { if (reply?.engine === 'pocket' && localVoice.cloudActive) sent = voxtralVoice.referenceInfo(voiceKey ?? input.profileKey, reply.language); } catch {}
+    try { if (reply?.engine === 'pocket' && localVoice.cloudActive && localVoice.cloud === 'voxtral') sent = voxtralVoice.referenceInfo(voiceKey ?? input.profileKey, reply.language); } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
       sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, sent, ...extra}));
   } catch {}
@@ -2230,7 +2238,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     } catch (error) { prefetched.discard(); throw error; }
   }
   // Developer mode: keep this reply's audio and its reference (undefined, and nothing held, while it is off).
-  capture = replyCapture.enabled ? replyCapture.begin({engine: omni ? 'omni' : localVoice.cloudActive ? 'voxtral' : 'pocket', voiceKey, language: language ?? 'en',
+  capture = replyCapture.enabled ? replyCapture.begin({engine: omni ? 'omni' : localVoice.cloudActive ? (localVoice.cloud === 'inworld' ? 'inworld' : 'voxtral') : 'pocket', voiceKey, language: language ?? 'en',
     reference: referenceSetFor(omni ? 'omni' : 'pocket', language, voiceKey)}) : undefined;
   return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: engineVoice, host: realtime, speech,
     phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,stream:streamed?.stream,language,capture,
@@ -4108,6 +4116,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'),
   localStatus: localAiStatus, localReason: localAiReason, localDetail: () => { const {state, reason, detail} = localServer.status(); return state === 'failed' ? unavailableDetail(reason, detail) ?? null : null; }, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelInUse, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 // The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
