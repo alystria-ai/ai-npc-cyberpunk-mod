@@ -36,10 +36,10 @@ Status: built and tested, measured offline against real Convai (text only). **No
    reply. **No bridge cap was added:** in this study Judy used "..." in 0 to 1 lines in 40 with the new block (and 1 in the
    HEAD baseline of the same day), so the probe shows no overuse to cap. (Round 2 had measured 10 in 40; this did not
    reproduce, so treat the old figure as noise or as an effect of the old wording.)
-4. **Per-profile offer rates** (`OFFER_RATE_BY_PROFILE`): Judy .5, Panam .35, Johnny .42 (traits give .6, .6, .35). After the
+4. **Per-profile offer rates** (`OFFER_RATE_BY_PROFILE`): Judy .5, Panam .35, Johnny .42 (traits gave .6, .6, .35). Superseded on 2026-10-30: all rates are much lower now, see the last section of `docs/NATURAL_SPEECH_TEST_2026-10-06.md`. After the
    line and the exact spot, the model takes nearly every offer (Judy 14 of 15), where HEAD took about half; so Panam, who was
    too low before, now needs a *lower* offer rate to land near 30%, and Judy a little lower to stay at about 40%. Pity (every
-   fourth turn for warm and neutral) still follows the trait.
+   fourth turn for warm and neutral) was removed on 2026-10-30.
 5. **New OmniVoice tags.**
    - `[question-ah]` and `[question-oh]` (a short rising "ah?" or "oh?" of doubt or curiosity) are in `OMNI_TAGS` for all
      languages and described in the block.

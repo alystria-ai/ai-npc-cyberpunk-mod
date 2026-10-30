@@ -220,3 +220,28 @@ In game the user chatted six lines with Judy (OmniVoice) and heard nothing: `run
 
   Judy over 30 Omni lines: 11 with a device (37%). Counts are small; they confirm the order of magnitude, not exact shares.
 
+
+### Rarer, varied and earned sounds (2026-10-30)
+
+Player report (Nexus, 30 October): the voices are on point, but the way NPCs talk gets repetitive, "especially with Judy constantly sighing or giggling at jokes that aren't funny". The setting was on and the dice offered a device on about every other reply for Judy (profile rate .5, plus the pity counter), and the model took nearly every offer.
+
+What changed (`bridge/natural-speech.mjs`, `bridge/natural-speech-talk.mjs`):
+
+- **Much lower offer rates.** `OFFER_RATE` is warm .25, neutral .2, dry .12, cold .05 (was .6, .5, .35, .15). `OFFER_RATE_BY_PROFILE`: Judy .15, Panam .15, Johnny .1 (was .5, .35, .42). The turn right after an offered turn still never offers.
+- **No pity counter.** `PITY_TURNS` is gone, so a short chat can hear nothing at all. The log reason `pity` no longer exists.
+- **Memory across the last replies of each conversation** (`NaturalSpeech.sounds`, the sound tags of each of the last 6 replies):
+  - At most one sound tag in any 4 replies (`SOUND_GAP`): a reply that voiced a sound tag blocks the offers of the next 3 turns. The log reason is `sound-cooldown`. This replaces "no sound tag twice in a row".
+  - The same sound tag is not used again within 6 replies (`SAME_SOUND_WINDOW`): the block of every offered turn lists the sound tags of the last 6 replies, together with the last reply's pauses and fillers, as "Your recent replies already used ...: do not use those in this reply."
+  - The bridge still only withholds and warns, it never inserts or strips a tag, so the model decides. Pocket is unchanged: punctuation pauses only, never a bracket tag.
+- **Earned, in the prompt.** The OmniVoice block now says that most replies need no sound and plain speech is the normal choice, and gives the rule: a laugh needs something actually funny (never a polite laugh at a joke that is not funny, never to fill a silence), a sigh needs a real reason (tiredness, exasperation, sadness), a surprise or question sound needs something genuinely surprising or unclear, otherwise no sound. The shared "choose by who you are" lines (OmniVoice and Pocket) and the per-character "how you talk" lines (Judy, the warm trait) repeat it.
+
+Measured offline (`bridge/natural-speech.mjs` offer logic only, no Convai, no cloud, no model; 50 simulated chats of 200 turns per character, seeded; the simulated model uses a sound tag on 65% of offers, picks from the 11 sound tags with laughter and sigh doubled, and never writes a tag the block lists as already used):
+
+| Character (trait) | Offers per 10 replies, before | after | Sound tags per 10 replies, before | after | Replies between sound tags, before | after |
+| --- | --- | --- | --- | --- | --- | --- |
+| Judy (warm, profile .5 to .15) | 3.7 | 1.1 | 2.4 | 0.75 | 4.2 | 12.7 |
+| Panam (warm, profile .35 to .15) | 3.3 | 1.2 | 2.1 | 0.73 | 4.7 | 12.9 |
+| Johnny (dry, profile .42 to .1) | 3.0 | 0.8 | 1.9 | 0.54 | 5.1 | 17.4 |
+| Neutral NPC (.5 to .2) | 3.6 | 1.4 | 2.4 | 0.90 | 4.2 | 10.7 |
+
+Before, a sound tag landed within 3 replies of another 1158 times in Judy's 10,000 simulated replies and repeated a tag from the last 6 replies 391 times; after, both are 0. The take rate of the model is an assumption, so the real numbers are lower or higher by that factor; the probe (`scripts/Probe-NaturalSpeech.mjs --block gated`) can measure it against real characters when a Convai budget is spent on it.
