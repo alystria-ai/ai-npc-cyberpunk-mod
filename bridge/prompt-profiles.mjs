@@ -323,7 +323,7 @@ const SUBFIELDS = {
 export const matureCapable = id => (typeof id === 'string' && id.startsWith('mature-')) || isCustomProfileId(id);
 // The sampling fields that can be switched off (stored as null: not sent) where the default has a value, and the ones Mistral's API does not take.
 const SWITCHABLE = new Set(['topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty']);
-const NOT_FOR_MISTRAL = new Set(['topK', 'minP', 'extra']);
+const NOT_FOR_MISTRAL = new Set(['topK', 'minP', 'repeatPenalty', 'extra']);
 
 /**
  * Checks a change a player sent against the shipped default. `patch` holds any of PROFILE_FIELDS: a list is given whole (rules, examples, stop), an object by sub-field; `null` puts a field or

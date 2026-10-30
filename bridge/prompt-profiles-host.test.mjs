@@ -198,6 +198,10 @@ test('samplingBody: Top K, Min P, the penalties and the advanced parameters; a b
   assert.deepEqual(samplingBody(MORE, {external: true}, 'local'), asFields);
   assert.deepEqual(samplingBody(MORE, {external: true}, 'custom'), asFields);
   assert.deepEqual(samplingBody(MORE, {external: true}, 'mistral'), {presence_penalty: 0.3, frequency_penalty: 0.2}, 'Mistral refuses unknown fields: no Top K, Min P or extra keys');
+  // Report 625256e9: a repeat penalty saved before it was refused for Mistral (or a profile that carries one) never reaches Mistral's API, which answers extra_forbidden.
+  assert.deepEqual(samplingBody({...MORE, repeatPenalty: 1.1}, {external: true}, 'mistral'), {presence_penalty: 0.3, frequency_penalty: 0.2}, 'no repeat penalty for Mistral');
+  assert.equal(samplingBody({repeatPenalty: 1.1}, {external: true}, 'local').repeat_penalty, 1.1, 'local and custom keep it');
+  assert.equal(samplingBody({repeatPenalty: 1.1}, {external: true}, 'custom').repeat_penalty, 1.1);
   // A file edited by hand can hold a key the form refuses: it never reaches the request, and a box decides over the same key.
   const sneaky = {topP: 0.8, extra: {top_p: 0.1, model: 'other', stream: false, max_tokens: 1, cache_prompt: false, mirostat: 1}};
   assert.deepEqual(samplingBody(sneaky, {external: true}, 'local'), {top_p: 0.8, mirostat: 1});
@@ -240,7 +244,7 @@ test('Custom: the same fields are in the request body; Off and reset take them o
 test('Mistral: the profile refuses Top K, Min P and the advanced parameters, and a turn never sends them', async () => {
   const t = await setup('mistral');
   try {
-    for (const sampling of [{topK: 20}, {minP: 0.1}, {extra: {mirostat: 2}}]) {
+    for (const sampling of [{topK: 20}, {minP: 0.1}, {repeatPenalty: 1.1}, {extra: {mirostat: 2}}]) {
       const result = await t.profiles.set('mistral', {sampling});
       assert.equal(result.ok, false);
       assert.equal(result.errors[0].code, 'not-for-mistral');

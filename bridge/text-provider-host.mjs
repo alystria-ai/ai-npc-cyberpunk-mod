@@ -489,7 +489,8 @@ export function samplingBody(sampling, lease, provider = null) {
   if (Number.isFinite(sampling.topP)) body.top_p = sampling.topP;
   if (provider !== 'mistral' && Number.isFinite(sampling.topK)) body.top_k = sampling.topK;
   if (provider !== 'mistral' && Number.isFinite(sampling.minP)) body.min_p = sampling.minP;
-  if (Number.isFinite(sampling.repeatPenalty)) body.repeat_penalty = sampling.repeatPenalty;
+  // Mistral's API refuses a repeat penalty ("extra_forbidden", report 625256e9): it takes only the presence and frequency penalties.
+  if (provider !== 'mistral' && Number.isFinite(sampling.repeatPenalty)) body.repeat_penalty = sampling.repeatPenalty;
   if (Number.isFinite(sampling.presencePenalty)) body.presence_penalty = sampling.presencePenalty;
   if (Number.isFinite(sampling.frequencyPenalty)) body.frequency_penalty = sampling.frequencyPenalty;
   if (sampling.stop?.length) body.stop = lease?.external === false ? [...LOCAL_STOP_STRINGS, ...sampling.stop] : [...sampling.stop];
