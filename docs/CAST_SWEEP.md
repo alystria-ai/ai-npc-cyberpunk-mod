@@ -53,7 +53,8 @@ Card template and two worked examples: `scripts/cast-sweep/example-card.json`.
 
 27 people have a clip of their own (listed in the report file). Everyone else speaks with their fallback archetype voice
 (`characters/archetype-voices.json` voicesets, key in `cast-sweep-voices.json`) and, as for every profile without a prepared reference,
-the roster's Convai voice locally falls back through `packaging/release-plan.json` `fallbackProfiles`. To ship the 27 clips:
+the roster's Convai voice locally falls back through `packaging/release-plan.json` `fallbackProfiles`. The fallback is applied by the bridge, not by the voice tables: `bridge/voice-fallbacks.mjs` reads `cast-sweep-voices.json` (shipped in appData) and gives the voice service an alias for each person, so the person is routed, listed in `routedProfiles` (the manager names the voice) and spoken with the archetype's voice on Pocket and on both OmniVoice sets, and the workers prepare that voice once however many people share it (no row is copied, the workers never hear the person's key). A person with a row of their own in an engine's table, or with clips built on this PC, keeps it. An engine whose table lacks an archetype answers that person in text, with one `[VoiceFallbacks]` log line at start.
+To ship the 27 clips:
 copy `E:\CyberpunkConvai-offload\work\cast-sweep\<key>.wav` to `final/voice-references/picked/autobest/{omni-short,omni-long,pocket}/<key>.wav`,
 add the three config rows (the recipe in `docs/CAST_EXPANSION_RECIPE.md` step 3 and `merge_rows.mjs`), and add the keys to
 `voice.localProfiles`. Nothing is uploaded or merged by this branch. Convai originals and twins for the 575 keys:

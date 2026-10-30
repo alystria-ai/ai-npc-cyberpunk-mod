@@ -99,6 +99,7 @@ import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './c
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
 import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, clipVoiceConfigPaths, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
+import {fallbackAliases, missingFallbacks, missingFallbacksLine, readFallbacks} from './voice-fallbacks.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -393,11 +394,23 @@ if (voiceTablesEdited) {
   localVoiceConfigPath = written.pocket;
   omniVoiceConfigPaths = written.omni;
 }
+// The side characters with no voice of their own speak with their fallback archetype voice (characters/cast-sweep-voices.json, docs/CAST_SWEEP.md): an alias of the voice service
+// (voiceOf), so nothing is added to the voice configurations, the workers never hear the side characters' keys and prepare the archetype voice once. A character with a row of its own
+// in an engine's table (shipped, stand-in or clips built on this PC) keeps it. An engine whose table lacks an archetype answers that character in text: one summary line, no error.
+let voiceFallbacks = Object.create(null);
+try {
+  const fallbackPath = resolve(project, 'characters/cast-sweep-voices.json');
+  if (existsSync(fallbackPath)) voiceFallbacks = readFallbacks(await readFile(fallbackPath, 'utf8'), new Set(roster.filter(row => row?.kind === 'named').map(row => row.key)));
+  const line = missingFallbacksLine(missingFallbacks(voiceFallbacks, {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)}), Object.keys(voiceFallbacks).length);
+  if (line) console.error(line);
+} catch (error) { console.error('[VoiceFallbacks] unavailable:', error?.message ?? error); }
 // A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
 const wantVoiceClips = (profile, reason) => {
   if (!gameVoiceClips) return null;
   let key = profile;
   try { key = localVoice.voiceKeyFor(profile, profile) || profile; } catch { /* the voice selection is not up yet */ }
+  // A character that speaks with its fallback archetype voice is still the one whose clips are built: its own key, not the archetype's.
+  if (key !== profile && gameVoiceClips.has(profile)) key = profile;
   return gameVoiceClips.wanted(key, {shipped: shippedVoiceTables, reason});
 };
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
@@ -585,7 +598,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   skipStartupWarm: () => { const fixed = multilingual.fixed; return !!fixed && fixed !== 'en' && languagePacks.installed; },
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
-  aliases: key => customCharacters.voiceAlias(key),
+  aliases: fallbackAliases(voiceFallbacks, key => customCharacters.voiceAlias(key)),
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),

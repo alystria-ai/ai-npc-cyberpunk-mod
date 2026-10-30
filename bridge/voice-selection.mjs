@@ -485,6 +485,14 @@ export class VoiceSelection {
     if (!this.aliases || registry.has(key)) return key;
     try { return this.aliases(key) || key; } catch { return key; }
   }
+  // With an alias option (the side characters' fallback archetype voices) a route key the registries do not hold may still be spoken, so the routes are compared and
+  // published over the route keys too. Pure lookups over the roster, taken when the state is published and when the routes are compared, never per reply.
+  get routingKeys() { return this.aliases ? [...new Set([...this.profileKeys, ...this.routeKeys])] : this.profileKeys; }
+  // The profiles the current engine speaks: its available voices, and the profiles that have no voice of their own there but an alias voice it holds (so the manager can name the voice of each).
+  get routedKeys() {
+    const own = withoutVariants(this.availability);
+    return (this.aliases ? [...new Set([...own, ...this.routeKeys.filter(key => !this.availability.has(key) && this.hasProfile(key))])] : own).sort();
+  }
   hasProfile(key) { const voice = this.voiceOf(key); return this.registry.has(voice) && this.availability.has(voice); }
   usesProfile(key) { return local(this.provider) && this.configured && this.hasProfile(key); }
   // The voice that speaks one NPC of a local profile: the profile's own key, or one of its variants chosen from the
@@ -675,7 +683,7 @@ export class VoiceSelection {
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
       availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
-      routedProfiles: local(this.provider)?withoutVariants(this.availability).sort():[],
+      routedProfiles: local(this.provider)?this.routedKeys:[],
       previewActive: !!this.preview, previewProvider: this.preview?.provider,
       previewOmniSteps:this.preview?.omniSteps,
       preparationOnly:this.wantsLocal&&this.targetBackend!==this.provider,
@@ -687,7 +695,7 @@ export class VoiceSelection {
     this.busy=!!busy;
     if (!this.pending && !this.availabilityPending) { this.settleRouting(); return false; }
     if (busy) { this.reconcile(); this.publish(); return false; }
-    const previous = new Set(this.profileKeys.filter(key => this.usesProfile(key)));
+    const previous = new Set(this.routingKeys.filter(key => this.usesProfile(key)));
     // The reference choice commits with the rest; its own configuration and
     // verified availability replace the previous one's.
     this.omniReference=this.requestedOmniReference;this.activateOmni();
@@ -706,7 +714,7 @@ export class VoiceSelection {
     this.cloud=this.requestedCloud;
     this.omniSteps=this.requestedOmniSteps;
     if(this.clientBackend==='omni')this.client?.setSteps(this.omniSteps);
-    const changedRoutes = this.profileKeys.filter(key => previous.has(key) !== this.usesProfile(key));
+    const changedRoutes = this.routingKeys.filter(key => previous.has(key) !== this.usesProfile(key));
     if (changedRoutes.length) {
       this.routeRevision++;
       for (const key of changedRoutes) this.routeChanges.add(key);
