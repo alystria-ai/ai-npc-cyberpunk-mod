@@ -1491,6 +1491,7 @@ h3.group{display:flex;align-items:center;gap:8px;margin:14px 8px 6px;font-size:1
 h3.group .icon{width:13px;height:13px}
 h3.group .n{font-weight:500;letter-spacing:0}
 .sect.quick h3.group .icon{color:var(--accent-text)}
+.panel h3.group{margin:18px 0 6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 6px}
 .pick{width:100%;min-height:44px;height:auto;padding:5px 8px;justify-content:flex-start;gap:10px;text-align:left;background:transparent;border-color:transparent;border-radius:10px;font-size:14px;color:var(--text)}
 .pick .text{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.2}
