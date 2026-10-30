@@ -32,8 +32,8 @@ export const COMPACT = Object.freeze({
   samples: 2,          // example lines kept
   sampleChars: 240,
   // The most each kind of block may keep (characters), in the order they are taken.
-  order: Object.freeze(['lead', 'style', 'identity', 'relationships', 'background', 'boiler', 'save', 'limits', 'samples', 'styleRest', 'other']),
-  caps: Object.freeze({lead: 1500, style: 1100, identity: 1500, relationships: 1100, background: 800, boiler: 520, save: 700, limits: 650, styleRest: 500, other: 500}),
+  order: Object.freeze(['lead', 'player', 'style', 'identity', 'relationships', 'background', 'boiler', 'save', 'limits', 'samples', 'styleRest', 'other']),
+  caps: Object.freeze({lead: 1500, player: 1500, style: 1100, identity: 1500, relationships: 1100, background: 800, boiler: 520, save: 700, limits: 650, styleRest: 500, other: 500}),
 });
 
 const HEADING = /^(?:[A-Z][A-Z &'/-]{3,}|Your appearance:?)$/;
@@ -75,7 +75,10 @@ function clipBlock(block, limit) {
 function blocksOf(persona) {
   const blocks = [];
   let at = 0, section = 'lead', lead = null;
+  // The paragraphs the player wrote or changed in the editor (bridge/player-text.mjs) are blocks of their own, taken right after the opening paragraph and cut only at their own cap.
+  const mine = new Set(persona.bioEdits ?? []);
   for (const part of paragraphs(persona.backstory)) {
+    if (mine.has(part)) { blocks.push({kind: 'player', text: part, heading: false, at: at++}); continue; }
     const first = part.split('\n')[0].trim();
     const heading = HEADING.test(first);
     if (heading) section = first in KINDS ? KINDS[first] : 'other';

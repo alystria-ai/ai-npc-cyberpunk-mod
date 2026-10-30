@@ -251,7 +251,9 @@ export class CustomCharacters {
   /** The persona the prompt builder uses (the shape of PersonaBook.persona): the player's text as it is. */
   persona(key) {
     const row = this.rows.get(key);
-    return row ? {name: row.name, ambient: false, backstory: row.bio, style: row.style, samples: [...row.examples], rules: [], memories: [...row.memories], known: true} : null;
+    // `editedAt`: when the player last saved the character, so the exchanges from before are not shown to the model (bridge/mistral-prompt.mjs buildMessages).
+    return row ? {name: row.name, ambient: false, backstory: row.bio, style: row.style, samples: [...row.examples], rules: [], memories: [...row.memories], known: true,
+      ...(row.updated > 0 ? {editedAt: row.updated} : {})} : null;
   }
   /** The voice that speaks a character with no clip of its own: the resident voice of its gender. */
   voiceAlias(key) {

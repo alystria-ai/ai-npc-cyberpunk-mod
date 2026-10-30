@@ -9,6 +9,7 @@
 import {readFile, readdir, rename, rm, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
+import {playerParagraphs} from './player-text.mjs';
 
 export const EDIT_LIMITS = Object.freeze({
   bio: 9000,            // characters; the longest shipped bio is 7,759 (8,266 before the 2026-10-22 character data fixes)
@@ -109,8 +110,13 @@ export function readOverride(value, limits = EDIT_LIMITS) {
 /** The persona as the prompt builder uses it: the player's fields in place of the shipped ones. `rules` and `memories` are new. */
 export function applyOverride(persona, override) {
   if (!override) return persona;
-  return {...persona, backstory: override.bio ?? persona.backstory, style: override.style ?? persona.style,
+  const out = {...persona, backstory: override.bio ?? persona.backstory, style: override.style ?? persona.style,
     samples: override.examples ?? persona.samples, rules: override.rules ?? [], memories: override.memories ?? []};
+  // What the player wrote is spared when the prompt has to shorten the bio or drop the examples (bridge/player-text.mjs): the paragraphs that are not in the shipped bio, and the
+  // example lines that are not in the shipped set.
+  if (override.bio !== undefined) { const mine = playerParagraphs(override.bio, cleanBlock(persona.backstory)); if (mine.length) out.bioEdits = mine; }
+  if (override.examples !== undefined) { const shipped = new Set((persona.samples ?? []).map(cleanLine)); const mine = override.examples.filter(line => !shipped.has(cleanLine(line))); if (mine.length) out.samplesMine = mine; }
+  return out;
 }
 
 const defaultIo = {
@@ -133,6 +139,7 @@ export class CharacterOverrides {
     rename = defaultIo.rename, remove = defaultIo.remove, log = () => {}} = {}) {
     Object.assign(this, {dir, now, limits, read, write, listDir: list, rename, remove, log});
     this.rows = new Map();
+    this.stamps = new Map();    // when each character's text was last changed (ms): a file's `updated`, then every save and reset of this run
     this.damaged = new Set();   // characters whose file could not be used: moved aside before a save or a reset writes over or removes it
     this.chain = Promise.resolve();
   }
@@ -150,7 +157,7 @@ export class CharacterOverrides {
         const value = JSON.parse(raw);
         if (plain(value) && value.version === 1 && value.key === match[1]) {
           const row = readOverride(value, this.limits);
-          if (Object.keys(row).length) this.rows.set(match[1], Object.freeze(row));
+          if (Object.keys(row).length) { this.rows.set(match[1], Object.freeze(row)); if (Number.isFinite(value.updated) && value.updated > 0) this.stamps.set(match[1], value.updated); }
           continue;
         }
       } catch { /* damaged, or not a file */ }
@@ -175,6 +182,13 @@ export class CharacterOverrides {
   /** Keys of the characters that have edits. */
   keys() { return [...this.rows.keys()]; }
   /**
+   * When this character's text was last saved or reset (ms since 1970), or 0 when it never was in this run and no file says. A plain lookup. The prompt builder leaves the
+   * exchanges from before this moment out of the history it sends, so an old answer cannot talk over what the player just changed (bridge/mistral-prompt.mjs buildMessages).
+   */
+  editedAt(key) { return this.stamps.get(key) ?? 0; }
+  // A save that changed nothing (the same words again) does not move the moment the history is cut at.
+  #stamp(key, before) { if (JSON.stringify(this.rows.get(key) ?? null) !== before) this.stamps.set(key, this.now()); }
+  /**
    * Stores the fields of a character (an empty set removes the file). Writes are one at a time and the in-memory copy changes only
    * when the file did, so a failed save leaves both as they were. Resolves to the stored fields (or null).
    */
@@ -182,11 +196,13 @@ export class CharacterOverrides {
     if (!KEY.test(key ?? '')) return Promise.reject(Object.assign(Error('invalid character key'), {code: 'bad-key'}));
     const row = readOverride(fields, this.limits), empty = Object.keys(row).length === 0;
     const job = this.chain.catch(() => {}).then(async () => {
-      if (!this.dir) { if (empty) this.rows.delete(key); else this.rows.set(key, Object.freeze(row)); return empty ? null : this.rows.get(key); }
+      const before = JSON.stringify(this.rows.get(key) ?? null);
+      if (!this.dir) { if (empty) this.rows.delete(key); else this.rows.set(key, Object.freeze(row)); this.#stamp(key, before); return empty ? null : this.rows.get(key); }
       await this.#keepAside(key);
       if (empty) await this.remove(this.#path(key));
       else if (!await this.write(this.#path(key), JSON.stringify({version: 1, key, updated: this.now(), ...row}, null, 1))) throw Error('could not save');
       if (empty) this.rows.delete(key); else this.rows.set(key, Object.freeze(row));
+      this.#stamp(key, before);
       return empty ? null : this.rows.get(key);
     });
     this.chain = job;
