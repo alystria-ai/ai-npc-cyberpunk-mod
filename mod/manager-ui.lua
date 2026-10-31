@@ -2321,6 +2321,9 @@ settingsPages['settings-conversations'] = function(snapshot)
     local rows = {
         setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
             'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
+        -- Extended permission for the row above (docs/WORLD_CHARACTERS.md, "Talk during missions"): experimental, off by default.
+        setting('storyMissionTalk', 'Talk during missions', 'bool', snapshot.settings.storyMissionTalk == true, false,
+            'Experimental, and it may break scenes. Lets the game’s own characters, such as Judy, Jackie, Panam and Rogue, join in during story missions once you talk to them: talk, combat remarks, speaking up, their face, following you and riding in your car. Needs Talk to story characters.\n\nThe game keeps priority: while a mission script drives a character, in a cutscene, a scene or a dialogue choice, the mod steps back, then resumes. It never teleports or despawns them or touches quest or story state. Turning this off lets them go at once. A reply waits for a cutscene to end, or is dropped.'),
         -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
         setting('johnnyInHead', 'Johnny in your head', 'select',
             snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
@@ -3466,6 +3469,9 @@ function M.apply(changes)
             values.dynamicInfoPhone[key:sub(14)] = change.value
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
+        elseif key == 'storyMissionTalk' then
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.storyMissionTalk = change.value
         elseif key == 'companionReactions' then
             -- One switch for the two stored settings battleReactions and lootReactions.
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end

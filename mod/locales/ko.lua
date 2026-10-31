@@ -656,6 +656,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "사용자 지정 모델은 직접 추가한 모델이며, 크기 순으로 기본 선택에 포함됩니다.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "“모두의 기억 삭제”는 이 캐릭터들에게 적용됩니다.\n\n목록을 둘러보거나 동료를 초대해도 이 수에는 추가되지 않습니다.",
     ["Talk to story characters"] = "스토리 캐릭터와 대화",
+    ["Talk during missions"] = "미션 중 대화",
+    ["Experimental, and it may break scenes. Lets the game’s own characters, such as Judy, Jackie, Panam and Rogue, join in during story missions once you talk to them: talk, combat remarks, speaking up, their face, following you and riding in your car. Needs Talk to story characters.\n\nThe game keeps priority: while a mission script drives a character, in a cutscene, a scene or a dialogue choice, the mod steps back, then resumes. It never teleports or despawns them or touches quest or story state. Turning this off lets them go at once. A reply waits for a cutscene to end, or is dropped."] = "실험적 기능이며 장면을 망가뜨릴 수 있습니다. 주디, 재키, 파남, 로그 같은 게임 고유 캐릭터에게 말을 걸면 스토리 미션 중에도 함께합니다. 대화, 전투 중 발언, 먼저 말 걸기, 표정, 따라오기, 차량 동승을 지원합니다. '스토리 캐릭터와 대화'가 필요합니다.\n\n게임이 항상 우선입니다. 미션 스크립트가 캐릭터를 움직이는 동안(컷신, 장면, 대화 선택 중) 모드는 물러났다가 끝나면 다시 시작합니다. 순간이동이나 제거는 절대 하지 않으며 퀘스트나 스토리 상태도 건드리지 않습니다. 끄면 즉시 놓아줍니다. 답변은 컷신이 끝날 때까지 기다리거나 폐기됩니다.",
     ["{name} is busy right now."] = "{name}은(는) 지금 바쁩니다.",
     ["{name} is not in your head right now."] = "{name}은(는) 지금 머릿속에 없습니다.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}은(는) 스토리 캐릭터입니다. Esc > Mods에서 스토리 캐릭터와 대화를 켜세요.",

@@ -993,6 +993,8 @@ local function loadSettings()
     if settings.archetypeConversations ~= true then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default: the game's own named characters can be talked to where they stand once the player turns it on (docs/WORLD_CHARACTERS.md).
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
+    -- Off by default: the extended permission to talk to those characters during missions too (docs/WORLD_CHARACTERS.md, "Talk during missions"). Experimental.
+    if type(settings.storyMissionTalk) ~= 'boolean' then settings.storyMissionTalk, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
     -- Off by default: Speak dialogue choices (docs/VOICE_CHOICES.md), say a dialogue choice instead of pressing it. Off, mod/voice-choices.lua is not loaded, no event is
@@ -1245,6 +1247,14 @@ end
 function M.storyConversations()
     loadSettings()
     return settings.storyConversations == true
+end
+
+-- Talk during missions: the extended permission for the talk above. On, a game-placed story character can also be talked to during story
+-- quests and missions, in a fight, on foot and in a vehicle (mod/world-talk.lua, mission mode). Needs Talk to story characters; off by default.
+-- Read on a key press and a turn, never per frame.
+function M.storyMissionTalk()
+    loadSettings()
+    return settings.storyConversations == true and settings.storyMissionTalk == true
 end
 
 -- Voice activation (Settings > Voices): talk with no key, the bridge's detector hears V start and stop speaking. Off by default.
@@ -2466,6 +2476,7 @@ function M.snapshot(player)
             localOffload = settings.localOffload == true,
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
+            storyMissionTalk = settings.storyMissionTalk == true,
             voiceActivation = settings.voiceActivation == true,
             voiceChoices = settings.voiceChoices == true,
             remoteOmni = settings.remoteOmni == true,
@@ -2608,6 +2619,9 @@ function M.applySettings(player, values)
         elseif key == 'storyConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.storyConversations = value
+        elseif key == 'storyMissionTalk' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.storyMissionTalk = value
         elseif key == 'voiceActivation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.voiceActivation = value

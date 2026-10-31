@@ -42,24 +42,43 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 --   vehicle   the character is mounted in a vehicle
 -- projection (true for M.PROJECTIONS' keys): `driven` and `mounted` are not asked (see M.PROJECTIONS), read or not.
 -- idle (true for a quest-bound person who is not on the roster): a commanded AI in a workspot is not `driven` (see above).
-function M.classify(facts, projection, idle)
+-- mission (true for a roster story character while Settings > Talk during missions is on): the extended permission. A story mission is
+-- exactly when the game commands its people, fights happen and V drives with them, so a commanded AI (`driven`), a fight (`combat`) and
+-- a ride (`vehicle`) no longer refuse, and are not even required to be readable. Everything that says the game has the floor still does,
+-- with the same names and order: a quest conversation, call or cutscene V is in or a dialogue choice scene (`hub`), the character in a
+-- scene dialogue (`dialogue`), an injury (`hurt`), a missing body (`gone`) and a fact that could not be read (`unreadable`). Off is
+-- today's rule, character for character.
+function M.classify(facts, projection, idle, mission)
     if type(facts) ~= 'table' then return 'unreadable' end
+    local extended = mission == true and idle ~= true
     if facts.gone == true then return 'gone' end
     if facts.hub == true then return 'hub' end
     if facts.dialogue == true then return 'dialogue' end
-    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true and facts.staged ~= true) then return 'driven' end
-    if facts.combat == true or facts.playerCombat == true then return 'combat' end
+    if not extended and facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true and facts.staged ~= true) then return 'driven' end
+    if not extended and (facts.combat == true or facts.playerCombat == true) then return 'combat' end
     if facts.hurt == true then return 'hurt' end
-    if facts.mounted == true and projection ~= true then return 'vehicle' end
+    if not extended and facts.mounted == true and projection ~= true then return 'vehicle' end
     for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'combat', 'hurt', 'mounted'}) do
-        if type(facts[name]) ~= 'boolean' and not (projection == true and (name == 'driven' or name == 'mounted')) then return 'unreadable' end
+        local relaxed = (projection == true and (name == 'driven' or name == 'mounted'))
+            or (extended and (name == 'driven' or name == 'combat' or name == 'mounted'))
+        if type(facts[name]) ~= 'boolean' and not relaxed then return 'unreadable' end
     end
     return nil
 end
 
+-- What a reply that was asked in mission mode does when the game has the floor by the time it is ready (a cutscene or a dialogue choice
+-- scene began since V asked): 'deliver' (nothing in the way), 'hold' (a scene or dialogue is running: wait for it to end, for at most
+-- MISSION_HOLD_SECONDS) or 'drop' (it no longer fits: the wait ran out, or the character is gone, hurt or unreadable). Pure.
+M.MISSION_HOLD_SECONDS = 25
+function M.deliverVerdict(reason, waited)
+    if reason == nil then return 'deliver' end
+    if (reason == 'hub' or reason == 'dialogue') and (tonumber(waited) or 0) < M.MISSION_HOLD_SECONDS then return 'hold' end
+    return 'drop'
+end
+
 -- The facts behind an answer as one plain line for the probe log (a refusal only): "gone=false hub=false ... " with "?" for a fact
 -- that could not be read. Pure.
-function M.describe(facts, projection)
+function M.describe(facts, projection, mission)
     if type(facts) ~= 'table' then return 'facts=none' end
     local parts = {}
     for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'staged', 'quest', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
@@ -69,6 +88,7 @@ function M.describe(facts, projection)
         if (name ~= 'workspot' and name ~= 'staged' and name ~= 'quest') or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
     end
     if projection == true then parts[#parts + 1] = 'projection=true' end
+    if mission == true then parts[#parts + 1] = 'mission=true' end
     return table.concat(parts, ' ')
 end
 
@@ -88,7 +108,9 @@ M.REASONS = {gone = true, hub = true, dialogue = true, driven = true, combat = t
 -- The native reads, each in its own pcall so one missing API leaves only that fact unread. `sample` is the player-side sample of
 -- mod/battle-observer.lua (V's scene tier, quest dialogue, choice hub, phone call and combat), asked once per call.
 -- idle: also read whether the person stands in a workspot (only a quest-bound person with no roster profile is asked).
-function M.read(npc, player, sample, idle)
+-- mission: the same two reads for a story character in mission mode (the workspot, and whether V is in staged gameplay), which the
+-- mission companion's arbiter uses to step back from a scene (mod/mission-companion.lua); nothing else changes.
+function M.read(npc, player, sample, idle, mission)
     local facts = {}
     local function try(name, read)
         local ok, value = pcall(read)
@@ -97,7 +119,7 @@ function M.read(npc, player, sample, idle)
     try('gone', function() return not npc:IsAttached() or npc:IsDeadNoStatPool() end)
     try('driven', function() return not npc:IsOnAutonomousAI() end)
     try('quest', function() return npc:IsQuest() == true end)
-    if idle == true then try('workspot', function() return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end) end
+    if idle == true or mission == true then try('workspot', function() return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end) end
     try('combat', function() return NPCPuppet.IsInCombat(npc) == true end)
     try('dialogue', function()
         return Game.GetSceneSystem():GetScriptInterface():IsEntityInDialogue(npc:GetEntityID()) == true
@@ -123,8 +145,8 @@ function M.read(npc, player, sample, idle)
             .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true
         -- Staged or limited gameplay (tier 2 or more) or an unknown tier: a workspot is then no proof of an idle post (quest-marked idle persons only, as Face.reds).
-        if idle == true then facts.staged = tier == nil or tier >= 2 end
-    elseif idle == true then
+        if idle == true or mission == true then facts.staged = tier == nil or tier >= 2 end
+    elseif idle == true or mission == true then
         facts.staged = true   -- no player-side sample: fail closed, as Face.reds does when it cannot read the tier
     end
     -- An idle person the game does not mark as a quest person keeps the workspot as before (the bouncer at his door).
@@ -140,32 +162,34 @@ end
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local clock = options.clock or os.clock
-    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest, PROJECTIONS = M.PROJECTIONS}
+    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest, PROJECTIONS = M.PROJECTIONS, read = M.read,
+        deliverVerdict = M.deliverVerdict, classify = M.classify}
 
     -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
     -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride). idle: a quest-bound person
     -- with no roster profile (a commanded AI at a workspot is not refused, see M.classify).
-    function service:refusal(npc, player, entity, profileKey, idle)
+    function service:refusal(npc, player, entity, profileKey, idle, mission)
         if not npc then return 'gone' end
+        mission = mission == true and idle ~= true
         local now = clock()
         local held = entity and self.held[entity]
-        if held and now >= held.at and now - held.at < M.HOLD_SECONDS then
+        if held and held.mission == mission and now >= held.at and now - held.at < M.HOLD_SECONDS then
             self.detail, self.facts = held.detail, held.facts
             return held.reason
         end
         local projection = profileKey ~= nil and M.PROJECTIONS[profileKey] == true
-        local facts = M.read(npc, player, options.sample, idle)
-        local reason = M.classify(facts, projection, idle)
+        local facts = M.read(npc, player, options.sample, idle, mission)
+        local reason = M.classify(facts, projection, idle, mission)
         -- The player-side facts behind a hub refusal and every fact read, for the probe-log line on the talk key press (set on every
         -- read, never held beyond the answer's own hold; text built only when something refuses).
         self.detail = reason == 'hub' and type(facts) == 'table' and facts.hubWhy or nil
-        self.facts = reason ~= nil and M.describe(facts, projection) or nil
+        self.facts = reason ~= nil and M.describe(facts, projection, mission) or nil
         if entity then
             if not self.held[entity] then
                 if self.count >= M.LIMIT then self.held, self.count = {}, 0 end
                 self.count = self.count + 1
             end
-            self.held[entity] = {at = now, reason = reason, detail = self.detail, facts = self.facts}
+            self.held[entity] = {at = now, reason = reason, detail = self.detail, facts = self.facts, mission = mission}
         end
         return reason
     end

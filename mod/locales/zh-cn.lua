@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "自定义模型是你添加的模型；它们会按大小加入默认选项。",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "“清除全部记忆”适用于这些角色。\n\n浏览角色列表或邀请伙伴不会计入此数量。",
     ["Talk to story characters"] = "与剧情角色对话",
+    ["Talk during missions"] = "任务期间对话",
+    ["Experimental, and it may break scenes. Lets the game’s own characters, such as Judy, Jackie, Panam and Rogue, join in during story missions once you talk to them: talk, combat remarks, speaking up, their face, following you and riding in your car. Needs Talk to story characters.\n\nThe game keeps priority: while a mission script drives a character, in a cutscene, a scene or a dialogue choice, the mod steps back, then resumes. It never teleports or despawns them or touches quest or story state. Turning this off lets them go at once. A reply waits for a cutscene to end, or is dropped."] = "实验性功能，可能破坏剧情场景。与游戏自带角色（如朱迪、杰克、帕南和罗格）交谈后，他们会在剧情任务中加入：对话、战斗中的评论、主动开口、面部表情、跟随你以及乘坐你的车。需要开启“与剧情角色对话”。\n\n游戏始终优先：当任务脚本正在控制某个角色时（过场动画、场景或对话选项期间），模组会退让，之后再继续。它绝不会传送或移除角色，也不会触碰任务或剧情状态。关闭后会立即释放他们。回复会等到过场动画结束，否则将被丢弃。",
     ["{name} is busy right now."] = "{name}现在正忙。",
     ["{name} is not in your head right now."] = "{name}现在不在你的脑中。",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}是剧情角色。请在 Esc > Mods 中开启“与剧情角色对话”。",

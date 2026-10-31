@@ -1025,6 +1025,11 @@ do
     convaiWorldTalk = loaded and type(module) == 'table' and type(module.new) == 'function'
         and module.new({sample = function(player) return battleObserver.sample(player) end}) or nil
 end
+-- Talk during missions (Settings > Conversations, docs/WORLD_CHARACTERS.md): the extended permission to talk to a story character during
+-- missions. One setting read, on a talk key press, a recording poll or a turn; never per frame. A global, so no function here gains an upvalue.
+function convaiMissionOn()
+    return type(manager.storyMissionTalk) == 'function' and manager.storyMissionTalk() == true
+end
 
 -- What a conversation can do to an ordinary world NPC (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): the person walks off, calls the
 -- police (the game's own wanted stage rises by one) or turns hostile. A global, like the modules above. It is asked once when V's message
@@ -1951,7 +1956,10 @@ end
 -- not shut his mouth; scripts from before that method just answer an error, which is ignored. A global, so no function here gains an upvalue.
 function convaiFaceRequestFor(npc, entity)
     local story = convaiStory
-    if story and story.projection == true and entity ~= nil and story.entity == entity then
+    -- A mission character the game is not driving (mod/mission-companion.lua): our own follow command makes its AI read as commanded, which
+    -- is no reason to keep its mouth shut. A character the script drives is not told, so Face.reds still refuses it (voice and subtitles stay).
+    local free = story and story.mission == true and entity ~= nil and story.entity == entity and convaiMissionFree(entity)
+    if story and (story.projection == true or free) and entity ~= nil and story.entity == entity then
         pcall(function() npc:ConvaiFaceProjection(true) end)
     end
     return pcall(function() return npc:ConvaiFaceRequest() end)
@@ -3141,7 +3149,7 @@ function convaiTalkNearbyPeople(player, taken, limit, radius)
             if not story and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
                 and (convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true) then guarded = true end
             if story or guarded then
-                local why = convaiWorldTalk:refusal(npc, player, nil, key, guarded or nil)
+                local why = convaiWorldTalk:refusal(npc, player, nil, key, guarded or nil, story and convaiMissionOn() or nil)
                 if why then stats.refused = stats.refused + 1; return end
             end
             local row = {npc = npc, entity = item.entity, profileKey = key, name = name, bodyType = body,
@@ -3210,7 +3218,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
         local story = convaiWorldPolicy.story(npc) == true
         if story or convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true then
             local faced = profileIdentity(npc)
-            local why = faced and convaiWorldTalk:refusal(npc, player, nil, faced, not story or nil) or nil
+            local why = faced and convaiWorldTalk:refusal(npc, player, nil, faced, not story or nil, story and convaiMissionOn() or nil) or nil
             if why then
                 log('World conversation refused: group chat leaves out the faced person, reason=' .. why)
                 npc, reason = nil, 'Face a nearby character to talk.'
@@ -3342,14 +3350,16 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     -- a fight and an injury still keep his mouth to the game.
     local projection = primary.story and convaiWorldTalk ~= nil and convaiWorldTalk.PROJECTIONS ~= nil
         and convaiWorldTalk.PROJECTIONS[key] == true or nil
-    convaiStory = primary.story and {entity = primary.entity, key = key, name = name, projection = projection} or nil
+    -- Talk during missions: the extended permission, for a roster story character only (never Johnny's projection, never a quest-bound person).
+    local mission = primary.story and not projection and convaiMissionOn() or nil
+    convaiStory = primary.story and {entity = primary.entity, key = key, name = name, projection = projection, mission = mission, npc = mission and npc or nil} or nil
     -- The face writer then judges this one speaker by the story rules (no scene flag: it stays true in ordinary gameplay).
     if convaiFacialPlayback then
         convaiFacialPlayback.storyEntity = convaiStory and convaiStory.entity or nil
         convaiFacialPlayback.storyProjection = projection == true
     end
     if primary.story then
-        local why = convaiWorldTalk:refusal(npc, player, nil, key)
+        local why = convaiWorldTalk:refusal(npc, player, nil, key, nil, mission)
         if why then
             convaiStory = nil
             -- The facts behind the refusal (a refusal only, once per key press): every game fact read, V's scene facts, the record and
@@ -3361,7 +3371,9 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
             convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = name}))
             return nil
         end
-        log('World conversation: profile=' .. key .. ' (voice and face only)')
+        log('World conversation: profile=' .. key .. (mission and ' (mission mode)' or ' (voice and face only)'))
+        -- A mission character joins in while a quest is tracked (combat remarks, speak-up, idle face, follow, seat), the game's priority first.
+        if mission then convaiMissionJoin(npc, key, name, primary.entity, bodyType) end
     end
     -- A quest-bound person with no roster profile (a receptionist in a main quest's building, a bouncer, a worker of a quest area) talks as
     -- their archetype like anyone else, but the game's own checks still apply while it has them: V in a quest conversation, a call or a
@@ -3873,7 +3885,7 @@ local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
                 return head ~= nil and head:refusal(convaiPlayer()) == nil
             end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, convaiPlayer()) end
-            if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, convaiPlayer(), entity, primary.profileKey, primary.guarded) then return false end
+            if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, convaiPlayer(), entity, primary.profileKey, primary.guarded, primary.story and convaiStory ~= nil and convaiStory.mission or nil) then return false end
             return voiceTargetValid(npc, context)
         end
         context.provider = chosenProvider()
@@ -4126,7 +4138,7 @@ speech.storyGuard = function(actor, context, starting)
     end
     local story = convaiStory
     if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
-    local why = convaiWorldTalk:refusal(actor, convaiPlayer(), story.entity, story.key, story.idle)
+    local why = convaiWorldTalk:refusal(actor, convaiPlayer(), story.entity, story.key, story.idle, story.mission)
     if not why then return false end
     log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or '')
         .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
@@ -4145,6 +4157,202 @@ speech.storyGuard = function(actor, context, starting)
     if starting then return true end
     retirePrivateReply(context.entity, 'story-' .. why)
     return true
+end
+
+-- ---- Talk during missions: the character joins in (mod/mission-companion.lua, docs/WORLD_CHARACTERS.md) -----------------------------
+-- Experimental and off by default. Everything below is a nil check while the setting is Off: the module is loaded on the first join and
+-- never otherwise. The service is polled from updateBattles' own half-second poll (no new per-frame work); it yields to the mission script
+-- whenever the script drives the character and never teleports, despawns or changes the character's AI role, attitude or story state.
+-- Globals in one do-block: the main chunk is near Lua's limit of locals.
+convaiMission, convaiMissionFailed, convaiMissionVehicle = nil, false, nil
+do
+    local function vehicleNative()
+        if convaiMissionVehicle == nil then
+            local loaded, module = pcall(dofile, 'companion-vehicle-native.lua')
+            convaiMissionVehicle = loaded and type(module) == 'table' and module or false
+        end
+        return convaiMissionVehicle or nil
+    end
+    local function alive(npc) return npc:IsAttached() and not npc:IsDeadNoStatPool() end
+    local function stateName(label) return tostring(label):match('^AICommandState%s*:%s*(%w+)%s*%(%d+%)$') or tostring(label) end
+    local host = {
+        setting = function() return convaiMissionOn() end,
+        now = os.clock,
+        alive = function(npc) local ok, value = pcall(alive, npc); return ok and value == true end,
+        distance = function(npc, player)
+            local ok, value = pcall(function()
+                local a, b = npc:GetWorldPosition(), player:GetWorldPosition()
+                return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2 + (a.z - b.z) ^ 2)
+            end)
+            return ok and value or nil
+        end,
+        read = function(npc, player, sample) return convaiWorldTalk.read(npc, player, function() return sample end, nil, true) end,
+        quest = function()
+            local ok, tracked = pcall(questContext.trackedQuest)
+            return ok and type(tracked) == 'table' and tracked.id or nil
+        end,
+        -- One plain follow command: V is the target, teleport off, no change of the AI role.
+        follow = function(npc, player)
+            local ok, operation = pcall(function()
+                local command = NewObject('AIFollowTargetCommand')
+                command.target = player
+                command.desiredDistance = 3.0
+                command.tolerance = 1.0
+                command.movementType = Enum.new('moveMovementType', 'Run')
+                command.matchSpeed = false
+                command.teleport = false
+                command.stopWhenDestinationReached = false
+                local ai = npc:GetAIControllerComponent()
+                local handle = command:Copy()
+                if ai:SendCommand(handle) == false then return nil end
+                return {ai = ai, handle = handle, owner = npc}
+            end)
+            return ok and operation or nil
+        end,
+        playerVehicle = function(player)
+            local native = vehicleNative()
+            if not native then return nil end
+            local ok, vehicle = pcall(native.player, player)
+            return ok and vehicle or nil
+        end,
+        mounted = function(npc)
+            local native = vehicleNative()
+            if not native then return false end
+            local ok, mount = pcall(native.mounting, {npc = npc})
+            return ok and mount ~= nil
+        end,
+        canBoard = function(npc)
+            local native = vehicleNative()
+            if not native then return false end
+            local ok, allowed = pcall(native.canBoard, {npc = npc})
+            return ok and allowed == true
+        end,
+        -- An empty seat that is not the driver's: the front passenger's first.
+        freeSeat = function(vehicle)
+            local native = vehicleNative()
+            if not native then return nil end
+            local ok, info = pcall(native.inspect, vehicle)
+            if not ok or type(info) ~= 'table' or info.ready ~= true or info.invalid then return nil end
+            local best
+            for _, seat in ipairs(info.seats or {}) do
+                if seat.occupant == nil and seat.reserved ~= true and seat.name ~= 'seat_front_left' then
+                    if seat.name == 'seat_front_right' then return seat.name end
+                    best = best or seat.name
+                end
+            end
+            return best
+        end,
+        mount = function(npc, vehicle, seat, out)
+            local native = vehicleNative()
+            if not native then return nil end
+            local ok, operation = pcall(native.mount, {npc = npc}, vehicle, seat, out == true)
+            if ok and operation and not operation.refused and not operation.sendError then return operation end
+            return nil
+        end,
+        state = function(operation)
+            if operation.owner and not operation.owner:IsAttached() then return 'Detached' end
+            local native = vehicleNative()
+            if native and operation.handle then
+                local ok, state = pcall(native.commandState, operation)
+                if ok then return state end
+            end
+            return stateName(operation.ai:GetCommandState(operation.handle))
+        end,
+        cancel = function(operation)
+            local native = vehicleNative()
+            if native then return native.cancel(operation) end
+            return true
+        end,
+        -- The face: only members the game is not driving write the idle face and may lip sync under our commanded AI; the rest are
+        -- left to the game (Face.reds still refuses a commanded AI for them).
+        changed = function(free, held)
+            local facial = convaiFacialPlayback
+            if facial then facial.missionFaces, facial.faceHeld = free, held end
+        end,
+        freed = function(member) pcall(function() member.npc:ConvaiFaceProjection(true) end) end,
+        stepped = function(member) pcall(function() member.npc:ConvaiFaceProjection(false) end) end,
+        released = function(member, reason, quiet)
+            if not quiet then pcall(function() member.npc:ConvaiFaceProjection(false) end) end
+            local facial = convaiFacialPlayback
+            if facial and type(facial.clearExpression) == 'function' then pcall(facial.clearExpression, member.entity) end
+        end,
+        log = log,
+    }
+    function convaiMissionService()
+        if convaiMission then return convaiMission end
+        if convaiMissionFailed or convaiWorldTalk == nil then return nil end
+        local loaded, module = pcall(dofile, 'mission-companion.lua')
+        if not (loaded and type(module) == 'table' and type(module.new) == 'function') then
+            convaiMissionFailed = true
+            log('Mission companion unavailable: ' .. tostring(module))
+            return nil
+        end
+        convaiMission = module.new(host)
+        return convaiMission
+    end
+end
+-- V talked to a story character in mission mode and the game let the talk through: it joins in while a quest is tracked. Key press only.
+function convaiMissionJoin(npc, key, name, entity, bodyType)
+    local service = convaiMissionService()
+    if not service then return end
+    if service:attach(npc, key, name, entity, bodyType) then pcall(service.check, service, entity, convaiPlayer(), battleSample) end
+end
+-- Once per battle-observer poll (twice a second), and a nil check while nobody has joined.
+function convaiMissionTick(player, sample)
+    local service = convaiMission
+    if service then service:update(player, sample) end
+end
+-- The members that may act now, as reaction people (combat remarks, loot, speak-up). Empty while nobody has joined.
+function convaiMissionRows(player)
+    local service = convaiMission
+    if not service then return {} end
+    local rows, hostile = {}, Enum.new('EAIAttitude', 'AIA_Hostile')
+    for _, row in ipairs(service:rows(player)) do
+        -- Within 20 m of V and not an enemy, as for the characters another mod placed.
+        local ok, near = pcall(function()
+            return row.distance <= 20 and row.npc:GetAttitudeAgent():GetAttitudeTowards(player:GetAttitudeAgent()) ~= hostile
+        end)
+        if ok and near then rows[#rows + 1] = row end
+    end
+    return rows
+end
+function convaiMissionFree(entity)
+    local service = convaiMission
+    local member = service and service:member(entity) or nil
+    return member ~= nil and member.level == nil
+end
+-- Any world change, a quit or a death: everyone is released (each native call is guarded, a stale handle does nothing).
+function convaiMissionReset(reason)
+    local service = convaiMission
+    if service then pcall(service.releaseAll, service, reason or 'world-reset') end
+end
+-- A reply asked of a story character in mission mode, ready to be delivered (reactionCanDeliver): true to go on. A cutscene or a dialogue
+-- choice scene that began since V asked HOLDS it until the scene ends (asked again at most twice a second); the wait is bounded, and a
+-- character that is gone, hurt or unreadable, or a wait that ran out, DROPS it. Nothing is spoken over the game.
+function convaiMissionReply(context, player)
+    local story = convaiStory
+    if not (story and story.mission == true and convaiWorldTalk ~= nil and story.npc ~= nil
+        and type(context) == 'table' and context.entity == story.entity and not context.group) then return true end
+    local clock = os.clock()
+    if context.missionCheckAt and clock < context.missionCheckAt then return false end
+    local why = convaiWorldTalk:refusal(story.npc, player, story.entity, story.key, nil, true)
+    local waited = context.missionHeldAt and (clock - context.missionHeldAt) or 0
+    local verdict = convaiWorldTalk.deliverVerdict(why, waited)
+    if verdict == 'deliver' then
+        if context.missionHeldAt then log('World conversation: held reply released after ' .. string.format('%.1f', waited) .. ' s') end
+        return true
+    end
+    if verdict == 'hold' then
+        if not context.missionHeldAt then
+            context.missionHeldAt = clock
+            log('World conversation: reply held reason=' .. why .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or ''))
+        end
+        context.missionCheckAt = clock + 0.5
+        return false
+    end
+    log('World conversation: reply dropped reason=' .. tostring(why) .. ' waited=' .. string.format('%.1f', waited) .. ' s')
+    retirePrivateReply(context.entity, 'story-' .. tostring(why))
+    return false
 end
 
 local function reactionLease(valid)
@@ -4300,6 +4508,20 @@ local function reactionPeople(player, observation)
         for _, person in ipairs(nearby) do
             local chosen = convaiCharacterOptions and convaiCharacterOptions.get(person.profileKey)
             if not present[person.profileKey] and not (chosen and chosen.react == false) then
+                present[person.profileKey] = true
+                person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
+                people[#people + 1] = person
+            end
+        end
+    end
+    -- A story character who joined in during a mission (Talk during missions), while the game is not driving it (mod/mission-companion.lua).
+    if convaiMission then
+        local present = {}
+        for _, person in ipairs(people) do present[person.profileKey] = true end
+        for _, person in ipairs(convaiMissionRows(player)) do
+            local chosen = convaiCharacterOptions and convaiCharacterOptions.get(person.profileKey)
+            if not present[person.profileKey] and supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey)
+                and not (chosen and chosen.react == false) then
                 present[person.profileKey] = true
                 person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
                 people[#people + 1] = person
@@ -5847,6 +6069,7 @@ local function updateBattles(player, elapsed, worldReady)
         if convaiSpawnedPeople then
             convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
         end
+        if convaiMission then convaiMissionTick(player, battleSample) end
         battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
         battleOutputs = reactionOutputs(player)
         if convaiJohnnyPlaceSample then convaiJohnnyGuarded('place sample', convaiJohnnyPlaceSample, worldReady, battleSample.vehicle == true) end
@@ -6294,7 +6517,10 @@ local function sendProviderNotice(player, keyId, keyText)
 end
 
 local function reactionCanDeliver(context, player)
-    if not context.reaction then return true end
+    if not context.reaction then
+        if convaiStory ~= nil and convaiStory.mission == true then return convaiMissionReply(context, player) end
+        return true
+    end
     if context.reaction.kind == 'addon' then return convaiAddons ~= nil and convaiAddons.canDeliver(context, player) end
     if not automatic or automatic.requestId ~= context.requestId then return false end
     -- A Johnny remark is heard only while he is still in V's head and the game does not have the floor (read fresh, held 0.4 s).
@@ -6399,7 +6625,8 @@ end
 function convaiGroupSpeakerStory(player, person)
     local facial = convaiFacialPlayback
     if person and (person.story or person.guarded) and convaiWorldTalk ~= nil then
-        local why = convaiWorldTalk:refusal(person.npc, player, nil, person.profileKey, person.guarded and true or nil)
+        local mission = person.story and convaiMissionOn() or nil
+        local why = convaiWorldTalk:refusal(person.npc, player, nil, person.profileKey, person.guarded and true or nil, mission)
         if why then
             log('World conversation refused: group speaker profile=' .. tostring(person.profileKey) .. ' reason=' .. why
                 .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or ''))
@@ -6407,7 +6634,7 @@ function convaiGroupSpeakerStory(player, person)
         end
         local projection = person.story and convaiWorldTalk.PROJECTIONS ~= nil and convaiWorldTalk.PROJECTIONS[person.profileKey] == true or nil
         convaiStory = {entity = person.entity, key = person.profileKey, name = person.name, projection = projection,
-            idle = person.guarded and true or nil}
+            idle = person.guarded and true or nil, mission = mission and not projection or nil}
         if facial then facial.storyEntity, facial.storyProjection = person.entity, projection == true end
         return true
     end
@@ -6470,7 +6697,7 @@ local function updateGroup(player)
             local later = round.participants[index]
             if later.story or later.guarded then
                 local why = live[later.entity] and convaiWorldTalk ~= nil
-                    and convaiWorldTalk:refusal(later.npc, player, nil, later.profileKey, later.guarded and true or nil) or nil
+                    and convaiWorldTalk:refusal(later.npc, player, nil, later.profileKey, later.guarded and true or nil, later.story and convaiMissionOn() or nil) or nil
                 if why then live[later.entity] = nil end
             end
         end
@@ -7733,6 +7960,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity, convaiFacialPlayback.storyProjection = nil, nil end
+    -- Mission characters (Talk during missions): released, their commands cancelled and their face handed back to the game.
+    convaiMissionReset(reason)
     if convaiWorldTalk then convaiWorldTalk:reset() end
     if convaiNpcReactions then convaiNpcReactions.reset() end
     convaiHeadTalk = nil

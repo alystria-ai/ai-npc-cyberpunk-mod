@@ -78,7 +78,8 @@ end
 -- is up (mod/holocall.lua ownsFace).
 local function owns(actor, entity)
     return actor and ((convaiCompanions and convaiCompanions.owns(actor))
-        or (convaiHolocall and convaiHolocall.ownsFace and convaiHolocall.ownsFace(actor))) and speaker(actor, entity)
+        or (convaiHolocall and convaiHolocall.ownsFace and convaiHolocall.ownsFace(actor))
+        or (entity ~= nil and M.missionFaces ~= nil and M.missionFaces[entity] == true)) and speaker(actor, entity)
 end
 -- Speech and expressions share this one native writer. These per-copy entries
 -- retain primitives and feature values only, never actors or world components.
@@ -587,6 +588,14 @@ end
 local function safeExpressionActor(actor,entity)
     if entity~=nil and entity==M.screenEntity then return true end
     if not M.expressionManaged then return true end
+    -- Talk during missions (init.lua, mod/mission-companion.lua): a story character the mission script is driving keeps its face to the game
+    -- (the writer is blocked, the voice and the subtitle go on); one the game is not driving is judged by the Lua checks without the
+    -- commanded-AI test, because the command that reads as commanded is our own follow.
+    if entity~=nil and M.faceHeld~=nil and M.faceHeld[entity]==true then return false end
+    if entity~=nil and M.missionFaces~=nil and M.missionFaces[entity]==true then
+        local ok,ready=pcall(luaActorSafe,actor,true,true)
+        return ok and ready==true
+    end
     -- M.storyEntity: the named game character V is talking to (init.lua sets it; docs/WORLD_CHARACTERS.md). The Lua checks without
     -- the broad scene flag; the native check reads it, so it is not used for this one speaker.
     if entity~=nil and entity==M.storyEntity then

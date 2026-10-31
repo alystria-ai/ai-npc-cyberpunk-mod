@@ -656,6 +656,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "カスタムモデルは追加したものです。サイズ順に、既定の選択肢に加わります。",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "「全員の記憶を消去」の対象はこのキャラクターたちです。\n\n一覧の閲覧やコンパニオンの招待では、この人数は増えません。",
     ["Talk to story characters"] = "ストーリーキャラクターと会話",
+    ["Talk during missions"] = "ミッション中も会話",
+    ["Experimental, and it may break scenes. Lets the game’s own characters, such as Judy, Jackie, Panam and Rogue, join in during story missions once you talk to them: talk, combat remarks, speaking up, their face, following you and riding in your car. Needs Talk to story characters.\n\nThe game keeps priority: while a mission script drives a character, in a cutscene, a scene or a dialogue choice, the mod steps back, then resumes. It never teleports or despawns them or touches quest or story state. Turning this off lets them go at once. A reply waits for a cutscene to end, or is dropped."] = "実験的な機能で、シーンを壊すことがあります。ジュディ、ジャッキー、パナム、ローグなどゲーム本来のキャラクターに話しかけると、ストーリーミッション中も参加します。会話、戦闘中の発言、自発的な発言、表情、プレイヤーへの追従、車への同乗に対応します。「ストーリーキャラクターと会話」が必要です。\n\nゲームが常に優先されます。ミッションのスクリプトがキャラクターを動かしている間(カットシーン、シーン、会話の選択中)は、MODは手を引き、終わってから再開します。テレポートや削除は決して行わず、クエストやストーリーの状態にも触れません。オフにすると即座に解放されます。返答はカットシーンが終わるまで待つか、破棄されます。",
     ["{name} is busy right now."] = "{name}は今手が離せません。",
     ["{name} is not in your head right now."] = "{name}は今、頭の中にいません。",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}：Esc > Mods で「ストーリーキャラクターと会話」をオンにしてください。",

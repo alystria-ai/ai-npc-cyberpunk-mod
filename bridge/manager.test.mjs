@@ -4945,7 +4945,7 @@ test('Settings pages: the list holds only the Open rows, Relationships is a butt
     assert(invoke('settings-voice:back').ok)
     opened('conversations', 'settings-conversations', 'settings-conversations:back')
     local conversations = idsOf('conversation-controls')
-    assert(table.concat(conversations, ',') == 'storyConversations,johnnyInHead,companionSpeakUp,companionVision,dynamic-info,relationships,memory', table.concat(conversations, ','))
+    assert(table.concat(conversations, ',') == 'storyConversations,storyMissionTalk,johnnyInHead,companionSpeakUp,companionVision,dynamic-info,relationships,memory', table.concat(conversations, ','))
     assert(invoke('settings-conversations:back').ok)
     opened('privacy', 'settings-privacy', 'settings-privacy:back')
     assert(table.concat(idsOf('privacy'), ',') == 'errorReports,developerMode', table.concat(idsOf('privacy'), ','))

@@ -129,3 +129,59 @@ Installing needs a CET reload for the Lua and a game restart for the reds. The f
 6. Settings > Conversations > Talk to story characters Off (the default), reload the save: Judy gets the old notice again.
 
 If the key refuses everywhere with `reason=driven`, `IsOnAutonomousAI()` is false for idle story characters in the world (not measured before); send the log line.
+
+## Talk during missions (2026-10-31, branch `feat/mission-talk`, experimental, off by default)
+
+A player (Nexus, 31 Oct) wanted to talk to story characters during story missions, and the owner widened it to the whole package under one switch: Settings > Conversations > **Talk during missions** (`storyMissionTalk`, off by default, needs Talk to story characters). The help text says it is experimental and may break scenes. Everything above this section is the rule with the switch **off**, and it is unchanged character for character: every refusal, notice and protection reads the same, `mod/mission-companion.lua` is never loaded, and every new hook is a nil check or a table lookup.
+
+### What changes with the switch on
+
+| Part | With Talk during missions on |
+|---|---|
+| Who | A roster story character (Judy, Jackie, Panam, Rogue and the rest of the cast) that the game placed. Not Johnny's projection, not a quest-bound person with no roster profile, never our own copy or another mod's character. |
+| Talk | Typed, voice, group and Phone Chat. `mod/world-talk.lua` `classify` takes a `mission` argument: a commanded AI (`driven`), a fight (`combat`) and a ride (`vehicle`) no longer refuse the talk, and those three facts need not even be readable. A quest conversation, call or cutscene V is in, a dialogue choice scene (`hub`), the character in a scene dialogue (`dialogue`), an injury (`hurt`), a missing body (`gone`) and an unreadable fact refuse exactly as before, with the same notice "{name} is busy right now.". |
+| Cutscenes and dialogue choices | The key press during one is refused as today. A reply that is already on its way when a cutscene or dialogue choice scene begins **holds the reply**: `convaiMissionReply` (called from `reactionCanDeliver`, asked at most twice a second) keeps it until the scene ends, for at most 25 seconds (`MISSION_HOLD_SECONDS`), and drops it if the wait runs out or the character is gone, hurt or unreadable (the private reply is retired and nothing is spoken over the game). A scene that begins while a reply is playing ends that reply, as before. |
+| Live context | The turn already carries the quest journal, the fight (`battle`), the vehicle (the turn context) and the dialogue; a story character is not an "ambient" speaker, so it gets all of them (tested). Companions can see, bonds, memory and Eddies work for any speaker and are unchanged. |
+| Joining in | The first successful talk while a quest is tracked makes the character a **mission companion** (`convaiMissionJoin`, at most three). It then gets combat remarks and loot reactions and speak-up (it is appended to `reactionPeople`, so every system that reads that list sees it), the idle face (blinks, resting and listening faces; `companions.expressionActors` appends its row), following V on foot (one `AIFollowTargetCommand`, teleport off, no change of the AI role) and a seat in V's car (one `AIMountCommand` into a free passenger seat while V is in the car, and the ordinary unmount when V gets out). |
+| Not done | **Gestures.** The gesture controller plays through a spawned workspot device and its own guard refuses a character that is in a scene (`IsEntityInScene` stays true in ordinary gameplay for story characters), so wiring it needs a live measurement first. It is not attached. The other party systems (equipment, stance, outfits, formation, tactics, chauffeur driving, convoy, catch-up teleport) are not attached either, on purpose. |
+
+### The game has priority: the arbiter
+
+`mod/mission-companion.lua` is polled from the battle observer's own half-second poll (`updateBattles`), never per frame, and reads `mod/world-talk.lua` `read` (with the workspot and staged-gameplay facts) once per member per poll. `MC.driving` (pure) says whether the mission script is driving the character:
+
+| Reason | Level | Read from |
+|---|---|---|
+| `cutscene` | scene | V is in a quest conversation, call or cutscene (scene tier 3 or above) or a dialogue choice scene |
+| `dialogue` | scene | the character is in a scene dialogue |
+| `hurt` | scene | injured, defeated, unconscious, stunned or ragdolled |
+| `workspot` | scene or body | in a workspot while V is in staged gameplay (scene), or in open gameplay (body: a post the game gave the character) |
+| `scripted` | body | the AI is commanded and the command is not ours (our own follow or seat command makes the AI read as commanded; that is not a script, and a command of ours that the script interrupts is) |
+| `scripted-vehicle` | body | mounted by the script |
+| `unreadable` | scene | any fact that could not be read: fail closed |
+
+On the first poll that says "driving", every system steps back at once: our commands are cancelled, the reaction rows and the face row are withdrawn, the face layer is kept off the character, and the character is told it is no longer free. Nothing is commanded while the script drives. The character resumes only after the script has let go for 1.5 seconds. The talk itself stays voice and subtitles, because `Face.reds` `TalkRefusal` already refuses the face of a commanded or dialogue character (`skipped:driven`, `skipped:dialogue`) and the Lua face writer is blocked for a held character.
+
+### What it never does
+
+No teleport (no catch-up, no lift), no despawn or hide, no change of the AI role, attitude, equipment, stance or appearance, no quest fact, no journal change, no change of the character's story state. Tests scan both new code paths for those calls. The seat command is never instant and never uses the failsafe teleport.
+
+### Release
+
+A member is released when the setting is turned off (next poll, within half a second), when the tracked mission ends or changes (three checks two seconds apart), when the character is gone or dead, when V is more than 120 m away for 10 seconds, and on every world change (`abandonSession` calls `convaiMissionReset`). A release cancels our commands, stands the character out of the car **only if we seated it and the game is not driving it**, withdraws the face and reaction rows, hands the face back (`ConvaiFaceProjection(false)`, the expression cache cleared) and logs `Mission companion released: <name> reason=<why>`.
+
+### Cost
+
+Nothing per frame. Off: a nil check in `updateBattles`, `reactionPeople` and `expressionActors`. On, with nobody joined: the same. With members (at most three): one `world-talk` read each per half second, one quest read each per two seconds, and at most one command at a time.
+
+### Log lines
+
+`World conversation: profile=... (mission mode)`, `Mission companion joined/steps back/resumes/follows/boards/gets out/released`, `World conversation: reply held reason=...`, `... held reply released after N s`, `... reply dropped reason=...`.
+
+### Live check owed (nothing here has been seen in the game)
+
+1. Setting off (default): Judy in a fight, in a car or under a scene still gets "busy right now", and `probe.log` has no `Mission companion` line.
+2. Setting on (and Talk to story characters on): during a mission, talk to the game's Judy while walking, then while she fights, then in V's car. She answers. She follows V between scripted points and sits in the passenger seat.
+3. When the mission script moves her (a scripted walk, a cutscene, a workspot, a scripted ride) she stops following at once (`steps back`), says nothing of her own, and resumes after the scene (`resumes`). The script is never fought: no stuck character, no missed trigger.
+4. Press talk inside a cutscene: the busy notice. Ask a question and let a cutscene start before the answer: the answer waits for the end of the scene, or is dropped after 25 seconds.
+5. Turn the setting off mid-mission: she stops following within a second and, if we seated her, gets out of the car; `released ... reason=setting-off`. Finish the mission: `reason=mission-ended`. Reload: `reason=world-reset`.
+6. FPS: no new per-frame row in the perf probe.
