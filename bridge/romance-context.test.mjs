@@ -139,6 +139,8 @@ test('the closing note: partner or casual, only for the affectionate delivery on
   assert.equal(romanceReminder(choice('panam-palmer', 'romantic', true), 'phone'), ROMANCE_REMINDER.partner);
   assert.equal(romanceReminder(choice('judy-alvarez', 'romantic', true), 'group'), '');
   assert.equal(romanceReminder(choice('panam-palmer', 'ordinary', true), 'private'), '');
-    assert.match(ROMANCE_REMINDER.partner, /call V something fond \(a pet name or nickname\)/);
+    assert.match(ROMANCE_REMINDER.partner, /Leave out the pet name or nickname, it is only for a rare reply/);
+  assert.doesNotMatch(ROMANCE_REMINDER.partner, /call V something fond/, 'the reminder no longer asks for a pet name in every reply');
+  assert.match(ROMANCE_TONE.partner, /pet name or nickname for V in your own style is rare: about one reply in six, never in two replies in a row/);
   assert.ok(ROMANCE_REMINDER.partner.length < 420 && ROMANCE_REMINDER.casual.length < 120, 'short: it is read on every turn');
 });

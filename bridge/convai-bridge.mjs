@@ -129,6 +129,7 @@ import {createFactsReader} from './quest-facts.mjs';
 import {syncAllowlist} from './gift-tables.mjs';
 import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext, romanceReminder} from './romance-context.mjs';
+import {petNameNote, rememberReply} from './pet-names.mjs';
 import {RomanceBond} from './romance-bond.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
@@ -1899,7 +1900,13 @@ const packTurn = (input, prepared, admitted) => {
   const facts = bondFacts(input, prepared, admitted);
   return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
 };
+// A character's own last replies, by profile (bridge/pet-names.mjs): a pet name for V is rare, so the next turn's closing note says when one was used lately. Kept in memory, a restart starts empty.
+const ownReplyMemory = new Map();
+function noteOwnReply(input, result) {
+  try { if (!input?.reaction && !input?.group && typeof input?.profileKey === 'string') rememberReply(ownReplyMemory, input.profileKey, result?.text); } catch { /* a note never affects a reply */ }
+}
 function publishBonds(input, result, proposal = null) {
+  noteOwnReply(input, result);
   // V's words to a quest's cast member are read once for an amount, yes or no, after the reply is out (bridge/quest-pay.mjs).
   if (input?.quest && bondPacks.afterPay(input, result?.userText)) questSync();
   if (!input?.bonds) return;
@@ -1951,6 +1958,8 @@ const conversationBlocks = input => {
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
     // The partner tone again, right after V's words (the closing tier: bridge/mistral-prompt.mjs); '' unless the affectionate delivery is on for a private or phone turn.
     block('closing', admitted && !input.reaction ? romanceReminder(prepared.relationship, prepared.route.channel) : ''),
+    // The pet name rule (bridge/pet-names.mjs): when V was called a pet name lately the note says none now, or which ones to leave out. '' when none was used, and for a group round.
+    block('closing', admitted && !input.reaction && prepared.route.channel !== 'group' ? petNameNote(ownReplyMemory.get(input.profileKey)) : ''),
     // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
     // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
     block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
