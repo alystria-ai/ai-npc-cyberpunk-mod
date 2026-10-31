@@ -13,7 +13,7 @@ import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs'
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
-import {closeConfirmed} from './worker-process.mjs';
+import {closeConfirmed, slotOwnedFailed} from './worker-process.mjs';
 import {accessViolationFailed, endedFromOutsideFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
@@ -62,7 +62,7 @@ export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windo
   : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 // The cause of a voice failure as one word for the error report (bridge/error-events.mjs cleanVoice), so a triage can group them without reading the lines.
 export const voiceFailureCause = reason => blockedByWindows(reason) ? 'windows-blocked' : browserStartFailed(reason) ? 'browser-failed' : pagingFileFailed(reason) ? 'virtual-memory' : noCudaFailed(reason) ? 'no-cuda'
-  : outOfMemoryFailed(reason) ? 'out-of-memory' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
+  : outOfMemoryFailed(reason) ? 'out-of-memory' : slotOwnedFailed(reason) ? 'slot-owned' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';

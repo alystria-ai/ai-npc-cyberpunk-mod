@@ -3,11 +3,13 @@ from pathlib import Path
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import os
 import shutil
 import struct
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -723,15 +725,18 @@ class PortableVoicePaths(unittest.TestCase):
         other_app = self.root / 'restarted application'
         other_app.mkdir()
         self.hold_slot_then_release(cache, 0.4)
+        # the holder wrote an owner record that says it is running
+        self.assertEqual(worker.read_slot_owner(cache / worker.SLOT_OWNER_FILE)['state'], 'running')
+        worker.mark_slot_exiting()
         naps = []
         real_sleep = worker.time.sleep
         def nap(seconds):
             naps.append(seconds)
             real_sleep(seconds)
-        with worker.model_admission(other_app, cache_root=cache, wait_s=8, poll_s=0.1, sleep=nap):
+        with worker.model_admission(other_app, cache_root=cache, wait_s=8, sleep=nap):
             pass
         self.assertTrue(naps, 'the slot was owned at the start, so it polled')
-        self.assertLessEqual(max(naps), 0.1)
+        self.assertLessEqual(max(naps), worker.MODEL_SLOT_EXIT_POLL_S, 'an exiting owner is looked at every 0.1 s, not on the 1 s step')
 
     def test_a_slot_owned_by_a_worker_that_stays_alive_is_reported_after_the_wait(self):
         cache = self.paths['cacheDirectory']
@@ -746,9 +751,56 @@ class PortableVoicePaths(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'shared model slot'):
             with worker.model_admission(other_app, cache_root=cache, wait_s=worker.MODEL_SLOT_WAIT_S, sleep=nap, clock=lambda: clock['now']):
                 self.fail('A live second worker must not be admitted')
-        self.assertEqual(sum(naps), worker.MODEL_SLOT_WAIT_S)
-        self.assertEqual(len(naps), 9)
-        self.assertTrue(8 <= worker.MODEL_SLOT_WAIT_S <= 10 and worker.MODEL_SLOT_POLL_S == 1.0)
+        self.assertAlmostEqual(sum(naps), worker.MODEL_SLOT_WAIT_S)
+        self.assertEqual(worker.MODEL_SLOT_STEPS_S, (1.0, 2.0, 4.0, 8.0))
+        self.assertEqual(worker.MODEL_SLOT_WAIT_S, 15.0)
+        self.assertLessEqual(max(naps), worker.MODEL_SLOT_SLICE_S, 'a pause is taken in slices so a change of the owner is noticed')
+
+    def test_a_dead_owner_is_polled_fast_and_the_takeover_is_one_line(self):
+        cache = self.paths['cacheDirectory']
+        other_app = self.root / 'after a crash'
+        other_app.mkdir()
+        # A record of a worker that is gone and a lock someone still holds for a moment (a handle that closes late).
+        self.hold_slot_then_release(cache, 0.3)
+        (cache / worker.SLOT_OWNER_FILE).write_text(json.dumps({'version': 1, 'pid': 424242, 'heartbeatAt': 1, 'state': 'running'}), encoding='utf-8')
+        naps = []
+        real_sleep = worker.time.sleep
+        def nap(seconds):
+            naps.append(seconds)
+            real_sleep(seconds)
+        errors = io.StringIO()
+        with patch.object(sys, 'stderr', errors):
+            with worker.model_admission(other_app, cache_root=cache, wait_s=8, sleep=nap, alive=lambda pid: False):
+                pass
+        self.assertLessEqual(max(naps), worker.MODEL_SLOT_EXIT_POLL_S)
+        self.assertEqual(errors.getvalue().count('[OmniSlot]'), 1)
+        self.assertIn('took over the voice slot', errors.getvalue())
+
+    def test_the_owner_record_is_kept_fresh_marked_exiting_and_removed(self):
+        cache = self.paths['cacheDirectory']
+        record = cache / worker.SLOT_OWNER_FILE
+        with worker.model_admission(self.app, cache_root=cache):
+            first = worker.read_slot_owner(record)
+            self.assertEqual((first['pid'], first['state']), (os.getpid(), 'running'))
+            worker.mark_slot_exiting()
+            self.assertEqual(worker.read_slot_owner(record)['state'], 'exiting')
+            self.assertEqual(worker.judge_slot_owner(worker.read_slot_owner(record)), 'exiting')
+        self.assertFalse(record.exists(), 'a worker that lets go removes its record')
+
+    def test_the_owner_verdicts(self):
+        owner = {'pid': 7, 'heartbeatAt': 100_000.0, 'state': 'running'}
+        yes, no = (lambda pid: True), (lambda pid: False)
+        self.assertEqual(worker.judge_slot_owner(None), 'free')
+        self.assertEqual(worker.judge_slot_owner(owner, now=101_000, alive=no), 'gone')
+        self.assertEqual(worker.judge_slot_owner(owner, now=101_000, alive=yes), 'live')
+        self.assertEqual(worker.judge_slot_owner(owner, now=100_000 + worker.SLOT_STALE_S * 1000 + 1, alive=yes), 'stale')
+        self.assertEqual(worker.judge_slot_owner({**owner, 'state': 'exiting'}, now=500_000, alive=yes), 'exiting')
+
+    def test_the_bridge_can_shorten_the_wait(self):
+        self.assertEqual(worker.slot_wait_seconds({}), worker.MODEL_SLOT_WAIT_S)
+        self.assertEqual(worker.slot_wait_seconds({worker.SLOT_WAIT_VARIABLE: '6'}), 6.0)
+        self.assertEqual(worker.slot_wait_seconds({worker.SLOT_WAIT_VARIABLE: 'x'}), worker.MODEL_SLOT_WAIT_S)
+        self.assertEqual(worker.slot_wait_seconds({worker.SLOT_WAIT_VARIABLE: '9999'}), worker.MODEL_SLOT_WAIT_S)
 
     def test_a_free_slot_never_waits_and_the_default_reports_an_owned_one_at_once(self):
         cache = self.paths['cacheDirectory']
@@ -763,7 +815,7 @@ class PortableVoicePaths(unittest.TestCase):
 
     def test_the_worker_start_waits_for_the_slot(self):
         main_source = SOURCE.read_text(encoding='utf-8').split('def main():', 1)[1].split('def voice_environment', 1)[0]
-        self.assertIn('wait_s=MODEL_SLOT_WAIT_S', main_source)
+        self.assertIn('wait_s=slot_wait_seconds()', main_source)
 
     def test_copied_worker_main_derives_the_relocated_app_and_never_uses_the_checkout(self):
         copied = self.app / 'bridge/resident-voice-worker.py'
