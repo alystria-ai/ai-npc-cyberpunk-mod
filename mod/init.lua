@@ -503,6 +503,7 @@ microphone.captureActions = function(context)
     -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well, and a group
     -- round turn carries its speaker's own block). Johnny in V's head and reactions have none.
     if not context.reaction and not context.head then convaiBondsAttach(context) end
+    if convaiRomanceArm then convaiRomanceArm(context) end
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
     -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
@@ -2475,6 +2476,9 @@ do
         end,
         -- Seating owns the copy: companions.lua skips its distant/stranded recovery.
         owns = function(entry)
+            -- A pair of the romance animations holds both bodies (mod/romance-anim.lua): no recovery teleport, no gestures.
+            local r = convaiRomance
+            if r and r.owns(entry) then return true end
             local s = currentSeating()
             if not s or not s.owns then return false end
             local ok, owned = pcall(s.owns, entry)
@@ -2504,6 +2508,7 @@ do
         end,
         observe = function(entry, context, step)
             local c, p, s = current(), currentProbe(), currentSeating()
+            if convaiRomance and convaiRomance.observe(entry) then return true end
             if p and p.observe(entry, context, step) then return true end
             if s and s.observe(entry, context, step) then return true end
             if c then return c.observe(entry, context, step) end
@@ -2511,12 +2516,14 @@ do
         end,
         release = function(entry, reason)
             local c, p, s = current(), currentProbe(), currentSeating()
+            if convaiRomance then pcall(convaiRomance.release, entry, reason) end
             if p then pcall(p.release, entry, reason) end
             if s then pcall(s.release, entry, reason) end
             if c then return c.release(entry, reason) end
         end,
         abandon = function(reason)
             local c, p, s = current(), currentProbe(), currentSeating()
+            if convaiRomance then pcall(convaiRomance.abandon, reason) end
             if p then pcall(p.abandon, reason) end
             if s then pcall(s.abandon, reason) end
             if c then return c.abandon(reason) end
@@ -3866,6 +3873,7 @@ local function sendRequest(context)
     context.provider = providerOk and provider or nil
     -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): one boolean while it is off. A group round turn carries its speaker's own block.
     if not context.reaction and not context.head then convaiBondsAttach(context) end
+    if convaiRomanceArm then convaiRomanceArm(context) end
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
     -- A pay stage of a bond quest: quest = {pack, cast} when the target is its cast member (one nil check while none is armed).
@@ -7138,6 +7146,210 @@ do
     end
 end
 
+-- ---- Romance animations (docs/ROMANCE_ANIMATIONS.md, mod/romance-anim.lua) --------------------------------------------------------------------
+-- A kiss, a hug, holding hands, sitting, cuddling or lying together with a romance partner, on V's request only: asked in a private talk (the bridge
+-- writes runtime/romance-anim.json after the reply) or picked from the Current party list, then one yes or no. The controller is built on the first
+-- request with the setting On; Off, a private turn pays one boolean and the tick one nil check. Globals and one do-block with ONE local table (the
+-- main chunk is within a few locals of Lua's limit of 200).
+convaiRomance = nil
+do
+    local R = {failed = false}   -- R.workspot, R.registry, R.registryStore, R.queued = {key, kind} (from the list), R.asking = {answer, at} (the open question)
+    -- The game's own romance facts, read at a request (never per frame).
+    R.facts = {['judy-alvarez'] = {'sq030_judy_lover', 'sq030_romance'}, ['panam-palmer'] = {'sq027_panam_lover'},
+        ['river-ward'] = {'sq029_river_lover'}, ['kerry-eurodyne'] = {'sq028_kerry_relationship'}}
+    function R.factOn(name)
+        local ok, value = pcall(function() return Game.GetQuestsSystem():GetFactStr(name) end)
+        return ok and type(value) == 'number' and value > 0
+    end
+    -- Together with V: a romance V started through talk (the save's fact; 'ended' beats the game's own receipt), or the game's own romance fact.
+    function R.partner(key)
+        if type(key) ~= 'string' then return false end
+        if not R.registry then
+            local loaded, module = pcall(dofile, 'romance-registry.lua')
+            if loaded and type(module) == 'table' then
+                local okStore, store = pcall(module.factStore)
+                if okStore then R.registry, R.registryStore = module, store end
+            end
+        end
+        if R.registry then
+            local ok, state = pcall(R.registry.read, R.registryStore, key)
+            if ok and state == 'ended' then return false end
+            if ok and state == 'together' then return true end
+        end
+        for _, fact in ipairs(R.facts[key] or {}) do if R.factOn(fact) then return true end end
+        return false
+    end
+    function R.menuOpen(player)
+        local ok, flags = pcall(function() return player:ConvaiFrameFlags() end)
+        return ok and type(flags) == 'number' and flags % 128 >= 8
+    end
+    -- Why a pair may not start now (nil: it may). Read from the battle sample the 0.5 s observer already holds, never a new poll.
+    function R.blocked()
+        local sample = battleSample
+        if type(sample) == 'table' then
+            if sample.combat then return 'combat' end
+            if sample.vehicle then return 'vehicle' end
+            if sample.call then return 'call' end
+            if sample.dialogue or sample.choices or sample.replacer or (sample.tier ~= nil and sample.tier ~= 1) then return 'scene' end
+        end
+        local fightOk, fighting = pcall(function() return battles.fighting and battles.fighting() end)
+        if fightOk and fighting == true then return 'combat' end
+        -- A bond quest stage in play is a mission of the mod's own.
+        local missionOk, mission = pcall(function() return convaiQuestPlay ~= nil and convaiQuestPlay.armed() == true end)
+        if missionOk and mission then return 'mission' end
+        local player = convaiPlayer()
+        if player and R.menuOpen(player) then return 'menu' end
+        if pending or speech.requestId ~= nil or subtitles.ownsUtterance() then return 'speaking' end
+        return nil
+    end
+    -- While a pair plays only real danger ends it: the scene flags are the workspot's own then.
+    function R.danger()
+        local sample = battleSample
+        if type(sample) == 'table' and (sample.combat or sample.call) then return sample.combat and 'combat' or 'call' end
+        return nil
+    end
+    function R.rigOf(entry)
+        local catalog = convaiGestures and convaiGestures.catalog
+        if type(catalog) ~= 'table' or not entry or not entry.npc then return nil end
+        local row = catalog.characters and entry.record and catalog.characters[entry.record]
+        if row and row.rig then return row.rig end
+        local body = R.workspot and R.workspot.bodyType and R.workspot.bodyType(entry.npc)
+        return body and catalog.generic and catalog.generic.bodyTypes and catalog.generic.bodyTypes[body] or nil
+    end
+    -- The question, one per request, in the game's own message box (r6/scripts/CyberpunkConvai/RomanceConfirm.reds).
+    function R.confirm(info, answer)
+        local player = convaiPlayer()
+        if not player then return false end
+        local name = info.name or ui.t('your partner')
+        local text
+        if info.kind == 'kiss' then text = ui.t('Kiss {name}?', {name = name})
+        elseif info.kind == 'hug' then text = ui.t('Hug {name}?', {name = name})
+        elseif info.kind == 'hands' then text = ui.t('Stand close with {name}?', {name = name})
+        elseif info.kind == 'sit' then text = ui.t('Sit together with {name}?', {name = name})
+        elseif info.kind == 'cuddle' then text = ui.t('Cuddle with {name}?', {name = name})
+        else text = ui.t('Lie down together with {name}?', {name = name}) end
+        if info.fellBack then text = ui.t('That does not fit here with {name}. Instead:', {name = name}) .. '\n' .. text end
+        text = text .. '\n' .. ui.t('The screen blinks, and you end up back where you stand.')
+        local ok, opened = pcall(function() return player:ConvaiAskOpen(ui.t('Romance animations'), text) end)
+        if not ok or opened ~= true then return false end
+        R.asking = {answer = answer, at = os.clock()}
+        return true
+    end
+    function R.service()
+        if convaiRomance then return convaiRomance end
+        if R.failed then return nil end
+        local loaded, module = pcall(dofile, 'romance-anim.lua')
+        local built, value = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            local wsLoaded, ws = pcall(dofile, 'gesture-workspot.lua')
+            R.workspot = wsLoaded and type(ws) == 'table' and ws or nil
+            built, value = pcall(module.new, {
+                native = R.workspot,
+                enabled = function() return manager.romanceAnimations() end,
+                player = function() return convaiPlayer() end,
+                resolve = function(key) return companions.ownEntryFor(key) end,
+                partner = R.partner,
+                rigOf = R.rigOf,
+                template = function() return convaiGestures and convaiGestures.catalog and convaiGestures.catalog.device or nil end,
+                blocked = R.blocked,
+                danger = R.danger,
+                speaking = function() return speech.requestId ~= nil or subtitles.ownsUtterance() end,
+                confirm = R.confirm,
+                -- Her other body owners let go first: the seating and the gestures never hold a copy that plays a pair.
+                yield = function(entry)
+                    if convaiGestures then pcall(convaiGestures.release, entry, 'romance') end
+                    if convaiSeating then pcall(convaiSeating.release, entry, 'romance') end
+                end,
+                notice = function()
+                    local player = convaiPlayer()
+                    if player then convaiNotices.send(player, 'romance-anim', ui.t('Not right now.')) end
+                end,
+                read = function(path)
+                    local file = io.open(path, 'rb')
+                    if not file then return nil end
+                    local raw = file:read(65536)
+                    file:close()
+                    return raw
+                end,
+                decode = function(text) return json.decode(text) end,
+                log = function(kind, fields)
+                    if manager.developerMode() then
+                        local ok, text = pcall(json.encode, fields)
+                        log('Romance ' .. kind .. ' ' .. (ok and text or ''))
+                    end
+                end,
+            })
+        end
+        if not built then
+            R.failed = true
+            convaiLogOnce('romance-anim', 'Romance animations are unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiRomance = value
+        return value
+    end
+    -- A private turn to a named character: a partner arms the request file for a while. One boolean while the setting is Off.
+    function convaiRomanceArm(context)
+        if type(context) ~= 'table' or context.reaction or context.head or context.group then return end
+        if type(manager.romanceAnimations) ~= 'function' or not manager.romanceAnimations() then return end
+        if not R.partner(context.profileKey) then return end
+        local romance = R.service()
+        if romance then pcall(romance.arm) end
+    end
+    -- The Current party list: who V is together with and here. Built when the page is, never per frame.
+    function convaiRomanceRows()
+        if type(manager.romanceAnimations) ~= 'function' or not manager.romanceAnimations() then return {} end
+        local rows = {}
+        for _, entry in ipairs(companions.ownEntries()) do
+            if R.partner(entry.profileKey) then rows[#rows + 1] = {key = entry.profileKey, name = entry.name or entry.profileName or entry.profileKey} end
+        end
+        return rows
+    end
+    -- Picked from the list: asked once no menu is open (the question is the game's own box). 'stop' ends a pair that plays.
+    function convaiRomanceAsk(key, kind)
+        if type(manager.romanceAnimations) ~= 'function' or not manager.romanceAnimations() then return false end
+        R.queued = {key = key, kind = kind}
+        return true
+    end
+    function R.handleQueued(player)
+        local want = R.queued
+        R.queued = nil
+        local romance = R.service()
+        if not romance then return end
+        if want.kind == 'stop' then pcall(romance.stop, 'asked'); return end
+        local entry = companions.ownEntryFor(want.key)
+        if not entry then return end
+        local ok, started, reason = pcall(romance.request, entry, want.kind, 'list')
+        if ok and started ~= true then
+            local text = reason == 'far' and ui.t('{name} is too far away.', {name = entry.name or entry.profileName or ''})
+                or reason == 'no-pair' and ui.t('No animation fits here yet.') or ui.t('Not right now.')
+            convaiNotices.send(player, 'romance-anim', text)
+        end
+    end
+    -- From the party tick. Idle: two nil checks.
+    function convaiRomanceTick(player)
+        if not convaiRomance and not R.queued then return end
+        if not player then return end
+        if R.queued and not R.menuOpen(player) then R.handleQueued(player) end
+        local romance = convaiRomance
+        if not romance then return end
+        local asking = R.asking
+        if asking then
+            local ok, state = pcall(function() return player:ConvaiAskState() end)
+            if ok and (state == 'yes' or state == 'no') then
+                R.asking = nil
+                pcall(function() player:ConvaiAskClear() end)
+                pcall(asking.answer, state == 'yes')
+            elseif os.clock() - asking.at > 150 then
+                R.asking = nil
+                pcall(romance.stop, 'ask-timeout')
+            end
+        end
+        local ok, problem = pcall(romance.tick)
+        if not ok then convaiLogOnce('romance-tick', 'Romance animations failed: ' .. tostring(problem)) end
+    end
+end
+
 -- ---- Bond quests (docs/QUEST_PRIMITIVES.md, mod/quest-play.lua) -----------------------------------------------------------------------------------
 -- The game half of the story packs' gameplay: the bridge writes the stage to execute (runtime/quest-play.json), mod/quest-play.lua arms its primitives and plays
 -- its scripted lines, and reports what happened (runtime/quest-events.json). Built on the first tick of a world, or when the bridge says the play file changed,
@@ -8215,6 +8427,8 @@ registerForEvent('onUpdate', function(delta)
     -- Eddies with characters (off by default): one nil check per tick unless a proposal is awaited or its pop-up is open.
     if convaiEddies and worldReady then convaiEddiesTick(player) end
     if convaiBonds and worldReady then convaiBondsTick(player) end
+    -- Romance animations (docs/ROMANCE_ANIMATIONS.md): three nil checks while no request is open.
+    if worldReady and convaiRomanceTick then convaiRomanceTick(player) end
     -- Bond quests (docs/QUEST_PRIMITIVES.md): one nil check per tick while no quest is armed.
     if (convaiQuestPlay or convaiQuestDue) and worldReady then convaiQuestTick(player, elapsedPoll) end
     mark('init:tick')

@@ -2368,6 +2368,9 @@ settingsPages['settings-companions'] = function(snapshot)
         -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
         setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
             'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
+        -- On by default (docs/ROMANCE_ANIMATIONS.md): a kiss, a hug, holding hands, sitting, cuddling or lying together with a romance partner, only when V asks and says yes once.
+        setting('romanceAnimations', 'Romance animations', 'bool', snapshot.settings.romanceAnimations ~= false, true,
+            'A kiss, a hug, holding hands, sitting, cuddling or lying together with a character you are in a romance with, using the game’s own two person animations.\n\nOnly when you ask in a talk or pick it from the Current party list, and you are asked to confirm once. Never on their own, and never in a fight, in a car, in a scene or during a mission. Only your own copies of the characters, never the game’s own placed ones.\n\nOn by default.'),
         -- Off by default (docs/EDDIES.md): borrow, lend and pay back eddies with your own characters, the eddies move when the character agrees. Off: nothing is read or sent.
         setting('characterEddies', 'Eddies with characters', 'bool', snapshot.settings.characterEddies == true, false,
             'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
@@ -2782,6 +2785,24 @@ local function schema()
                     {name = housemate.name, apartment = ui.t(housemate.apartmentName), state = where}), 'Move out',
                 ui.t('{name} stops living at your place. She stays as she is otherwise.', {name = housemate.name}),
                 function() return convaiHousemateMoveOut ~= nil and convaiHousemateMoveOut(key) end, canInvite, {label = true, description = true})
+        end
+        -- Romance animations (mod/romance-anim.lua, docs/ROMANCE_ANIMATIONS.md): a short list of things to do together for each character V is together with and who is here.
+        -- Picking one asks once in the game's own box, after the menu is closed. Built with the page, never per frame.
+        local partners = convaiRomanceRows and convaiRomanceRows() or {}
+        for index, partner in ipairs(partners) do
+            if index > 4 then break end
+            local key, name = partner.key, partner.name
+            local function ask(id, label, kind, help)
+                rows[#rows + 1] = action('romance:' .. key .. ':' .. id, ui.t('{name} · {action}', {name = name, action = label}), 'Ask', help,
+                    function() return convaiRomanceAsk ~= nil and convaiRomanceAsk(key, kind) end, canInvite, {label = true, description = true})
+            end
+            ask('kiss', ui.t('Kiss'), 'kiss', ui.t('You confirm once, after you close this menu.'))
+            ask('hug', ui.t('Hug'), 'hug', ui.t('You confirm once, after you close this menu.'))
+            ask('hands', ui.t('Stand close'), 'hands', ui.t('You confirm once, after you close this menu.'))
+            ask('sit', ui.t('Sit together'), 'sit', ui.t('You confirm once, after you close this menu.'))
+            ask('cuddle', ui.t('Cuddle'), 'cuddle', ui.t('You confirm once, after you close this menu.'))
+            ask('lie', ui.t('Lie together'), 'lie', ui.t('You confirm once, after you close this menu.'))
+            ask('stop', ui.t('Stop'), 'stop', ui.t('Ends what you are doing together.'))
         end
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.')
@@ -3451,6 +3472,7 @@ function M.apply(changes)
         elseif key == 'amdMiopen' then values.amdMiopen = change.value
         elseif key == 'keyBindings:reset' then values.keyBindings = manager.defaultKeyBindings()
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
+        elseif key == 'romanceAnimations' then values.romanceAnimations = change.value
         elseif key == 'characterEddies' then values.characterEddies = change.value
         elseif key == 'characterBonds' then values.characterBonds = change.value
         elseif key == 'storyPacks' then values.storyPacks = change.value

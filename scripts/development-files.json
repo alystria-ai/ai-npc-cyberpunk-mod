@@ -527,6 +527,14 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/romance-registry.lua"
     },
     {
+      "source": "mod/romance-anim.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/romance-anim.lua"
+    },
+    {
+      "source": "mod/romance-pairs.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/romance-pairs.lua"
+    },
+    {
       "source": "mod/housemate-plan.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-plan.lua"
     },

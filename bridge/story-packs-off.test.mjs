@@ -159,7 +159,7 @@ const companionRows = flag => `${nsuiHarness()}
 
 test('Settings > Companions has no Story packs and no Characters text first row without the switch, even with both saved on, and Character bonds stays', () => {
   run(`${companionRows(false)}
-    assert(list == 'immersive-invitations,housemates,companionOutfits,characterEddies,characterBonds,companionReactions', list)
+    assert(list == 'immersive-invitations,housemates,companionOutfits,romanceAnimations,characterEddies,characterBonds,companionReactions', list)
     assert(manager.storyPacks() == false and manager.reachOuts() == false and manager.characterBonds() == true)
     -- Another way to the setting changes nothing: the value is accepted and kept, and still reads as off.
     assert(manager.applySettings(player, {storyPacks = true}))
@@ -169,7 +169,7 @@ test('Settings > Companions has no Story packs and no Characters text first row 
 
 test('with the switch on the two rows are back, between Character bonds and Companions react', () => {
   run(`${companionRows(true)}
-    assert(list == 'immersive-invitations,housemates,companionOutfits,characterEddies,characterBonds,storyPacks,reachOuts,companionReactions', list)
+    assert(list == 'immersive-invitations,housemates,companionOutfits,romanceAnimations,characterEddies,characterBonds,storyPacks,reachOuts,companionReactions', list)
     assert(manager.storyPacks() == true and manager.reachOuts() == true)
   `);
 });

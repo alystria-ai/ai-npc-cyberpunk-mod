@@ -130,6 +130,7 @@ import {syncAllowlist} from './gift-tables.mjs';
 import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext, romanceReminder} from './romance-context.mjs';
 import {RomanceBond} from './romance-bond.mjs';
+import {RomanceAnimRequests} from './romance-anim-requests.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
@@ -997,6 +998,8 @@ const reputation = new ReputationStore({path: resolve(stateDirectory, 'reputatio
   log: line => console.error(line)});
 // Romance with any character, started and ended by V's words (bridge/romance-bond.mjs, docs/SIDE_ROMANCE.md); the game keeps the state in the save. Its Bonds object is set once that exists.
 const romanceBond = new RomanceBond({log: line => console.error('[Romance] ' + line)});
+// Romance animations V asks for in talk (bridge/romance-anim-requests.mjs, docs/ROMANCE_ANIMATIONS.md): written after the reply, for the game to ask V once.
+const romanceAnim = new RomanceAnimRequests({path: resolve(runtime, 'romance-anim.json'), log: line => console.error('[RomanceAnim] ' + line)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key: key ?? undefined, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   credential: () => keys.credential(),
@@ -1899,7 +1902,15 @@ const packTurn = (input, prepared, admitted) => {
   const facts = bondFacts(input, prepared, admitted);
   return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
 };
+// V asked a partner for a kiss, a hug, a seat together and the like: handed to the game, which asks V once (never for a reaction, Johnny in V's head or a group round).
+function publishRomanceAnim(input, result) {
+  if (!input || input.reaction || input.head || input.group || input.channel === 'phone' || !input.profileKey) return;
+  const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
+  const selection = admitted ? prepared?.relationship : null;
+  romanceAnim.afterTurn(input.profileKey, result?.userText || input.text, romanceOf(selection, RELATIONSHIP_PROFILES) === 'partner');
+}
 function publishBonds(input, result, proposal = null) {
+  publishRomanceAnim(input, result);
   // V's words to a quest's cast member are read once for an amount, yes or no, after the reply is out (bridge/quest-pay.mjs).
   if (input?.quest && bondPacks.afterPay(input, result?.userText)) questSync();
   if (!input?.bonds) return;
