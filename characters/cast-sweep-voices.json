@@ -26,16 +26,31 @@
       "clip": null
     },
     "agent-weiss": {
-      "fallback": "npc-nusa-male",
-      "clip": null
+      "fallback": "npc-clothing-vendor-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_07_enus_40",
+        "how": "record",
+        "lines": 12
+      }
     },
     "aiko-harada": {
-      "fallback": "npc-worker-resident-female",
-      "clip": null
+      "fallback": "npc-clothing-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_01_enus_25",
+        "how": "record",
+        "lines": 8
+      }
     },
     "airi-okawa": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-joytoy-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_55_jap_25",
+        "how": "actor-name",
+        "lines": 9
+      }
     },
     "akane-ito": {
       "fallback": "npc-tyger-claws-female",
@@ -106,16 +121,26 @@
       "clip": null
     },
     "anel-duffault": {
-      "fallback": "npc-nightlife-resident-male",
-      "clip": null
+      "fallback": "model-civ-mid-m-71-car-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_71_car_25",
+        "how": "actor-name",
+        "lines": 156
+      }
     },
     "angel": {
       "fallback": "npc-joytoy-male",
       "clip": null
     },
     "angie-pakeha-mielech": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-depr-f-01-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_depr_f_01_enus_30",
+        "how": "actor-name",
+        "lines": 1
+      }
     },
     "anna-hamill": {
       "fallback": "npc-ncpd-female",
@@ -126,8 +151,13 @@
       "clip": null
     },
     "annie-capolino": {
-      "fallback": "npc-nightlife-resident-female",
-      "clip": null
+      "fallback": "npc-melee-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_15_enus_25",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "anthony-anderson": {
       "fallback": "npc-ripperdoc-male",
@@ -154,8 +184,13 @@
       "clip": null
     },
     "archibald-crane": {
-      "fallback": "npc-militech-male",
-      "clip": null
+      "fallback": "npc-bartender-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_05_enus_40",
+        "how": "actor-name",
+        "lines": 8
+      }
     },
     "arden-bentzen": {
       "fallback": "npc-militech-male",
@@ -178,8 +213,13 @@
       "clip": null
     },
     "asa-risu": {
-      "fallback": "npc-worker-resident-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_02_enus_30",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "ash": {
       "fallback": "npc-nightlife-resident-male",
@@ -194,12 +234,22 @@
       "clip": null
     },
     "axel-mankievicz": {
-      "fallback": "npc-merc-male",
-      "clip": null
+      "fallback": "npc-dogtown-resident-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_17_enus_40",
+        "how": "actor-name",
+        "lines": 28
+      }
     },
     "ayden-daniels": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "npc-maxtac-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_mid_m_03_afam_25",
+        "how": "record",
+        "lines": 12
+      }
     },
     "ayo-zarin": {
       "fallback": "npc-voodoo-boys-female",
@@ -214,16 +264,26 @@
       "clip": null
     },
     "barry-lewis": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "model-civ-low-m-11-enus-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_11_enus_40",
+        "how": "actor-name",
+        "lines": 129
+      }
     },
     "bart": {
       "fallback": "npc-worker-resident-male",
       "clip": null
     },
     "bartolomeo-mordellini": {
-      "fallback": "npc-nightlife-resident-male",
-      "clip": null
+      "fallback": "npc-corpo-resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_08_enus_50",
+        "how": "actor-name",
+        "lines": 8
+      }
     },
     "ben-azaria": {
       "fallback": "npc-animals-male",
@@ -254,8 +314,13 @@
       "clip": null
     },
     "bill-jablonsky": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-bartender-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_05_enus_40",
+        "how": "actor-name",
+        "lines": 188
+      }
     },
     "blake-croyle": {
       "fallback": "npc-animals-male",
@@ -266,12 +331,22 @@
       "clip": null
     },
     "boris-ribakov": {
-      "fallback": "npc-scavengers-male",
-      "clip": null
+      "fallback": "model-gang-scv-m-01-rus-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_scv_m_01_rus_25",
+        "how": "actor-name",
+        "lines": 1
+      }
     },
     "brad-stacy": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-civ-low-m-08-enus-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_08_enus_20",
+        "how": "actor-name",
+        "lines": 45
+      }
     },
     "bradley-burrows": {
       "fallback": "npc-corpo-security-male",
@@ -286,8 +361,13 @@
       "clip": null
     },
     "brittany-hayes": {
-      "fallback": "npc-joytoy-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_02_enus_30",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "bruce-ward": {
       "fallback": "npc-wraiths-male",
@@ -302,8 +382,13 @@
       }
     },
     "buck-arnold": {
-      "fallback": "npc-sixth-street-male",
-      "clip": null
+      "fallback": "npc-sixth-street-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_6th_m_05_afam_25",
+        "how": "actor-name",
+        "lines": 84
+      }
     },
     "camilo-castilla": {
       "fallback": "npc-valentinos-male",
@@ -327,7 +412,17 @@
     },
     "cassius-ryder": {
       "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "clip": {
+        "stem": "cassious_northside",
+        "id": "1984967214652583936",
+        "seconds": 7.78
+      },
+      "link": {
+        "tag": "cassious_northside",
+        "how": [
+          "scene-actor-name"
+        ]
+      }
     },
     "catherina-byrn": {
       "fallback": "npc-valentinos-female",
@@ -338,20 +433,40 @@
       "clip": null
     },
     "cesar-diego-ruiz": {
-      "fallback": "npc-valentinos-male",
-      "clip": null
+      "fallback": "npc-valentinos-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_val_m_03_mex_25",
+        "how": "actor-name",
+        "lines": 106
+      }
     },
     "charlene-fox": {
-      "fallback": "npc-joytoy-female",
-      "clip": null
+      "fallback": "model-civ-prst-f-01-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_prst_f_01_enus_30",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "charles-bucks": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "npc-junk-dealer-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_29_enus_40",
+        "how": "actor-name",
+        "lines": 45
+      }
     },
     "charles-graham": {
-      "fallback": "npc-barghest-male",
-      "clip": null
+      "fallback": "npc-barghest-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_kml_m_02_enus_30",
+        "how": "record",
+        "lines": 6
+      }
     },
     "charles-wilson": {
       "fallback": "npc-ncpd-male",
@@ -374,8 +489,13 @@
       "clip": null
     },
     "chiyo-omoto": {
-      "fallback": "npc-ripperdoc-female",
-      "clip": null
+      "fallback": "npc-clothing-vendor-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_58_jap_50",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "chris-dupont": {
       "fallback": "npc-weapons-dealer-male",
@@ -402,12 +522,22 @@
       "clip": null
     },
     "corey-aldwyn": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "npc-ncpd-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_low_m_02_enus_40",
+        "how": "actor-name",
+        "lines": 64
+      }
     },
     "costin-lahovary": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "model-civ-low-m-34-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_34_enus_30",
+        "how": "actor-name",
+        "lines": 8
+      }
     },
     "cross": {
       "fallback": "npc-street-resident-male",
@@ -422,8 +552,13 @@
       "clip": null
     },
     "damir-kovac": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-joytoy-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_08_rus_30",
+        "how": "actor-name",
+        "lines": 18
+      }
     },
     "dan-thoss": {
       "fallback": "npc-street-resident-male",
@@ -434,8 +569,13 @@
       "clip": null
     },
     "daniel-lark": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-dogtown-resident-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_17_enus_40",
+        "how": "record",
+        "lines": 18
+      }
     },
     "danilo-ruiz": {
       "fallback": "npc-valentinos-male",
@@ -446,8 +586,13 @@
       "clip": null
     },
     "darius-clarke": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "npc-food-vendor-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_46_afam_40",
+        "how": "actor-name",
+        "lines": 9
+      }
     },
     "darius-dupont": {
       "fallback": "npc-weapons-dealer-male",
@@ -458,16 +603,31 @@
       "clip": null
     },
     "darline-boucicault": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-voodoo-boys-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_71_car_25",
+        "how": "actor-name",
+        "lines": 97
+      }
     },
     "darrell-zhou": {
-      "fallback": "npc-food-vendor-male",
-      "clip": null
+      "fallback": "model-civ-low-m-93-chn-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_93_chn_30",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "davarius-washington": {
-      "fallback": "npc-junk-dealer-male",
-      "clip": null
+      "fallback": "npc-worker-resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_45_afam_30",
+        "how": "actor-name",
+        "lines": 10
+      }
     },
     "david-beemer": {
       "fallback": "npc-scavengers-male",
@@ -478,8 +638,13 @@
       "clip": null
     },
     "david-walker": {
-      "fallback": "npc-clothing-vendor-male",
-      "clip": null
+      "fallback": "resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_01_enus_30",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "dennis-chavez": {
       "fallback": "npc-street-goon-male",
@@ -503,7 +668,12 @@
     },
     "det-harold-han": {
       "fallback": "npc-ncpd-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_mid_m_04_jap_40",
+        "how": "record",
+        "lines": 21
+      }
     },
     "diana-floyd": {
       "fallback": "npc-street-resident-female",
@@ -514,8 +684,13 @@
       "clip": null
     },
     "dietlinde": {
-      "fallback": "npc-maelstrom-female",
-      "clip": null
+      "fallback": "model-gang-mls-f-05-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_mls_f_05_enus_30",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "dirk-brooks": {
       "fallback": "npc-merc-male",
@@ -564,8 +739,13 @@
       "clip": null
     },
     "drausin": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-biotechnica-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_09_afam_30",
+        "how": "actor-name",
+        "lines": 40
+      }
     },
     "driss-scorpion-meriana": {
       "fallback": "npc-aldecaldos-male",
@@ -587,16 +767,26 @@
       "clip": null
     },
     "dusty-lowe": {
-      "fallback": "npc-joytoy-male",
-      "clip": null
+      "fallback": "model-civ-prst-m-01-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_prst_m_01_enus_30",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "earl-diaz": {
       "fallback": "npc-street-goon-male",
       "clip": null
     },
     "el-chamuco-endiablado": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-gang-val-m-04-mex-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_val_m_04_mex_40",
+        "how": "record",
+        "lines": 16
+      }
     },
     "el-gallo": {
       "fallback": "npc-worker-resident-male",
@@ -666,52 +856,87 @@
       "clip": null
     },
     "enrique-lozano": {
-      "fallback": "npc-nusa-male",
-      "clip": null
+      "fallback": "npc-nusa-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "sec_high_m_10_mex_30",
+        "how": "record",
+        "lines": 15
+      }
     },
     "eric": {
       "fallback": "npc-worker-resident-male",
       "clip": null
     },
     "ernesto-munoz": {
-      "fallback": "npc-valentinos-male",
-      "clip": null
+      "fallback": "model-gang-val-m-15-mex-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_val_m_15_mex_30",
+        "how": "actor-name",
+        "lines": 66
+      }
     },
     "ernie-hawkins": {
       "fallback": "npc-street-resident-male",
       "clip": null
     },
     "eron-acedo": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "npc-food-vendor-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_05_mex_30",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "ertha-ojasma": {
       "fallback": "npc-voodoo-boys-female",
       "clip": null
     },
     "esquerdo-certo": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-kang-tao-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "sec_mid_m_01_enus_30",
+        "how": "actor-name",
+        "lines": 132
+      }
     },
     "euralio-alma": {
       "fallback": "npc-aldecaldos-male",
       "clip": null
     },
     "evan-mcray": {
-      "fallback": "npc-militech-male",
-      "clip": null
+      "fallback": "model-civ-cbz-m-02-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_02_enus_30",
+        "how": "actor-name",
+        "lines": 11
+      }
     },
     "eve-martinez": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-low-f-107-bra-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_107_bra_25",
+        "how": "actor-name",
+        "lines": 30
+      }
     },
     "fae-nesheim": {
       "fallback": "npc-barghest-female",
       "clip": null
     },
     "farah-bleus": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-worker-resident-female-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_114_car_30",
+        "how": "actor-name",
+        "lines": 42
+      }
     },
     "faye-russo": {
       "fallback": "npc-maxtac-female",
@@ -730,8 +955,13 @@
       }
     },
     "flavio-dos-santos": {
-      "fallback": "npc-sixth-street-male",
-      "clip": null
+      "fallback": "model-civ-high-m-28-bra-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_28_bra_40",
+        "how": "actor-name",
+        "lines": 22
+      }
     },
     "forrest-lee": {
       "fallback": "npc-sixth-street-male",
@@ -742,8 +972,13 @@
       "clip": null
     },
     "freddie-burns": {
-      "fallback": "npc-nightlife-resident-male",
-      "clip": null
+      "fallback": "npc-bartender-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_23_enus_40",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "fredrik-persson": {
       "fallback": "npc-maelstrom-male",
@@ -784,8 +1019,13 @@
       "clip": null
     },
     "george-cooke": {
-      "fallback": "npc-worker-resident-male",
-      "clip": null
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_105_nat_50",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "george-prosky": {
       "fallback": "npc-wraiths-male",
@@ -812,8 +1052,13 @@
       "clip": null
     },
     "gloria-el-ahmar": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-low-f-124-arb-50",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_124_arb_50",
+        "how": "actor-name",
+        "lines": 90
+      }
     },
     "gorira": {
       "fallback": "npc-street-resident-male",
@@ -850,8 +1095,13 @@
       "clip": null
     },
     "griselda-martinez": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-high-f-12-mex-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_12_mex_30",
+        "how": "actor-name",
+        "lines": 56
+      }
     },
     "gustaf-ekland": {
       "fallback": "npc-maelstrom-male",
@@ -862,8 +1112,13 @@
       "clip": null
     },
     "gustavo-orta": {
-      "fallback": "npc-valentinos-male",
-      "clip": null
+      "fallback": "model-gang-val-m-10-mex-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_val_m_10_mex_20",
+        "how": "actor-name",
+        "lines": 94
+      }
     },
     "hal-cantos": {
       "fallback": "npc-worker-resident-male",
@@ -886,8 +1141,13 @@
       "clip": null
     },
     "haruyoshi-nishikata": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "model-civ-high-m-20-jap-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_20_jap_40",
+        "how": "actor-name",
+        "lines": 20
+      }
     },
     "helen-wandoo": {
       "fallback": "npc-food-vendor-female",
@@ -898,16 +1158,26 @@
       "clip": null
     },
     "henry-sanchez": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-street-resident-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_17_enus_40",
+        "how": "actor-name",
+        "lines": 63
+      }
     },
     "henry-stints": {
       "fallback": "npc-ncpd-male",
       "clip": null
     },
     "herold-lowe": {
-      "fallback": "npc-weapons-dealer-male",
-      "clip": null
+      "fallback": "npc-market-stall-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_03_afam_30",
+        "how": "actor-name",
+        "lines": 8
+      }
     },
     "hideo-nishio": {
       "fallback": "npc-tyger-claws-male",
@@ -938,12 +1208,22 @@
       "clip": null
     },
     "hugo-selvig": {
-      "fallback": "npc-animals-male",
-      "clip": null
+      "fallback": "npc-nightlife-resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_48_afam_20",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "hutch-spindler": {
       "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_15_enus_25",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "hwangbo-dong-gun": {
       "fallback": "npc-tyger-claws-male",
@@ -962,8 +1242,13 @@
       "clip": null
     },
     "imad-toma": {
-      "fallback": "npc-worker-resident-male",
-      "clip": null
+      "fallback": "npc-aldecaldos-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_ald_m_02_arb_40",
+        "how": "actor-name",
+        "lines": 36
+      }
     },
     "imogen": {
       "fallback": "npc-market-stall-female",
@@ -978,16 +1263,26 @@
       "clip": null
     },
     "isabella-fuscino": {
-      "fallback": "npc-valentinos-female",
-      "clip": null
+      "fallback": "model-civ-low-f-67-mex-50",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_67_mex_50",
+        "how": "actor-name",
+        "lines": 6
+      }
     },
     "isao-suzuki": {
       "fallback": "npc-tyger-claws-male",
       "clip": null
     },
     "ivan-guerreiro": {
-      "fallback": "npc-worker-resident-male",
-      "clip": null
+      "fallback": "npc-corpo-resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_08_enus_50",
+        "how": "record",
+        "lines": 30
+      }
     },
     "jack-mausser": {
       "fallback": "npc-merc-male",
@@ -1027,7 +1322,12 @@
     },
     "jakub-luigi-antonowicz": {
       "fallback": "npc-aldecaldos-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_ald_m_02_arb_40",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "james-ito": {
       "fallback": "npc-tyger-claws-male",
@@ -1066,16 +1366,26 @@
       "clip": null
     },
     "jax-forgrave": {
-      "fallback": "npc-worker-resident-male",
-      "clip": null
+      "fallback": "npc-maelstrom-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_mls_m_10_enus_25",
+        "how": "actor-name",
+        "lines": 1
+      }
     },
     "jax-morgan": {
       "fallback": "npc-maelstrom-male",
       "clip": null
     },
     "jean-rochelin": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-dogtown-resident-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_110_car_20",
+        "how": "actor-name",
+        "lines": 299
+      }
     },
     "jeff": {
       "fallback": "npc-aldecaldos-male",
@@ -1114,8 +1424,13 @@
       "clip": null
     },
     "jim-smith": {
-      "fallback": "npc-street-goon-male",
-      "clip": null
+      "fallback": "model-civ-low-m-32-enus-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_32_enus_20",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "jiro-oba": {
       "fallback": "npc-valentinos-male",
@@ -1150,8 +1465,13 @@
       "clip": null
     },
     "john-lucas": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-civ-mid-m-32-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_32_enus_30",
+        "how": "record",
+        "lines": 4
+      }
     },
     "john-milard": {
       "fallback": "npc-food-vendor-male",
@@ -1163,7 +1483,12 @@
     },
     "johnnie-peterson": {
       "fallback": "npc-bartender-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_05_enus_40",
+        "how": "actor-name",
+        "lines": 32
+      }
     },
     "jorge-ron": {
       "fallback": "npc-valentinos-male",
@@ -1174,8 +1499,13 @@
       "clip": null
     },
     "jose-luis": {
-      "fallback": "npc-valentinos-male",
-      "clip": null
+      "fallback": "model-gang-val-m-15-mex-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_val_m_15_mex_30",
+        "how": "actor-name",
+        "lines": 10
+      }
     },
     "joseph-j-odman": {
       "fallback": "npc-corpo-resident-male",
@@ -1195,11 +1525,21 @@
     },
     "jotaro-shobo": {
       "fallback": "npc-tyger-claws-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_tcl_m_12_jap_40",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "journey-ruiz": {
-      "fallback": "npc-market-stall-female",
-      "clip": null
+      "fallback": "npc-junk-dealer-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_75_mex_30",
+        "how": "actor-name",
+        "lines": 128
+      }
     },
     "joyce-marchal": {
       "fallback": "npc-street-resident-female",
@@ -1210,8 +1550,13 @@
       "clip": null
     },
     "juan-mendez": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "model-ncpd-high-m-02-mex-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_high_m_02_mex_40",
+        "how": "actor-name",
+        "lines": 73
+      }
     },
     "juan-peque": {
       "fallback": "npc-valentinos-male",
@@ -1246,8 +1591,13 @@
       "clip": null
     },
     "jumbo-josh": {
-      "fallback": "npc-homeless-male",
-      "clip": null
+      "fallback": "model-civ-low-m-15-enus-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_15_enus_25",
+        "how": "actor-name",
+        "lines": 35
+      }
     },
     "jun-azegami": {
       "fallback": "npc-tyger-claws-male",
@@ -1294,8 +1644,13 @@
       }
     },
     "karl-ginsky": {
-      "fallback": "npc-kang-tao-male",
-      "clip": null
+      "fallback": "model-civ-high-m-24-nat-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_24_nat_30",
+        "how": "record",
+        "lines": 20
+      }
     },
     "karl-hopfen": {
       "fallback": "npc-street-resident-male",
@@ -1306,12 +1661,27 @@
       "clip": null
     },
     "karubo-barei": {
-      "fallback": "npc-valentinos-male",
-      "clip": null
+      "fallback": "npc-merc-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "merc_m_01_enus_30",
+        "how": "actor-name",
+        "lines": 6
+      }
     },
     "katherine-mccannon": {
       "fallback": "npc-street-resident-female",
-      "clip": null
+      "clip": {
+        "stem": "katie_lee_sts_ep1_13",
+        "id": "3221435029852098560",
+        "seconds": 7.33
+      },
+      "link": {
+        "tag": "katie_lee",
+        "how": [
+          "scene-actor-name"
+        ]
+      }
     },
     "kathryn-o-brien": {
       "fallback": "npc-corpo-resident-female",
@@ -1322,16 +1692,26 @@
       "clip": null
     },
     "keegan-kelly": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "npc-maxtac-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_low_m_04_afam_30",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "keenan": {
       "fallback": "npc-animals-male",
       "clip": null
     },
     "keisuke-kagawa": {
-      "fallback": "npc-food-vendor-male",
-      "clip": null
+      "fallback": "npc-tyger-claws-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_tcl_m_12_jap_40",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "kelvin-strickland": {
       "fallback": "npc-corpo-resident-male",
@@ -1342,8 +1722,13 @@
       "clip": null
     },
     "kevin-flores": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "model-civ-mid-m-08-enus-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_08_enus_20",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "kevin-king": {
       "fallback": "npc-corpo-resident-male",
@@ -1354,8 +1739,13 @@
       "clip": null
     },
     "kimiko-sanchez": {
-      "fallback": "npc-merc-female",
-      "clip": null
+      "fallback": "model-civ-mid-f-32-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_32_enus_30",
+        "how": "actor-name",
+        "lines": 20
+      }
     },
     "kirk-sawyer": {
       "fallback": "npc-corpo-resident-male",
@@ -1374,8 +1764,13 @@
       "clip": null
     },
     "kyle-araujo": {
-      "fallback": "npc-barghest-male",
-      "clip": null
+      "fallback": "npc-barghest-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_kml_m_01_enus_30",
+        "how": "actor-name",
+        "lines": 36
+      }
     },
     "lana-prince": {
       "fallback": "npc-nomad-resident-female",
@@ -1386,8 +1781,13 @@
       "clip": null
     },
     "laura-may": {
-      "fallback": "npc-junk-dealer-female",
-      "clip": null
+      "fallback": "npc-melee-vendor-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_34_enus_30",
+        "how": "actor-name",
+        "lines": 9
+      }
     },
     "lauren-costigan": {
       "fallback": "npc-street-resident-female",
@@ -1414,8 +1814,13 @@
       "clip": null
     },
     "leon-watson": {
-      "fallback": "npc-weapons-dealer-male",
-      "clip": null
+      "fallback": "npc-food-vendor-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_46_afam_40",
+        "how": "actor-name",
+        "lines": 9
+      }
     },
     "leslie-wawuda": {
       "fallback": "npc-corpo-resident-male",
@@ -1430,8 +1835,13 @@
       "clip": null
     },
     "lilayah": {
-      "fallback": "npc-nightlife-resident-female",
-      "clip": null
+      "fallback": "npc-melee-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_15_enus_25",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "linda-spencer": {
       "fallback": "npc-nightlife-resident-female",
@@ -1442,12 +1852,22 @@
       "clip": null
     },
     "logan-scott": {
-      "fallback": "npc-joytoy-male",
-      "clip": null
+      "fallback": "model-civ-high-m-01-enus-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_01_enus_25",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "lori": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-low-f-91-chn-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_91_chn_20",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "lt-carter-reynolds": {
       "fallback": "npc-ncpd-male",
@@ -1510,8 +1930,13 @@
       "clip": null
     },
     "maria-jimenez": {
-      "fallback": "npc-corpo-resident-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_07_enus_40",
+        "how": "record",
+        "lines": 24
+      }
     },
     "marilyn": {
       "fallback": "npc-street-resident-female",
@@ -1532,36 +1957,71 @@
       }
     },
     "markus-ayers": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-dogtown-resident-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_17_enus_40",
+        "how": "actor-name",
+        "lines": 11
+      }
     },
     "marlon-fuscino": {
       "fallback": "npc-valentinos-male",
       "clip": null
     },
     "marta-liu": {
-      "fallback": "npc-food-vendor-female",
-      "clip": null
+      "fallback": "model-civ-low-f-100-jap-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_100_jap_40",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "martha-devis": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-cbz-f-01-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_f_01_enus_30",
+        "how": "actor-name",
+        "lines": 10
+      }
     },
     "martha-young": {
-      "fallback": "npc-valentinos-female",
-      "clip": null
+      "fallback": "npc-street-resident-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_02_enus_20",
+        "how": "actor-name",
+        "lines": 6
+      }
     },
     "martin-coleman": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "npc-bartender-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_05_enus_40",
+        "how": "record",
+        "lines": 24
+      }
     },
     "martin-tin": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-worker-resident-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_03_enus_25",
+        "how": "actor-name",
+        "lines": 9
+      }
     },
     "masao-adams": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-ripperdoc-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_15_enus_25",
+        "how": "record",
+        "lines": 15
+      }
     },
     "mat-duda": {
       "fallback": "npc-maelstrom-male",
@@ -1612,24 +2072,44 @@
       }
     },
     "meghan-hattori": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-netrunner-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_60_jap_25",
+        "how": "actor-name",
+        "lines": 3
+      }
     },
     "melissa-rory": {
-      "fallback": "npc-maxtac-female",
-      "clip": null
+      "fallback": "npc-corpo-security-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "sec_high_f_01_enus_30",
+        "how": "actor-name",
+        "lines": 125
+      }
     },
     "melissa-wellingham": {
-      "fallback": "npc-bartender-female",
-      "clip": null
+      "fallback": "npc-bartender-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_04_enus_30",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "mia": {
       "fallback": "npc-street-resident-female",
       "clip": null
     },
     "micaela-ruiz": {
-      "fallback": "npc-valentinos-female",
-      "clip": null
+      "fallback": "model-civ-high-f-12-mex-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_12_mex_30",
+        "how": "actor-name",
+        "lines": 44
+      }
     },
     "michael-maldonado": {
       "fallback": "npc-street-resident-male",
@@ -1667,8 +2147,13 @@
       "clip": null
     },
     "mike-kruger": {
-      "fallback": "npc-barghest-male",
-      "clip": null
+      "fallback": "npc-market-stall-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_03_afam_30",
+        "how": "record",
+        "lines": 2
+      }
     },
     "mikey": {
       "fallback": "npc-street-resident-male",
@@ -1688,7 +2173,17 @@
     },
     "milt-nauman": {
       "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "clip": {
+        "stem": "ripperdoc_q108",
+        "id": "1248736255801626624",
+        "seconds": 7.16
+      },
+      "link": {
+        "tag": "ripperdoc",
+        "how": [
+          "scene-actor-name"
+        ]
+      }
     },
     "misha-orlova": {
       "fallback": "npc-scavengers-female",
@@ -1727,8 +2222,13 @@
       "clip": null
     },
     "nadia-petrova": {
-      "fallback": "npc-ncpd-female",
-      "clip": null
+      "fallback": "npc-ncpd-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_low_f_03_enus_30",
+        "how": "actor-name",
+        "lines": 76
+      }
     },
     "nash": {
       "fallback": "npc-wraiths-male",
@@ -1743,8 +2243,13 @@
       "clip": null
     },
     "nell-rees": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-melee-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_15_enus_25",
+        "how": "actor-name",
+        "lines": 3
+      }
     },
     "nigel-hamilton": {
       "fallback": "npc-corpo-resident-male",
@@ -1783,12 +2288,22 @@
       "clip": null
     },
     "nova-maccaster": {
-      "fallback": "npc-worker-resident-female",
-      "clip": null
+      "fallback": "npc-maelstrom-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_mls_f_01_enus_30",
+        "how": "actor-name",
+        "lines": 1
+      }
     },
     "octavio-delgado": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "npc-ripperdoc-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_29_bra_50",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "odell-blanco": {
       "fallback": "npc-dogtown-resident-male",
@@ -1799,8 +2314,13 @@
       "clip": null
     },
     "officer-vasquez": {
-      "fallback": "npc-ncpd-male",
-      "clip": null
+      "fallback": "npc-ncpd-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "ncpd_low_m_07_mex_25",
+        "how": "actor-name",
+        "lines": 139
+      }
     },
     "ogawa": {
       "fallback": "npc-street-resident-male",
@@ -1815,8 +2335,13 @@
       "clip": null
     },
     "oleg-darkevich": {
-      "fallback": "npc-corpo-security-male",
-      "clip": null
+      "fallback": "npc-netwatch-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "sec_mid_m_04_afam_25",
+        "how": "record",
+        "lines": 20
+      }
     },
     "olga-cygan": {
       "fallback": "npc-corpo-resident-female",
@@ -1831,8 +2356,13 @@
       "clip": null
     },
     "oliver-fernandez": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "npc-clothing-vendor-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_07_enus_40",
+        "how": "record",
+        "lines": 16
+      }
     },
     "olivier-o-brien": {
       "fallback": "npc-street-resident-male",
@@ -1883,8 +2413,13 @@
       "clip": null
     },
     "prof-sachiko-kusama": {
-      "fallback": "npc-corpo-resident-female",
-      "clip": null
+      "fallback": "npc-medic-vendor-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_22_jap_30",
+        "how": "actor-name",
+        "lines": 439
+      }
     },
     "purple-force": {
       "fallback": "npc-nightlife-resident-female",
@@ -1903,20 +2438,35 @@
       "clip": null
     },
     "rafael-perez": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "model-civ-high-m-18-jap-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_18_jap_25",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "ralph-logan": {
       "fallback": "npc-bartender-male",
       "clip": null
     },
     "randy-kutcher": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-civ-low-m-20-enus-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_20_enus_20",
+        "how": "record",
+        "lines": 4
+      }
     },
     "razor-hughes": {
-      "fallback": "npc-animals-male",
-      "clip": null
+      "fallback": "npc-animals-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_ani_m_08_afam_40",
+        "how": "actor-name",
+        "lines": 63
+      }
     },
     "rebeca-price": {
       "fallback": "npc-medic-vendor-female",
@@ -1951,8 +2501,13 @@
       }
     },
     "rhino": {
-      "fallback": "npc-animals-female",
-      "clip": null
+      "fallback": "npc-street-goon-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_ani_f_02_enus_30",
+        "how": "actor-name",
+        "lines": 110
+      }
     },
     "richard-fresh": {
       "fallback": "npc-barghest-male",
@@ -1967,8 +2522,13 @@
       "clip": null
     },
     "rick-the-cripple": {
-      "fallback": "npc-homeless-male",
-      "clip": null
+      "fallback": "npc-bartender-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_23_enus_40",
+        "how": "actor-name",
+        "lines": 35
+      }
     },
     "rick-waters": {
       "fallback": "npc-barghest-male",
@@ -1979,20 +2539,35 @@
       "clip": null
     },
     "robert-rainwater": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "model-civ-low-m-103-nat-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_103_nat_30",
+        "how": "actor-name",
+        "lines": 21
+      }
     },
     "rodrigo-martinez": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-clothing-vendor-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_04_enus_30",
+        "how": "record",
+        "lines": 20
+      }
     },
     "rogelio-cruz": {
       "fallback": "npc-valentinos-male",
       "clip": null
     },
     "roger-wang": {
-      "fallback": "npc-medic-vendor-male",
-      "clip": null
+      "fallback": "model-civ-low-m-85-chn-50",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_85_chn_50",
+        "how": "actor-name",
+        "lines": 44
+      }
     },
     "roh-chi-won": {
       "fallback": "npc-worker-resident-male",
@@ -2013,8 +2588,13 @@
       "clip": null
     },
     "rony-lafleur": {
-      "fallback": "npc-medic-vendor-male",
-      "clip": null
+      "fallback": "model-civ-mid-m-73-car-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_73_car_40",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "rose-horrigan": {
       "fallback": "npc-street-resident-female",
@@ -2037,8 +2617,13 @@
       "clip": null
     },
     "roxanne-colton": {
-      "fallback": "npc-merc-female",
-      "clip": null
+      "fallback": "npc-trauma-team-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_27_enus_25",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "roxanne-sumner": {
       "fallback": "npc-joytoy-female",
@@ -2057,8 +2642,13 @@
       }
     },
     "ruby": {
-      "fallback": "npc-nightlife-resident-female",
-      "clip": null
+      "fallback": "model-civ-prst-f-04-chn-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_prst_f_04_chn_30",
+        "how": "actor-name",
+        "lines": 62
+      }
     },
     "rufus-mcbride": {
       "fallback": "npc-wraiths-male",
@@ -2093,8 +2683,13 @@
       "clip": null
     },
     "saki-seo": {
-      "fallback": "npc-medic-vendor-female",
-      "clip": null
+      "fallback": "npc-corpo-resident-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_20_jap_40",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "sam-jacobs": {
       "fallback": "npc-dogtown-resident-male",
@@ -2105,20 +2700,35 @@
       "clip": null
     },
     "sammy-taylor": {
-      "fallback": "npc-netrunner-vendor-male",
-      "clip": null
+      "fallback": "model-civ-low-m-127-enus-10",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_127_enus_10",
+        "how": "actor-name",
+        "lines": 10
+      }
     },
     "sandley-lebreton": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-civ-mid-m-72-car-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_72_car_30",
+        "how": "actor-name",
+        "lines": 26
+      }
     },
     "sandra-butler": {
       "fallback": "npc-street-resident-female",
       "clip": null
     },
     "santiago-molina": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_123_arb_30",
+        "how": "actor-name",
+        "lines": 13
+      }
     },
     "sarah-balbo": {
       "fallback": "npc-street-resident-female",
@@ -2129,8 +2739,13 @@
       "clip": null
     },
     "satoshi-ueno": {
-      "fallback": "npc-clothing-vendor-male",
-      "clip": null
+      "fallback": "model-civ-low-m-27-enus-25",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_27_enus_25",
+        "how": "actor-name",
+        "lines": 11
+      }
     },
     "saulo-capon": {
       "fallback": "npc-valentinos-male",
@@ -2177,12 +2792,22 @@
       "clip": null
     },
     "simone": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-low-f-99-jap-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_99_jap_30",
+        "how": "actor-name",
+        "lines": 12
+      }
     },
     "siri": {
-      "fallback": "npc-corpo-resident-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_02_enus_30",
+        "how": "record",
+        "lines": 30
+      }
     },
     "skye": {
       "fallback": "npc-joytoy-female",
@@ -2197,20 +2822,40 @@
       "clip": null
     },
     "sogo-watanabe": {
-      "fallback": "npc-ripperdoc-male",
-      "clip": null
+      "fallback": "model-civ-low-m-97-chn-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_97_chn_30",
+        "how": "actor-name",
+        "lines": 7
+      }
     },
     "sophia-dupont": {
-      "fallback": "npc-weapons-dealer-female",
-      "clip": null
+      "fallback": "npc-weapons-dealer-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_22_enus_30",
+        "how": "actor-name",
+        "lines": 14
+      }
     },
     "spector-cheng": {
-      "fallback": "npc-melee-vendor-male",
-      "clip": null
+      "fallback": "model-civ-low-m-90-chn-50",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_90_chn_50",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "spencer-harris": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-clothing-vendor-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_04_enus_30",
+        "how": "actor-name",
+        "lines": 3
+      }
     },
     "spencer-young": {
       "fallback": "npc-sixth-street-male",
@@ -2233,8 +2878,13 @@
       "clip": null
     },
     "stefan": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "npc-homeless-male",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_hmls_m_02_afam_30",
+        "how": "actor-name",
+        "lines": 87
+      }
     },
     "stella-ramos": {
       "fallback": "npc-ncpd-female",
@@ -2245,24 +2895,49 @@
       }
     },
     "sue-glover": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "model-civ-low-f-51-afam-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_51_afam_40",
+        "how": "actor-name",
+        "lines": 105
+      }
     },
     "susan-abernathy": {
-      "fallback": "npc-corpo-resident-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_07_enus_40",
+        "how": "record",
+        "lines": 20
+      }
     },
     "susana-brito": {
       "fallback": "npc-street-resident-female",
       "clip": null
     },
     "susanna-mack": {
-      "fallback": "npc-medic-vendor-female",
-      "clip": null
+      "fallback": "npc-ripperdoc-female-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_f_07_enus_40",
+        "how": "actor-name",
+        "lines": 5
+      }
     },
     "susanna-quinn": {
       "fallback": "npc-mox-female",
-      "clip": null
+      "clip": {
+        "stem": "lizzies_boss_q105",
+        "id": "1715865505743200256",
+        "seconds": 6.11
+      },
+      "link": {
+        "tag": "lizzies_boss",
+        "how": [
+          "scene-actor-name"
+        ]
+      }
     },
     "sweet-prince": {
       "fallback": "npc-trauma-team-male",
@@ -2327,12 +3002,27 @@
       }
     },
     "terry-hall": {
-      "fallback": "npc-street-goon-male",
-      "clip": null
+      "fallback": "npc-food-vendor-male-v3",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_53_afam_20",
+        "how": "actor-name",
+        "lines": 62
+      }
     },
     "theo-price": {
       "fallback": "npc-street-resident-female",
-      "clip": null
+      "clip": {
+        "stem": "theo_mq037",
+        "id": "1815658086378909696",
+        "seconds": 6.88
+      },
+      "link": {
+        "tag": "theo",
+        "how": [
+          "scene-actor-name"
+        ]
+      }
     },
     "thiago-brichta": {
       "fallback": "npc-street-resident-male",
@@ -2360,7 +3050,12 @@
     },
     "timothee-lebeau": {
       "fallback": "npc-tyger-claws-male",
-      "clip": null
+      "clip": null,
+      "voiceModel": {
+        "model": "gang_tcl_m_12_jap_40",
+        "how": "actor-name",
+        "lines": 26
+      }
     },
     "timothy-malek": {
       "fallback": "npc-wraiths-male",
@@ -2398,8 +3093,13 @@
       }
     },
     "toshiro": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "model-civ-high-m-23-jap-40",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_high_m_23_jap_40",
+        "how": "actor-name",
+        "lines": 8
+      }
     },
     "towfiq-iqbal": {
       "fallback": "npc-corpo-resident-male",
@@ -2434,8 +3134,13 @@
       "clip": null
     },
     "vance-noren": {
-      "fallback": "npc-street-resident-male",
-      "clip": null
+      "fallback": "model-civ-low-m-02-enus-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_02_enus_20",
+        "how": "actor-name",
+        "lines": 21
+      }
     },
     "vic-vega": {
       "fallback": "npc-corpo-security-male",
@@ -2474,16 +3179,26 @@
       "clip": null
     },
     "william-correy": {
-      "fallback": "npc-worker-resident-male",
-      "clip": null
+      "fallback": "model-civ-cbz-m-02-enus-30",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_cbz_m_02_enus_30",
+        "how": "actor-name",
+        "lines": 1
+      }
     },
     "william-hare": {
       "fallback": "npc-militech-male",
       "clip": null
     },
     "willy-mccoy": {
-      "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "fallback": "npc-junk-dealer-male-v2",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_m_29_enus_40",
+        "how": "record",
+        "lines": 48
+      }
     },
     "wyatt-alken": {
       "fallback": "npc-sixth-street-male",
@@ -2502,12 +3217,22 @@
       "clip": null
     },
     "yishen-rhee": {
-      "fallback": "npc-merc-female",
-      "clip": null
+      "fallback": "npc-street-resident-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_08_enus_20",
+        "how": "actor-name",
+        "lines": 16
+      }
     },
     "yoko-tsuru": {
-      "fallback": "npc-netrunner-vendor-female",
-      "clip": null
+      "fallback": "npc-weapons-dealer-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_mid_f_62_jap_40",
+        "how": "actor-name",
+        "lines": 175
+      }
     },
     "yuri-shaku": {
       "fallback": "npc-tyger-claws-female",
@@ -2534,8 +3259,13 @@
       "clip": null
     },
     "zhan-qiu": {
-      "fallback": "npc-junk-dealer-male",
-      "clip": null
+      "fallback": "model-civ-low-m-91-chn-20",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_m_91_chn_20",
+        "how": "actor-name",
+        "lines": 4
+      }
     },
     "zion-wylde": {
       "fallback": "npc-nomad-resident-male",
@@ -2546,8 +3276,13 @@
       "clip": null
     },
     "zuleikha-el-ahmar": {
-      "fallback": "npc-street-resident-female",
-      "clip": null
+      "fallback": "npc-nomad-resident-female",
+      "clip": null,
+      "voiceModel": {
+        "model": "civ_low_f_123_arb_40",
+        "how": "actor-name",
+        "lines": 262
+      }
     }
   }
 }

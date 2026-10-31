@@ -52,7 +52,7 @@ Card template and two worked examples: `scripts/cast-sweep/example-card.json`.
 ## Own voices by voice tag (`feat/side-own-voices`, 31 Oct 2026)
 
 Step 8 above found 27 people because a file stem started with their full name. That rule is strict, so a second rule was added: `scripts/cast-sweep/voice_links.py`
-(then `voices.py --asr`, `apply_own_voices.py`). **13 more people have a clip of their own, 40 in all, 535 keep the fallback archetype voice.**
+(then `voices.py --asr`, `apply_own_voices.py`). **13 more people have a clip of their own, 40 in all (45 after the next section).**
 
 A voice file is `<voice tag>_<group>` (`fredrik_sts_wat_nid_04`, `sasquatch_q110`). The tag picks the voice, so every file with the same tag is the same voice and the
 question is only whose tag it is. The REDmod tweak sources name a `voiceTag` on only 6 character records, so that alone found a few. The rest needed other evidence, and a
@@ -82,6 +82,37 @@ Only 23 of the 213 non-generic tags in the files share no word with any roster n
 The line is picked by `voices.py --asr` as in step 8, plus: Whisper small.en (the project's copy, CPU) must hear the game subtitle with a difflib similarity of at least 0.85, and the line must have the same bytes in the 2.31 archive. The 13 have 0.88 to 1.0. `apply_own_voices.py` writes `clip` and `link` (`{tag, how}`) into `characters/cast-sweep-voices.json`, and the wiring is the one below (manifest, rows, words, release plan, upload list).
 Run order: `inventory.py`, `voice_links.py`, `voices.py --people characters/roster.json --stems <stems-new.json> --asr`, `apply_own_voices.py`, `recover_manifest.py --cast-sweep`, `add_cast_manifest.py`, `stage_cast_voices.py --keys ... --apply`, `merge_rows.mjs`, `write_words.mjs`, `upload_list.py`.
 Open question: Dorian is a child (invite false, profile only), and the Reverend Colver line is from a televised debate scene (clean, Whisper similarity 0.98).
+
+## Voice models (`feat/side-voice-models`, 31 Oct 2026)
+
+Owner rule: a generic voice model is allowed when the game's own files prove it is the voice the game gives the character, because that is their real in-game voice. Only a guessed archetype is replaced.
+
+**Proof.** `scene_index.py` exports every one of the game's 7580 scenes (base game and Phantom Liberty, WolvenKit, one scene missing) and keeps who speaks what: 23,065 actors, 7846 of them with a character record (`specRecordId`), and every line's locstring id. The id is the hex in the voice file name, so a line gives the file stem `<voice tag>_<group>`, and through the actor the record. `voice_models.py` ties the records of each roster row to the voices of their lines:
+
+| Proof | Meaning |
+|---|---|
+| `record` | an actor with the person's record speaks the line |
+| `actor-name` | the person's record has no speaking actor, but an actor named exactly like the record (its tail, or the whole record name) speaks in a scene of the record's own quest or street story group (the scene path contains the group, or the whole record name), and no other person's record has that name |
+
+The verdict per person: one named voice tag is `own`, one generic voice model (`civ_high_m_07_enus_40`, the family, class, gender, number, ethnicity and age of a voice actor, `merc_m_01_enus_30` for the mercs) is `model`, more than one voice is `ambiguous`, no line at all is `none`. The tweakdb.bin flat `voiceTag` of the 575 records was read (`tweakdb_read.py`, the CName block of the blob, checked against the game's tweak sources): it is `None` for all but the 6 records already known, and the entity templates (.ent) and appearances (.app) hold no voice model, only a combat voice set name. So the game gives its conversation voice to a character in the scenes and nowhere else, and a character who speaks in no scene has no voice the files can prove.
+
+**Result for the 575:**
+
+| | People |
+|---|---|
+| Own clip | 45 (40 before, plus Cassius Ryder, Katherine McCannon, Milt Nauman, Susanna Quinn, Theo Price) |
+| Mapped to the archetype voice of their model | 137 (22 by record, 115 by actor name). 87 use an archetype that already ships (65 voices), 50 use a new `model-<model>` voice (47 voices) |
+| Still guessed (the old archetype stand-in stays) | 393 |
+
+Why the 393 stay: 384 speak in no scene (no line of any of their records or of an actor named like them), 5 have a proven named tag but no clean line (Gorira and Grace: 2.5 s or none, Jack Mausser: Whisper under 0.85, Leslie Wawuda: the one line is 11.2 s, Odell Blanco: no line of six words), Alva speaks with the Arasaka AI organisation voice, Anthony Harris has two voices (his young self is another actor), Marlon Fuscino's model has one clean line, Tyler Zan's model is female and the roster says male.
+
+An `own` tag that other people's records speak too (Theo Price shares `theo` with Aymeric Cassel, Katherine McCannon shares `katie_lee`) is accepted only for the lines the scenes prove are the person's own, so the scenes decide which one it is (`voices.py` takes an `ids` list). Role tags (`lizzies_boss`, `ripperdoc`) count when only this person's record speaks them.
+
+**Archetype voices for models.** `characters/cast-sweep-voices.json` now has `fallback` = the archetype voice whose `voiceset` (`characters/archetype-voices.json`) is the model, and `voiceModel: {model, how, lines}`. 64 of the 112 models already were an archetype voice. For the other 48 `build_model_voices.py` made a voice with the archetype builder's own code and rules (calm conversational lines of exactly that actor, 1.5 to 9 s, 4 to 28 words, no clipping, no phone band, loudness window, 0.4 s gaps, omni-short 10 s, omni-long 18 s, pocket 20 s): 47 built, one model had only a single clean clip. They are keyed `model-<model with dashes>`, listed in `characters/model-voices.json`, recorded in the archetype receipt (`modelVoice: true`), registered in the live configurations by `register_archetype_voices.mjs` (it reads the catalogue), and rebuilt from the game files like every other clip: 141 clips all sample for sample in the manifest, words, upload list.
+
+**Languages.** The multilingual packs go away (the language clips become on-demand). `dub_lines.py` writes `staging/side-voices-dub-lines.json` (not in git, it holds dub dialogue): for each of the 45 own voices and each of the 10 dubbed languages the dub line of the same string id (path in `E:/SteamLibrary/AiNpc-vo-stash/<lang>/{content,ep1}`, seconds, subtitle) that passes the builder's clip checks: 45 of 45 in every language, all the same line as the English clip. For the 137 mapped people it records the archetype key and the languages whose pack holds that archetype voice: 82 people (60 existing voices) are in all ten packs, 5 existing voices are in none (`npc-joytoy-female`, `npc-joytoy-male`, `npc-maxtac-male`, `npc-maxtac-male-v2`, `npc-nusa-male-v2`), and the 47 new model voices are in none. For those 47 the same file lists, per language, which dub lines of their English references the dub has and which fail (`modelVoices`).
+
+Run order: `scene_index.py` (about 45 minutes, resumes), `voice_models.py`, `voices.py --asr --stems stems-models.json`, `apply_own_voices.py`, `build_model_voices.py --models @list`, `register_archetype_voices.mjs` (then the Python loaders by the main checkout's paths, the junction trips the loader), `recover_manifest.py --keys <model keys>` and `--cast-sweep`, `add_cast_manifest.py`, `stage_cast_voices.py` and `merge_rows.mjs` for the 5, `write_words.mjs`, `upload_list.py`, `apply_voice_models.py`, `dub_lines.py`.
 
 ## Voices and what the owner uploads later
 

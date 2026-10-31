@@ -5,7 +5,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {readManifest} from './voice-clips.mjs';
 
-// The 27 side characters of the cast sweep that have a game line of their own (characters/cast-sweep-voices.json `clip`) speak with their own voice through the
+// The 45 side characters of the cast sweep that have a game line of their own (27 by a name, 18 by a tag the scenes or the records prove) (characters/cast-sweep-voices.json `clip`) speak with their own voice through the
 // clips the player's PC builds (docs/VOICE_EXTRACTION.md, docs/CAST_SWEEP.md). Wiring: three rows in the voice configurations, the release plan's voice list, the upload list.
 
 const url = path => new URL(`../${path}`, import.meta.url);
@@ -17,8 +17,8 @@ const own = Object.keys(sweep).filter(key => sweep[key].clip).sort();
 const manifest = readManifest(text('characters/voice-clips-manifest.json'));
 const KINDS = {pocket: 'pocket-voices.autobest.json', 'omni-short': 'local-voices.autobest-short.json', 'omni-long': 'local-voices.autobest-long.json'};
 
-test('40 cast sweep characters have a line of their own (27 by the full name in the file stem, 13 by a proven voice tag), and every one is complete in the manifest', () => {
-  assert.equal(own.length, 40);
+test('45 cast sweep characters have a line of their own (27 by the full name in the file stem, 18 by a proven voice tag), and every one is complete in the manifest', () => {
+  assert.equal(own.length, 45);
   for (const key of own) {
     assert(manifest[key], `${key} in the manifest`);
     assert.equal(manifest[key]['omni-short'].sha256, manifest[key]['omni-long'].sha256, `${key}: one clip serves the three kinds`);
@@ -26,16 +26,16 @@ test('40 cast sweep characters have a line of their own (27 by the full name in 
   }
 });
 
-test('the release plan lists the 40 as prepared local voices', () => {
+test('the release plan lists the 45 as prepared local voices', () => {
   const plan = json('packaging/release-plan.json');
   for (const key of own) assert(plan.voice.localProfiles.includes(key), `${key} in voice.localProfiles`);
   assert.equal(plan.voice.registry.preparedLocalProfiles, plan.voice.localProfiles.length);
   assert.deepEqual([...plan.voice.localProfiles], [...plan.voice.localProfiles].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)), 'the list stays sorted');
 });
 
-test('the 13 characters found by a voice tag name the tag, and no tag or line serves two people', () => {
+test('the 18 characters found by a voice tag name the tag, and no tag or line serves two people', () => {
   const linked = own.filter(key => sweep[key].link);
-  assert.equal(linked.length, 13);
+  assert.equal(linked.length, 18);
   const tags = new Set(), lines = new Set();
   for (const key of own) {
     const {clip, link} = sweep[key];
@@ -45,12 +45,48 @@ test('the 13 characters found by a voice tag name the tag, and no tag or line se
     assert(!tags.has(link.tag), `${key}: the tag ${link.tag} belongs to another character`);
     tags.add(link.tag);
     assert(clip.stem === link.tag || clip.stem.startsWith(`${link.tag}_`), `${key}: the stem of the line starts with the tag`);
-    assert(link.how.length > 0 && link.how.every(how => ['voiceTag', 'name', 'record', 'record-unique', 'display+group', 'scene'].includes(how)), `${key}: evidence kinds`);
+    assert(link.how.length > 0 && link.how.every(how => ['voiceTag', 'name', 'record', 'record-unique', 'display+group', 'scene', 'scene-actor-name'].includes(how)), `${key}: evidence kinds`);
     assert(!/^(civ|gang|ncpd|sec|merc|ad|crowd|v)_/.test(link.tag), `${key}: a generic voice model is never a person's tag`);
   }
 });
 
-test('the upload list holds the three paths of each of the 40', () => {
+// Side characters the scenes tie to a generic voice model (`voiceModel`) speak with the archetype voice of exactly that model (docs/CAST_SWEEP.md, "Voice models").
+const mapped = Object.keys(sweep).filter(key => sweep[key].voiceModel).sort();
+const receipt = json('characters/archetype-voices.json').voices;
+const roster = new Map(json('characters/roster.json').map(row => [row.key, row]));
+
+test('137 side characters point at the archetype voice of the voice model the game gives them', () => {
+  assert.equal(mapped.length, 137);
+  for (const key of mapped) {
+    const {fallback, voiceModel, clip} = sweep[key];
+    assert.equal(clip, null, `${key}: a character with a model has no clip of their own`);
+    assert.equal(receipt[fallback]?.status, 'ready', `${key}: ${fallback} is a ready archetype voice`);
+    assert.equal(receipt[fallback].voiceset, voiceModel.model, `${key}: the fallback voice is the model ${voiceModel.model}`);
+    assert(/^(civ|gang|ncpd|sec|merc)_/.test(voiceModel.model), `${key}: a generic voice model`);
+    assert(['record', 'actor-name'].includes(voiceModel.how) && voiceModel.lines > 0, `${key}: proof`);
+    const gender = roster.get(key).gender;
+    if (gender === 'MALE' || gender === 'FEMALE') assert.equal(voiceModel.model.includes('_m_') ? 'MALE' : 'FEMALE', gender, `${key}: the model's gender is the roster's`);
+  }
+});
+
+test('the 47 model voices built for models no archetype covers are complete in the manifest, the catalogue and the upload list', () => {
+  const catalogue = json('characters/model-voices.json').voices;
+  const keys = Object.keys(catalogue).sort();
+  assert.equal(keys.length, 47);
+  const rows = new Map(json('packaging/voice-clips-upload-list.json').rows.map(row => [row.path, row]));
+  for (const key of keys) {
+    assert.equal(key, `model-${catalogue[key].voiceset.replaceAll('_', '-')}`);
+    assert.equal(receipt[key]?.voiceset, catalogue[key].voiceset);
+    for (const kind of Object.keys(KINDS)) {
+      assert(manifest[key]?.[kind], `${key}/${kind} in the manifest`);
+      assert.equal(rows.get(`voice-clips/${kind}/${key}.wav`)?.sha256, (manifest[key][kind].sha256 ?? manifest[key][manifest[key][kind].sameAs].sha256), `${kind}/${key} in the upload list`);
+    }
+  }
+  const used = new Set(mapped.map(key => sweep[key].fallback));
+  assert(keys.every(key => used.has(key)), 'every model voice is used by somebody');
+});
+
+test('the upload list holds the three paths of each of the 45', () => {
   const rows = new Map(json('packaging/voice-clips-upload-list.json').rows.map(row => [row.path, row]));
   for (const key of own) {
     for (const kind of Object.keys(KINDS)) {

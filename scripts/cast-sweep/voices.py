@@ -111,6 +111,8 @@ def main() -> int:
             if SKIP_STEM.search(row["stem"]):
                 continue
             for sid, variants in index.get(row["stem"], {}).items():
+                if row.get("ids") and sid not in row["ids"]:
+                    continue                      # only the lines a scene proves are this person's (voice_models.py)
                 variant = "f" if "f" in variants else "m"
                 text = subs.text(sid, variant)
                 n = words(text)

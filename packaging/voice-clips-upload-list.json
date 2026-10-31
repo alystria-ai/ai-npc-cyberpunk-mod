@@ -1,9 +1,9 @@
 {
  "repository": "alystria-ai/ai-npc-cyberpunk-mod-packs",
  "note": "Uploaded 2026-10-30 and read back (every size and SHA-256 equal to this list).  The bridge downloads voice-clips/<kind>/<key>.wav and checks the SHA-256 against characters/voice-clips-manifest.json.",
- "newFilesToUpload": 39,
- "files": 1056,
- "bytes": 662092012,
+ "newFilesToUpload": 195,
+ "files": 1212,
+ "bytes": 765606222,
  "castSweepNote": "The 27 cast sweep side characters are included (the same bytes at the three kinds' paths); their sources are the cast sweep clips on the offload drive and the staged copies in runtime/voice-references/picked/autobest.",
  "rows": [
   {
@@ -527,6 +527,27 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\cassidy-righter.wav",
    "bytes": 570298,
    "sha256": "107582c1d36f667ca192c2ab64510649dfca4bd6343890d0f0774e8cd6342083"
+  },
+  {
+   "path": "voice-clips/omni-short/cassius-ryder.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\cassius-ryder.wav",
+   "bytes": 373424,
+   "sha256": "948bc519b7ecd7ebc45efd05a016fcc354e840a212c62b378a94207e73cace05",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/cassius-ryder.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\cassius-ryder.wav",
+   "bytes": 373424,
+   "sha256": "948bc519b7ecd7ebc45efd05a016fcc354e840a212c62b378a94207e73cace05",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/cassius-ryder.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\cassius-ryder.wav",
+   "bytes": 373424,
+   "sha256": "948bc519b7ecd7ebc45efd05a016fcc354e840a212c62b378a94207e73cace05",
+   "toUpload": true
   },
   {
    "path": "voice-clips/omni-short/chang-hoon-nam.wav",
@@ -1498,6 +1519,27 @@
    "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
   },
   {
+   "path": "voice-clips/omni-short/katherine-mccannon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\katherine-mccannon.wav",
+   "bytes": 351758,
+   "sha256": "6dae6ca0ec5a0d8b2becfbdd746ce6489b7b404c149fad89b3250c29e371f433",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/katherine-mccannon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\katherine-mccannon.wav",
+   "bytes": 351758,
+   "sha256": "6dae6ca0ec5a0d8b2becfbdd746ce6489b7b404c149fad89b3250c29e371f433",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/katherine-mccannon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\katherine-mccannon.wav",
+   "bytes": 351758,
+   "sha256": "6dae6ca0ec5a0d8b2becfbdd746ce6489b7b404c149fad89b3250c29e371f433",
+   "toUpload": true
+  },
+  {
    "path": "voice-clips/omni-short/kerry-eurodyne.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\kerry-eurodyne.wav",
    "bytes": 332640,
@@ -1849,6 +1891,27 @@
    "toUpload": true
   },
   {
+   "path": "voice-clips/omni-short/milt-nauman.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\milt-nauman.wav",
+   "bytes": 343934,
+   "sha256": "1586d82c07961863b31147ca1167b17e0f2ae5b3117ac487a26a3a1554359e0f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/milt-nauman.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\milt-nauman.wav",
+   "bytes": 343934,
+   "sha256": "1586d82c07961863b31147ca1167b17e0f2ae5b3117ac487a26a3a1554359e0f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/milt-nauman.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\milt-nauman.wav",
+   "bytes": 343934,
+   "sha256": "1586d82c07961863b31147ca1167b17e0f2ae5b3117ac487a26a3a1554359e0f",
+   "toUpload": true
+  },
+  {
    "path": "voice-clips/omni-short/misty-olszewski.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\misty-olszewski.wav",
    "bytes": 431368,
@@ -1883,6 +1946,993 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\mitch-anderson.wav",
    "bytes": 830604,
    "sha256": "a044d5b2cd454393a4958cb284eb59522fac07946c84d02b72c6b7a5132b7686"
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-cbz-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-cbz-f-01-enus-30.wav",
+   "bytes": 477772,
+   "sha256": "b617e4e4b469f17a1af4fe50b31a797790fcb3924ac73b70eb918ed312b08231",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-cbz-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-cbz-f-01-enus-30.wav",
+   "bytes": 822808,
+   "sha256": "506393539860e1350645bf8eaf4873538505407d8a27d8daf5d6fab6e095389e",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-cbz-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-cbz-f-01-enus-30.wav",
+   "bytes": 945916,
+   "sha256": "059560e3919a8cf04e17fc785818f8c570ebacfd757393865b1c87743dc81676",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-cbz-m-02-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-cbz-m-02-enus-30.wav",
+   "bytes": 445478,
+   "sha256": "6d74779967ce1670750c125d58212f1f9573eb1b58ddc58be674279a6a3fd759",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-cbz-m-02-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-cbz-m-02-enus-30.wav",
+   "bytes": 756934,
+   "sha256": "f70bfc7621f869fa0bd05820802f06d0e05c25c6e02319732eb91467574f0e72",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-cbz-m-02-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-cbz-m-02-enus-30.wav",
+   "bytes": 959632,
+   "sha256": "583da53fff198a89b11a0c76d69eb349ec789864a6fef88b776d603f4fdd93f7",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-depr-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-depr-f-01-enus-30.wav",
+   "bytes": 282748,
+   "sha256": "56b03ffc154e6a4007558b5474a887105e680271704ba2d32f24a9625cdbf347",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-depr-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-depr-f-01-enus-30.wav",
+   "bytes": 755438,
+   "sha256": "dc69feaf8148542db7e1cc914c043a18a0f13d87d7fd4cfcb47f128f3866c04f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-depr-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-depr-f-01-enus-30.wav",
+   "bytes": 939866,
+   "sha256": "9133e9e413f8ef75791019737c9d672d617fcc30b5187a6d028aa44c635634d5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-f-12-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-f-12-mex-30.wav",
+   "bytes": 463316,
+   "sha256": "c49228b106891b8a038f784de555036e5edfce3c491500eae1d9ded562d0f4b3",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-f-12-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-f-12-mex-30.wav",
+   "bytes": 841580,
+   "sha256": "b1ad75e1e2f615b02f813e515f7a2ed553d2d874edc169e68451c350c5dc2992",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-f-12-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-f-12-mex-30.wav",
+   "bytes": 894818,
+   "sha256": "dee81693b663ca79316ad62cd3fdd94307f534950e1ab3bf2a5ff5e70dea0115",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-01-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-01-enus-25.wav",
+   "bytes": 232042,
+   "sha256": "e308e518d97ca32b101c61203070abecd38640a838b988f3461634040dd91181",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-01-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-01-enus-25.wav",
+   "bytes": 841486,
+   "sha256": "e962cf00ce98802918ff05d8ee8e958b8db28328fcd8ec9854ebdf0b3631764c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-01-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-01-enus-25.wav",
+   "bytes": 952384,
+   "sha256": "c8ad8c8d07f628f3b2141cee7b1f233700a7b2e1bc97cde59a08d42af3a2dcf5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-18-jap-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-18-jap-25.wav",
+   "bytes": 448660,
+   "sha256": "994af60944880b8f44f24ce1729bd8782367ff043c1a36a6d565976aec17215e",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-18-jap-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-18-jap-25.wav",
+   "bytes": 736146,
+   "sha256": "ae38c5af3d12558da4f07ddd3268034e417e06ff17e0f88a9bb1ae4eadc3f82a",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-18-jap-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-18-jap-25.wav",
+   "bytes": 865150,
+   "sha256": "a6099b9e0eb6d375d378d8a369a907ba547585bd8bec1dcfcd8ae9b8b2b6f873",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-20-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-20-jap-40.wav",
+   "bytes": 248052,
+   "sha256": "dca608d6a0118ce9fe7fc4d054c043b842fef78830d509970f17519f971a8dfe",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-20-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-20-jap-40.wav",
+   "bytes": 743652,
+   "sha256": "6460776d65d27fea3e424aec6a8f191311d99602655be6c68930520d3769ef4b",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-20-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-20-jap-40.wav",
+   "bytes": 931934,
+   "sha256": "5fea99354bc928b815159fd3b1a9a94c0131e96e293974dd928308190fcf19e2",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-23-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-23-jap-40.wav",
+   "bytes": 467960,
+   "sha256": "2ff4f1ce935fc62cde769a79420e3b76905d596281f5873643cb23e9cd2b2d9b",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-23-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-23-jap-40.wav",
+   "bytes": 841704,
+   "sha256": "ba9894232ac195ae45725c5a4f7dc4e17ad9188d005a9f53c5f2f844c6f523cc",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-23-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-23-jap-40.wav",
+   "bytes": 884406,
+   "sha256": "970474b5f0b720af0e4c6f214fc3da50a387f2cbe1014373d68615f13529dd31",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-24-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-24-nat-30.wav",
+   "bytes": 474228,
+   "sha256": "b2448406623caef7d12a978442f79e401ce904d13ceb526a7af49492776aaf9e",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-24-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-24-nat-30.wav",
+   "bytes": 856744,
+   "sha256": "04fbda8fbcbf71cbf2dcaed27b735cb5bd3f45ec3c253368ba43e8d1b889fb1d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-24-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-24-nat-30.wav",
+   "bytes": 956494,
+   "sha256": "568b0a0eaa7c871b4060d88efca0a5629071c202aca17847d63959f9b5892e04",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-high-m-28-bra-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-high-m-28-bra-40.wav",
+   "bytes": 475938,
+   "sha256": "3130040051607bc5e353f60cbf73a80506f0915a1e21877856c04a6dbccea1ba",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-high-m-28-bra-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-high-m-28-bra-40.wav",
+   "bytes": 827012,
+   "sha256": "d724f743c01cff9d4e160e6885d27ad73ea06e591287f0c11fcf4fec76a5a508",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-high-m-28-bra-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-high-m-28-bra-40.wav",
+   "bytes": 941764,
+   "sha256": "3dadb2adb52742d4ee5089e67848807c1e3514b3e44a433e0504052372daaaad",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-100-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-100-jap-40.wav",
+   "bytes": 479944,
+   "sha256": "2cb851eb1cec3249fd7fdbd239a0252fe395d1caed38680141e79bd4ea469f50",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-100-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-100-jap-40.wav",
+   "bytes": 831002,
+   "sha256": "25e377ab8c4bde323bea6c59cbdf8f88d25d8c961d2c372346bf49dfca7b4a4a",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-100-jap-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-100-jap-40.wav",
+   "bytes": 954794,
+   "sha256": "ba959eba1eb0e03d7498375bd0087f6ec7cefe8b48be0cf92ef118514aaacea4",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-107-bra-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-107-bra-25.wav",
+   "bytes": 465612,
+   "sha256": "d0ccdf20c13891f65f715349548c686d52cb8a7bc972db5e24ca8b525b7c95ea",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-107-bra-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-107-bra-25.wav",
+   "bytes": 837720,
+   "sha256": "58d6a7f56a916d186c9a082e2af997f987df1736120cc2a44deb0902815999f4",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-107-bra-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-107-bra-25.wav",
+   "bytes": 953900,
+   "sha256": "2e35cc49d21d2bb83ff465e5791ce0631226189ca11c046334ca83e6c75d5f5d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-124-arb-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-124-arb-50.wav",
+   "bytes": 475890,
+   "sha256": "8f9598aab1b37156f26a7155b5022d38d0e4c39a6c660b8b4efa55b1d9a0b5cb",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-124-arb-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-124-arb-50.wav",
+   "bytes": 745160,
+   "sha256": "25ee7a1816a5fccbd0b69921fb62286c1b7b536cb9fcdb74ae844633d6370572",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-124-arb-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-124-arb-50.wav",
+   "bytes": 952216,
+   "sha256": "f402085ce6d7407066ba518d150cd97e17d62908a1d522b1d1729cd5d0236103",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-51-afam-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-51-afam-40.wav",
+   "bytes": 420090,
+   "sha256": "0b2298b888a86bc5da29784ab3c1a3c257317f04a406da8db160e7f4c9c7fb2d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-51-afam-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-51-afam-40.wav",
+   "bytes": 809872,
+   "sha256": "8bfb6520a925874173980736b6b193e9463a19b578651a69c2a68839bcfb525d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-51-afam-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-51-afam-40.wav",
+   "bytes": 932484,
+   "sha256": "425a0e2d8904b5db3af2c7a54b6a036b3a95295cec417eaaf6482c3c28394f04",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-67-mex-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-67-mex-50.wav",
+   "bytes": 383654,
+   "sha256": "11b51eb778851101a6d4fee570a0afba3f26449bbfd9229b4577637214c1d156",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-67-mex-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-67-mex-50.wav",
+   "bytes": 383654,
+   "sha256": "11b51eb778851101a6d4fee570a0afba3f26449bbfd9229b4577637214c1d156",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-67-mex-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-67-mex-50.wav",
+   "bytes": 383654,
+   "sha256": "11b51eb778851101a6d4fee570a0afba3f26449bbfd9229b4577637214c1d156",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-91-chn-20.wav",
+   "bytes": 459758,
+   "sha256": "d43e7d902d3cb05f6e030092dec58c541bdb2cedaa740f27c44d905b01f252cd",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-91-chn-20.wav",
+   "bytes": 852312,
+   "sha256": "6d41ffc8a3a0a130f3aa1c5c7a1044f0399abd7dd2acc5e9391d47431f39809c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-91-chn-20.wav",
+   "bytes": 941440,
+   "sha256": "0488e55fb573bdafe000f03c7f0597707ccef688781f3119a9ad574d0787fadf",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-f-99-jap-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-f-99-jap-30.wav",
+   "bytes": 453938,
+   "sha256": "b611b57324ffe17c52faee6fd77852ab07868f556af20980e5d68d4c4031d948",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-f-99-jap-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-f-99-jap-30.wav",
+   "bytes": 815856,
+   "sha256": "0d9904a45f7faf5b11ec2b4247744eb3ee6dc2f67488f10854fbceb0a4e01442",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-f-99-jap-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-f-99-jap-30.wav",
+   "bytes": 935988,
+   "sha256": "42fede54d17baece5d852a5b9df822994e56237b54e52efd9a3f460f0ab814a6",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-02-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-02-enus-20.wav",
+   "bytes": 208870,
+   "sha256": "d6075c71ba4789a8e6e47431511d25a336e6681e266ffe5dc48c6698536b71ae",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-02-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-02-enus-20.wav",
+   "bytes": 785690,
+   "sha256": "3a97ed8fde162e903649ef101d6f1b3b3b7ab27db397893b0dda7f493c5c3c49",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-02-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-02-enus-20.wav",
+   "bytes": 957938,
+   "sha256": "96aa4a93e32742f08f5083a174f09fb43fa0b11203734e8971a23ca7c502d13e",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-08-enus-20.wav",
+   "bytes": 234208,
+   "sha256": "306e2635201170b02e04b2f804614f0b7d5fda2f0ca820ebcaef248593612f42",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-08-enus-20.wav",
+   "bytes": 858986,
+   "sha256": "a7a95edff84e8d8c8aeb2f1c5aac536a8a59852ce30573a072353cda7a7eb75a",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-08-enus-20.wav",
+   "bytes": 921192,
+   "sha256": "62b27f3e09221e6c250b65f6d3ced19baa3ff64582fdf872535f3f4d141e95fd",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-103-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-103-nat-30.wav",
+   "bytes": 233688,
+   "sha256": "2e5fb598763503b219442e8dc9d709cd3b9fea5be47a9d2abd2689c19ab4baba",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-103-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-103-nat-30.wav",
+   "bytes": 838608,
+   "sha256": "e6f7631c2166c80e2be9e72097ee6e119803de43f4c00cda827a67a0d24d6e14",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-103-nat-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-103-nat-30.wav",
+   "bytes": 951078,
+   "sha256": "15d454beee08cd1c7db3f6eb87e01d959e3dea3dd8a3b1f1407cf6404896f78d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-11-enus-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-11-enus-40.wav",
+   "bytes": 223410,
+   "sha256": "bd88716936f894505be0db45de27754a7b8305d8f18c1abb018fa4dd326a6598",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-11-enus-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-11-enus-40.wav",
+   "bytes": 862762,
+   "sha256": "6c4e11ac41d5a6e9131d2a770bd7249fbbbf7eb14f2bf45dd4ed6d01506c9ed6",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-11-enus-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-11-enus-40.wav",
+   "bytes": 862762,
+   "sha256": "6c4e11ac41d5a6e9131d2a770bd7249fbbbf7eb14f2bf45dd4ed6d01506c9ed6",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-127-enus-10.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-127-enus-10.wav",
+   "bytes": 431734,
+   "sha256": "996f59cb6137b62d35ac4e98b1ee163846eac2e992b8a7ecdad61c93f99a53ab",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-127-enus-10.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-127-enus-10.wav",
+   "bytes": 813564,
+   "sha256": "36be4977d53464822d8dae2b91939d57d92cca3879d8147bc424a25c07955cd5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-127-enus-10.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-127-enus-10.wav",
+   "bytes": 931416,
+   "sha256": "e381ed2f4a7747a7c95bb78c2b017f25582cbbfb131c69eeb2854a7ad748d5ed",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-15-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-15-enus-25.wav",
+   "bytes": 467478,
+   "sha256": "d0303bbb875590fdd9da1021d60d6d6b4637e18c66d91ec4162c4d668cdc43ae",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-15-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-15-enus-25.wav",
+   "bytes": 854128,
+   "sha256": "c2baf4665a8df6996190ffbf1a54897ef8324ac0b1129a1f9ede163fe7befee3",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-15-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-15-enus-25.wav",
+   "bytes": 950286,
+   "sha256": "cef131cf73bdfc675fd72cf6e15f4fbfcf7e1dc73e7e8ccb98f75eb8cc77a671",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-20-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-20-enus-20.wav",
+   "bytes": 474440,
+   "sha256": "6686936b92526f44d4cf1f67221c54a073be05e49973d57275d2a18b29b3191f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-20-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-20-enus-20.wav",
+   "bytes": 820336,
+   "sha256": "faee7d543b2328a96395774753e8f8f8ec7c00bed5b52e629f3dd02e50775652",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-20-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-20-enus-20.wav",
+   "bytes": 870464,
+   "sha256": "eaa25f3a344b92c8aa2b4c391123096b5ca6ce707b69d106d9ab0a49c86dc653",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-27-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-27-enus-25.wav",
+   "bytes": 246738,
+   "sha256": "24395befa9e667d0342495ba6dd185530a7c66c8882fefc9ed1c58ebc522f9f0",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-27-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-27-enus-25.wav",
+   "bytes": 765108,
+   "sha256": "c8061dd5882ab2614aa7e52c4b016949c113c9757d8496a9bd5f9b4ffe8dbe0b",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-27-enus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-27-enus-25.wav",
+   "bytes": 954600,
+   "sha256": "f9fe619ab5197892fd4b98416b14189b9b9d61a2ae4e53cc7521c3e661530341",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-32-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-32-enus-20.wav",
+   "bytes": 472052,
+   "sha256": "eacb715b031563d6d24a1f86d01b20690985e8de64af9669cc5141442cd24973",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-32-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-32-enus-20.wav",
+   "bytes": 775842,
+   "sha256": "2af9d6612fea87c6f9e45a995b14a41ae42c262806e7f078fa33f7a656dd496b",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-32-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-32-enus-20.wav",
+   "bytes": 951174,
+   "sha256": "8f075aecd7bc04616a0d4b08f566a5024760b3ad02a9f35f42ae855a044e6600",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-34-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-34-enus-30.wav",
+   "bytes": 473116,
+   "sha256": "60d4868a5e943185a085cae81bf14982386495fc7e75cf311f5fbeb542b5c2d9",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-34-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-34-enus-30.wav",
+   "bytes": 766752,
+   "sha256": "9aab5e9bb42d44f966918859142a4d86e7553b88694ee7e6235a06485489943f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-34-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-34-enus-30.wav",
+   "bytes": 873068,
+   "sha256": "933448b79223122cde7e9988f9932f1c14242fc1441b718fcaabdabdfd3c5c89",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-85-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-85-chn-50.wav",
+   "bytes": 441926,
+   "sha256": "ad83cc1fc431333b90e805de4ef1d2753e90a5f7b1a0e35ec4d898f73ba6e673",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-85-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-85-chn-50.wav",
+   "bytes": 798406,
+   "sha256": "1405de599d3f562c5f4811367ef7dc6aa0e63cec5e8dd0e7db9b43b15d079f59",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-85-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-85-chn-50.wav",
+   "bytes": 937994,
+   "sha256": "e5ff8df3ba30c30eee186e0732a08b43dcff86f1ba62fccdbc66fd65edd0652c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-90-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-90-chn-50.wav",
+   "bytes": 356808,
+   "sha256": "a7f32562396ffb774baed64667b0ca9e8be387b3d19573561d1edb9ce0395781",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-90-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-90-chn-50.wav",
+   "bytes": 588044,
+   "sha256": "5a53758e632333aa5bdc3b65dc97760d8e625a890b8cf19b0be95972a2f9a795",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-90-chn-50.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-90-chn-50.wav",
+   "bytes": 588044,
+   "sha256": "5a53758e632333aa5bdc3b65dc97760d8e625a890b8cf19b0be95972a2f9a795",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-91-chn-20.wav",
+   "bytes": 247644,
+   "sha256": "989686dfb27de8c23206f60715231f11e352c32305f13e80540d4ffa071e3d1f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-91-chn-20.wav",
+   "bytes": 850512,
+   "sha256": "4b6c4611b4acb7b766ac5c168373394222f9ec3e4e8af825175139fc8596bcd5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-91-chn-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-91-chn-20.wav",
+   "bytes": 959564,
+   "sha256": "123629a82bdf3579d9b5ba73826cae4a667101d505488ab12b0cb5d233b51662",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-93-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-93-chn-30.wav",
+   "bytes": 324368,
+   "sha256": "14ece3ae3dea40759bad45c0f39271360f2dc24b1eb0b931926f96f887c72eb4",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-93-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-93-chn-30.wav",
+   "bytes": 762430,
+   "sha256": "bcb6f6d8051013d5e75e750db0f73726f27efd7578516640105af7830ee608c9",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-93-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-93-chn-30.wav",
+   "bytes": 959122,
+   "sha256": "971e24b84238c94752af6ace87cb1636ad4cc5521fe1da775fe0810a79ccbc1d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-low-m-97-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-low-m-97-chn-30.wav",
+   "bytes": 366818,
+   "sha256": "84462639d1254f575371430f758fa8155cbe0821581f1e385749cae756033b40",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-low-m-97-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-low-m-97-chn-30.wav",
+   "bytes": 777386,
+   "sha256": "9f018e07c63798120af88f7702accf061876a73b1bfde5e89d8f850ccba0e67c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-low-m-97-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-low-m-97-chn-30.wav",
+   "bytes": 777386,
+   "sha256": "9f018e07c63798120af88f7702accf061876a73b1bfde5e89d8f850ccba0e67c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-f-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-f-32-enus-30.wav",
+   "bytes": 443682,
+   "sha256": "14b599b69b2f69ffafff3f428cbcf8fe6d30141827ef1658f815fe2223ccd825",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-f-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-f-32-enus-30.wav",
+   "bytes": 824724,
+   "sha256": "01aa2cfe7e6198bc0bb965068163ecafff347b60e6ed30a2b8f0d2864e7b07e6",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-f-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-f-32-enus-30.wav",
+   "bytes": 932282,
+   "sha256": "7657a8259690421ede166dd7ba204411130819470dd5192930fd64c916bea79c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-m-08-enus-20.wav",
+   "bytes": 475954,
+   "sha256": "4ebb5664788f2161eb6f1f83c1e1af7018ce9e0996f8b1ae82aca857b0283305",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-m-08-enus-20.wav",
+   "bytes": 856434,
+   "sha256": "fa8bf0d58beb55f59876576cdf730e4c5fc110e72d7a1a950832621c67060554",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-m-08-enus-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-m-08-enus-20.wav",
+   "bytes": 919604,
+   "sha256": "7019abad87593e2643dc1f5f0a41f1f1cbbe089e9156210207fe16a55e0e10d5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-m-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-m-32-enus-30.wav",
+   "bytes": 196120,
+   "sha256": "f77f981aca523f1ea60e5594e0b7716ad59e866177d67fc7794893b6eb9d1ea1",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-m-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-m-32-enus-30.wav",
+   "bytes": 850746,
+   "sha256": "383a9eede30609a28f3a510637dd8615ab2c81590e1542a2e60e6c4c9c2b71dc",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-m-32-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-m-32-enus-30.wav",
+   "bytes": 948276,
+   "sha256": "c92d5f7ae1859ac5cf8044c59823d6a87f9b88d557061c1b395d43ca458fe882",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-m-71-car-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-m-71-car-25.wav",
+   "bytes": 462728,
+   "sha256": "7d293fa4e5ffd9cb6407b4a2f701e9215766a2d2d3afadf53d0e1cbd4c6806f8",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-m-71-car-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-m-71-car-25.wav",
+   "bytes": 840504,
+   "sha256": "5aa12c7c13cf368012d257468c92496d99c9e4bbff6b700e44c73b0a98a48164",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-m-71-car-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-m-71-car-25.wav",
+   "bytes": 905958,
+   "sha256": "abbc2e8c06bce722067f00a65741805210123a2fc8152b776224863006f949e2",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-m-72-car-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-m-72-car-30.wav",
+   "bytes": 468332,
+   "sha256": "cd46597613eab6dc78c9445b80c7ca32aa982a28cdd45c8bae665a883db11466",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-m-72-car-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-m-72-car-30.wav",
+   "bytes": 855114,
+   "sha256": "50cd8382343eb801110bffaa50bac426e675f2aeae33583cbbaa715237ddf975",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-m-72-car-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-m-72-car-30.wav",
+   "bytes": 958272,
+   "sha256": "66aba3d9bd9d324a896be11e2df6c462e56fe559037dca50ffa3abbaf5593590",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-mid-m-73-car-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-mid-m-73-car-40.wav",
+   "bytes": 479570,
+   "sha256": "ecd760f3486bcf330a9fb1a9006a59eeacbc9a81003b05718000758da1ffbde0",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-mid-m-73-car-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-mid-m-73-car-40.wav",
+   "bytes": 773994,
+   "sha256": "db7456a381309c08cc48d86291b594e3f7d410a7493fe15445d9fb242ed88dd5",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-mid-m-73-car-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-mid-m-73-car-40.wav",
+   "bytes": 900792,
+   "sha256": "5090f0901ee42389a8d719d0d449332ad387a5c3e82b4cf9c879ff503e8e6143",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-prst-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-prst-f-01-enus-30.wav",
+   "bytes": 474742,
+   "sha256": "3fa753123a5d3e36afe0e57570825bdd3729a1b88a84c3eb5e5775f350535a6c",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-prst-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-prst-f-01-enus-30.wav",
+   "bytes": 863660,
+   "sha256": "e367adc2d743658decacfdeee7da1e46f2d3c60090db0d3ebaf9b976f1ffcdc0",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-prst-f-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-prst-f-01-enus-30.wav",
+   "bytes": 863660,
+   "sha256": "e367adc2d743658decacfdeee7da1e46f2d3c60090db0d3ebaf9b976f1ffcdc0",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-prst-f-04-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-prst-f-04-chn-30.wav",
+   "bytes": 457648,
+   "sha256": "216dd4c2109e23f64a5a963431147e8ace60620a7ddd032a6a905b3f878cf8be",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-prst-f-04-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-prst-f-04-chn-30.wav",
+   "bytes": 831780,
+   "sha256": "9562fa3888151cfc026c50380c6609dad1a498d37fff3fa237cd5560b464addc",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-prst-f-04-chn-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-prst-f-04-chn-30.wav",
+   "bytes": 937536,
+   "sha256": "b485ffe5dcda6af8635aae1a2c7e3ad4cc1e948680a0a582aa492cd1d9838dbe",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-civ-prst-m-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-civ-prst-m-01-enus-30.wav",
+   "bytes": 213804,
+   "sha256": "5f1d978c09e12a004402c72276d5020bf6e0050c1d86279a703e92218a69b768",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-civ-prst-m-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-civ-prst-m-01-enus-30.wav",
+   "bytes": 852208,
+   "sha256": "01dceea39981ce7f95c803debf04cadec8d5b242ee2d599dcb9ed343bd1e262f",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-civ-prst-m-01-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-civ-prst-m-01-enus-30.wav",
+   "bytes": 944948,
+   "sha256": "ab8980a9112c64467d03697bc7e789f56e961386f882342dcd6efd7184da8b23",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-gang-mls-f-05-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-gang-mls-f-05-enus-30.wav",
+   "bytes": 406308,
+   "sha256": "d8ad04230a75059fa416870153c31ed91c00330873438ba489bbece8837044ef",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-gang-mls-f-05-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-gang-mls-f-05-enus-30.wav",
+   "bytes": 852536,
+   "sha256": "965ed51ac35f6275fbf41f74aa3d87a773606f09f5d9f33f622754bc25689185",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-gang-mls-f-05-enus-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-gang-mls-f-05-enus-30.wav",
+   "bytes": 911758,
+   "sha256": "64ccb9a504937ef0de2fd6ca1b7301a075e814aa50d1b45e8f5b9296b21af276",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-gang-scv-m-01-rus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-gang-scv-m-01-rus-25.wav",
+   "bytes": 341754,
+   "sha256": "bdcd53e1a9c947b64031d1cdbbbf6c6b27c79a463ff82f11ae4fe26dc684cbb2",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-gang-scv-m-01-rus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-gang-scv-m-01-rus-25.wav",
+   "bytes": 833904,
+   "sha256": "36638693a6e49aeb4fa09bcb024f0217fe07e76bb8174d2b5147f62afd4b3809",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-gang-scv-m-01-rus-25.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-gang-scv-m-01-rus-25.wav",
+   "bytes": 833904,
+   "sha256": "36638693a6e49aeb4fa09bcb024f0217fe07e76bb8174d2b5147f62afd4b3809",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-gang-val-m-04-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-gang-val-m-04-mex-40.wav",
+   "bytes": 185364,
+   "sha256": "2e513779d0522d9108e48eb3f42d6693e948003107327aaef17119e1c3e62105",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-gang-val-m-04-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-gang-val-m-04-mex-40.wav",
+   "bytes": 808318,
+   "sha256": "e15031b61a75e4b4b69c3907652c76bdff31bc2035cd4c9b58b431849ca3891e",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-gang-val-m-04-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-gang-val-m-04-mex-40.wav",
+   "bytes": 954154,
+   "sha256": "3c2d91bcceb20a66bcd477fbb1dae5e7f5ad7f7d4793913dc4ddb0a626360a5b",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-gang-val-m-10-mex-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-gang-val-m-10-mex-20.wav",
+   "bytes": 436232,
+   "sha256": "601f95cf70f9bc501b6709a351514e38d579a0c8f0fda4ee9d93750aaacf8b71",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-gang-val-m-10-mex-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-gang-val-m-10-mex-20.wav",
+   "bytes": 805572,
+   "sha256": "c6c53c12ff3ff8c59e9a185f2450555a305c9c6150cd81262fc7ef2a91190fb7",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-gang-val-m-10-mex-20.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-gang-val-m-10-mex-20.wav",
+   "bytes": 955898,
+   "sha256": "fc924805b6af90d743ea39ce17c41816b1605f70b25d260926f456342306d7b1",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-gang-val-m-15-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-gang-val-m-15-mex-30.wav",
+   "bytes": 475514,
+   "sha256": "2275da163c3e876641e7b1a4b8283ed1155c1cc8ce33b8fd654b143fe598cc80",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-gang-val-m-15-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-gang-val-m-15-mex-30.wav",
+   "bytes": 858316,
+   "sha256": "a7b060d62be716e4f0e8b21ad7c0800a7770414d5374b72026a4b9b0ad6e715a",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-gang-val-m-15-mex-30.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-gang-val-m-15-mex-30.wav",
+   "bytes": 927322,
+   "sha256": "2782190b62bdabdb0071b1535324c476b2dc2fb2b8e3bf6ee6eca4072ba51c3a",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-short/model-ncpd-high-m-02-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-short\\model-ncpd-high-m-02-mex-40.wav",
+   "bytes": 328004,
+   "sha256": "b1ecca8cf1939e53accd52cdd950cd0b9b52bee4dd381c5c00efec9e586cc960",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/model-ncpd-high-m-02-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\omni-long\\model-ncpd-high-m-02-mex-40.wav",
+   "bytes": 721866,
+   "sha256": "c8cc82d78568b5cc07f85bd8561a5afd8bfd7b56a01fb2b9173bd41277573f03",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/model-ncpd-high-m-02-mex-40.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\archetypes\\pocket\\model-ncpd-high-m-02-mex-40.wav",
+   "bytes": 916804,
+   "sha256": "6085d493aa0a5c89a4bdcab9b31be06374eb34de88f6954d3dd1a7f365cac1e8",
+   "toUpload": true
   },
   {
    "path": "voice-clips/omni-short/mr-blue-eyes.wav",
@@ -6034,6 +7084,27 @@
    "sha256": "ed35eb920a73c06ecf2c4932887d18f929ceb5658e0740648777505eaa456ba9"
   },
   {
+   "path": "voice-clips/omni-short/susanna-quinn.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\susanna-quinn.wav",
+   "bytes": 293388,
+   "sha256": "297029727d60fb668f950ee0745aff83c713d9746c85ab3ae8d3efb5e943071d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/susanna-quinn.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\susanna-quinn.wav",
+   "bytes": 293388,
+   "sha256": "297029727d60fb668f950ee0745aff83c713d9746c85ab3ae8d3efb5e943071d",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/susanna-quinn.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\susanna-quinn.wav",
+   "bytes": 293388,
+   "sha256": "297029727d60fb668f950ee0745aff83c713d9746c85ab3ae8d3efb5e943071d",
+   "toUpload": true
+  },
+  {
    "path": "voice-clips/omni-short/t-bug.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\t-bug.wav",
    "bytes": 468958,
@@ -6125,6 +7196,27 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\teddy.wav",
    "bytes": 861552,
    "sha256": "af36b4900cab9b48d50d0e2720d52eb79e6a794fa15913aa94d62f667075c4b7"
+  },
+  {
+   "path": "voice-clips/omni-short/theo-price.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\theo-price.wav",
+   "bytes": 330386,
+   "sha256": "c887dea19624b82c5d6fc389245b183213557c202c968124ab12f8bc38f0a247",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/omni-long/theo-price.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\theo-price.wav",
+   "bytes": 330386,
+   "sha256": "c887dea19624b82c5d6fc389245b183213557c202c968124ab12f8bc38f0a247",
+   "toUpload": true
+  },
+  {
+   "path": "voice-clips/pocket/theo-price.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\theo-price.wav",
+   "bytes": 330386,
+   "sha256": "c887dea19624b82c5d6fc389245b183213557c202c968124ab12f8bc38f0a247",
+   "toUpload": true
   },
   {
    "path": "voice-clips/omni-short/thompson.wav",
