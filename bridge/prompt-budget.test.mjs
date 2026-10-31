@@ -507,7 +507,7 @@ const numbered = (count, first = 0) => Array.from({length: count}, (_, index) =>
 const kept = fit => fit.messages.slice(1, -1);   // the exchanges of the history that were sent
 
 test('older exchanges: a conversation at the limit keeps the same first exchange for several turns, so the history is not read again every turn', async () => {
-  const budget = () => ({contextTokens: 6300, meter: new TokenMeter()});   // a limit the prompt sits just over: the history is cut in blocks (6,300 since the copy before V's words says not to announce who is here, 2026-10-31 and 6,260 with the shorter 2026-10-22 personas, the knowledge section heading and the 2026-10-30 world heading)
+  const budget = () => ({contextTokens: 6340, meter: new TokenMeter()});   // a limit the prompt sits just over: the history is cut in blocks (6,340 since the plain rule says not to narrate the voice or the tone, 2026-10-31, 6,300 since the copy before V's words says not to announce who is here, 2026-10-31 and 6,260 with the shorter 2026-10-22 personas, the knowledge section heading and the 2026-10-30 world heading)
   const fits = [];
   for (const size of [9, 10, 11]) {   // the memory store keeps the start of its window for a few turns while it grows by one exchange a turn
     fits.push(await fitMessages({args: turn({history: numbered(size), text: 'What next? ' + size}), budget: budget()}));

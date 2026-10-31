@@ -24,21 +24,22 @@ test('the prompt Mistral and the local AI build is byte for byte what it was (ha
   // money band is told only when V's words are about money. Re-taken on the merge into main (2026-10-30) on top of the Natural speech re-take above.
   // Re-taken on 2026-10-31 (feat/natural-talk-retrieval): the world, the older-talk summary, the knowledge, the right-now block and the fresh facts moved from the system message to the start of the
   // last message, after the history (a changed world block no longer throws away the cached persona and history), and rule "now" says "the last message" instead of "the end of this message".
+  // Re-taken on 2026-10-31 (merge of feat/natural-talk-retrieval and fix/narration-strip): rule 2 (plain) of the base rules ends with "No narration in plain words either: never describe your voice, your tone, your face or the phone line, and never say who is speaking or how." Nothing else moved: with that sentence taken out every hash above is the one the retrieval branch pinned.
   const expected = {
-    a: '28a85694db5cd5595c0d3154da0b47735f5fb4ca92fe16ad92b9f2cf0d00caec',
-    b: 'af7edd31bfc5a7fc782e2bc5fa74191449eedfa41dab94a9313269ecb772a709',
-    c: '546c5cec5b4abab3a4c0d696aeada088bd5332b0a9874de1eaa95ac311675674',
-    d: '4c884cda1344df56faca8520a4431d3957799a90956766bc6dc7294b3b41195f',
-    e: 'e183e82eb641143d76c033bbdabbe1678a482c2d3ea8fadd6c1c2f0b292fff6f',
-    f: '3866632eb668cc5c1df5fa69521086bccd2456a9968b94b8aa67bd07ca08183a',
-    g: 'efa9ee6f00ab72ece856c389fabe5ea061c3191889d2610d812c8aea8d0aac82',
+    a: 'd4547dc1ddae17d1dd4bd07b0ccaa192fa37a9e3bc4d840b5c45796308b7e7de',
+    b: '5362355ad8d235038fd7336f08568fde104f08682e563941256ad7ed4daad8af',
+    c: 'd4f3c4ca6dd964dc4b36d6335cd28ffb0daa2bb15d2b43302f2f9ac2be8b3dee',
+    d: '0bf546bddd33e8a4a7ec51a358aa05682b80a8ceb440e1cb95e137f6eded23d9',
+    e: '34344b085ebe4994a9b0a83a4e606518776336647c453ced9b27b0b058422f4a',
+    f: '6d46542942b419540198f63c242736edd8abef3cc54cc6a9e2009d2f9d2e1362',
+    g: 'b91526c48c598d6260f3fc3eab5a850e2df837ed73db6dff4e7929c0a7c68139',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'ca92b18f2e8fc4ef39c8fbc7ea76f9e4c0c42d914c3f16457fa6aedecd55de20');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'e140e34bf0ae3918e60191375b7ea7627a3fc22e5458125dbe266a05768f4068');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '8a0846a17b546c53627b221bb4c362c6a33cb917d5e6586533e3990b5c77aa73');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '86c8c63001f1f376077880767560f5e90bc211b876bd3ce9ab5d61449c709569');
-  assert.equal(sha(systemHead({persona: prompt.persona})), 'cdad28c1c440a30cbb71c97797a0736129c734f7d0d4b426f36f9e9690514888');
+    '3819668238ab77cc874f572f4cb70dfd86cf190eae40dc3efe9bb873468cf474');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'a87e11e1f44c3447abc0e7eaaba3bebc3bf7adfaa0ff851974e794e3719571ed');
+  assert.equal(sha(systemHead({persona: prompt.persona})), '2330945d522a7c91c3b751e1215f3e0d830ffa588011a13945167c330d94efe4');
 });
 
 // ---- The budget's new options ----------------------------------------------------------------------------------------------
