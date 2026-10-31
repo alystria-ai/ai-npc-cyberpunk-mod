@@ -581,8 +581,8 @@ test('the Other language row (Voices) and the Subtitle language row (Interface):
     local expected = ${lua(OTHER_LANGUAGES.map(item => item.name))}
     assert(#other.elements == #expected, #other.elements)
     for i, name in ipairs(expected) do assert(other.elements[i] == name, i .. ' ' .. tostring(other.elements[i])) end
-    assert(other.description:find('Pocket speaks English only', 1, true) and other.description:find('Convai cannot use it', 1, true), other.description)
-    assert(other.description:find('Voxtral speaks most of them', 1, true) and other.description:find('OmniVoice speaks all of them', 1, true))
+    assert(other.description:find('Pocket speaks English only', 1, true) and other.description:find('Not available with Convai', 1, true), other.description)
+    assert(other.description:find('OmniVoice speaks all, Voxtral most', 1, true) and other.description:find('Mistral, Gemini, Custom or Local AI', 1, true))
     local voice = row('replyLanguage')
     assert(voice.elements[#voice.elements] == 'Other language', 'Other language is the last Voice language choice, so the others keep their places')
     assert(manager.snapshot(player).settings.replyLanguageOther == 'fi' and manager.snapshot(player).settings.subtitleLanguage == 'same')
@@ -608,8 +608,9 @@ test('the Other language row (Voices) and the Subtitle language row (Interface):
     local names = ${lua(subtitleNames)}
     assert(#subtitle.elements == #names, #subtitle.elements)
     for i, name in ipairs(names) do assert(subtitle.elements[i] == name, i .. ' ' .. tostring(subtitle.elements[i])) end
-    assert(subtitle.description:find('Same as speech shows exactly what is said', 1, true) and subtitle.description:find('With Local AI the translation runs on Local AI too', 1, true))
-    assert(subtitle.description:find('With Convai answering, subtitles stay as spoken', 1, true) and subtitle.description:find('the voice never waits', 1, true), subtitle.description)
+    assert(subtitle.description:find('Same as speech shows what is said', 1, true) and subtitle.description:find('the AI provider you chat with', 1, true), subtitle.description)
+    assert(subtitle.description:find('not Convai', 1, true) and subtitle.description:find('the voice never waits', 1, true) and subtitle.description:find('The original shows first', 1, true), subtitle.description)
+    assert(#subtitle.description <= 420 and #other.description <= 420, 'both helps fit the Native Settings UI description box')
     assert(row('uiLanguage') and row('subtitleStyle') and row('subtitleLanguage'))
     local russian = 0
     for i, name in ipairs(names) do if name == 'Russian' then russian = i end end

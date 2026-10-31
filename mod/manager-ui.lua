@@ -2241,7 +2241,7 @@ settingsPages['settings-voice'] = function(snapshot)
             replyLabels, {elements = true}),
         -- The language of Voice language > Other language: shown with every Voice language, greyed by its own words (it counts only for Other).
         setting('replyLanguageOther', 'Other language', 'select', otherIndex, 1,
-            'The language the characters speak when Voice language is Other language: for languages the game does not have.\n\nNeeds Mistral, Google Gemini, Custom or Local AI to write it (Local AI depends on its model), and a voice that speaks it: Voxtral speaks most of them, OmniVoice speaks all of them. Pocket speaks English only, so its replies show as text. Convai cannot use it.',
+            'The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.',
             otherLabels, {elements = true}),
         -- Two sliders, 50 to 300 in steps of 5, the page shows the number so the unit is in the name. The bridge applies the companions' volume to every voice but
         -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter, it takes effect on the next reply.
@@ -2440,7 +2440,7 @@ settingsPages['settings-interface'] = function(snapshot)
             {'Off', 'Cinematic subtitles', 'Above the speaker'}),
         -- Same as speech (the default) shows what is spoken; any other language is translated by the player's own text provider (bridge/subtitle-translation.mjs).
         setting('subtitleLanguage', 'Subtitle language', 'select', subtitleIndex, 1,
-            'The language of the subtitles above characters, the dialogue subtitles and Phone Chat. Same as speech shows exactly what is said.\n\nAnother language is translated by one extra short request to your AI provider, started when the reply is ready and alongside the voice, so the voice never waits. The original shows first and the translation replaces it a moment later. With Local AI the translation runs on Local AI too.\n\nNeeds Mistral, Google Gemini, Custom or Local AI. With Convai answering, subtitles stay as spoken.',
+            'The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.',
             subtitleLabels, {elements = true}),
     })}
 end

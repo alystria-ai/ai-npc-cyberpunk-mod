@@ -1464,9 +1464,9 @@
     "The key could not be saved.": "The key could not be saved.",
     "The key is saved, but Google Gemini is not available in your region.": "The key is saved, but Google Gemini is not available in your region.",
     "The key is saved, but Google could not be reached to check it.": "The key is saved, but Google could not be reached to check it.",
+    "The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.": "The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.",
     "The language of the menus and how subtitles look.": "The language of the menus and how subtitles look.",
-    "The language of the subtitles above characters, the dialogue subtitles and Phone Chat. Same as speech shows exactly what is said.\n\nAnother language is translated by one extra short request to your AI provider, started when the reply is ready and alongside the voice, so the voice never waits. The original shows first and the translation replaces it a moment later. With Local AI the translation runs on Local AI too.\n\nNeeds Mistral, Google Gemini, Custom or Local AI. With Convai answering, subtitles stay as spoken.": "The language of the subtitles above characters, the dialogue subtitles and Phone Chat. Same as speech shows exactly what is said.\n\nAnother language is translated by one extra short request to your AI provider, started when the reply is ready and alongside the voice, so the voice never waits. The original shows first and the translation replaces it a moment later. With Local AI the translation runs on Local AI too.\n\nNeeds Mistral, Google Gemini, Custom or Local AI. With Convai answering, subtitles stay as spoken.",
-    "The language the characters speak when Voice language is Other language: for languages the game does not have.\n\nNeeds Mistral, Google Gemini, Custom or Local AI to write it (Local AI depends on its model), and a voice that speaks it: Voxtral speaks most of them, OmniVoice speaks all of them. Pocket speaks English only, so its replies show as text. Convai cannot use it.": "The language the characters speak when Voice language is Other language: for languages the game does not have.\n\nNeeds Mistral, Google Gemini, Custom or Local AI to write it (Local AI depends on its model), and a voice that speaks it: Voxtral speaks most of them, OmniVoice speaks all of them. Pocket speaks English only, so its replies show as text. Convai cannot use it.",
+    "The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.": "The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.",
     "The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.": "The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.",
     "The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.": "The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.",
     "The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.": "The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.",
@@ -2732,8 +2732,8 @@
       "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.",
       "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.",
       "The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.",
-      "The language of the subtitles above characters, the dialogue subtitles and Phone Chat. Same as speech shows exactly what is said.\n\nAnother language is translated by one extra short request to your AI provider, started when the reply is ready and alongside the voice, so the voice never waits. The original shows first and the translation replaces it a moment later. With Local AI the translation runs on Local AI too.\n\nNeeds Mistral, Google Gemini, Custom or Local AI. With Convai answering, subtitles stay as spoken.",
-      "The language the characters speak when Voice language is Other language: for languages the game does not have.\n\nNeeds Mistral, Google Gemini, Custom or Local AI to write it (Local AI depends on its model), and a voice that speaks it: Voxtral speaks most of them, OmniVoice speaks all of them. Pocket speaks English only, so its replies show as text. Convai cannot use it.",
+      "The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.",
+      "The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.",
       "The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.",
       "The voice V speaks with, whatever the companions use. It counts only while V’s voice is not Off.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.",
       "Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.",
@@ -15966,6 +15966,14 @@
         "mod/custom-provider.lua:391"
       ]
     },
+    "The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.": {
+      "contexts": [
+        "page.setting"
+      ],
+      "references": [
+        "mod/manager-ui.lua:2443"
+      ]
+    },
     "The language of the menus and how subtitles look.": {
       "contexts": [
         "page.settings-pages"
@@ -15974,15 +15982,7 @@
         "mod/manager-ui.lua:2147"
       ]
     },
-    "The language of the subtitles above characters, the dialogue subtitles and Phone Chat. Same as speech shows exactly what is said.\n\nAnother language is translated by one extra short request to your AI provider, started when the reply is ready and alongside the voice, so the voice never waits. The original shows first and the translation replaces it a moment later. With Local AI the translation runs on Local AI too.\n\nNeeds Mistral, Google Gemini, Custom or Local AI. With Convai answering, subtitles stay as spoken.": {
-      "contexts": [
-        "page.setting"
-      ],
-      "references": [
-        "mod/manager-ui.lua:2443"
-      ]
-    },
-    "The language the characters speak when Voice language is Other language: for languages the game does not have.\n\nNeeds Mistral, Google Gemini, Custom or Local AI to write it (Local AI depends on its model), and a voice that speaks it: Voxtral speaks most of them, OmniVoice speaks all of them. Pocket speaks English only, so its replies show as text. Convai cannot use it.": {
+    "The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.": {
       "contexts": [
         "page.setting"
       ],

@@ -1149,14 +1149,14 @@ const phoneFailures = new PhoneFailureLog({
   report: ({error, errorCode, provider}) => errorEvents.turnFailed(error, {provider: provider ?? 'convai', errorCode}),
   provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
+  onFailure: info => phoneFailures.note(info),
   // The Subtitle language: a chat line has no sound to keep in step, so it waits for its translation for a moment at most (bridge/subtitle-translation.mjs).
-  localize: async (text, {profileKey, signal}) => {
+  localize: async (text, {signal}) => {
     if (!subtitleTranslations.active || !mistral.active) return text;
     const id = `phone:${randomUUID()}`;
     subtitleTranslations.begin(id, text, {speech: speechLanguageOf(text), signal});
     try { return await subtitleTranslations.wait(id, text, writtenSubtitleWait()); } finally { subtitleTranslations.release(id); }
   },
-  onFailure: info => phoneFailures.note(info),
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom|gemini)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
   contacts: phoneContacts, ids, custom: key => customCharacters.has(key),
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),

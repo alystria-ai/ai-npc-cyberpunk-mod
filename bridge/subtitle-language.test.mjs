@@ -604,7 +604,7 @@ test('the bridge wires it: settings poll, the announce hook, the continuous stat
   assert.match(bridge, /translate: options => mistralHost\.translate\(options\)/);
   assert.match(bridge, /subtitle: \(text, complete\) => subtitleTranslations\.show\(input\.requestId, text, complete\)/);
   assert.match(bridge, /await subtitleTranslations\.wait\(input\.requestId, result\.text, writtenSubtitleWait\(\)\)/);
-  assert.match(bridge, /localize: async \(text, \{profileKey, signal\}\)/);
+  assert.match(bridge, /localize: async \(text, \{signal\}\)/);
   assert.match(bridge, /subtitleTurn: input\.requestId/);
   assert.match(bridge, /replyLanguageFrom\(settings, \{textProvider: mistral\.active \? mistral\.route : null\}\)/);
   assert.match(bridge, /speechLanguage\.setChosen\(/);
