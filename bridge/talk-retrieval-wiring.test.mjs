@@ -12,7 +12,7 @@ test('one switch puts the whole blocks back: the persona book and the retrieval 
   assert.match(source, /const talkRetrievalOn = String\(process\.env\.CYBERPUNK_CONVAI_TALK_RETRIEVAL \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== 'off';/);
   assert.match(source, /new PersonaBook\(roster, \{lean: true, [^;]*topics: talkRetrievalOn\}\)/);
   assert.match(source, /const retrievalFor = input => talkRetrievalOn && /);
-  assert.match(source, /function startConvaiRetrieval\(input, signal\) \{\n  if \(!talkRetrievalOn \|\| mistral\.active/);
+  assert.match(source, /function startConvaiRetrieval\(input, signal\) \{\r?\n  if \(!talkRetrievalOn \|\| mistral\.active/);
 });
 
 test('the memory embedder and the memory search\'s vector are the ones the retrieval uses', () => {
