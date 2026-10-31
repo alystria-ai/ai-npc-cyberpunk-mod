@@ -15,10 +15,26 @@ public class ConvaiMoveWatch {
     // Movement events the game has reported so far. Evidence only (probe.log, convaiComposerWatch.moveEvidence): the difference between
     // a text box opening and closing says whether movement keys reached gameplay while it was up.
     private let events: Int32;
+    // Game time (seconds) of the latest movement event, 0 before the first. mod/init.lua uses it to tell V still moving from a key from V carried
+    // by a lift or a platform: only movement that follows a movement event counts as "moving from input".
+    private let lastAt: Float;
+    public let game: GameInstance;
+    // Developer-mode trace (mod/init.lua convaiMoveTrace): while on, every movement event is written into logText as "+seconds name=value type",
+    // at most 60 of them, and handed over once with MoveLogTake. Off, an event costs the two stores above.
+    private let logging: Bool;
+    private let logStart: Float;
+    private let logCount: Int32;
+    private let logText: String;
 
     protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
         let name: CName = ListenerAction.GetName(action);
         this.events += 1;
+        this.lastAt = this.Now();
+        if this.logging && this.logCount < 60 {
+            this.logCount += 1;
+            this.logText += " +" + FloatToStringPrec(this.lastAt - this.logStart, 2) + " " + NameToString(name) + "="
+                + FloatToStringPrec(ListenerAction.GetValue(action), 2) + " type" + IntToString(EnumInt(ListenerAction.GetType(action)));
+        };
         if Equals(name, n"MoveX") {
             this.x = ListenerAction.GetValue(action);
         } else {
@@ -31,6 +47,33 @@ public class ConvaiMoveWatch {
 
     public final func Events() -> Int32 {
         return this.events;
+    }
+
+    private final func Now() -> Float {
+        return EngineTime.ToFloat(GameInstance.GetSimTime(this.game));
+    }
+
+    // Seconds since the latest movement event, 1000 when there has been none.
+    public final func SinceLast() -> Float {
+        if this.lastAt <= 0.0 {
+            return 1000.0;
+        };
+        return this.Now() - this.lastAt;
+    }
+
+    public final func LogStart() -> Void {
+        this.logging = true;
+        this.logStart = this.Now();
+        this.logCount = 0;
+        this.logText = "";
+    }
+
+    public final func LogTake() -> String {
+        let text: String = this.logText;
+        this.logging = false;
+        this.logCount = 0;
+        this.logText = "";
+        return text;
     }
 
     public final func IsHeld() -> Bool {
@@ -52,6 +95,7 @@ public final func ConvaiMoveWatchStart() -> Void {
         return;
     };
     this.m_convaiMoveWatch = new ConvaiMoveWatch();
+    this.m_convaiMoveWatch.game = this.GetGame();
     this.RegisterInputListener(this.m_convaiMoveWatch, n"MoveX");
     this.RegisterInputListener(this.m_convaiMoveWatch, n"MoveY");
 }
@@ -84,6 +128,26 @@ public final func ConvaiMoveHeld() -> Bool {
 @addMethod(PlayerPuppet)
 public final func ConvaiMoveEvents() -> Int32 {
     return IsDefined(this.m_convaiMoveWatch) ? this.m_convaiMoveWatch.Events() : 0;
+}
+
+// Seconds since the game last reported a movement event (1000 when none, or the tracker is not installed).
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveSince() -> Float {
+    return IsDefined(this.m_convaiMoveWatch) ? this.m_convaiMoveWatch.SinceLast() : 1000.0;
+}
+
+// Developer-mode trace of the movement events (see ConvaiMoveWatch): start it when a talk press begins, take the text when the box or the
+// wait is over. Nothing is recorded in between the two calls' ends, and nothing at all unless mod/init.lua started it.
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveLogStart() -> Void {
+    if IsDefined(this.m_convaiMoveWatch) {
+        this.m_convaiMoveWatch.LogStart();
+    };
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveLogTake() -> String {
+    return IsDefined(this.m_convaiMoveWatch) ? this.m_convaiMoveWatch.LogTake() : "";
 }
 
 // Gives up on a held reading that did not clear (an unseen key-up), so the next
