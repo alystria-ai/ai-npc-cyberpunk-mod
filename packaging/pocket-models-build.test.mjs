@@ -246,6 +246,7 @@ test('the Russian files are found from the configuration and the repository\'s c
   assert.deepEqual(russianFileNames(RUSSIAN_YAML), {weights: 'model.safetensors', tokenizer: 'tokenizer.model'});
   assert.equal(repositoryPath('hf://genvoice/xVibePocketTTS/weights/x.safetensors@ac4f9f1', 'genvoice/xVibePocketTTS'), 'weights/x.safetensors');
   assert.equal(repositoryPath('./tokenizer.model', 'genvoice/xVibePocketTTS'), 'tokenizer.model');
+  assert.equal(repositoryPath('hf://genvoice/xVibePocketTTS/model/model.safetensors@v0.1.0', 'genvoice/xVibePocketTTS'), 'model/model.safetensors');
   for (const bad of ['', '/etc/passwd', '../x', 'a\\b', 'https://example.com/x', 'hf://other/repo/x']) assert.throws(() => repositoryPath(bad, 'genvoice/xVibePocketTTS'), /cannot take/, bad);
   const a = 'a'.repeat(64), b = 'b'.repeat(64);
   assert.deepEqual(parseSums(`${a}  model.safetensors\n${b.toUpperCase()} *./tokenizer.model\n\n`), {'model.safetensors': a, 'tokenizer.model': b});
@@ -311,7 +312,9 @@ test('a Russian build from stand-in files checks the repository\'s checksum list
     await writeFile(join(source, 'tokenizer.model'), tokenizer);
     await writeFile(join(source, 'config.yaml'), config);
     await writeFile(join(source, 'SHA256SUMS'), `${sha256(model)}  model.safetensors\n${sha256(tokenizer)}  tokenizer.model\n${sha256(config)}  config.yaml\n`);
-    const read = await readRussianSource(source);
+    // The real pins are the real release's: they stop stand-in files. This test reads with no pins, and checks that the real ones refuse the stand-ins.
+    await assert.rejects(readRussianSource(source), /is not the pinned release/);
+    const read = await readRussianSource(source, {pinned: {model: null, tokenizer: null}});
     assert.deepEqual(read.pins, {model: {bytes: model.length, sha256: sha256(model)}, tokenizerSha256: sha256(tokenizer)});
     assert.equal(read.unpinned.length, 2, 'the pins are not in the build yet: the build says which values to pin');
 

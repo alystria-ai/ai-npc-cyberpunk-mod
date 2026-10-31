@@ -5,9 +5,9 @@
 /** The name of the checksum list in the upstream repository. */
 export const UPSTREAM_SUMS = 'SHA256SUMS';
 
-/** The path a configuration value names inside its repository: `hf://genvoice/xVibePocketTTS/model.safetensors@<revision>` -> `model.safetensors`; a plain path stays. */
+/** The path a configuration value names inside its repository: `hf://genvoice/xVibePocketTTS/model.safetensors@<revision>` -> `model.safetensors`; a revision given as a version tag (`@v0.1.0`, as the real configuration has it) is dropped the same way; a plain path stays. */
 export function repositoryPath(value, repo) {
-  let path = String(value ?? '').trim().replace(/@[0-9a-f]{7,40}$/, '');
+  let path = String(value ?? '').trim().replace(/@(?:[0-9a-f]{7,40}|v\d+(?:\.\d+)*)$/, '');
   if (path.startsWith(`hf://${repo}/`)) path = path.slice(`hf://${repo}/`.length);
   path = path.replace(/^\.\//, '');
   if (!path || path.startsWith('/') || path.includes('..') || path.includes('\\') || /^[a-z]+:/i.test(path)) throw Error(`the configuration names a file this build cannot take: ${String(value).slice(0, 80)}`);

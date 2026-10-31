@@ -281,8 +281,9 @@ node packaging\build-pocket-models.mjs --languages ru --russian-source <folder f
 `--russian-source` is a folder with the repository's files (`config.yaml`, the weights and `tokenizer.model` that it names, and its checksum list). `--download` fetches the missing ones from
 the pinned revision. The builder checks each file against the repository's own checksum list, runs the configuration through the same checks as the other languages (six layers, float32,
 24 kHz mono, plus `tokenizer: sentencepiece` for the `.model` file), checks the stress table, and writes `PocketTTS-Model-90M-Russian.zip` and its file list under `<output folder>\ru\`.
-The weights' size and SHA-256 are not pinned in the source yet (they could not be read where this was written): the first build prints the lines to paste into `RUSSIAN_UPSTREAM.pins`
-in `packaging/build-pocket-models.mjs`, after which a different file stops the build.
+The weights (442,129,312 bytes, SHA-256 `4f216a0d...9b5a`) and the tokenizer (SHA-256 `ad635e17...ba60`) are pinned in `RUSSIAN_UPSTREAM.pins` in `packaging/build-pocket-models.mjs` (read from the first local build of 1 Nov 2026,
+which also matched the repository's checksum list), so a different file stops the build. The repository's checksum list has no line for `config.yaml`: that file is checked line by line when it is relocated instead. A configuration
+that names its files with a version tag (`hf://genvoice/xVibePocketTTS/model/model.safetensors@v0.1.0`, as the real one does) is read the same as one with a commit.
 
 **Tests.** `scripts/test_russian_stress.py` (the `+` marks, the table stress on unmarked words, words that are left alone, the format and a damaged file, the build script on small fixtures, the committed
 table), `scripts/test_pocket_voice_runtime.py` (`LanguageModels`: `ru` in the list, a `tokenizer.model` asset checked against its hash and relocated, refused under a configuration that does not say

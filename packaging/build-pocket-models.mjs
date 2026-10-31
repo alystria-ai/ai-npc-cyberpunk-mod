@@ -60,7 +60,10 @@ export const RUSSIAN_UPSTREAM = {
   license: 'CC-BY-4.0',
   codeLicense: 'MIT',
   base: {repo: UPSTREAM.repo, license: UPSTREAM.license},
-  pins: {model: null, tokenizer: null},
+  pins: {
+    model: {bytes: 442129312, sha256: '4f216a0d18b716b219a0a348d4f3584e4a1451ba6432ace329b7b53c3b6d9b5a'},
+    tokenizer: {sha256: 'ad635e17cbfe7d59a016f4e14abbd62e72c09c1c409781bc3b34350dabacba60'},
+  },
 };
 // The stress table of the Russian pack and the data it is built from (packaging/build-russian-stress.py; the record beside the committed table).
 export const STRESS_FILE = 'stress-ru.bin';
@@ -613,7 +616,7 @@ async function downloadRussian(folder, token) {
 }
 
 /** Reads the Russian source folder and checks every file against the repository's checksum list and against the pins. Returns what buildLanguage takes. */
-export async function readRussianSource(folder) {
+export async function readRussianSource(folder, {pinned = RUSSIAN_UPSTREAM.pins} = {}) {
   const read = async path => readFile(resolve(folder, ...path.split('/')));
   const configText = (await read('config.yaml')).toString('utf8');
   const names = russianFileNames(configText);
@@ -622,12 +625,13 @@ export async function readRussianSource(folder) {
   const observed = {};
   for (const [label, path, relative] of [['weights', modelPath, names.weights], ['tokenizer', tokenizerPath, names.tokenizer], ['config.yaml', resolve(folder, 'config.yaml'), 'config.yaml']]) {
     if (!await exists(path)) throw Error(`${label} (${relative}) is missing from ${folder}`);
+    // The real list covers the weights and the tokenizer files, not config.yaml (relocateConfig checks that one line by line instead).
+    if (!sums[relative] && label === 'config.yaml') continue;
     if (!sums[relative]) throw Error(`the repository's checksum list has no line for ${relative}`);
     observed[label] = await sha256File(path);
     if (observed[label] !== sums[relative]) throw Error(`${relative} does not match the repository's checksum list (${observed[label]} against ${sums[relative]})`);
   }
   const model = {bytes: (await stat(modelPath)).size, sha256: observed.weights};
-  const pinned = RUSSIAN_UPSTREAM.pins;
   const problems = [];
   if (pinned.model && (pinned.model.sha256 !== model.sha256 || (pinned.model.bytes != null && pinned.model.bytes !== model.bytes))) problems.push(`the weights are ${model.bytes} bytes, sha256 ${model.sha256}; pinned ${pinned.model.bytes} bytes, ${pinned.model.sha256}`);
   if (pinned.tokenizer && pinned.tokenizer.sha256 !== observed.tokenizer) problems.push(`the tokenizer has sha256 ${observed.tokenizer}; pinned ${pinned.tokenizer.sha256}`);
