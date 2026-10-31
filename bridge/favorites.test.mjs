@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {run, nsuiHarness, source, storage, favoritesSource} from './manager-fixture.mjs';
 
 // Favorites: the per-row Add to favorites / Remove from favorites buttons of Characters to invite and the Model browser (mod/favorites.lua, the
@@ -375,4 +376,63 @@ test('Mod Configuration Menu: the side list has the same favorite rows, a Favori
   assert(saved().characters['side-1'] == true)
   press('ui:page:next')
   assert(not categoryNames():find('Favorites', 1, true), 'page 2 has no block')
+`));
+
+// ---- The real roster (owner's live test 31 Oct: "Favorites missing on the side list") -----------------------------------------------------
+// The fixtures above use 30 made-up side characters. This runs the page over the shipped game roster (characters/game-roster.json, 557 side
+// characters, long names, characters with several records) in both hosts, so what the owner meets in the game is what is tested: the side list
+// shows Add to favorites for a side character who has joined, the Favorites block above the list holds her on page 1, and the block follows
+// her to the same place in a new session.
+const luaText = value => "'" + String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n') + "'";
+const realRoster = JSON.parse(readFileSync(new URL('../characters/game-roster.json', import.meta.url), 'utf8')).map(row => {
+  const records = (row.records ?? []).map(luaText).join(', ');
+  return `{key = ${luaText(row.key)}, name = ${luaText(row.name)}, kind = ${luaText(row.kind ?? 'named')}, records = {${records}}, invite = ${row.invite === false ? 'false' : 'true'}, minor = ${row.minor === true}}`;
+});
+const useRealRoster = `
+  local roster = {${realRoster.join(',\n')}}
+  manager.configure(api, roster)
+  core.refresh(); frames(4)
+  local sideCount = 0
+  for _, profile in ipairs(roster) do if profile.minor and profile.invite then sideCount = sideCount + 1 end end
+  assert(sideCount == 557, sideCount)
+`;
+
+test('real roster, Mod Configuration Menu: a side character who has joined has Add to favorites, then the Favorites block, on the first page and on a later page', () => run(`${mcmHarness()}
+  ${useRealRoster}
+  press('Side characters to invite')
+  assert(categoryNames():find('Side characters to invite · 557 matching characters', 1, true), categoryNames())
+  assert(not rowsText():find('favorite:', 1, true), 'nothing to favorite before anyone has joined: ' .. rowsText())
+  press('invite:aiko-harada')
+  assert(rowsText():find('favorite:add:aiko-harada = Add to favorites | invite:aiko-harada = Add copy (1)', 1, true), rowsText())
+  press('favorite:add:aiko-harada')
+  assert(categoryNames():find('^Companion Manager | Search characters | Favorites | Side characters to invite'), categoryNames())
+  assert(rowsText():find('invite:favorite:aiko-harada = Add copy (1) | favorite:remove:aiko-harada = Remove', 1, true), rowsText())
+  assert(saved().characters['aiko-harada'] == true)
+  -- A later page has no block, and a character who joined on a later page gets the rows there.
+  press('ui:page:next'); press('ui:page:next')
+  assert(not categoryNames():find('Favorites', 1, true), categoryNames())
+  local invitable
+  for _, row in ipairs(mcm.rows()) do if row.type == 'action' and row.id:find('^invite:') and row.value == 'Invite' then invitable = row.id; break end end
+  assert(invitable, rowsText())
+  press(invitable)
+  assert(rowsText():find('favorite:add:' .. invitable:sub(8) .. ' = Add to favorites', 1, true), rowsText())
+  press('ui:page:previous'); press('ui:page:previous')
+  assert(categoryNames():find('Favorites', 1, true) and rowsText():find('invite:favorite:aiko-harada', 1, true), 'back on page 1 the block is there')
+`));
+
+test('real roster, Native Settings UI: a side character who has joined has Add to favorites, then the Favorites block above the list', () => run(`${nsHarness()}
+  ${useRealRoster}
+  press('Side characters to invite')
+  assert(not ns.find('Favorites') and #ns.sections() == 3, 'nothing to favorite before anyone has joined: ' .. outline())
+  press('Aiko Harada', 'Invite')
+  assert(button('Aiko Harada', 'Add to favorites') and button('Aiko Harada', 'Add copy'), outline():sub(1, 600))
+  press('Aiko Harada', 'Add to favorites')
+  local sections = ns.sections()
+  assert(sections[3].label == 'Favorites', outline():sub(1, 600))
+  -- Native Settings fits the label to the row: "Remove Aiko Harada from favorites" is too wide there, so it reads "Remove Aiko Harada".
+  assert(section(sections[3].id) == 'Aiko Harada = Add copy (1) | Remove Aiko Harada = Remove', section(sections[3].id))
+  assert(saved().characters['aiko-harada'] == true)
+  -- The same favorite in a new session, with the page built again from the file.
+  convaiFavorites.reset(); core.refresh(); frames(6)
+  assert(ns.sections()[3].label == 'Favorites' and section(ns.sections()[3].id):find('Aiko Harada = Add copy (1)', 1, true), outline():sub(1, 600))
 `));
