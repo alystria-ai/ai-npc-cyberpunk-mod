@@ -315,3 +315,32 @@ test('a file a mod manager reverted to older bytes of the same size is noticed, 
   assert.equal(installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest}).state, 'current');
   assert(recorded().every(row => Number.isSafeInteger(row.mtime)));
 });
+
+// 0.4.0 reports (installs 7c14a1, b391fe, f0a37a): code files that older Runtime bases shipped and no Scripts ever listed stayed in app/bridge, so the code check
+// of every report said "modified" with extra files. The declared removal list (packaging/runtime-removals.json) names them, the builder turns the code paths of it
+// into code.json "removes", and install-code.mjs deletes them next to the files the previous copy listed.
+test('the declared removals name the retired bridge files, none of them is in the code the Scripts ship, and the installer deletes them from an old Runtime', async t => {
+  const {DECLARED_REMOVALS} = await import('./lib/runtime-removals.mjs');
+  const {importClosure} = await import('./lib/closure.mjs');
+  const project = resolve(here, '..');
+  const declared = JSON.parse(readFileSync(resolve(project, DECLARED_REMOVALS), 'utf8')).removes;
+  const leftovers = ['omni-server.mjs', 'omni-server-main.mjs', 'gemini-voice.mjs', 'eddies-payment.mjs', 'key-codec.mjs', 'local-stt-worker.check.py', 'npc-awareness.mjs',
+    'omni-fake-worker.cjs', 'pcm-relay.mjs', 'realtime-client.mjs', 'rovoice-autostart.mjs'];
+  const named = declared.filter(path => payload.isCodeGamePath(path)).map(path => path.slice(payload.RUNTIME_APP.length + 1));
+  for (const name of leftovers) assert.ok(named.includes(`bridge/${name}`), `${name} is declared`);
+  // The builder drops a declared path the release ships (build-release.mjs filters on the payload), but a list that names a shipped file is a mistake to catch here.
+  const config = JSON.parse(readFileSync(resolve(project, 'packaging/release.config.json'), 'utf8'));
+  const shipped = new Set([...await importClosure(project, config.bridgeEntries), ...config.bridgeWorkers]);
+  for (const rel of named) assert.ok(!shipped.has(rel), `${rel} is declared as removed but the Scripts ship it`);
+  // An old Runtime base that still holds them: the first code install of a release that declares them removes exactly those and nothing unlisted.
+  const w = world(t);
+  mkdirSync(join(w.runtimeApp, 'bridge'), {recursive: true});
+  for (const name of leftovers) writeFileSync(join(w.runtimeApp, 'bridge', name), 'old');
+  writeFileSync(join(w.runtimeApp, 'bridge', 'player-note.mjs'), 'not ours to delete');
+  const manifest = scripts(w, {'bridge/a.mjs': 'a'}, {removes: named});
+  const result = installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest});
+  assert.equal(result.removed, leftovers.length);
+  for (const name of leftovers) assert.equal(existsSync(join(w.runtimeApp, 'bridge', name)), false, name);
+  assert.equal(readFileSync(join(w.runtimeApp, 'bridge', 'player-note.mjs'), 'utf8'), 'not ours to delete');
+  assert.equal(readFileSync(join(w.runtimeApp, 'bridge', 'a.mjs'), 'utf8'), 'a');
+});
