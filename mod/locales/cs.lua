@@ -981,7 +981,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "Zobrazí jen modely, jejichž název začíná tímto písmenem.",
     ["Starts with"] = "Začíná na",
     ["Open AI Companions in the Mods list."] = "Otevři AI Companions v seznamu Mods.",
-    ["Your message to {name} is kept. Press {key} to type again."] = "Tvoje zpráva pro {name} je uložena. Stiskni {key} a napiš ji znovu.",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "Nastavení najdeš v Mod Configuration Menu, v sekci AI Companions.",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "Nastavení najdeš na obrazovce Mods, na kartě AI Companions.",
     ["Press {key} to open them."] = "Stiskni {key} pro jejich otevření.",

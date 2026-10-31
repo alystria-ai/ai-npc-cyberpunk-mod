@@ -981,7 +981,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "Yalnızca adı bu harfle başlayan modelleri göster.",
     ["Starts with"] = "Harfle başlar",
     ["Open AI Companions in the Mods list."] = "Mods listesinde AI Companions'u aç.",
-    ["Your message to {name} is kept. Press {key} to type again."] = "{name} kişisine olan mesajın saklandı. Yeniden yazmak için {key} tuşuna bas.",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "Ayarlar Mod Configuration Menu içinde, AI Companions altında.",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "Ayarlar Mods ekranında, AI Companions sekmesinde.",
     ["Press {key} to open them."] = "Açmak için {key} tuşuna bas.",

@@ -96,13 +96,13 @@ test('the English daily-limit notice is line 1 on one line plus a detailed line 
   }
 });
 
-test('the notice stays long enough to read at 15 letters a second, and only the daily limit, the setup problem and the kept text box message stay longer', () => {
+test('the notice stays long enough to read at 15 letters a second, and only the daily limit and the setup problem stay longer', () => {
   assert(Number.isFinite(showS), 'M.showS["daily-limit"] not found');
   assert(showS >= 8 && showS <= 12, `${showS} s`);
   // the game counts the duration after its 2.7 s intro; the text is readable from about 1.3 s into it
   assert(english.length / 15 <= showS + 1.4, `reading time ${english.length / 15} s`);
   // The setup problem's notice (mod/setup-check.lua) is the other one: it is written to the warning line without this mod's scripts.
-  assert.deepEqual([...showTable[1].matchAll(/\['([a-z-]+)'\]/g)].map(match => match[1]), ['daily-limit', 'setup-problem', 'talk-draft'], 'another notice got a longer duration');
+  assert.deepEqual([...showTable[1].matchAll(/\['([a-z-]+)'\]/g)].map(match => match[1]), ['daily-limit', 'setup-problem'], 'another notice got a longer duration');
 });
 
 test('every language has the notice with the same forced break: line 1 fits one line, the whole notice three lines', () => {

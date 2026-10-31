@@ -1,59 +1,53 @@
-# The talk text box: leaving it, and where the settings are (31 Oct 2026)
+# The talk text box: leaving it, the draft, and where the settings are (31 Oct 2026)
 
-Two reports from a player on 0.4.0, fixed on branch `fix/textbox-freeze-mcm`.
+Two reports from a player on 0.4.0 were first fixed on branch `fix/textbox-freeze-mcm` (the click-out "park"). Part 1 of that work was **reverted the same day**
+on branch `fix/textbox-revert-draft` after the owner's live test of 0.10.9. Part 2 (the settings host name) stays.
 
-## 1. "I type a message, want to leave, and I am frozen in place but everything around me still moves"
+## 1. The talk box: as before 31 Oct, plus a draft
 
 **What the box is.** The talk box is the game's own `GenericMessageNotification` with Codeware's text field in it (`Composer.reds`
 `ConvaiOpenComposer`, dressed by `mod/composer-input.lua`). While it is up the game's popup state owns the keyboard and the mouse
 and holds V in place (the world keeps running). That is by design, so typing does not move V.
 
-**Every way the box can be left, and what happens now.**
+**Why the park was reverted.** `f69c4d55` wrapped the dialog's `OnHandlePressInput` and closed the box (`Close(Cancel)`, keeping the words) on every `click` whose
+target was not inside the dialog. Enter reaches that handler as a `click` too (the live symptom shows it). Unless the player had first clicked into the text field, its target was not in the dialog,
+so **Enter parked the box instead of sending**. Live test, 0.10.9: Enter closed the box and kept the message as a draft, and it sent only after a click into the field.
+The same live test left V walking forward on its own after a park (below). The click handler, the park, the draft notice and the orphan safety net
+(`OnUninitialize` observer, `ConvaiForgetComposer`) are removed. The box behaves exactly as at `f69c4d55^`.
 
 | Way out | Result |
 |---|---|
-| Enter with words | the message is sent (`ConvaiTakeSubmission`), V is free |
-| Enter on an empty box | closes, one notice ("Your message was not sent...") |
-| Esc | closes, nothing kept, no notice |
-| Click outside the dialog | **new:** the box closes at once and the words are kept (see "Park") |
+| Enter with words | the game's own confirm: the message is sent (`ConvaiTakeSubmission`), the draft is emptied, V is free |
+| Enter on an empty box | closes, one notice ("Your message was not sent...") as before |
+| Esc | closes, nothing sent, **the typed words are kept as a draft** (no notice) |
+| The game closes the box (pause menu, a scene, a phone call, a load) | the close callback runs, the typed words are kept as a draft |
 | The talk key again | refused while the box is up (the token is set), the box stays |
-| The game closes the box (pause menu, a scene, a phone call, a load) | the close callback runs and V is free. If it never runs, the safety net below lets the scripts go |
-| The Companion Manager Search characters box | same dialog, own state, never parked, never a talk turn |
+| The Companion Manager Search characters box | same dialog, own state, never a draft, never a talk turn |
 
-**Root cause (from the code, the game cannot be run from this branch).** `Codeware.UI.reds` wraps the dialog's `OnHandlePressInput`:
-a click on a widget that cannot take focus only runs `RequestSetFocus(null)`. The text field loses the typing focus and the box
-**stays up**, still holding V. A player who clicks outside "to leave" ends in exactly the reported state: V frozen, the world moving,
-the box on screen without a caret. Nothing in the mod's own scripts left an input block behind: the 0.4.0 search mode keeps its own
-token state (`m_convaiComposerMode`, `m_convaiSearchState`) and a `ConvaiForgetSearchBox` that only forgets the token of a box that
-never drew. The `DontSendReleaseEvent` guards belong to the phone Chat search (`PhoneChatSearch.reds`), not to this box.
+**The draft (the one change).** `Composer.reds` `OnConvaiComposerClosed` copies `result.input` into `m_convaiDraft` for every talk-box close that is not a confirm
+(Codeware's `Close` fills `input` for any result, Esc included). A confirm empties it. `mod/init.lua` `convaiComposerWatch.closed` remembers whom the words were for
+(`keep`: profile key, group or private chat, `os.clock()`, probe line `Composer words kept: ... length=N`, no notice). The talk key opens a new box
+(`beginTextNow`), and `convaiComposerWatch.takeDraft` lets the words come back (`composer-input.lua` `putDraft` writes them into the field, once) when the **same character is
+addressed the same way within 5 minutes** (`KEEP_S = 300`). For another character, another chat type or after 5 minutes the box opens empty and the words are cleared
+(`Kept words dropped: ...`). An Enter on an empty box or a close without a result keeps nothing. A draft the player typed over is never replaced (the field is written once, when the dialog initialises).
 
-**Park (the fix).** `Composer.reds` wraps `OnHandlePressInput` once more (guarded by `ModuleExists("Codeware.UI")`, like Codeware's own
-wrapper). For a talk box (`m_data.isInput`, title `TALK TO ...`) a `click` whose target is not inside the dialog (the widget named
-`notification`, found by walking the target's parents) calls `ConvaiParkRequest` and then the game's own `Close(Cancel)`. The close
-callback sees the park flag and keeps the typed words in `m_convaiDraft` instead of treating the close as a cancel (`ConvaiComposerClosedInfo`
-answers `parked`). The box is closed through the same path as Esc, so the game gives V back and hides the cursor: V can walk and look.
-Nothing is submitted.
+**V walking on after the box (live test, 0.10.9).** What the evidence shows. `runtime/probe.log` of the live test: 14 parked closes, one of them (generation 14, 7 s open, 17 characters) was followed within the
+same second by a movement exit of the gestures and, four seconds later, by the talk key waiting 1.5 s for the movement axes to be released (`speed=3.85`, the tracker reading held).
+In the 170 box opens of the log before the park work, the speed at open was `0.00` every time, and no box ever left V moving. So the latched key appeared only with the changed close path:
+the park closed the dialog on the key **press** of Enter (a pointer press event), where the game's own confirm acts on the release. The mechanism the code supports: the engine's movement axes change
+only when an input event reaches them, a key event the box (or its closing dialog) consumes never does, and nothing in this mod's scripts can send the missing release (the retail scripts have no input reset: the
+dump has no `ReleaseAllInput`, `FakeReleaseButton` is not declared, and the only reset in the scripts, `FPPCameraComponent.ResetCurrentGameplayInput`, belongs to the camera). With the old close path restored there
+is nothing left in this mod that consumes or reorders a movement event: `ConvaiMoveWatch` consumes nothing, and the talk box registers no input callback of its own.
 
-- `mod/init.lua` `convaiComposerWatch.parked` posts the notice `talk-draft` ("Your message to {name} is kept. Press {key} to type
-  again.", 20 s on the warning line) with the key of the chat the box was opened with (talk by text, group text chat, Talk to Johnny by text).
-- The same key opens the box again (`beginTextNow`). `convaiComposerWatch.takeDraft` puts the words back (`composer-input.lua` `putDraft`)
-  when the same character is addressed the same way within 5 minutes, otherwise drops them. A box that is clicked away with nothing typed keeps nothing and says nothing.
-- Sending from a parked box is not possible: there is no box. Enter does not reopen it (the owner's decision: the talk key only).
-- Esc still closes a box that is up. A parked draft is not a box, so Esc then opens the game's pause menu as usual. The draft stays for the
-  talk key until it expires or another character is addressed.
-- The phone Chat search and the Companion Manager Search characters box are unchanged.
+What is added so the next live test can prove or refute that: the tracker counts movement events (`ConvaiMoveEvents`, one integer add per event the game reports anyway, no per-frame work),
+and every `Composer closed without a message` and `Native input captured` line in probe.log ends with `moveAxis=held|free|n/a moveEvents=<n>`, where `moveEvents` is the number of movement events that
+arrived while the box was up. `moveAxis=held` after a close with V standing means a release was lost. That line, with the key the player pressed last, is what a recurrence needs. The talk key's gate
+(`convaiTalkGate`, wait up to 1.5 s for a held axis, then open anyway and forget the reading) is unchanged.
 
-**Safety net.** The scripts' token says "open" until the game's close callback runs. If the game tears the dialog down without it, the talk key and the Companion Manager would be refused
-for good ("Close the text box first."). `composer-input.lua` notes when a dialog of ours initialises (`shownAt`) and when one is torn down (`goneAt`, an `OnUninitialize` observer that
-counts only a box it can read as ours). `convaiComposerWatch.orphan` asks, **only while a talk is active and the game says the box is open**
-(the loop that already read that flag every frame, no new work while idle): gone for more than 1.5 s, or never shown for 8 s, and the token is let go
-(`ConvaiForgetComposer`, probe.log `Composer box gone while still marked open`). The game's own input state is not touched from here: popping a context the game pushed
-would risk the opposite fault, and the game releases it when it closes the box.
+**Cost.** Nothing per frame. One integer add per movement event, one native read per box open and close.
 
-**Cost.** One extra branch in a click handler and one observer on a dialog teardown. Nothing per frame while no box is open. While a talk is active, one clock comparison on the frame the existing
-flag read already makes.
-
-**Tests.** `bridge/composer-park.test.mjs` (restore, safety net, scripts-side halves, the `.reds` text), compiled with `scripts/Compile-Redscript.ps1` for game 2.5 and 2.31.
+**Tests.** `bridge/composer-draft.test.mjs` (the park code is gone from the `.reds`, `.lua` and notices, the draft rules, the field write, the evidence line, the `.reds` close paths) and
+`bridge/phone-input.test.mjs` (the tracker). Compiled with `scripts/Compile-Redscript.ps1` for game 2.5 and, with `-GameDirectory` pointing at the 2.31 copy, for game 2.31.
 
 ## 2. "I'm using MCM so the mod settings do not show up"
 

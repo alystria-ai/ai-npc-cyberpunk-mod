@@ -981,7 +981,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "只顯示名稱以此字母開頭的模型。",
     ["Starts with"] = "開頭字母",
     ["Open AI Companions in the Mods list."] = "請在 Mods 清單中開啟 AI Companions。",
-    ["Your message to {name} is kept. Press {key} to type again."] = "你傳給{name}的訊息已保留。按{key}重新輸入。",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "設定在 Mod Configuration Menu 的 AI Companions 下。",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "設定在 Mods 畫面的 AI Companions 分頁中。",
     ["Press {key} to open them."] = "按{key}開啟。",

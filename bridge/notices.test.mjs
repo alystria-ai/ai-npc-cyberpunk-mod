@@ -579,7 +579,7 @@ test('the loading ids are Player notices without a repeat window, and a read tha
 });
 
 // The daily limit has two lines to read and a choice to make: it stays longer than the game's own five seconds.
-test('only the daily-limit, setup-problem and talk-draft notices stay longer: they are written to the warning line with their own duration, every other notice keeps the five-second call', () => {
+test('only the daily-limit and setup-problem notices stay longer: they are written to the warning line with their own duration, every other notice keeps the five-second call', () => {
   run(`
     local written = {}
     local board = {SetVariant = function(_, id, value, force) written[#written + 1] = {id = id, value = value, force = force} end}
@@ -600,8 +600,8 @@ test('only the daily-limit, setup-problem and talk-draft notices stay longer: th
     assert(notices.send(player, 'service-down', 'The service is down.'))
     assert(#shown == 1 and shown[1] == 'The service is down.' and #written == 0)
     local ids = 0
-    for id, seconds in pairs(notices.showS) do ids = ids + 1; assert(((id == 'daily-limit' or id == 'setup-problem') and seconds == 9) or (id == 'talk-draft' and seconds == 20)) end
-    assert(ids == 3, 'another notice got a longer duration')
+    for id, seconds in pairs(notices.showS) do ids = ids + 1; assert((id == 'daily-limit' or id == 'setup-problem') and seconds == 9) end
+    assert(ids == 2, 'another notice got a longer duration')
     -- a joined notice that holds a long line is shown with it; the line is still subject to the class and repeat window
     now = now + 100000
     shown, written = {}, {}

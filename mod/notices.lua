@@ -118,7 +118,6 @@ M.catalog = {
     ['holocall-refused'] = {class = PLAYER, repeatS = 10},      -- a holocall could not start (a game call, combat, a scene, calls blocked)
     ['holocall-ended'] = {class = PLAYER},                      -- the call ended for a reason other than V hanging up
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
-    ['talk-draft'] = {class = PLAYER, repeatS = 5},           -- the text box was left with a click and its words are kept: the key that types again (mod/init.lua, Composer.reds park)
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
     ['mic-error'] = {class = PLAYER, repeatS = 15},
@@ -270,7 +269,7 @@ end
 -- scripts, which the ordinary notice needs (a missing redscript is one of the problems it reports).
 -- Cost: one table lookup per permitted line of a notice. The loading notice may not cover such a notice before that time
 -- plus the intro and outro has passed (lastSentWait).
-M.showS = {['daily-limit'] = 9, ['setup-problem'] = 9, ['talk-draft'] = 20}
+M.showS = {['daily-limit'] = 9, ['setup-problem'] = 9}
 local INTRO_OUTRO_S = 3.6
 
 -- The notice held on screen: {text, at, mode, mask (which loads it lists), sig (the texts of the lines that change while their load goes on), matched, checkedAt, menu}, or nil.

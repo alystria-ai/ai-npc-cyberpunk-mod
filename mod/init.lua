@@ -3521,38 +3521,49 @@ end
 convaiComposerWatch = {}
 function convaiComposerWatch.opened(generation)
     convaiComposerWatch.generation, convaiComposerWatch.openedAt = generation, os.time()
+    -- How many movement events the game had reported when the box opened (Composer.reds ConvaiMoveEvents): the difference at close
+    -- tells whether movement keys reached gameplay while the box was up. One native read per box.
+    local player = convaiPlayer()
+    local ok, count = pcall(function() return player:ConvaiMoveEvents() end)
+    convaiComposerWatch.moveEventsAtOpen = ok and type(count) == 'number' and count or nil
 end
 function convaiComposerWatch.notify(player)
     convaiNotices.send(player, 'message-lost', ui.t('Your message was not sent. Open the text box again and retype it.'))
 end
+-- Evidence for a movement key that stays latched after the box (a release the box swallowed): what the game's movement axes read as the
+-- box closes and how many movement events arrived while it was up. One probe.log line per box, nothing is changed.
+function convaiComposerWatch.moveEvidence(player)
+    local ok, held = pcall(function() return player:ConvaiMoveHeld() end)
+    local okEvents, count = pcall(function() return player:ConvaiMoveEvents() end)
+    local atOpen = convaiComposerWatch.moveEventsAtOpen
+    return ' moveAxis=' .. (ok and type(held) == 'boolean' and (held and 'held' or 'free') or 'n/a')
+        .. ' moveEvents=' .. (okEvents and type(count) == 'number' and atOpen and tostring(count - atOpen) or 'n/a')
+end
 -- The box closed and nothing was taken from it. `result` is how the game says it closed (Composer.reds ConvaiComposerClosedInfo):
--- an Enter on an empty box and a close without a result are the cases where V believes a message was sent.
+-- an Enter on an empty box and a close without a result are the cases where V believes a message was sent. Esc (or the game closing the
+-- box) keeps what was typed for the next box.
 function convaiComposerWatch.closed(player, context)
     local ok, info = pcall(function() return player:ConvaiComposerClosedInfo() end)
     local result = ok and type(info) == 'string' and info ~= '' and info or 'unknown'
     local opened = convaiComposerWatch.generation == context.generation and convaiComposerWatch.openedAt or nil
     log('Composer closed without a message: generation=' .. tostring(context.generation) .. ' result=' .. result
-        .. (opened and (' open=' .. math.floor(os.time() - opened) .. 's') or ''))
+        .. (opened and (' open=' .. math.floor(os.time() - opened) .. 's') or '') .. convaiComposerWatch.moveEvidence(player))
     if result == 'empty' or result == 'nodata' then convaiComposerWatch.notify(player) end
-    if result == 'parked' then convaiComposerWatch.parked(player, context) end
+    if result:sub(1, 7) == 'closed:' then convaiComposerWatch.keep(player, context) else convaiComposerWatch.draft = nil end
 end
--- A click outside the box parked it (Composer.reds): the box is gone, V is free to walk and look, and the words are kept for the talk key.
--- Nothing was typed, nothing is kept (the box simply closed). The notice names the key that types again. A key press, never per frame.
+-- Words typed and not sent are kept for the next box (no notice): the draft remembers whom they were for and when. A key press, never per frame.
 convaiComposerWatch.KEEP_S = 300
-function convaiComposerWatch.parked(player, context)
+function convaiComposerWatch.keep(player, context)
     local ok, text = pcall(function() return player:ConvaiDraftText() end)
     if not ok or type(text) ~= 'string' or text == '' then
         convaiComposerWatch.draft = nil
-        log('Composer parked with no words: nothing kept')
         return
     end
-    local action = context.head and 'cyberpunk_convai_johnny_text' or context.participants and 'cyberpunk_convai_group_text' or 'cyberpunk_convai_text'
     convaiComposerWatch.draft = {key = context.profileKey, group = context.participants ~= nil, at = os.clock()}
-    log('Composer parked: generation=' .. tostring(context.generation) .. ' words=' .. #text)
-    convaiNotices.send(player, 'talk-draft', ui.t('Your message to {name} is kept. Press {key} to type again.', {name = context.name, key = convaiKeyHint(action)}))
+    log('Composer words kept: generation=' .. tostring(context.generation) .. ' length=' .. #text)
 end
 -- The talk key opened a new box for `key`: the kept words are shown in it when the same character is addressed the same way within
--- KEEP_S seconds, and dropped otherwise. True when they will be shown.
+-- KEEP_S seconds, and dropped otherwise (another character opens an empty box). True when they will be shown.
 function convaiComposerWatch.takeDraft(player, key, group)
     local draft = convaiComposerWatch.draft
     convaiComposerWatch.draft = nil
@@ -3563,17 +3574,8 @@ function convaiComposerWatch.takeDraft(player, key, group)
     end
     if convaiComposerInput then convaiComposerInput.restoreDraft = nil end
     pcall(function() player:ConvaiClearDraft() end)
-    if draft then log('Parked message dropped: another character, another chat or too old') end
+    if draft then log('Kept words dropped: another character, another chat or too old') end
     return false
-end
--- Safety net: the scripts still call the box open although the game no longer shows it (see composer-input.lua orphaned). Asked once per
--- frame, but only while a talk is active and the box is said to be open. True when the box was let go.
-function convaiComposerWatch.orphan(player)
-    local input = convaiComposerInput
-    if not input or type(input.orphaned) ~= 'function' or not input.orphaned(os.clock()) then return false end
-    local ok = pcall(function() player:ConvaiForgetComposer() end)
-    log('Composer box gone while still marked open: let go' .. (ok and '' or ' (not possible: the scripts lack ConvaiForgetComposer)'))
-    return ok
 end
 -- A message that was typed and then dropped on this side (`why` names the cause).
 function convaiComposerWatch.lost(player, why, context)
@@ -3630,7 +3632,6 @@ local function beginTextNow(groupMode, waited, talkJohnny)
             convaiComposerRefused(player)
             return
         end
-        if convaiComposerInput and convaiComposerInput.expect then convaiComposerInput.expect(os.clock()) end
         local draftBack = convaiComposerWatch.takeDraft(player, key, participants ~= nil)
         cancelAutomatic('manual-text')
         gameplayActions.revoke('new-conversation')
@@ -8583,8 +8584,6 @@ registerForEvent('onUpdate', function(delta)
                 active = nil
                 warmConversation(nil, nil)
                 focusUntil = os.time() + 1
-            elseif openOk and composerOpen then
-                pcall(convaiComposerWatch.orphan, player)
             end
         end
         return
@@ -8609,7 +8608,7 @@ registerForEvent('onUpdate', function(delta)
                     end
                 end
             end
-            log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
+            log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message .. convaiComposerWatch.moveEvidence(player))
             -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's
             -- voice speaks it, and replaced by the reply's caption. Once per sent line; nothing per frame. A refused or off subtitle is silent.
             if sent ~= false then pcall(subtitles.showTyped, message) end
