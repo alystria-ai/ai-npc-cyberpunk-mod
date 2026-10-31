@@ -169,6 +169,7 @@ export class SpeakUpScenario extends GroupScenario {
   async step() {
     const pending = this.pending;
     if (!pending) return;
+    this.ticks = (this.ticks ?? 0) + 1;   // how often the game has looked at the bridge's answer (a count a test can wait on, unlike a pause)
     // The lease: the game's word, refreshed on every tick, that it is playing this reaction. A test withdraws it with `pending.leaseDropped`.
     if (pending.input.reaction) await (pending.leaseDropped ? this.withdrawLease(pending.input) : this.writeLease(pending.input));
     const reply = await readJson(join(this.runtime, 'reply.json'));
