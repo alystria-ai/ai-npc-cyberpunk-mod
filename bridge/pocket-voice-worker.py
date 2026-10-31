@@ -25,6 +25,7 @@ from pocket_voice_runtime import (
     MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
     SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, add_language_voices, apply_voices, cpu_environment, inspect_language_export,
     language_valid, new_language_registry, read_json, spelled_inside, text_valid, usvfs_active, validate_config,
+    CarrierTrimmer, TRIM_FADE_MS, fade_out_pcm, frames_of, pcm_bytes, pcm_samples, plan_short_line,
 )
 
 
@@ -370,21 +371,104 @@ def require_cpu_float32(torch, model):
 # The longest single PCM packet (one second at 24 kHz); the bridge accepts up to four seconds in a packet.
 PACKET_FRAMES = 24000
 
+# Frames generated after the end-of-speech mark: None lets the pinned upstream choose per sentence (5 for four words or fewer, 3 otherwise).
+FRAMES_AFTER_EOS = None
+# A chunk whose loudest sample is under this (about -60 dBFS, speech peaks at 0.2 to 0.6) counts as silent. The frames after the end-of-speech mark
+# decode to digital silence (-85 dB under the speech level, measured), and a model's own pauses inside a line stay far above this.
+SILENT_PEAK = 0.001
+# Silence after the last sound that is still sent (40 ms: the line does not stop on its last sample). Everything after it is not.
+TAIL_SILENCE_FRAMES = 960
+TRIM_TRAILING_SILENCE = True
+
+
+def peak_amplitude(payload):
+    """The loudest sample of little endian float32 PCM bytes (host order is little endian on every platform the Runtime ships for)."""
+    samples = pcm_samples(payload)
+    return max(map(abs, samples)) if samples else 0.0
+
+
+class StopEither:
+    """The stop the generator is given for a short line: set by a cancel (the request's own stop) or by the end of the line (the carrier is cut,
+    so nothing more is needed from the model). The pinned upstream only ever asks `is_set()`."""
+    def __init__(self, cancel, finished):
+        self.cancel, self.finished = cancel, finished
+
+    def is_set(self):
+        return self.cancel.is_set() or self.finished.is_set()
+
+
+# Fade at the end of a tail that was cut short (TAIL_SILENCE_FRAMES), so the cut is never a step.
+TRIM_FADE_FRAMES = frames_of(TRIM_FADE_MS)
+# A short line is said with a carrier sentence after it (pocket_voice_runtime.plan_short_line) that is cut off again. The switch is for a live
+# comparison: False sends every line to the model as it is.
+SHORT_LINE_CARRIER = True
+# The text every warm-up generation says: one short line (the path of a short line, with its carrier) and one sentence of normal length.
+WARM_UP_LINES = ("Hey you.", "Well, that is one way to look at it, and I would not argue with you today.")
+
 
 def stream_request(model, state, text, commands, send, request_id, key, encode_pcm,
-                   now=time.perf_counter):
+                   now=time.perf_counter, plan=None):
     """Publish every copied chunk before asking the generator for its next one.
 
     The injectable PCM copier makes this actual command path testable without
     importing a neural framework or pretending a completed WAV was streamed.
+
+    `plan` (plan_short_line) is given for a short line: the model then says the line and a carrier sentence, and the carrier is cut off the
+    audio while it streams (CarrierTrimmer). Nothing else differs for such a line, and a line without a plan takes exactly the path it always had.
     """
     started = now()
     total, index = 0, 0
     first_yield = first_ready = None
-    # Match the public-stream samples used to accept/select the student. Letting
-    # upstream guess this tail from text gives live replies different endings.
-    generator = model.generate_audio_stream(state, text, frames_after_eos=1,
-                                            copy_state=True, stop=commands.stop)
+    # The tail after the model's end-of-speech mark is upstream's own guess per sentence (FRAMES_AFTER_EOS = None: five frames for four words
+    # or fewer, three for longer ones). It was one frame (to match the samples the student was selected on) until 31 Oct 2026, and that
+    # cut every line while it was still speaking: the mark comes a few frames before the sound has ended, so a short line lost 50 to 320
+    # ms of its last sound and ended at 4 to 29 dB under the speech level (a click and a chopped word, worst on Barry Lewis, whose clip
+    # starts late). The audio before the cut is the same sample for sample, only the ending changes (docs/POCKET_TTS_RUNTIME.md, "The end
+    # of every line"). The extra frames come after the speech, so the first audio is not later, and the silence they end in is not sent
+    # (below), so the line is not longer either.
+    trimmer = CarrierTrimmer(plan["estimateFrames"]) if plan else None
+    line_end = threading.Event()
+    stop = StopEither(commands.stop, line_end) if plan else commands.stop
+    generator = model.generate_audio_stream(state, plan["text"] if plan else text, frames_after_eos=FRAMES_AFTER_EOS,
+                                            copy_state=True, stop=stop)
+    # Chunks that are silent after the voice has started wait here. Silence inside the line (a pause) is sent in order when more speech
+    # follows it. Silence at the end is the model's tail after the last sound and is cut to TAIL_SILENCE_FRAMES: it only held the companion's
+    # next sentence, the reply after V's line and the next speaker back. Nothing waits for the first sound, which goes out as it is made.
+    held, held_frames, spoken = [], 0, False
+    last_times = (0.0, 0.0)
+
+    def publish(payload, frames, yielded_ms, copied_ms):
+        nonlocal total, index
+        for begin in range(0, frames, PACKET_FRAMES):
+            piece = min(PACKET_FRAMES, frames - begin)
+            index += 1
+            commands.expect_ack(index)
+            send({"op": "pcm", "id": request_id, "profile": key, "index": index,
+                  "offsetFrames": total, "frames": piece, "sampleRate": 24000,
+                  "channels": 1, "format": "f32le",
+                  "pcm": base64.b64encode(payload[begin * 4:(begin + piece) * 4]).decode("ascii"),
+                  "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
+            total += piece
+            commands.await_ack()
+            commands.touch()
+
+    def emit(payload, frames, yielded_ms, copied_ms):
+        nonlocal held, held_frames, spoken
+        silent = TRIM_TRAILING_SILENCE and peak_amplitude(payload) < SILENT_PEAK
+        if silent and spoken:
+            held.append((payload, frames, yielded_ms, copied_ms))
+            held_frames += frames
+            return
+        for item in held:
+            publish(*item)
+        held, held_frames = [], 0
+        publish(payload, frames, yielded_ms, copied_ms)
+        spoken = spoken or not silent
+
+    def emit_samples(samples, times):
+        if len(samples):
+            emit(pcm_bytes(samples), len(samples), *times)
+
     try:
         for chunk in generator:
             yielded_ms = (now() - started) * 1000
@@ -398,23 +482,34 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             # limit, is refused.
             if (not isinstance(payload, bytes) or type(frames) is not int
                     or frames < 1 or len(payload) != frames * 4
-                    or total + frames > 24000 * MAX_AUDIO_SECONDS):
+                    or total + held_frames + frames > 24000 * MAX_AUDIO_SECONDS):
                 raise ValueError("Pocket returned PCM outside its frame limit")
             copied_ms = (now() - started) * 1000
             first_yield = yielded_ms if first_yield is None else first_yield
             first_ready = copied_ms if first_ready is None else first_ready
-            for begin in range(0, frames, PACKET_FRAMES):
-                piece = min(PACKET_FRAMES, frames - begin)
-                index += 1
-                commands.expect_ack(index)
-                send({"op": "pcm", "id": request_id, "profile": key, "index": index,
-                      "offsetFrames": total, "frames": piece, "sampleRate": 24000,
-                      "channels": 1, "format": "f32le",
-                      "pcm": base64.b64encode(payload[begin * 4:(begin + piece) * 4]).decode("ascii"),
-                      "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
-                total += piece
-                commands.await_ack()
-                commands.touch()
+            last_times = (yielded_ms, copied_ms)
+            if trimmer is None:
+                emit(payload, frames, yielded_ms, copied_ms)
+                continue
+            emit_samples(trimmer.feed(pcm_samples(payload)), last_times)
+            if trimmer.done:
+                # The carrier is cut: the model is asked to stop, and what it already queued is read and dropped.
+                line_end.set()
+        if trimmer is not None and not trimmer.done:
+            emit_samples(trimmer.finish(), last_times)
+        # The silence the model ended in: only the first TAIL_SILENCE_FRAMES of it go out, faded out so the cut is never a step.
+        keep, tail = TAIL_SILENCE_FRAMES, []
+        for payload, frames, yielded_ms, copied_ms in held:
+            if keep < 1:
+                break
+            piece = min(frames, keep)
+            tail.append((payload[:piece * 4], piece, yielded_ms, copied_ms))
+            keep -= piece
+        if tail and sum(piece[1] for piece in tail) < held_frames:
+            payload, frames, yielded_ms, copied_ms = tail[-1]
+            tail[-1] = (fade_out_pcm(payload, min(frames, TRIM_FADE_FRAMES)), frames, yielded_ms, copied_ms)
+        for item in tail:
+            publish(*item)
     except BaseException:
         # Closing the upstream generator at a yield skips its decoder.join().
         # Set the native stop event and drain to its real EOF first. The owned
@@ -429,9 +524,38 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     commands.check()
     if not total:
         raise ValueError("Pocket returned no complete speech")
-    return {"frames": total, "chunks": index, "sampleRate": 24000, "channels": 1,
-            "firstPcmYieldMs": first_yield, "firstPcmCopiedReadyMs": first_ready,
-            "generationMs": (now() - started) * 1000}
+    result = {"frames": total, "chunks": index, "sampleRate": 24000, "channels": 1,
+              "firstPcmYieldMs": first_yield, "firstPcmCopiedReadyMs": first_ready,
+              "generationMs": (now() - started) * 1000}
+    if trimmer is not None:
+        result["shortLine"] = {"words": plan["words"], "estimateFrames": plan["estimateFrames"], "cutFrames": trimmer.cut}
+    return result
+
+
+def warm_up(model, state, lines, stop, language=None):
+    """Says each line silently, once, and throws the audio away; returns the number of chunks the model made.
+
+    The first generations of a fresh model run on cold code paths, caches and thread pools, and the first short lines of a session came out
+    grainy, better after a while (live test of 31 Oct 2026). Doing those first generations here, before the first reply, spends the cold start
+    where nobody listens. A short line is warmed on its own path (with its carrier, whole, uncut). Nothing is sent. A failure stops the
+    generator and drains it to its end like a failed reply does (the decoder thread is joined before the next use of the shared Mimi) and is
+    raised, for the caller to log: a warm-up is never a reason to lose the voice."""
+    produced = 0
+    for line in lines:
+        plan = plan_short_line(line, language) if SHORT_LINE_CARRIER else None
+        generator = model.generate_audio_stream(state, plan["text"] if plan else line, frames_after_eos=FRAMES_AFTER_EOS,
+                                                copy_state=True, stop=stop)
+        try:
+            for _chunk in generator:
+                produced += 1
+        except BaseException:
+            stop.set()
+            for _ in generator:
+                pass
+            raise
+        finally:
+            generator.close()
+    return produced
 
 
 def process_io_bytes():
@@ -781,8 +905,33 @@ def main():
                         descriptor = lang["registry"]["descriptors"].get(key)
                         if key in lang["registry"]["refs"] and descriptor and descriptor["sha256"] == reference_sha256:
                             lang["cache"].states[key] = state
-            return (time.perf_counter() - started_at) * 1000
+            load_ms = (time.perf_counter() - started_at) * 1000
+            if target:
+                warm_active()
+            return load_ms
 
+        warmed = {"model": None}   # the model that has been warmed: a swapped-in one is not
+
+        def warm_active(announce=False):
+            """The first generations of the resident model are made now, silently (warm_up), with a prepared voice of the active cache.
+            Without one there is nothing to say them with and the first reply is the first generation, as before."""
+            held = view()[1]
+            warm_key = next(iter(held.states), None)
+            if warm_key is None or commands.shutdown.is_set():
+                return
+            warmed["model"] = model
+            if announce:
+                # Only the English registry's names are known to the bridge's state check, so a language swap warms without announcing.
+                send({"op": "state", "state": "warming", "profile": warm_key})
+            began = time.perf_counter()
+            try:
+                with redirect_stdout(sys.stderr), torch.no_grad():
+                    chunks = warm_up(model, held.states[warm_key], WARM_UP_LINES, commands.stop, lang["tag"])
+                print(f"Pocket warm-up: {chunks} chunks in {(time.perf_counter() - began) * 1000:.0f} ms", file=sys.stderr, flush=True)
+            except Exception as error:  # noqa: BLE001 - a warm-up never costs the voice.
+                print(f"Pocket warm-up skipped: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+
+        warm_active(announce=True)
         started.set()
         mark_ready()
         lower_priority()   # ready: from now on the game's own threads win any contested core, except while a reply is being voiced (PriorityGate)
@@ -862,13 +1011,19 @@ def main():
                     send({"op": "prepared", "id": request_id, "profile": key,
                           "preparationMs": preparation_ms, "preparationSource": active_cache.last_source,
                           **profiles()})
+                    if warmed["model"] is not model:
+                        # No voice was prepared at start (or a language was swapped in with none): the first one is the first chance to warm up.
+                        warm_active()
                     continue
                 text = request.get("text")
                 if not text_valid(text):
                     raise ValueError("Invalid Pocket reply text")
                 # Pocket owns its necessary acoustic decoding. There is no
-                # sentence splitter here and no gain, denoising, silence trim,
-                # speed adjustment, resampling, fade or crossfade of output.
+                # sentence splitter here and no gain, denoising, speed adjustment,
+                # resampling or crossfade of output. The only things done to the
+                # audio are the trim of the silence at the end of a line and, for
+                # a line of one to five words, the cut of the carrier sentence
+                # it was said with, each ended by a short fade (stream_request).
                 def encode_pcm(chunk):
                     if chunk.device.type != "cpu" or chunk.dtype != torch.float32:
                         raise ValueError("Pocket PCM did not preserve CPU float32")
@@ -879,7 +1034,8 @@ def main():
 
                 with redirect_stdout(sys.stderr), torch.no_grad():
                     synthesis_started = True
-                    result = stream_request(model, state, text, commands, send, request_id, key, encode_pcm)
+                    plan = plan_short_line(text, lang["tag"]) if SHORT_LINE_CARRIER else None
+                    result = stream_request(model, state, text, commands, send, request_id, key, encode_pcm, plan=plan)
                 commands.finish(request_id)
                 send({"op": "done", "id": request_id, "profile": key,
                       "preparationMs": preparation_ms, "preparationSource": active_cache.last_source,
