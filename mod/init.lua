@@ -67,16 +67,21 @@ do
 end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The single gate for on-screen notices (notices.lua, docs/NOTIFICATIONS.md). If it cannot load, nothing is shown.
-local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')
-if not noticesLoaded or type(noticesModule) ~= 'table' then
-    local none = function() return false end
-    convaiNotices = convaiNotices or {send = none, sendLines = function() return 0 end, visible = none,
-        class = function() return nil end, configure = function() end, developerMode = none}
+do
+    local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')
+    if not noticesLoaded or type(noticesModule) ~= 'table' then
+        local none = function() return false end
+        convaiNotices = convaiNotices or {send = none, sendLines = function() return 0 end, visible = none,
+            class = function() return nil end, configure = function() end, developerMode = none}
+    end
 end
 -- Optional: explains a missing or starting conversation service. The adapter
 -- keeps working unchanged if this module is absent.
-local serviceStatusLoaded, serviceStatus = pcall(dofile, 'service-status.lua')
-if not serviceStatusLoaded or type(serviceStatus) ~= 'table' then serviceStatus = nil end
+local serviceStatus
+do
+    local loaded, module = pcall(dofile, 'service-status.lua')
+    if loaded and type(module) == 'table' then serviceStatus = module end
+end
 local function serviceCall(name, ...)
     if not serviceStatus or type(serviceStatus[name]) ~= 'function' then return nil end
     local ok, first, second = pcall(serviceStatus[name], ...)
@@ -154,8 +159,9 @@ local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
 -- World tokens cancel old work after reloads. The bridge owns the one persistent
 -- player ID; collecting game context never creates or changes that ID.
-local knowledgeAllowed, knowledgeEpoch, knowledgeInvalidated = false, 0, false
-local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
+local knowledgeAllowed, knowledgeEpoch = false, 0
+local knowledgeFrame = nil
+local knowledgeFlags = {invalidated = false, changed = false, configured = false}
 local gameplayActions
 local relationshipState = dofile('relationship-state.lua').new({
     currentWorld = function() return knowledgeFrame end})
@@ -191,8 +197,11 @@ journalHistory.onFinished = function(quests)
 end
 relationshipState.onFact = function(fact) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('romance', fact) end end
 -- Requests name the world and journal parts by revision; each part is written once (docs/PERFORMANCE_NATIVE_PLAN.md 1b).
-local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
-if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
+local knowledgeParts
+do
+    local loaded, module = pcall(dofile, 'knowledge-parts.lua')
+    if loaded and type(module) == 'table' then knowledgeParts = module end
+end
 -- Finished scans are encoded a few entries per frame so the first turn that needs them writes a ready string, and an
 -- unrequested journal scan is paced (one page, then a rest) instead of taking a page every frame.
 journalHistory.pace = true
@@ -253,7 +262,7 @@ local function refreshKnowledgeFrame()
     local frame = {version = 1, status = 'ready', generation = knowledgeEpoch + 1,
         worldToken = knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)}
     if knowledgeFrame and not sameKnowledgeOwner(knowledgeOwner(knowledgeFrame), knowledgeOwner(frame)) then
-        knowledgeChanged = true
+        knowledgeFlags.changed = true
         worldKnowledge:reset(nil, 'world-binding-changed'); journalHistory:reset()
     end
     knowledgeFrame = frame
@@ -270,14 +279,14 @@ local function invalidateKnowledge(reason)
     publishWorldSession(before, false, true)
     relationshipState:reset(reason)
     if invitations then invitations.bind(nil) end
-    knowledgeEpoch, knowledgeChanged = knowledgeEpoch + 1, false
-    knowledgeInvalidated = true
+    knowledgeEpoch, knowledgeFlags.changed = knowledgeEpoch + 1, false
+    knowledgeFlags.invalidated = true
     worldKnowledge:reset(nil, reason); journalHistory:reset()
 end
 
 local function configureKnowledge()
-    if knowledgeConfigured then return end
-    knowledgeConfigured = true
+    if knowledgeFlags.configured then return end
+    knowledgeFlags.configured = true
     -- The reviewed pack is 9 MB (the bridge's sources, evidence and rules); the collector needs only the allowlist
     -- selectors, which loadPack keeps in runtime/knowledge-pack-lua.json after the first session (a ~220 ms decode
     -- on the first frame, every session, before).
@@ -1510,8 +1519,10 @@ convaiSpawnedPeople = {
 -- to manual turns so a reply follows on from what was just said in the game.
 -- See docs/GAME_DIALOGUE_CONTEXT.md. The bridge scopes it to the addressee.
 -- Optional: the adapter keeps working unchanged if this module is absent.
+local gameDialogue
+do
 local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua')
-local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
+gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
     -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
@@ -1547,6 +1558,7 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
         for _, person in ipairs(companions.conversationCandidates(convaiPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
         return keys
     end}) or nil
+end
 convaiGameDialogue = gameDialogue
 
 -- Whether the Dark Future mod is installed: one lookup of its main system, else of its hydration system (docs/DYNAMIC_INFO.md, "Other mods' state"). A global:
@@ -1643,9 +1655,11 @@ microphone.captureGameDialogue = captureGameDialogue
 -- What V is wearing and carrying, attached to manual turns (docs/PLAYER_GEAR_CONTEXT.md). Read on demand when a turn
 -- is built, cached for a few seconds, never per frame. The bridge words it and tells the character not to bring it up
 -- unless it matters. Optional: the adapter keeps working unchanged if this module is absent.
-local playerGearLoaded, playerGearModule = pcall(dofile, 'player-gear.lua')
-local playerGear = playerGearLoaded and type(playerGearModule) == 'table'
-    and type(playerGearModule.new) == 'function' and playerGearModule.new({}) or nil
+local playerGear
+do
+    local loaded, module = pcall(dofile, 'player-gear.lua')
+    playerGear = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({}) or nil
+end
 convaiPlayerGear = playerGear
 -- V's gear and clothes (Settings > Dynamic info): off, the equipment is not read.
 convaiGateCapture(playerGear, 'capture', 'gear')
@@ -3453,13 +3467,16 @@ end
 
 -- V's recognised words while speaking by voice: V's line in the cinematic subtitles, replaced in place as the words grow
 -- (event-driven from mod/microphone.lua's poll, nothing per frame). false makes the microphone use the notice line.
-local heardFallbackLogged = {}
-local function heardFallback(reason)
-    if not heardFallbackLogged[reason] then
-        heardFallbackLogged[reason] = true
-        log('Live words: using the notice line (' .. reason .. ')')
+local heardFallback
+do
+    local logged = {}
+    heardFallback = function(reason)
+        if not logged[reason] then
+            logged[reason] = true
+            log('Live words: using the notice line (' .. reason .. ')')
+        end
+        return false
     end
-    return false
 end
 microphone.onHeard = function(text)
     if not subtitles.enabled() then return heardFallback('game subtitles are off') end
@@ -3623,12 +3640,14 @@ end
 -- up and V has settled. Composer.reds tracks the MoveX/MoveY axes from the game's own
 -- change events. A wait that ends with V still moving drops the press (TALK_WAIT_MAX,
 -- one probe.log line, no notice). An axis that reads held while V stands still is a
--- stale reading or a key held against a wall: it gets TALK_STALE_WAIT, is forgotten and
+-- stale reading or a key held against a wall: it gets talkTuning.STALE_WAIT, is forgotten and
 -- the box opens.
 local TALK_WAIT_MAX = 4.0
-local TALK_STALE_WAIT = 1.5
-local TALK_MOVING_SPEED = 0.35   -- m/s on foot above which V counts as moving
-local TALK_INPUT_WINDOW = 5      -- seconds after a movement event in which speed counts as "from input"
+local talkTuning = {
+    STALE_WAIT = 1.5,
+    MOVING_SPEED = 0.35,   -- m/s on foot above which V counts as moving
+    INPUT_WINDOW = 5,      -- seconds after a movement event in which speed counts as "from input"
+}
 -- 'held', 'free', or 'n/a' when the redscript tracker is not installed.
 local function moveStateText(player)
     local ok, held = pcall(function() return player:ConvaiMoveHeld() end)
@@ -3643,16 +3662,16 @@ local function playerSpeedNumber(player)
     if not okRead or type(speed) ~= 'number' or speed ~= speed then return nil end
     return speed
 end
--- Whether V is moving from a key: on foot, faster than TALK_MOVING_SPEED, and a movement event came within TALK_INPUT_WINDOW seconds (V
+-- Whether V is moving from a key: on foot, faster than talkTuning.MOVING_SPEED, and a movement event came within talkTuning.INPUT_WINDOW seconds (V
 -- carried by a lift or a platform has no recent movement event, so the talk key is never blocked by that). nil when it cannot be told.
 local function movingFromInput(player)
     local speed = playerSpeedNumber(player)
-    if speed == nil or speed <= TALK_MOVING_SPEED then return false, speed end
+    if speed == nil or speed <= talkTuning.MOVING_SPEED then return false, speed end
     local okCar, car = pcall(function() return player:GetMountedVehicle() end)
     if okCar and car ~= nil then return false, speed end
     local okSince, since = pcall(function() return player:ConvaiMoveSince() end)
     if not okSince or type(since) ~= 'number' then return false, speed end
-    return since <= TALK_INPUT_WINDOW, speed
+    return since <= talkTuning.INPUT_WINDOW, speed
 end
 -- Developer mode only: the movement events (key down and up as the game reports them) from a talk press until the box closes or the wait ends,
 -- written to probe.log in one line (Composer.reds ConvaiMoveLogStart/Take). Event driven, nothing runs per frame for it.
@@ -3772,7 +3791,7 @@ local function beginText(groupMode, talkJohnny)
 end
 
 -- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the box as soon as the movement keys are up and V has settled.
--- Still moving at TALK_WAIT_MAX: the press is dropped (one probe.log line). An axis that reads held while V stands still gets TALK_STALE_WAIT,
+-- Still moving at TALK_WAIT_MAX: the press is dropped (one probe.log line). An axis that reads held while V stands still gets talkTuning.STALE_WAIT,
 -- then the reading is forgotten and the box opens. Dropped as well when the world is not playable any more.
 convaiTalkGate = {}
 function convaiTalkGate.update(delta, worldReady)
@@ -3786,7 +3805,7 @@ function convaiTalkGate.update(delta, worldReady)
     end
     waiting.waited = waiting.waited + (tonumber(delta) or 0)
     local busy, speed = talkBusy(player)
-    if busy == 'moving' or (busy == 'axis' and speed and speed > TALK_MOVING_SPEED) then
+    if busy == 'moving' or (busy == 'axis' and speed and speed > talkTuning.MOVING_SPEED) then
         if waiting.waited < TALK_WAIT_MAX then return end
         convaiTalkGate.waiting = nil
         log(string.format('Talk box not opened: V was still moving after %.1f s (movement key held or speed %.2f)', waiting.waited, speed or -1))
@@ -3794,7 +3813,7 @@ function convaiTalkGate.update(delta, worldReady)
         return
     end
     local stale = busy == 'axis'
-    if stale and waiting.waited < TALK_STALE_WAIT then return end
+    if stale and waiting.waited < talkTuning.STALE_WAIT then return end
     convaiTalkGate.waiting = nil
     -- A reading that never cleared while V stands still is a missed key-up or a key held against a wall: forget it so the next talk request
     -- is not delayed by it, then open the box.
@@ -4181,8 +4200,8 @@ local reactionGuard, reactionEvidence = nil, {}
 local mergeSuppressedUntil = 0
 -- A closing waits for pickups still being collected, but never longer than
 -- this many seconds after combat was confirmed over (its own window is 40).
-local CLOSING_LOOT_WAIT = 14
-local battleCandidatesOk, battleSampleAt = nil, nil
+local battleRead = {closingLootWait = 14, candidatesOk = nil}
+local battleSampleAt = nil
 -- The voice and subtitle flags only change from a menu: read with each battle sample (every 0.5 s), not every tick.
 local battleOutputs = nil
 
@@ -4209,7 +4228,7 @@ local function captureReactionGuard(worldReady, outputs, person)
     local speaker = {present = person ~= nil, available = person ~= nil and person.available == true,
         temporarilyBusy = person ~= nil and person.voiceBusy == true,
         reason = person and (person.availableReason or 'unclassified')
-            or (battleCandidatesOk == false and 'candidate-read-failed' or 'not-in-nearby-enabled-party')}
+            or (battleRead.candidatesOk == false and 'candidate-read-failed' or 'not-in-nearby-enabled-party')}
     if person then
         speaker.distance, speaker.lastSeenAt = person.distance, os.time() * 1000
     elseif previous then
@@ -5860,7 +5879,7 @@ local function updateBattles(player, elapsed, worldReady)
         if convaiSpawnedPeople then
             convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
         end
-        battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
+        battlePeople, battleRead.candidatesOk = reactionPeople(player, battleSample)
         battleOutputs = reactionOutputs(player)
         if convaiJohnnyPlaceSample then convaiJohnnyGuarded('place sample', convaiJohnnyPlaceSample, worldReady, battleSample.vehicle == true) end
         if convaiJohnnyFight then convaiJohnnyGuarded('fight watch', convaiJohnnyFightSample, battleSample) end
@@ -5952,7 +5971,7 @@ local function updateBattles(player, elapsed, worldReady)
     -- closing request is written travel in that closing request (one request,
     -- one speaker, exact-copy witnesses). The closing prefers a speaker who also
     -- saw them, and waits for pickups still being collected, at most
-    -- CLOSING_LOOT_WAIT seconds after combat was confirmed over. A pickup made
+    -- battleRead.closingLootWait seconds after combat was confirmed over. A pickup made
     -- after the closing was requested stays a separate pickup comment.
     local battleEvent = battles.offer(busy, battlePeople, now, function(person)
         return loot.mergeable(person, now) ~= nil
@@ -5962,7 +5981,7 @@ local function updateBattles(player, elapsed, worldReady)
     if not mayFollow(lootEvent, 'loot') then lootEvent = nil end
     if battleEvent and battleEvent.phase == 'end' and now >= mergeSuppressedUntil then
         local merge = loot.mergeable(battleEvent.person, now)
-        if merge and merge.collecting and (battleEvent.battle.ageSeconds or 0) < CLOSING_LOOT_WAIT then
+        if merge and merge.collecting and (battleEvent.battle.ageSeconds or 0) < battleRead.closingLootWait then
             battleEvent = nil
         elseif merge then
             battleEvent.loot = loot.attach(battleEvent.person, now)
@@ -8116,7 +8135,7 @@ registerForEvent('onUpdate', function(delta)
     local sessionOk, sessionReady, requests = pcall(convaiSessionReady, menuPlayer, worldSuspended)
     if not sessionOk or not sessionReady then
         if sessionHasState then abandonSession('world unavailable',fastTravelActive~=nil) end
-        if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
+        if not knowledgeFlags.invalidated then invalidateKnowledge('world unavailable') end
         -- No world (the main menu, a loading screen): the manager's page still has to answer its buttons here. The Settings page and the
         -- rest of the Mods screen work without a save; one quarter-second slow tick and a few comparisons, never in gameplay.
         local titleStart = os.clock()
@@ -8149,7 +8168,7 @@ registerForEvent('onUpdate', function(delta)
             os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0, convaiBootGaps(boot)))
     end
     sessionHasState = true
-    knowledgeAllowed, knowledgeInvalidated = true, false
+    knowledgeAllowed, knowledgeFlags.invalidated = true, false
     mark('init:knowledge')
     convaiHeartbeat.sessionProven = true
     local knowledgeOk = pcall(updateKnowledge, delta)
@@ -8163,10 +8182,10 @@ registerForEvent('onUpdate', function(delta)
         if type(speech.pauseForWorld) == 'function' then speech.pauseForWorld() end
         return
     end
-    if knowledgeChanged then
+    if knowledgeFlags.changed then
         -- A changed lease/branch can happen without an NPC detach (for example
         -- initial bridge activation). Cancel conversation ownership, not actors.
-        knowledgeChanged = false
+        knowledgeFlags.changed = false
         gameplayActions.revoke('knowledge-world-changed')
         cancelAutomatic('knowledge-world-changed', true)
         microphone.cancel(); groupChat.cancel(); phoneChat.abandon()
