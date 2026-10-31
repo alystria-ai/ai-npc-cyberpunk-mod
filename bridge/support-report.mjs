@@ -555,10 +555,17 @@ export async function conversationSection({runtime, settings}) {
 export function voiceLanguagePacksSection(value) {
   if (!value || typeof value !== 'object') return null;
   const list = Array.isArray(value.packs) ? value.packs : [], problems = Array.isArray(value.problems) ? value.problems : [];
+  // The dubbed clips made on demand (bridge/language-clips.mjs report()): counts per language only.
+  const demand = value.onDemand && typeof value.onDemand === 'object' ? value.onDemand : null, number = field => Number.isFinite(field) ? field : null;
+  const onDemand = demand ? {active: demand.active === true, languages: number(demand.languages), failed: number(demand.failed), running: number(demand.running),
+    clips: Object.entries(demand.clips && typeof demand.clips === 'object' ? demand.clips : {}).slice(0, 12).map(([language, row]) => ({language: clip(language, 12), ready: number(row?.ready),
+      built: number(row?.built), downloaded: number(row?.downloaded)})),
+    dubInstalled: Object.entries(demand.dub && typeof demand.dub === 'object' ? demand.dub : {}).slice(0, 12).map(([language, present]) => ({language: clip(language, 12), installed: present === true}))} : null;
   return {
     installed: list.slice(0, 12).map(pack => ({language: clip(pack?.language, 12), voices: Number.isFinite(pack?.voices) ? pack.voices : null, version: clip(pack?.version, 24) ?? null})),
     problems: problems.slice(0, 12).map(row => ({language: clip(row?.language, 12), reason: clip(row?.reason, 240)})),
     scanned: typeof value.scannedAt === 'string' ? clip(value.scannedAt, 40) : null,
+    ...(onDemand ? {onDemand} : {}),
   };
 }
 

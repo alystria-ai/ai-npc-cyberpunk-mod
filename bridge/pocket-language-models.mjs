@@ -119,8 +119,11 @@ export class PocketLanguageModels {
   // The voice pack of this language, when it is valid and sits where the worker can read its clips (<root>/multilingual/<lang>).
   packOf(tag) {
     const pack = this.packs?.pack?.(tag);
-    if (!pack) return null;
     const model = this.models.get(tag);
+    // No pack installed, but its clips are made on this PC or downloaded one by one (bridge/language-clips.mjs): the clip of a character is in the Pocket folder (copied there when it
+    // is ready), and a character whose clip is not ready yet has no entry, so its reply is shown as text until then.
+    const demand = this.packs?.demand;
+    if (!pack) return model && demand?.supports?.(tag) ? {language: model.language, tag, directory: null, entries: {get: key => demand.entry(tag, key)}} : null;
     if (!model) return pack;
     const wanted = resolve(model.directory, '..', '..', 'multilingual', model.language);
     const same = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;

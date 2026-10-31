@@ -106,7 +106,8 @@ import {ConvaiCharacterEdits} from './convai-character-edits.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
-import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, clipVoiceConfigPaths, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
+import {LanguageVoiceClips} from './language-clips.mjs';
+import {GameVoiceClips, SerialQueue, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, clipVoiceConfigPaths, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
 import {fallbackAliases, missingFallbacks, missingFallbacksLine, readFallbacks} from './voice-fallbacks.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
@@ -373,6 +374,8 @@ await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] sca
 // and nothing is started at start: the builder is a process of its own, below normal priority, that exits when the character's clips are written.
 const shippedVoiceTables = shippedVoicesReader(originalVoiceConfigPaths);
 let gameVoiceClips = null;
+// One build at a time across both services (the English clips above, the dubbed clips below): each is a process of its own at below normal priority.
+const clipBuilds = new SerialQueue();
 const standInVoices = {pocket: {}, short: {}, long: {}};
 // 'female' or 'male' for the stand-in voice: the roster's word, else the archetype key's (npc-valentinos-female).
 const genderOfVoiceKey = key => {
@@ -386,7 +389,7 @@ try {
   // The words of each character's clips: a character the shipped configurations have no row for (an older Runtime) has none to take from.
   const wordsPath = resolve(project, 'characters/voice-clips-words.json');
   const words = existsSync(wordsPath) ? readVoiceClipWords(await readFile(wordsPath, 'utf8')) : {};
-  gameVoiceClips = await GameVoiceClips.open({manifest, words, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory,
+  gameVoiceClips = await GameVoiceClips.open({manifest, words, manifestPath, gameDirectory: game, referenceRoot: referenceRoots[0], stateDirectory, serial: clipBuilds,
     mirrorRoots: [...referenceRoots.slice(1), voiceConfig.runtime?.referenceDirectory],
     ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
     prefer: process.env.CYBERPUNK_CONVAI_GAME_CLIPS === '1', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},
@@ -402,6 +405,22 @@ try {
   voiceTablesEdited ||= waiting.length > 0;
   if (waiting.length) console.error(`[VoiceClips] ${waiting.length} character(s) speak with a stand-in voice until their clips are built from the game's files`);
 } catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
+// The dubbed reference clips of the multilingual packs (docs/VOICE_LANGUAGE_PACKS.md, "Clips on demand", bridge/language-clips.mjs): when a reply is in a language the game is voiced in and no
+// pack of that language is installed, the clip of the character that speaks is made from the player's own dub archive (lang_<xx>_voice.archive), else downloaded for that one character,
+// and kept; until it is ready the English reference speaks. An installed pack is used first, as ever. CYBERPUNK_CONVAI_LANGUAGE_CLIPS=0 turns this off,
+// CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD=0 turns the download off. Nothing is started here: a process runs only while a clip is made.
+let languageClips = null;
+try {
+  languageClips = await LanguageVoiceClips.open({projectDirectory: project, gameDirectory: game, referenceRoot: referenceRoots[0], mirrorRoots: [...referenceRoots.slice(1), voiceConfig.runtime?.referenceDirectory],
+    stateDirectory, serial: clipBuilds, ...builderFiles({project, runtimePython: voiceConfig.runtime?.pythonExecutable}),
+    enabled: process.env.CYBERPUNK_CONVAI_LANGUAGE_CLIPS !== '0', download: process.env.CYBERPUNK_CONVAI_VOICE_CLIPS_DOWNLOAD === '0' ? false : {},
+    onReady: (tag, key) => {
+      // The clip is ready: when the conversation is in that language, the voice is prepared on it now so the next line does not meet it cold (best effort, only OmniVoice on the GPU).
+      if ((multilingual.fixed ?? multilingual.lastLanguage) === tag && localVoice.preparesOnGpu && localVoice.usesProfile(key)) void localVoice.warmOmniLanguage(key, tag).catch(() => {});
+    }, log: message => console.error('[LanguageClips] ' + message)});
+  languagePacks.demand = languageClips;
+  if (languageClips.active) console.error(`[LanguageClips] dubbed voice clips are made on demand for ${languageClips.available.size} language(s)`);
+} catch (error) { languageClips = null; console.error('[LanguageClips] unavailable:', error?.message ?? error); }
 // The workers read their voices from a file, so the edited tables are written out and the workers are started on those files (once, at start, a few small writes).
 if (voiceTablesEdited) {
   const written = await clipVoiceConfigPaths({paths: {pocket: voiceConfigPaths.pocket, omni: voiceConfigPaths.omni}, stateDirectory,
@@ -422,9 +441,17 @@ try {
 } catch (error) { console.error('[VoiceFallbacks] unavailable:', error?.message ?? error); }
 // A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
 const wantVoiceClips = (profile, reason) => {
-  if (!gameVoiceClips) return null;
+  if (!gameVoiceClips && !languageClips) return null;
   let key = profile;
   try { key = localVoice.voiceKeyFor(profile, profile) || profile; } catch { /* the voice selection is not up yet */ }
+  // The conversation is in another language (the setting, else the last exchange): the dubbed clip of this voice is made in the background too (never waited for).
+  // Only for a voice that clones from a dubbed clip: OmniVoice, the Mistral voice, or Pocket with a PocketTTS model of that language (the Inworld and Convai voices never do).
+  try {
+    const tag = multilingual.fixed ?? multilingual.lastLanguage;
+    const clones = localVoice.provider === 'omni' || (localVoice.provider === 'pocket' && (localVoice.cloudActive ? localVoice.cloud === 'voxtral' : pocketLanguages.has(tag)));
+    if (languageClips && tag && tag !== 'en' && clones && !localVoice.hasPlayerClip(key)) languageClips.want(tag, key, {reason});
+  } catch { /* best effort */ }
+  if (!gameVoiceClips) return null;
   // A character that speaks with its fallback archetype voice is still the one whose clips are built: its own key, not the archetype's.
   if (key !== profile && gameVoiceClips.has(profile)) key = profile;
   return gameVoiceClips.wanted(key, {shipped: shippedVoiceTables, reason});
@@ -1634,7 +1661,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
 // The multilingual pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
 // a voice the pack lists, and not a voice the player gave a clip of their own. Pocket (English only) and the Convai voice never use one. In-memory lookups.
 function languagePackFor(engine, language, voiceKey) {
-  if (!language || language === 'en' || !voiceKey || !languagePacks.installed) return null;
+  if (!language || language === 'en' || !voiceKey || !languagePacks.active) return null;
   if (engine === 'omni') return localVoice.hasPlayerClip(voiceKey) ? null : languagePacks.entry(language, voiceKey);
   // The Inworld voice always clones from the English reference (one voice per character, speaking every language), so it has no pack entry.
   if (engine === 'pocket' && localVoice.cloudActive) return localVoice.cloud === 'inworld' ? null : voxtralVoice.languageEntry(voiceKey, language);

@@ -113,13 +113,26 @@ export function runBuilder(command, args, {timeout = BUILD_TIMEOUT_MS, spawnProc
   });
 }
 
-async function downloadFile(url, fetchImpl, expectedSha) {
+export async function downloadFile(url, fetchImpl, expectedSha) {
   const response = await fetchImpl(url, {redirect: 'follow'});
   if (!response.ok) throw Error(`download answered ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length < 44 || bytes.length > 24_000_000 || bytes.toString('latin1', 0, 4) !== 'RIFF') throw Error('download is not a clip');
   if (sha256(bytes) !== expectedSha) throw Error('download does not match the manifest');
   return bytes;
+}
+
+/**
+ * One build at a time, in the order asked, for everything that starts the builder (the English clips and the language clips share one): `run(job)` starts `job` (an async
+ * function) when the ones before it are done and resolves to its result. A job that throws does not stop the ones behind it.
+ */
+export class SerialQueue {
+  constructor() { this.tail = Promise.resolve(); }
+  run(job) {
+    const next = this.tail.catch(() => {}).then(job);
+    this.tail = next;
+    return next;
+  }
 }
 
 export class GameVoiceClips {
@@ -139,15 +152,14 @@ export class GameVoiceClips {
    *   onBuilt          (key) => void: a character's clips are ready (the bridge makes the voice tables follow, bridge/live-voices.mjs)
    */
   constructor({manifest = {}, words = {}, gameDirectory = null, referenceRoot, mirrorRoots = [], stateDirectory, python = null, script = null, vgmstream = null, manifestPath = null,
-    shippedPresent = null, shippedPresentSync = null, prefer = false, download = false, onBuilt = () => {}, log = () => {}, run = runBuilder, now = Date.now,
+    shippedPresent = null, shippedPresentSync = null, prefer = false, serial = new SerialQueue(), download = false, onBuilt = () => {}, log = () => {}, run = runBuilder, now = Date.now,
     files = {readFile, writeFile, mkdir, rename, rm, stat, copyFile}} = {}) {
-    Object.assign(this, {manifest, words, gameDirectory, referenceRoot, mirrorRoots: mirrorRoots.filter(root => typeof root === 'string' && root), stateDirectory, python, script, vgmstream, manifestPath, prefer, download, onBuilt, log, run, now, files});
+    Object.assign(this, {serial, manifest, words, gameDirectory, referenceRoot, mirrorRoots: mirrorRoots.filter(root => typeof root === 'string' && root), stateDirectory, python, script, vgmstream, manifestPath, prefer, download, onBuilt, log, run, now, files});
     this.shippedPresentSync = shippedPresentSync ?? (reference => existsSync(join(referenceRoot, reference.slice(REFERENCE_NAMESPACE.length))));
     this.shippedPresent = shippedPresent ?? (async reference => this.shippedPresentSync(reference));
     this.index = Object.create(null);     // key -> {kind: {sha256, samples, source}}
     this.failed = new Map();              // key -> reason (this session: a character that could not be built is not tried again at every line)
     this.running = new Map();             // key -> promise
-    this.queue = Promise.resolve();       // one build at a time
     this.checked = new Set();             // keys `wanted()` has looked at this session
     this.asking = new Map();              // key -> promise of a `wanted()` that is still looking
     this.fingerprint = null;
@@ -256,8 +268,7 @@ export class GameVoiceClips {
     if (this.ready(key)) return Promise.resolve('ready');
     if (this.failed.has(key)) return Promise.resolve('unavailable');
     if (this.running.has(key)) return this.running.get(key);
-    const job = this.queue.catch(() => {}).then(() => this.#make(key, reason));
-    this.queue = job;
+    const job = this.serial.run(() => this.#make(key, reason));   // one build at a time, in the order asked
     const tracked = job.finally(() => this.running.delete(key));
     this.running.set(key, tracked);
     return tracked;
