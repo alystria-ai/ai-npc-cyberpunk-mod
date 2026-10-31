@@ -14,13 +14,14 @@
 // Pure functions and one small state holder: no I/O except the optional file read the caller passes in.
 import {spokenLanguage} from './reply-language.mjs';
 import {VOXTRAL_STT3_LANGUAGES} from './voxtral-languages.mjs';
+import {MOD_LANGUAGES} from './mod-languages.mjs';
 
 // The languages Mistral's transcription model lists (Voxtral Mini Transcribe 3, docs.mistral.ai, 2026-10-21; bridge/voxtral-languages.mjs): 44 of the
 // 50 it supports are named. A language that is not named (Mistral prints no full list) is still asked, without a language hint, and may be understood.
 export const VOXTRAL_LANGUAGES = VOXTRAL_STT3_LANGUAGES;
 
 // The mod's interface languages (mod/locales) as the base language the recognisers use.
-export const MOD_LANGUAGES = Object.freeze(['en', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh']);
+export {MOD_LANGUAGES};
 
 // Local multilingual recogniser packs (optional downloads, run in the same sherpa-onnx worker as Moonshine). `kind` picks the loader in
 // bridge/local-stt-worker.py; `files` must all exist in `models/stt/<id>` (packaged) or `runtime/stt-model/<id>` (development).

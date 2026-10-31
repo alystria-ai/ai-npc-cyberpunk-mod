@@ -77,6 +77,28 @@ test('every prompting route needs the session code, the exact Host and our own O
   assert.equal(b.profiles.getOverride('mistral'), null);
 });
 
+test('a body over the limit is answered 413 and read to its end, so the same connection serves the next request', async t => {
+  const b = await workbench(); t.after(b.done);
+  const agent = new http.Agent({keepAlive: true, maxSockets: 1});
+  t.after(() => agent.destroy());
+  const url = new URL(b.server.url);
+  const send = (method, path, data) => new Promise((resolve, reject) => {
+    const request = http.request({agent, host: '127.0.0.1', port: url.port, method, path,
+      headers: {Host: `127.0.0.1:${url.port}`, 'X-Editor-Token': b.server.token, ...(data === undefined ? {} : {'Content-Type': 'application/json'})}}, response => {
+      response.resume();
+      response.on('end', () => resolve({status: response.statusCode, socket: request.socket}));
+    });
+    request.on('error', reject);
+    request.end(data);
+  });
+  const big = await send('PUT', '/api/prompting/mistral', JSON.stringify({closing: {text: 'x'.repeat(200 * 1024)}}));
+  assert.equal(big.status, 413);
+  const next = await send('GET', '/api/prompting');
+  assert.equal(next.status, 200);
+  assert.equal(next.socket, big.socket, 'one connection served both');
+  assert.deepEqual(await b.files(), [], 'nothing was stored');
+});
+
 test('only the ids of the store\'s own list are accepted: no path, key or look-alike reaches the store, and a body is never read for an unknown id', async t => {
   const b = await workbench(); t.after(b.done);
   const listed = (await call(b.server, 'GET', '/api/prompting')).json.profiles.map(row => row.id);

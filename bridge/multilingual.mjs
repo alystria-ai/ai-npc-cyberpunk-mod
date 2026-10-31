@@ -19,8 +19,9 @@
 // never hands the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
 // Pure functions plus one small state holder: no I/O.
 import {assessLanguage, detectLanguage, spokenLanguage} from './reply-language.mjs';
-import {MOD_LANGUAGES} from './speech-language.mjs';
-import {OTHER_LANGUAGES, isExtraLanguage, otherLanguageFrom, textProviderWritesOther} from './other-languages.mjs';
+import {MOD_LANGUAGES} from './mod-languages.mjs';
+import {isExtraLanguage, otherLanguageFrom, textProviderWritesOther} from './other-languages.mjs';
+import {LANGUAGE_NAMES} from './language-names.mjs';
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -308,13 +309,8 @@ export function replyVoice({plan, text, local = {}} = {}) {
   return {engine: 'none', language, reason: unspoken(language)};
 }
 
-// English names of the languages the detector reports, for the reply-language instruction.
-export const LANGUAGE_NAMES = Object.freeze({en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German',
-  it: 'Italian', nl: 'Dutch', pl: 'Polish', cs: 'Czech', hu: 'Hungarian', tr: 'Turkish', sv: 'Swedish', ro: 'Romanian', ca: 'Catalan',
-  no: 'Norwegian', vi: 'Vietnamese', ja: 'Japanese',
-  zh: 'Chinese', ko: 'Korean', ru: 'Russian', uk: 'Ukrainian', el: 'Greek', ar: 'Arabic', he: 'Hebrew', hi: 'Hindi', th: 'Thai',
-  // The Other languages (bridge/other-languages.mjs) the lists above did not name: the prompt says "Finnish", not "that language".
-  ...Object.fromEntries(OTHER_LANGUAGES.map(item => [item.code, item.name]))});
+// English names of the languages the detector reports and the Other languages, for the reply-language instruction (bridge/language-names.mjs).
+export {LANGUAGE_NAMES};
 const REFERENCE_NOTE = 'Everything else in this context is written in English only as reference notes; it never sets your reply language.';
 
 /**

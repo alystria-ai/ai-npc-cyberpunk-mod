@@ -127,11 +127,13 @@ export class EditorServer {
     if (!/^application\/json\b/i.test(request.headers['content-type'] ?? '')) throw new EditorError(415, 'bad-request');
     const chunks = [];
     let size = 0;
+    // A body past the limit is read to its end and thrown away (as #bytes does), not abandoned: leaving the loop early destroys the request and its socket, and the page's
+    // answer (413) then races the reset (a prompting test failed about half of its runs after an unrelated change moved the timing by a few milliseconds).
     for await (const chunk of request) {
       size += chunk.length;
-      if (size > BODY_LIMIT) throw new EditorError(413, 'too-large');
-      chunks.push(chunk);
+      if (size <= BODY_LIMIT) chunks.push(chunk);
     }
+    if (size > BODY_LIMIT) throw new EditorError(413, 'too-large');
     try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null'); } catch { throw new EditorError(400, 'bad-request'); }
   }
 

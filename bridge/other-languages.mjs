@@ -8,7 +8,7 @@
 // The list is every common language that is not already a Voice language row: Czech, Hungarian and Ukrainian are on that row, so they are not here.
 // Names are English (each goes through ui.t in the game, mod/manager-ui.lua REPLY_LANGUAGE_NAMES). Codes are the base codes the rest of the bridge uses.
 import {voxtralSpeaks} from './voxtral-languages.mjs';
-import {MOD_LANGUAGES} from './speech-language.mjs';
+import {MOD_LANGUAGES} from './mod-languages.mjs';
 
 export const OTHER_LANGUAGES = Object.freeze([
   Object.freeze({code: 'fi', name: 'Finnish'}), Object.freeze({code: 'sv', name: 'Swedish'}), Object.freeze({code: 'no', name: 'Norwegian'}),

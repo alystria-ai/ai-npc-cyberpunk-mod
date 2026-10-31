@@ -18,9 +18,9 @@
 //
 // Nothing is kept beyond the turn: an entry is dropped when its reply ends (`release`), when the world resets (`clear`), when it is older than `ENTRY_TTL_MS`,
 // and the table never holds more than `MAX_ENTRIES`. No file is written. A failure of any kind leaves the original text on screen (never an error).
-import {MOD_LANGUAGES} from './speech-language.mjs';
+import {MOD_LANGUAGES} from './mod-languages.mjs';
 import {OTHER_LANGUAGE_CODES} from './other-languages.mjs';
-import {LANGUAGE_NAMES} from './multilingual.mjs';
+import {LANGUAGE_NAMES} from './language-names.mjs';
 
 export const SUBTITLE_SAME = 'same';
 /** The choices, in the order of the row: Same as speech (the default), English, the mod's other languages, then the Other languages. mod/manager.lua holds the same list. */
