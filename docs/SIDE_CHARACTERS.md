@@ -71,3 +71,13 @@ Each invitable side character has a Convai original and a multilingual twin, cre
 running it again resumes. Ids land in `runtime/characters.json` and `runtime/multilingual-profiles.json`. `node packaging/Refresh-ReleaseData.mjs`
 copies them to `packaging/release-data/`, which the package installs. A twin is used by the router only once its language box is off
 (`languageBoxOff: true`, a signed-in dashboard step, `docs/MULTILINGUAL_PROFILES.md`), and until then the original answers every language.
+
+## The Runtime setup check allows the whole id map (31 Oct, evening)
+
+Talking to an invited side character on Convai failed while Local AI worked. The Runtime's setup check (`inspectSetup` in `packaging/runtime-layout.mjs`) still refused a `characters.json` of more than 256 ids and answered `character-profiles` ("setup required"), so the supervisor never started the bridge. The shipped map holds 766 ids (the 703 roster rows and the archetypes), so the bound is now `MAX_CHARACTER_IDS` = 4096, the same as the routing, the player memory registry and the Chat reset journal. `packaging/runtime-bootstrap.test.mjs` checks the shipped map itself.
+
+The data is complete. All 557 invitable side characters have a Convai original and a verified twin in `packaging/release-data/`. The 17 side rows with no ids are children and cannot be invited.
+
+If an install still says a side character "does not have a conversation profile configured yet", look for `Kept the edited characters.json` in the Runtime's start log. `packaging/runtime/prepare-state.mjs` installs the shipped id map only over an unedited copy, so a state `characters.json` changed by hand or by `scripts/Provision-Characters.mjs` keeps its older, shorter list.
+
+Bounds on counts that stay, all above what is used today: world knowledge packs 1024 profiles (703 used), the local voice registry 1024, the phone reset epochs 2048 (766 used).

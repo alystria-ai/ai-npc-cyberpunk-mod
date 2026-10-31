@@ -36,6 +36,7 @@ import {profileSignature} from './prompt-profiles.mjs';
 import {extraFields} from './sampler-extras.mjs';
 import {baseOf} from './memory-scope.mjs';
 import {varietyNote, freshenReply, headRepeats, dedupeHistory} from './reply-variety.mjs';
+import {limitPetNames, headHasPetName} from './pet-names.mjs';
 import {asksAboutGear} from './player-gear.mjs';
 import {asksAboutClothes} from './scenery-memory.mjs';
 
@@ -1230,7 +1231,7 @@ export class TextProviderHost {
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     // A first sentence that opens as one of her last replies did, or says a sentence of one, is not spoken early either: the finished reply has it left out (freshenReply below).
-    const refuseHead = said.length || provoked || ownReplies.length || inPerson ? head => repeatsLine(head, said) || headRepeats(head, ownReplies, {inPerson}) || (provoked && takesUpAiTalk(head)) : null;
+    const refuseHead = said.length || provoked || ownReplies.length || inPerson || !reaction ? head => repeatsLine(head, said) || headRepeats(head, ownReplies, {inPerson}) || (!reaction && headHasPetName(head, ownReplies)) || (provoked && takesUpAiTalk(head)) : null;
     // With the guard on, a first sentence that flags is never committed to the voice either.
     if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
@@ -1257,6 +1258,16 @@ export class TextProviderHost {
         if (fresher && (!feed.committed || fresher.reply.startsWith(feed.head))) {
           this.log(`Reply variety: left ${fresher.dropped} repeated sentence${fresher.dropped === 1 ? '' : 's'} out of the reply`);
           outcome = {...outcome, reply: fresher.reply};
+        }
+      } catch { /* the reply stands as it was */ }
+    }
+    // A pet name for V is rare (bridge/pet-names.mjs): the ones the rule does not allow are left out of the finished reply, the same way (not when the voice already began with the first sentence).
+    if (!repeated && !reaction) {
+      try {
+        const lean = limitPetNames(outcome.reply, ownReplies);
+        if (lean && (!feed?.committed || lean.reply.startsWith(feed.head))) {
+          this.log(`Reply variety: left ${lean.removed} pet name${lean.removed === 1 ? '' : 's'} out of the reply`);
+          outcome = {...outcome, reply: lean.reply};
         }
       } catch { /* the reply stands as it was */ }
     }

@@ -1253,6 +1253,39 @@ test('a reply that opens with an opener she used before loses it, with no second
   } finally { await close(); }
 });
 
+// ---- A pet name for V is rare (live 2026-10-31, Judy and Panam: "handsome" in most replies; bridge/pet-names.mjs) --------------------------------------------------------------
+
+const PET_EARLIER = [
+  ['hey', 'Hey, handsome. Good to see you.'],
+  ['how are you', 'I am fine, just tired of Mitch and his grumbling.'],
+];
+
+test('a pet name right after one was used is left out of the reply and the memory holds what was spoken, with no second request', async () => {
+  const {server, memory, host, logs, close} = await harness(() => 'Better now that you ask, handsome. Mitch is bringing the truck round at dawn.');
+  try {
+    for (const [v, r] of PET_EARLIER) memory.record({profileKey: 'panam-palmer', v, r});
+    const result = await host.reply({...turn('so where do we meet', PANAM), contextParts: parts()});
+    assert.equal(server.requests.length, 1);
+    assert.equal(result.text, 'Better now that you ask. Mitch is bringing the truck round at dawn.');
+    assert(logs.some(line => line.includes('Reply variety: left 1 pet name out of the reply')), logs.join('|'));
+    assert.equal(memory.recall({profileKey: 'panam-palmer'}).turns.at(-1).r, result.text);
+  } finally { await close(); }
+});
+
+test('after a quiet stretch one pet name is kept, once, and not the one used last', async () => {
+  const quiet = Array.from({length: 5}, (_, at) => [`line ${at}`, 'I am fine, just tired of Mitch and his grumbling.']);
+  for (const [raw, expected] of [['Sure thing, babe. Mitch is bringing the truck at dawn.', 'Sure thing. Mitch is bringing the truck at dawn.'],
+    ['Sure thing, sweetheart. Mitch is bringing the truck at dawn, babe.', 'Sure thing, sweetheart. Mitch is bringing the truck at dawn.']]) {
+    const {memory, host, close} = await harness(() => raw);
+    try {
+      memory.record({profileKey: 'panam-palmer', v: 'hey', r: 'Hey, babe. Good to see you.'});
+      for (const [v, r] of quiet) memory.record({profileKey: 'panam-palmer', v, r});
+      const result = await host.reply({...turn('so where do we meet', PANAM), contextParts: parts()});
+      assert.equal(result.text, expected);
+    } finally { await close(); }
+  }
+});
+
 test('a sentence that only announces she is here goes in a talk in person, and stays on the phone', async () => {
   const reply = 'I’m still here, standing right beside you. Mitch is bringing the truck round at dawn, so bring coffee.';
   const person = await harness(() => reply);
