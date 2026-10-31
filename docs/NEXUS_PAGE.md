@@ -5,9 +5,7 @@
 The page text is kept short: each fact is said once, in the section where a player looks for it, and features get one tight line. Sections in order: one download with the game versions, videos, key features (the old FAQ is folded in here and into the packs section), the settings block (local first, then cloud, then video memory), install (requirements, then three routes: by hand, Vortex, Mod Organizer 2, each with its update line), optional packs and your own models (including the second PC setup), languages, privacy and error reports, troubleshooting. Release history stays in the changelog, not on the page.
 
 ```text
-[size=4][b]One download: the main file, AI Companions using Large Language Models, holds everything. Extract it into your Cyberpunk 2077 folder and you are done.[/b][/size]
-The main file is for game [b]2.5[/b]. Still on [b]2.31[/b]? Take the optional file [b]AI Companions using Large Language Models (for game 2.31, older game version)[/b] instead, same mod and version. To play 2.31 on Steam: right-click the game, Properties, Game Versions & Betas, 2_31_old.
-
+These demo videos are from older versions and show how the mod worked then.
 [youtube]iR0lOYfrFx8[/youtube]
 
 [youtube]7hoYG5tmZ98[/youtube]
