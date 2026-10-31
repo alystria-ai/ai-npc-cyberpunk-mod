@@ -1877,4 +1877,7 @@ return {
     ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Az AMD Radeon kártyád képes futtatni az OmniVoice-t. Állítsd be a Beállítások > AI-hang és mikrofon > OmniVoice AMD-hez menüpontban: egy letöltés, utána magától indul. Addig a Pocket beszél.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "A Custom végpont nem fogad látást, a válaszok csak a szavaidat használják.",
     ["Type a name to search"] = "Írj be egy nevet a kereséshez",
+    ["In person"] = "Személyesen",
+    ["Phone calls and texts"] = "Telefonhívások és üzenetek",
+    ["The same switches for a character V is only calling or texting: holocalls and Phone Chat. A companion standing beside V is still treated as in person, even when V uses the phone."] = "Ugyanezek a kapcsolók vonatkoznak arra a figurára, akivel V csak telefonál vagy üzenetet vált: holohívások és telefonos csevegés. A V mellett álló társ személyesnek számít akkor is, ha V telefont használ.",
 }

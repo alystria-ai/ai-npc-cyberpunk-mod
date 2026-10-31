@@ -354,17 +354,18 @@ test('the shared instance follows the Dynamic info switch: off, nothing is said 
   const clock = {ms: T0};
   lastTalk.configure({path: null, now: () => clock.ms, keyFor: key => key});
   lastTalk.entries.clear(); lastTalk.turns.clear();
-  const before = dynamicInfo.off;
+  const before = [dynamicInfo.off, dynamicInfo.offPhone];
   try {
-    dynamicInfo.off = Object.freeze(new Set(['lastTalk']));
+    // Off in both sets: the time since the last talk is stored once for every kind of turn, so it stops only when neither set wants it.
+    dynamicInfo.off = dynamicInfo.offPhone = Object.freeze(new Set(['lastTalk']));
     lastTalk.record('judy-alvarez', at(30, 12), T0 - 6 * REAL_DAY);
     assert.equal(lastTalkSentence(real()), '');
     assert.deepEqual(lastTalk.peek('judy-alvarez'), {gameSeconds: at(30, 12), realMs: T0 - 6 * REAL_DAY}, 'untouched while off');
     assert.equal(conversationContext(real()).includes(MARK), false);
     assert.equal(lastTalk.peek('judy-alvarez').gameSeconds, at(30, 12), 'the context builders store nothing while it is off either');
-    dynamicInfo.off = before;
+    [dynamicInfo.off, dynamicInfo.offPhone] = before;
     assert.match(lastTalkSentence(real()), /^You last talked with V/);
-  } finally { dynamicInfo.off = before; lastTalk.entries.clear(); lastTalk.turns.clear(); }
+  } finally { [dynamicInfo.off, dynamicInfo.offPhone] = before; lastTalk.entries.clear(); lastTalk.turns.clear(); }
 });
 
 test('in the turn context the sentence is a Background line, the same on every build of the turn and gone on the next turn', () => {

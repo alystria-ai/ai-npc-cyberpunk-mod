@@ -1494,6 +1494,7 @@ local function settingsDigest(settings)
     table.sort(modes)
     local info = {}
     for key, on in pairs(settings.dynamicInfo or {}) do info[#info + 1] = key .. '=' .. tostring(on) end
+    for key, on in pairs(settings.dynamicInfoPhone or {}) do info[#info + 1] = 'phone.' .. key .. '=' .. tostring(on) end
     table.sort(info)
     local immersive = {}
     for key, value in pairs(settings.immersive or {}) do immersive[#immersive + 1] = key .. '=' .. tostring(value) end
@@ -1761,14 +1762,15 @@ end
 
 -- Dynamic info: one switch per kind of live game info a turn can carry (the kinds and their order are manager.dynamicInfoKinds). A page of its
 -- own, opened from the Conversations section of Settings (both hosts draw it from here). Each row is a literal call so the catalogue reads the text.
-local function dynamicInfoRows(snapshot)
-    local on = snapshot.settings.dynamicInfo or {}
+-- Two sets of the same rows: `phone` false is talk in person (ids dynamic:<kind>), true is holocalls and Phone Chat texts (ids dynamicPhone:<kind>).
+local function dynamicInfoRows(snapshot, phone)
+    local on = (phone and snapshot.settings.dynamicInfoPhone or snapshot.settings.dynamicInfo) or {}
     local function row(kind, label, description)
         -- All on by default except Other mods' state.
         local default = kind ~= 'mods'
         local value = on[kind]
         if type(value) ~= 'boolean' then value = default end
-        return setting('dynamic:' .. kind, label, 'bool', value, default, description)
+        return setting((phone and 'dynamicPhone:' or 'dynamic:') .. kind, label, 'bool', value, default, description)
     end
     return {
         row('location', 'Location',
@@ -2978,8 +2980,10 @@ local function schema()
         categories[#categories + 1] = category('housemates', 'Housemates', housemateSettingRows(snapshot),
             'Characters you tell they can stay at your place move into your apartments and live there.')
     elseif view == 'dynamic-info' then
-        categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
+        categories[#categories + 1] = category('dynamic-info', 'In person', dynamicInfoRows(snapshot, false),
             'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Google Gemini, Local AI and Custom).')
+        categories[#categories + 1] = category('dynamic-info-phone', 'Phone calls and texts', dynamicInfoRows(snapshot, true),
+            'The same switches for a character V is only calling or texting: holocalls and Phone Chat. A companion standing beside V is still treated as in person, even when V uses the phone.')
     elseif view == 'key-bindings' then
         for _, section in ipairs(keyBindingSections(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
@@ -3299,7 +3303,7 @@ function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
     local batch, record, names, refusal, matureNote = stageMature(changes, snapshot)
-    local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}, housemates = {}}, {}
+    local values, applied = {relationshipModes = {}, dynamicInfo = {}, dynamicInfoPhone = {}, immersive = {}, housemates = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
     if addonSettingsInUse() then convaiAddons.discardSettings() end
@@ -3432,6 +3436,9 @@ function M.apply(changes)
         elseif key:sub(1, 8) == 'dynamic:' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.dynamicInfo[key:sub(9)] = change.value
+        elseif key:sub(1, 13) == 'dynamicPhone:' then
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.dynamicInfoPhone[key:sub(14)] = change.value
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'companionReactions' then

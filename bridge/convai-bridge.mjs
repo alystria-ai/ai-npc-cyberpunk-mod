@@ -37,7 +37,7 @@ import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor} from './quest-context.mjs';
+import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor, dynamicOn, dynamicOff} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {eventExchange} from './appointment-events.mjs';
@@ -1900,10 +1900,10 @@ function publishEddies(input, result) {
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
-  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicInfo.on('location')})),
+  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicOn('location', input)})),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
     // Street reputation: at most two lines for an ordinary NPC's private turn, '' for everyone else and whenever the setting is off.
-    block('world', reputation.contextFor(input, {place: dynamicInfo.on('location')})),
+    block('world', reputation.contextFor(input, {place: dynamicOn('location', input)})),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
@@ -2735,13 +2735,13 @@ async function publishResult(input, profile, result, current = async () => true,
   logNaturalSpeech(input, result);
   // The reply is published, so this character has been told V's gear as of this turn: the next turn is compared against it and says what changed (bridge/gear-memory.mjs).
   // Not for an automatic reaction (it carries no gear), a voice with no body, or while Settings > Dynamic info has V's gear off (none of it was told).
-  const gearTold = () => { try { if (!input.reaction && !voice && dynamicInfo.on('gear')) gearSeen(input, gearMemory, {visible: isAmbientProfile(input.profileKey)}); } catch { /* a memory never affects a reply */ } };
+  const gearTold = () => { try { if (!input.reaction && !voice && dynamicOn('gear', input)) gearSeen(input, gearMemory, {visible: isAmbientProfile(input.profileKey)}); } catch { /* a memory never affects a reply */ } };
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
   // A voice with no body (persona.voiceContext) gets neither V's gear nor the person form of the block below.
   const voice = addonHost.usesVoiceContext(input.profileKey);
   try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input, {memory: gearMemory, visible: isAmbientProfile(input.profileKey), told: gearWantedFor(input)})}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
-  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice, off: dynamicInfo.off} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice, off: dynamicOff(input)} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample

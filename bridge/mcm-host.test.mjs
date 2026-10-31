@@ -680,18 +680,34 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   press('Dynamic info')
   local config = mcm.config()
   assert(config.navigation.pageId == 'dynamic-info|1|1' and config.navigation.backActionId == 'dynamic-info:back' and config.navigation.escapeBack == true)
-  assert(headings() == 'Dynamic info', headings())
+  assert(headings() == 'In person | Phone calls and texts', headings())
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.row('Location').type == 'bool' and mcm.row('Location').value == true and mcm.row('Quest and journal').type == 'bool')
+  -- Two sets of the same twelve switches: the first heading is talk in person (ids dynamic:<kind>), the second holocalls and Phone Chat (ids dynamicPhone:<kind>).
+  assert(mcm.row('dynamic:location').category == 'In person' and mcm.row('dynamicPhone:location').category == 'Phone calls and texts')
+  assert(mcm.row('dynamicPhone:location').type == 'bool' and mcm.row('dynamicPhone:location').value == true and mcm.row('dynamicPhone:mods').value == false)
+  local switchCount = 0
+  for _, row in ipairs(mcm.rows()) do if row.type == 'bool' then switchCount = switchCount + 1 end end
+  assert(switchCount == 24, switchCount)
   assert(mcm.set('Location', false) and mcm.set('Recent game dialogue', false) and mcm.apply())
   local info = manager.snapshot(player).settings.dynamicInfo
-  assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfo('dialogue') == false)
+  assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfoSet('dialogue', false) == false and manager.dynamicInfoSet('dialogue', true) == true)
   assert(mcm.row('Location').value == false and mcm.config().navigation.pageId == 'dynamic-info|1|1', 'still on the page after Apply')
+  assert(mcm.row('dynamicPhone:location').value == true, 'the phone set did not move')
+  assert(mcm.set('dynamicPhone:time', false) and mcm.set('dynamicPhone:money', false) and mcm.apply())
+  local phone = manager.snapshot(player).settings.dynamicInfoPhone
+  info = manager.snapshot(player).settings.dynamicInfo
+  assert(phone.time == false and phone.money == false and phone.location == true and info.time == true and info.money == true and info.location == false)
+  assert(manager.dynamicInfoSet('time', true) == false and manager.dynamicInfoSet('time', false) == true and manager.dynamicInfo('time') == true, 'read from the game when either set wants it')
+  assert(manager.dynamicInfo('location') == true, 'off in person but on for the phone: still read')
   -- Restore defaults on this page puts every switch back to its default, on except Other mods' state (and Settings with them).
   press('Defaults'); press('Defaults')
   info = manager.snapshot(player).settings.dynamicInfo
   for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
+  phone = manager.snapshot(player).settings.dynamicInfoPhone
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(phone[kind] == (kind ~= 'mods'), 'phone ' .. kind) end
   assert(mcm.row('Location').value == true and mcm.row('Other mods’ state').value == false)
+  assert(mcm.row('dynamicPhone:time').value == true and mcm.row('dynamicPhone:mods').value == false)
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings-conversations|1|1' and mcm.row('Dynamic info'))
   press('Back to settings'); press('Back to Companion Manager')

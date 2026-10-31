@@ -1,7 +1,11 @@
 // Settings > Dynamic info: which kinds of live game info a turn's context may carry (docs/DYNAMIC_INFO.md).
 //
 // The game side (mod/manager.lua) saves one on/off value per kind in runtime/settings.json, `dynamicInfo: {location: true, ...}`, all on by
-// default except `mods` (a missing or malformed value takes the default), and stops reading an off kind from the game (mod/turn-context.lua, mod/init.lua). This
+// default except `mods` (a missing or malformed value takes the default), and stops reading an off kind from the game (mod/turn-context.lua, mod/init.lua).
+// There are TWO sets of those switches: `dynamicInfo` for talk in person and `dynamicInfoPhone` for a holocall or a Phone Chat text (a character V is only
+// calling or texting). A kind missing from the phone set (an older file, from before the phone set) follows the in-person choice, so an update changes nothing.
+// A turn uses the phone set when it is a phone turn and the character is not standing beside V (bridge/quest-context.mjs dynamicOff). The game side reads
+// a kind when either set has it on. This
 // module is the bridge's half: it follows the same file and takes an off kind out of the context of EVERY provider, because they all build the
 // turn's context in one place (bridge/quest-context.mjs conversationContextBlocks: Convai's dynamic info, and the layers of the Mistral, Local AI
 // and Custom prompts). So an off kind is absent from the prompt even when an older request, or another mod's request, still carries it.
@@ -23,6 +27,10 @@
 // V's gender for V's own voice and the dialogue volume are no part of the words the model reads: they are kept.
 export const KINDS = Object.freeze(['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods']);
 export const NO_KINDS = Object.freeze(new Set());
+
+const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+/** Is this turn a Phone Chat text or a holocall (a one-to-one call, voice or video)? Whether the character stands beside V anyway is not asked here. */
+export const phoneTurn = input => !!input && (input.channel === 'phone' || (!input.group && plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo')));
 
 // The fields of a turn-context snapshot (bridge/turn-context.mjs parseTurnContext) each kind owns.
 const SNAPSHOT_FIELDS = Object.freeze({
@@ -46,11 +54,16 @@ export function stripSnapshot(snapshot, off = NO_KINDS) {
 // The kinds that are off until the player turns them on: a missing or non-boolean value is off for these, on for every other kind.
 const OFF_BY_DEFAULT = Object.freeze(new Set(['mods']));
 
-/** The kinds a settings object turns off: a kind is off when saved as the boolean false, or (an off-by-default kind) when it is not saved as true. */
-export function offKinds(settings) {
-  const table = settings && typeof settings === 'object' && settings.dynamicInfo && typeof settings.dynamicInfo === 'object' && !Array.isArray(settings.dynamicInfo)
-    ? settings.dynamicInfo : {};
-  return KINDS.filter(kind => OFF_BY_DEFAULT.has(kind) ? table[kind] !== true : table[kind] === false);
+const tableOf = (settings, name) => settings && plain(settings) && plain(settings[name]) ? settings[name] : {};
+const isOn = (table, kind) => OFF_BY_DEFAULT.has(kind) ? table[kind] === true : table[kind] !== false;
+
+/**
+ * The kinds a settings object turns off: a kind is off when saved as the boolean false, or (an off-by-default kind) when it is not saved as true.
+ * `phone` picks the phone set (holocalls and Phone Chat); a kind it does not carry as a boolean takes the in-person choice.
+ */
+export function offKinds(settings, phone = false) {
+  const person = tableOf(settings, 'dynamicInfo'), own = phone ? tableOf(settings, 'dynamicInfoPhone') : null;
+  return KINDS.filter(kind => !(own && typeof own[kind] === 'boolean' ? own[kind] : isOn(person, kind)));
 }
 
 /**
@@ -58,17 +71,26 @@ export function offKinds(settings) {
  * settings of the bridge). `off` is a frozen Set that is replaced, never changed, so a turn that holds it sees one consistent answer.
  */
 export class DynamicInfo {
-  constructor() { this.off = Object.freeze(new Set(OFF_BY_DEFAULT)); }
-  /** Returns whether the set of off kinds changed. */
+  constructor() { this.off = Object.freeze(new Set(OFF_BY_DEFAULT)); this.offPhone = this.off; }
+  /** Returns whether either set of off kinds changed. */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
-    const next = offKinds(settings), changed = next.join() !== [...this.off].join();
-    if (changed) this.off = next.length ? Object.freeze(new Set(next)) : NO_KINDS;
+    const freeze = next => next.length ? Object.freeze(new Set(next)) : NO_KINDS;
+    const person = offKinds(settings), phone = offKinds(settings, true);
+    const changed = person.join() !== [...this.off].join() || phone.join() !== [...this.offPhone].join();
+    if (changed) { this.off = freeze(person); this.offPhone = freeze(phone); }
     return changed;
   }
-  on(kind) { return !this.off.has(kind); }
+  /** The off kinds of one kind of turn: the phone set (holocall or Phone Chat) or the in-person set. */
+  offFor(phone = false) { return phone ? this.offPhone : this.off; }
+  on(kind, phone = false) { return !this.offFor(phone).has(kind); }
+  /** On in either set: for what is stored or read once for every kind of turn (the time since the last talk). */
+  onAny(kind) { return !this.off.has(kind) || !this.offPhone.has(kind); }
   /** One short line for the log. */
-  describe() { return this.off.size ? `off: ${[...this.off].join(', ')}` : 'all on'; }
+  describe() {
+    const line = set => set.size ? `off: ${[...set].join(', ')}` : 'all on';
+    return [...this.off].join() === [...this.offPhone].join() ? line(this.off) : `in person ${line(this.off)}, phone ${line(this.offPhone)}`;
+  }
 }
 
 /** The one instance the bridge's context builders ask. */

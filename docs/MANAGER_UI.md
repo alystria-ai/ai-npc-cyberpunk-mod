@@ -127,6 +127,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations, view `dynamic-info`, back to Conversations): twelve switches, one per kind of live game info a turn's
     context can carry (Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game
     dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default except Other mods' state (`mods`). Row ids `dynamic:<kind>`, saved as `dynamicInfo.<kind>`, the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
+    Since 2026-10-31 the page has two headed groups of these twelve rows, **In person** (`dynamic:<kind>`, `dynamicInfo`) and **Phone calls and texts** (`dynamicPhone:<kind>`, `dynamicInfoPhone`, applied as a `dynamicInfoPhone` table); Restore defaults resets both.
     What each switch removes, on the game side and in every provider's prompt, is in `docs/DYNAMIC_INFO.md`.
   - Romantic relationships (a page of its own, opened by the Romantic relationships row of Conversations, back to Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary, Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and

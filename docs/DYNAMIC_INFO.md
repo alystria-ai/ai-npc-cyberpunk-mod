@@ -6,7 +6,7 @@ the player turn each kind off, and says how the place is worded. The audit of wh
 
 ## What the player sees
 
-**Settings > Conversations > Dynamic info (Open)** opens a page with twelve switches, all on by default except **Other mods' state**, which is off by default (a missing or malformed saved value takes the default, in the game and in the bridge). An off kind is left out of every conversation
+**Settings > Conversations > Dynamic info (Open)** opens a page with two sets of the same twelve switches (see "Two sets of switches" below: the first heading **In person**, the second **Phone calls and texts**). Each set has twelve switches, all on by default except **Other mods' state**, which is off by default (a missing or malformed saved value takes the default, in the game and in the bridge). An off kind is left out of every conversation
 provider (Convai, Mistral, Local AI and Custom) and the mod stops reading it from the game. The page has the usual Back row and takes part in
 Restore defaults (Native Settings UI's own button, and the Defaults footer button in Mod Configuration Menu).
 
@@ -31,10 +31,42 @@ of a loot reaction, the relationship style (Relationships page), the vision pict
 and it follows the same place rule: indoors or outdoors only from the text, else the picture), V's voice gender and the dialogue volume for V's typed-line
 voice (they are no part of the words the model reads; they keep working with every switch off).
 
+## Two sets of switches: in person, and phone calls and texts (2026-10-31)
+
+Added from a player request: some live info should reach a companion who is with V, but not a character V is only calling or texting. The page now has two headed
+groups of the same twelve rows, in the same row style, in the same order:
+
+- **In person** (the party and face to face talk). Row ids `dynamic:<kind>`, saved as `dynamicInfo.<kind>` (unchanged, so every older file keeps working).
+- **Phone calls and texts** (holocalls, voice or video, and Phone Chat messages). Row ids `dynamicPhone:<kind>`, saved as `dynamicInfoPhone.<kind>`.
+
+Restore defaults resets both groups. Only three new texts were added to the catalogue and the 15 locale files ("In person", "Phone calls and texts" and the
+sentence under the second heading). The labels and help of the rows are the same strings as before.
+
+**Defaults and old files.** A player who never touched the phone set gets a copy of their in-person choices: when the settings load, every kind that has no saved
+boolean in `dynamicInfoPhone` takes the player's current in-person value, and the file is saved once, so an update changes nothing for anyone. A fresh install has the
+same defaults in both sets (all on except Other mods' state), so there is nothing to explain. After that the two sets are independent. The bridge does the same copy
+on its own when it reads a file that has no phone set yet (`offKinds(settings, true)`), so a bridge that starts before the game has saved the file behaves the same.
+
+**Which set a turn uses.** The phone set applies to a Phone Chat text (`input.channel === 'phone'`) and to a one-to-one holocall (`input.holocall.mode` is `audio` or
+`holo`, not a group round), unless the character is standing within a few metres of V (the party row says `near`, `besideV` in `bridge/turn-context.mjs`): that character is
+treated as in person even when V uses the phone, the same rule as the "right beside you" form of the right-now block. Every other turn (face to face talk, group
+rounds, reactions, speak-up, Johnny in V's head, an ordinary NPC) uses the in-person set. `phoneTurn(input)` in `bridge/dynamic-info.mjs` says whether a turn is a phone
+turn, `dynamicOff(input)` and `dynamicOn(kind, input)` in `bridge/quest-context.mjs` pick the set (`besideV` is read only for a phone turn). `conversationContextBlocks`,
+`turnContextOptions`, `gearWantedFor` and the other per-turn callers in `bridge/convai-bridge.mjs` all go through them, so every provider follows the same set.
+
+**Cost.** Nothing new is read or polled. The game side reads a kind when EITHER set has it on (`M.dynamicInfo(kind)` is the union, `M.dynamicInfoSet(kind, phone)` is one
+set, and the `convaiDynamicInfo` global the per-frame journal collector reads is the union), because the turn context is read once for both kinds of turn; the bridge then
+drops what the turn's own set turned off (`stripSnapshot` with that set). A kind off in both sets is not read at all, exactly as before. The picking itself is a set
+lookup at the time a turn's context is built, never per frame. One consequence worth knowing: the time since the last talk is stored for a turn only when its own set has
+that kind on, so with it off for the phone only, texts and calls do not count as a talk, and the next face to face talk says how long since the last face to face one.
+
+The support report lists the kinds that are off in each set (`dynamicInfoOff`, `dynamicInfoPhoneOff`).
+
 ## Where it is applied
 
-Both halves follow the same saved table (`runtime/settings.json`, `"dynamicInfo": {"location": true, ...}`; a missing or non-boolean value is on, a key that
-is not a kind is dropped on load; the table is also in the support report's settings section, with a `dynamicInfoOff` list of the kinds that are off).
+Both halves follow the same saved tables (`runtime/settings.json`, `"dynamicInfo": {"location": true, ...}` for talk in person and `"dynamicInfoPhone": {...}` for holocalls and texts;
+a missing or non-boolean value is on, a key that is not a kind is dropped on load, and a missing phone value takes the in-person choice. The tables are also in the support report's
+settings section, with `dynamicInfoOff` and `dynamicInfoPhoneOff` lists of the kinds that are off).
 
 - **Game side** (`mod/manager.lua`: `dynamicInfoKinds`, `M.dynamicInfo(kind)`, `applySettings` key `dynamicInfo`, `convaiDynamicInfo` global published on load and
   on save; `mod/manager-ui.lua`: the page and the `dynamic:<kind>` rows; `mod/turn-context.lua`: `options.enabled(kind)`; `mod/init.lua`: `convaiGateCapture`,
@@ -85,7 +117,7 @@ form above, not the apartment. Only V's own apartment records (`HOME_PLACES` in 
 ## Tests
 
 `bridge/dynamic-info.test.mjs` (every kind off, for Convai, Mistral, Local AI and Custom, with every other kind still present; the Lua reads; the location
-wording), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs`,
+wording; the two sets: an old file without the phone set, a holocall, a text, a face to face turn and a phone turn with the character beside V), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs`,
 `bridge/settings-file-lua.test.mjs` and `bridge/support-report*.test.mjs`, plus `bridge/nsui-labels.test.mjs` (every label of the page fits, in all 16 languages).
 
 ## Money talk (2026-10-26)

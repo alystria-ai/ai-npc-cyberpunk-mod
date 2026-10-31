@@ -1877,4 +1877,7 @@ return {
     ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Tvoje karta AMD Radeon může spustit OmniVoice. Nastav ho v Nastavení > Hlasová AI a mikrofon > OmniVoice pro AMD: jedno stažení, pak se spustí samo. Dokud to neuděláš, mluví Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Tvůj Custom koncový bod nepřijímá vizi, odpovědi tedy berou jen tvá slova.",
     ["Type a name to search"] = "Napište jméno k vyhledání",
+    ["In person"] = "Osobně",
+    ["Phone calls and texts"] = "Telefonní hovory a zprávy",
+    ["The same switches for a character V is only calling or texting: holocalls and Phone Chat. A companion standing beside V is still treated as in person, even when V uses the phone."] = "Stejné přepínače platí pro postavu, se kterou V jen telefonuje nebo píše: holohovory a chat v telefonu. Společník stojící vedle V se nadále považuje za osobní kontakt, i když V používá telefon.",
 }

@@ -237,7 +237,7 @@ export class LastTalk {
 }
 
 /** The one store the turn's context builders ask; the bridge points it at its state file and the memory keys at startup (convai-bridge.mjs). */
-export const lastTalk = new LastTalk({enabled: () => dynamicInfo.on('lastTalk')});
+export const lastTalk = new LastTalk({enabled: () => dynamicInfo.onAny('lastTalk')});
 
 /** The one sentence about the gap since this character was last talked to, or ''. Built once per turn id. */
 export function lastTalkSentence(input) { return lastTalk.sentenceFor(input); }

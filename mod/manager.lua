@@ -93,6 +93,9 @@ for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] 
 -- Dynamic info (Settings > Dynamic info): the kinds of live game information a turn's context can carry. Each is one saved on/off value in
 -- settings.dynamicInfo (on by default, except 'mods' (Other mods' state), which is off by default; a missing or malformed value takes the default). The bridge reads the same table from runtime/settings.json and drops an
 -- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
+-- There are two sets of the same switches: settings.dynamicInfo for talk in person, settings.dynamicInfoPhone for holocalls and Phone Chat texts
+-- (a player who never touched the phone set gets a copy of the in-person set, once, when the settings load). The bridge picks the set by the kind of turn;
+-- this side reads a kind from the game when EITHER set has it on, because the turn context is read once for both.
 -- Order is the order of the page.
 local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
 -- The stored values of both speak-up lists: off, rare (about 2 an hour), medium (about 4, shown as Normally) and normal (about 6, shown as Often:
@@ -109,7 +112,9 @@ local function publishDynamicInfo(from)
     for _, kind in ipairs(dynamicInfoKinds) do
         local value = from.dynamicInfo[kind]
         if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
-        flags[kind] = value
+        local phone = from.dynamicInfoPhone and from.dynamicInfoPhone[kind]
+        -- Read from the game when either set wants it (a phone set that is missing or malformed follows the in-person one).
+        flags[kind] = value or phone == true
     end
     convaiDynamicInfo = flags
 end
@@ -854,6 +859,14 @@ local function loadSettings()
     end
     for _, kind in ipairs(dynamicInfoKinds) do
         if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = dynamicInfoDefault(kind), true end
+    end
+    -- The phone set (holocalls and Phone Chat texts): the same kinds; a kind not saved yet starts as the player's in-person choice, so an update changes nothing.
+    if type(settings.dynamicInfoPhone) ~= 'table' then settings.dynamicInfoPhone, settingsNeedSave = {}, true end
+    for key in pairs(settings.dynamicInfoPhone) do
+        if not dynamicInfoKnown[key] then settings.dynamicInfoPhone[key], settingsNeedSave = nil, true end
+    end
+    for _, kind in ipairs(dynamicInfoKinds) do
+        if type(settings.dynamicInfoPhone[kind]) ~= 'boolean' then settings.dynamicInfoPhone[kind], settingsNeedSave = settings.dynamicInfo[kind], true end
     end
     publishDynamicInfo(settings)
     do
@@ -1683,11 +1696,19 @@ function M.dynamicInfoKinds() return dynamicInfoKinds end
 
 -- Whether one kind is on (its default unless the player set it: on, except Other mods' state). A table lookup once the settings are loaded:
 -- the turn builders ask it at send time, never per frame.
-function M.dynamicInfo(kind)
+function M.dynamicInfoSet(kind, phone)
     loadSettings()
     local value = settings.dynamicInfo and settings.dynamicInfo[kind]
-    if type(value) ~= 'boolean' then return dynamicInfoDefault(kind) end
-    return value
+    if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
+    if not phone then return value end
+    local own = settings.dynamicInfoPhone and settings.dynamicInfoPhone[kind]
+    if type(own) ~= 'boolean' then return value end
+    return own
+end
+
+-- Whether the game should be read for one kind: on in either set (talk in person, or holocalls and texts). This is what every reader of the game asks.
+function M.dynamicInfo(kind)
+    return M.dynamicInfoSet(kind, false) or M.dynamicInfoSet(kind, true)
 end
 
 function M.subtitleStyle()
@@ -2364,8 +2385,11 @@ function M.snapshot(player)
     for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
     local relationshipModes = {}
     for key in pairs(relationshipKeys) do relationshipModes[key] = settings.relationshipModes[key] end
-    local dynamicInfo = {}
-    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
+    local dynamicInfo, dynamicInfoPhone = {}, {}
+    for _, kind in ipairs(dynamicInfoKinds) do
+        dynamicInfo[kind] = M.dynamicInfoSet(kind, false)
+        dynamicInfoPhone[kind] = M.dynamicInfoSet(kind, true)
+    end
     return {
         profiles = profiles, invitable = invitableProfiles(), side = sideProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
@@ -2374,6 +2398,7 @@ function M.snapshot(player)
             conversationProvider = settings.conversationProvider,
             relationshipModes = relationshipModes,
             dynamicInfo = dynamicInfo,
+            dynamicInfoPhone = dynamicInfoPhone,
             immersive = cleanImmersive(settings.immersive),
             housemates = cleanHousemates(settings.housemates),
             battleReactions = settings.battleReactions,
@@ -2460,6 +2485,8 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     nextSettings.dynamicInfo = {}
     for key, value in pairs(settings.dynamicInfo) do nextSettings.dynamicInfo[key] = value end
+    nextSettings.dynamicInfoPhone = {}
+    for key, value in pairs(settings.dynamicInfoPhone or {}) do nextSettings.dynamicInfoPhone[key] = value end
     nextSettings.keyBindings = {}
     for action, name in pairs(settings.keyBindings or {}) do nextSettings.keyBindings[action] = name end
     nextSettings.immersive = cleanImmersive(settings.immersive)
@@ -2497,6 +2524,12 @@ function M.applySettings(player, values)
             for kind, on in pairs(value) do
                 if not dynamicInfoKnown[kind] or type(on) ~= 'boolean' then return false, 'This setting must be on or off.' end
                 nextSettings.dynamicInfo[kind] = on
+            end
+        elseif key == 'dynamicInfoPhone' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            for kind, on in pairs(value) do
+                if not dynamicInfoKnown[kind] or type(on) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                nextSettings.dynamicInfoPhone[kind] = on
             end
         elseif key == 'immersive' then
             if type(value) ~= 'table' then return false, 'This setting must be on or off.' end

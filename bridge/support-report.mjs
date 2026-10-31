@@ -677,7 +677,7 @@ export async function collectReport(options) {
     const flags = enabledByKey && typeof enabledByKey === 'object' ? enabledByKey : {};
     // Settings > Dynamic info: the table is in the settings above; the kinds that are off are also listed, so they are seen at a glance.
     settingsView = redact.value({...rest, conversationEnabledCount: Object.values(flags).filter(value => value !== false).length,
-      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false), dynamicInfoOff: offKinds(settings)});
+      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false), dynamicInfoOff: offKinds(settings), dynamicInfoPhoneOff: offKinds(settings, true)});
   }
   const party = [...lua.party];
   if (!party.length && Array.isArray(raw['party-connections.json']?.profiles)) {
