@@ -6100,7 +6100,7 @@ local function keyReplyNotice(reply)
         -- The free daily limit of a model (OpenRouter): when it resets on this computer's clock (the bridge sends "HH:MM"), if the endpoint said.
         local at = reply.errorResetTime
         if type(at) == 'string' and at:match('^%d%d:%d%d$') then
-            return 'custom-daily', ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = at})
+            return 'custom-daily', ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = type(ui.clockText) == 'function' and ui.clockText(at) or at})
         end
         return 'custom-daily', ui.t('The free daily limit for this model was reached. Try again after it resets.')
     elseif reply.errorCode == 'custom-reasoning' then
@@ -6112,10 +6112,10 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'gemini-key' then
         return 'gemini-key', ui.t('Google did not accept your Gemini key. Check it in Google AI Studio and add it again.')
     elseif reply.errorCode == 'gemini-daily' then
-        -- The free allowance of the day: when it comes back on this computer's clock (the bridge sends "HH:MM", Google resets at midnight Pacific).
+        -- The free allowance of the day: when it comes back on this computer's clock (the bridge sends "HH:MM", Google resets at midnight Pacific; shown as "5:30 AM" in English).
         local at = reply.errorResetTime
         if type(at) == 'string' and at:match('^%d%d:%d%d$') then
-            return 'gemini-daily', ui.t('Your free Gemini allowance for today is used up. It resets at {time}. Use Convai or Local AI.', {time = at})
+            return 'gemini-daily', ui.t('Your free Gemini allowance for today is used up. It resets at {time}. Use Convai or Local AI.', {time = type(ui.clockText) == 'function' and ui.clockText(at) or at})
         end
         return 'gemini-daily', ui.t('Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.')
     elseif reply.errorCode == 'gemini-limit' then

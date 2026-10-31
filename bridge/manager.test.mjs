@@ -1532,7 +1532,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
     key('a', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[3] == 'Voxtral (recommended)', row('voiceProvider').elements[3])
+    assert(row('voiceProvider').elements[3] == 'Voxtral · Mistral cloud', row('voiceProvider').elements[3])
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(saved.voiceProvider == 'voxtral' and manager.snapshot(player).settings.voiceProvider == 'voxtral')
@@ -2946,7 +2946,7 @@ test('settings review wording: short voice description, no Body gestures or Auto
     assert(not voices.description:lower():find('recommended', 1, true), 'the voice description does not call a voice recommended; the Voxtral entry does')
     -- Only the Voxtral entry says recommended, directly after Pocket (with a Mistral key saved); every other voice entry stays plain.
     for index, label in ipairs(voices.elements) do
-      assert((label:lower():find('recommended', 1, true) ~= nil) == (index == 3 and label == 'Voxtral (recommended)'), 'entry ' .. index .. ': ' .. label)
+      assert(not label:lower():find('recommend', 1, true), 'entry ' .. index .. ': ' .. label)
     end
     assert(voices.elements[1] == 'Off' and voices.elements[2] == 'Pocket · Performance' and voices.elements[3]:find('Voxtral', 1, true) == 1, voices.elements[3])
     assert(row('bodyGestures') == nil, 'body gestures are always on: there is no row')
@@ -5094,12 +5094,23 @@ test('The provider row says when the player key runs without memory or cannot ho
     local geminiHelp = row('gemini-key').description
     -- It says when the turns come back on this computer's clock (the next 00:00 UTC, convaiUiLocale.dailyResetClock), not "tomorrow".
     local resetAt = convaiUiLocale.dailyResetClock()
-    assert(resetAt and resetAt:match('^%d%d:%d%d$'), tostring(resetAt))
+    assert(resetAt and resetAt:match('^%d?%d:%d%d [AP]M$'), tostring(resetAt))
     assert(geminiHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not geminiHelp:find('tomorrow', 1, true)
       and geminiHelp:find('Local AI (unlimited) or Google Gemini (with your own key).', 1, true), geminiHelp)
     assert(lastParagraph(geminiHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Google Gemini key help')
     local limitText = lastParagraph(geminiHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
+    -- The bridge publishes the sign-in backend's own reset instant (daily.resetsAt, epoch seconds): the page reads it and says that time.
+    local ahead = os.time() + 3 * 3600
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true, resetsAt = ahead}}, 'blocked-told')
+    assert(manager.ownKey().daily.blocked == true)
+    assert(convaiUiLocale.dailyResetClock() == convaiUiLocale.clockText(os.date('%H:%M', ahead)), 'the backend instant, not 00:00 UTC')
+    assert(row('gemini-key').description:find('which come back at ' .. convaiUiLocale.clockText(os.date('%H:%M', ahead)) .. '.', 1, true), row('gemini-key').description)
+    -- A status without it (or a past or junk one) goes back to the next 00:00 UTC.
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true, resetsAt = os.time() - 100}}, 'blocked-past')
+    assert(manager.ownKey().daily.blocked == true and convaiUiLocale.dailyResetClock() == resetAt)
+    state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true, resetsAt = 'soon'}}, 'blocked-junk')
+    assert(manager.ownKey().daily.blocked == true and convaiUiLocale.dailyResetClock() == resetAt)
     state({saved = false, active = 'shared', daily = {limit = 150, left = 0, blocked = true}}, 'blocked150')
     assert(row('gemini-key').description:find('today’s 150 turns', 1, true), 'the number is the one the bridge reports')
     state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily-again')
@@ -6135,7 +6146,7 @@ test('Mature content refuses a Voxtral choice (companions and V), greys the entr
     local VOXTRAL
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'voxtral' then VOXTRAL = index + 1 end end
     -- Off: Voxtral is a plain, enabled entry (the key is saved).
-    assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral (recommended)' and (row('voiceProvider').disabledElements == nil or row('voiceProvider').disabledElements[VOXTRAL] == nil))
+    assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral · Mistral cloud' and (row('voiceProvider').disabledElements == nil or row('voiceProvider').disabledElements[VOXTRAL] == nil))
     assert(row('vVoiceEngine').elements[2] == 'Voxtral · Mistral cloud' and (row('vVoiceEngine').disabledElements or {})[2] == nil)
     assert(core.apply({{id = 'voiceProvider', value = VOXTRAL}}).ok and saved.voiceProvider == 'voxtral')
     assert(core.apply({{id = 'vVoiceEngine', value = 2}}).ok and saved.vVoiceEngine == 'voxtral')

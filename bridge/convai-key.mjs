@@ -284,10 +284,13 @@ export function parseKeyCommand(raw, now = Date.now()) {
  * settings page reads. The key itself never enters either file. */
 export class OwnKeyControl {
   // daily: the shared key's SharedKeyGuard (its snapshot() is published as `daily` while the shared key is in use).
-  constructor({keys, commandPath, publish, quota, daily, readClipboard = readClipboardText, validate = validateKey,
+  // resetAt: () => epoch ms or null, when the sign-in backend says the day ends (its token response's allowance.resetAt); published as
+  // daily.resetsAt (epoch seconds) so the game can say when the turns come back on the player's own clock. Without one, or when it is not ahead,
+  // the next 00:00 UTC, the instant the guard and the backend change day at.
+  constructor({keys, commandPath, publish, quota, daily, resetAt, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now} = {}) {
     if (!keys || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid own key configuration');
-    Object.assign(this, {keys, commandPath, publish, quota, daily, readClipboard, validate, read, now});
+    Object.assign(this, {keys, commandPath, publish, quota, daily, resetAt, readClipboard, validate, read, now});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
@@ -297,7 +300,10 @@ export class OwnKeyControl {
     return this;
   }
   status() {
-    const quota = this.quota?.snapshot() ?? null, daily = this.daily?.snapshot() ?? null;
+    const quota = this.quota?.snapshot() ?? null, snapshot = this.daily?.snapshot() ?? null;
+    const now = this.now(), told = Number(typeof this.resetAt === 'function' ? this.resetAt() : null);
+    const resetsAt = Math.floor((Number.isFinite(told) && told > now && told - now <= 2 * 86_400_000 ? told : (Math.floor(now / 86_400_000) + 1) * 86_400_000) / 1000);
+    const daily = snapshot ? {...snapshot, resetsAt} : null;
     return {version: 1, updated: this.now(), preference: this.keys.preference, saved: !!this.keys.player,
       tail: this.keys.tail, active: this.keys.source, pending: this.keys.pending, memory: this.keys.memoryBlocked ? 'off' : 'on',
       ...(this.result ? {result: this.result} : {}), ...(quota ? {limit: quota} : {}),

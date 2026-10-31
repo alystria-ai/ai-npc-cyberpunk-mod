@@ -3,7 +3,7 @@
 // The game side (mod/manager.lua) saves one on/off value per kind in runtime/settings.json, `dynamicInfo: {location: true, ...}`, all on by
 // default except `mods` (a missing or malformed value takes the default), and stops reading an off kind from the game (mod/turn-context.lua, mod/init.lua).
 // There are TWO sets of those switches: `dynamicInfo` for talk in person and `dynamicInfoPhone` for a holocall or a Phone Chat text (a character V is only
-// calling or texting). A kind missing from the phone set (an older file, from before the phone set) follows the in-person choice, so an update changes nothing.
+// calling or texting) and has defaults of its own (a caller or texter does not see V): see OFF_BY_DEFAULT_PHONE. A kind missing from the phone set takes the phone default.
 // A turn uses the phone set when it is a phone turn and the character is not standing beside V (bridge/quest-context.mjs dynamicOff). The game side reads
 // a kind when either set has it on. This
 // module is the bridge's half: it follows the same file and takes an off kind out of the context of EVERY provider, because they all build the
@@ -53,17 +53,20 @@ export function stripSnapshot(snapshot, off = NO_KINDS) {
 
 // The kinds that are off until the player turns them on: a missing or non-boolean value is off for these, on for every other kind.
 const OFF_BY_DEFAULT = Object.freeze(new Set(['mods']));
+// The same for the phone set: what a caller or texter could not see is off (location, company and vehicle, health and heat and fights, money, gear, the
+// music and TV around V, the game dialogue V is in, other mods' state). On: time, about, quest, lastTalk. Mirrors dynamicInfoDefault in mod/manager.lua.
+export const OFF_BY_DEFAULT_PHONE = Object.freeze(new Set(['location', 'company', 'condition', 'money', 'gear', 'media', 'dialogue', 'mods']));
 
 const tableOf = (settings, name) => settings && plain(settings) && plain(settings[name]) ? settings[name] : {};
-const isOn = (table, kind) => OFF_BY_DEFAULT.has(kind) ? table[kind] === true : table[kind] !== false;
+const isOn = (table, kind, offByDefault = OFF_BY_DEFAULT) => offByDefault.has(kind) ? table[kind] === true : table[kind] !== false;
 
 /**
  * The kinds a settings object turns off: a kind is off when saved as the boolean false, or (an off-by-default kind) when it is not saved as true.
- * `phone` picks the phone set (holocalls and Phone Chat); a kind it does not carry as a boolean takes the in-person choice.
+ * `phone` picks the phone set (holocalls and Phone Chat); a kind it does not carry as a boolean takes the phone default.
  */
 export function offKinds(settings, phone = false) {
-  const person = tableOf(settings, 'dynamicInfo'), own = phone ? tableOf(settings, 'dynamicInfoPhone') : null;
-  return KINDS.filter(kind => !(own && typeof own[kind] === 'boolean' ? own[kind] : isOn(person, kind)));
+  if (phone) return KINDS.filter(kind => !isOn(tableOf(settings, 'dynamicInfoPhone'), kind, OFF_BY_DEFAULT_PHONE));
+  return KINDS.filter(kind => !isOn(tableOf(settings, 'dynamicInfo'), kind));
 }
 
 /**
@@ -71,7 +74,7 @@ export function offKinds(settings, phone = false) {
  * settings of the bridge). `off` is a frozen Set that is replaced, never changed, so a turn that holds it sees one consistent answer.
  */
 export class DynamicInfo {
-  constructor() { this.off = Object.freeze(new Set(OFF_BY_DEFAULT)); this.offPhone = this.off; }
+  constructor() { this.off = Object.freeze(new Set(OFF_BY_DEFAULT)); this.offPhone = Object.freeze(new Set(OFF_BY_DEFAULT_PHONE)); }
   /** Returns whether either set of off kinds changed. */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;

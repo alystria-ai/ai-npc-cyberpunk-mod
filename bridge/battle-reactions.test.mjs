@@ -7,6 +7,11 @@ import {parseInput} from './protocol.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {inputIdentity} from './group-prefetch.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
+import {dynamicInfo} from './dynamic-info.mjs';
+
+// A phone turn carries only what a caller could know unless the player turns more on (the phone set has defaults of its own, docs/DYNAMIC_INFO.md). These tests
+// are about what a phone turn can carry, so the phone set is all on here.
+dynamicInfo.update({dynamicInfo: {mods: true}, dynamicInfoPhone: Object.fromEntries(['location', 'company', 'condition', 'money', 'gear', 'media', 'dialogue', 'mods'].map(kind => [kind, true]))});
 
 const source = readFileSync(new URL('../mod/battle-reactions.lua', import.meta.url), 'utf8');
 const observer = readFileSync(new URL('../mod/battle-observer.lua', import.meta.url), 'utf8');

@@ -13,10 +13,11 @@ module CyberpunkConvai
 // queues when it changes. The journal screen adds the quests when it builds its list (when it opens, or when an entry changes while it is open).
 //
 // Tracking: the HUD tracker shows one quest, the game's or one of these. A pack that starts takes the tracker unless the tracked game quest is a main job (the
-// main story keeps the tracker, V can still pick the pack in the journal). The game's own tracking is never changed: the journal is only read (no TrackEntry,
-// no UntrackEntry, docs/MOD_COMPATIBILITY.md "What is written into a save"), so a game quest that was tracked stays tracked underneath, keeps its route, and
-// is shown again the moment the pack lets go. It lets go when the pack ends, when V tracks a game quest in the journal, and when the game moves its tracked
-// objective (the story moved on, so the story gets the tracker back).
+// main story keeps the tracker, V can still pick the pack in the journal). The journal is otherwise only read (TrackEntry is never called). The one write,
+// owner decision 31 Oct 2026: when a pack starts and takes the tracker while a game SIDE job is tracked, that job is really untracked (one UntrackEntry, in
+// TakeTracker only, never for a main job, never when V picks a pack by hand), so the journal shows exactly one tracked mark. Nothing is restored later: when
+// the pack ends or V tracks something else, that side job stays untracked. The pack lets go of the tracker when it ends, when V tracks a game quest in the
+// journal, and when the game moves its tracked objective (the story moved on, so the story gets the tracker back).
 //
 // The map: the waypoint is a quest pin at the place's position. The game draws the road route only to a pin V tracks on the world map, so V tracks it there
 // once for the route (no script can do that for V: the map screen's TrackMappin is the only way in).
@@ -233,13 +234,20 @@ public class ConvaiQuestLog extends ScriptableSystem {
     }
 
     // byItself: a pack that just started, which never takes the tracker from a main job. The game's tracked objective is noted, so a later move of it is seen.
+    // When a pack that just started takes the tracker from a game side job, that job is untracked in the journal (once, here, nowhere else) so the journal
+    // shows one tracked mark. A main job, or a tracked entry whose quest cannot be told, is left alone. V's own pick of a pack untracks nothing.
     private final func TakeTracker(id: String, byItself: Bool) -> Void {
         let journal: ref<JournalManager> = this.Journal();
         let tracked: wref<JournalEntry> = journal.GetTrackedEntry();
         if IsDefined(tracked) {
             let quest: wref<JournalQuest> = questLogGameController.GetTopQuestEntry(journal, tracked);
             if byItself && IsDefined(quest) && Equals(journal.GetQuestType(quest), gameJournalQuestType.MainQuest) { return; }
-            this.m_gameHash = journal.GetEntryHash(tracked);
+            if byItself && IsDefined(quest) {
+                journal.UntrackEntry();
+                this.m_gameHash = 0;
+            } else {
+                this.m_gameHash = journal.GetEntryHash(tracked);
+            }
         } else {
             this.m_gameHash = 0;
         }

@@ -180,8 +180,9 @@ test('Dynamic info: every kind is on unless saved as the boolean false (the mods
   `);
   const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
   assert.deepEqual(out.info, {...all, location: false, gear: false});
-  assert.deepEqual(out.phone, {...all, location: false, gear: false}, 'an older file has no phone set: it starts as a copy of the in-person choices, so nothing changes on update');
-  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, {...all, location: false, gear: false}, 'and the copy is saved');
+  assert.deepEqual(out.phone, PHONE, 'an older file has no phone set: it gets the phone defaults (a caller or texter does not see V), whatever the in-person choices are');
+  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, PHONE, 'and they are saved, with the marker that they were applied once');
+  assert.equal(JSON.parse(out.text).dynamicInfoPhoneDefaults, 1);
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, {...all, location: false, gear: false}, 'the file is rewritten clean');
   assert.deepEqual(out.flags, {...all, location: false, gear: false}, 'the table the per-frame collectors read');
   assert.deepEqual(out.answers.slice(0, 3), [false, true, false]); assert.equal(out.answers[3], true, 'an unknown kind counts as on');
@@ -219,7 +220,7 @@ test('Dynamic info, two sets: the phone set is its own saved table, applied and 
   `);
   const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
   assert.deepEqual(out.person, {...all, location: false, gear: false, mods: true});
-  assert.deepEqual(out.phone, {...all, time: false, gear: false, mods: true}, 'a saved boolean stays; a missing or malformed kind takes the in-person choice; an unknown kind is dropped');
+  assert.deepEqual(out.phone, {...PHONE, location: true, time: false}, 'a phone set of the player\'s own (it differs from the in-person set) keeps its saved booleans; a missing or malformed kind takes the phone default; an unknown kind is dropped');
   assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, out.phone);
   assert.deepEqual(out.flags, {...all, gear: false, mods: true}, 'the per-frame table: a kind is read when either set has it on');
   assert.deepEqual(out.read, [true, true, false, true]);
@@ -734,6 +735,38 @@ test('quest memory: an older file with both saved false moves to on once, and a 
   assert.equal(out.receipts3, false);
 });
 
+// The phone set (holocalls and Phone Chat texts) is for a character who only hears or reads V: off are what she could not see (location, company and vehicle,
+// health and heat and fights, money, gear, music and TV, game dialogue, other mods' state), on are the hour and weather, V's gender and lifepath, the open jobs
+// and the time since the last talk (owner, 31 Oct 2026).
+const PHONE = {location: false, time: true, company: false, condition: false, money: false, gear: false, about: true, quest: true, dialogue: false, lastTalk: true, media: false, mods: false};
+
+test('Dynamic info, phone defaults: an untouched phone set (missing, empty or the earlier build\'s copy of the in-person set) gets the new defaults once, a set of the player\'s own stays, and the marker stops it', () => {
+  const out = run(`${managerLua}
+    local function phoneOf(person, phone, marker)
+      files['runtime/settings.json'] = json.encode({version = 2, dynamicInfo = person, dynamicInfoPhone = phone, dynamicInfoPhoneDefaults = marker})
+      local manager = newManager()
+      local settings = manager.snapshot(newPlayer()).settings
+      return {phone = settings.dynamicInfoPhone, marker = json.decode(settingsText()).dynamicInfoPhoneDefaults}
+    end
+    local person = {location = false, gear = false, mods = true}
+    -- the earlier build copied the in-person set (every kind) into the phone set on the first load: no choice of the player's
+    local copy = {location = false, time = true, company = true, condition = true, money = true, gear = false, about = true, quest = true, dialogue = true, lastTalk = true, media = true, mods = true}
+    report('copy', phoneOf(person, copy, nil))
+    report('empty', phoneOf(person, {}, nil))
+    report('own', phoneOf(person, {location = true, time = false}, nil))
+    -- with the marker, even a set equal to the in-person one is the player's: nothing is reset again
+    report('marked', phoneOf(person, copy, 1))
+    report('markedEmpty', phoneOf(person, {}, 1))
+  `);
+  assert.deepEqual(out.copy.phone, PHONE, 'the earlier build\'s copy is replaced by the defaults');
+  assert.equal(out.copy.marker, 1);
+  assert.deepEqual(out.empty.phone, PHONE);
+  assert.deepEqual(out.own.phone, {...PHONE, location: true, time: false}, 'a phone set that differs from the in-person set is the player\'s own: its booleans stay, the rest takes the defaults');
+  assert.equal(out.own.marker, 1);
+  assert.deepEqual(out.marked.phone, {location: false, time: true, company: true, condition: true, money: true, gear: false, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: true}, 'with the marker the saved set is left alone');
+  assert.deepEqual(out.markedEmpty.phone, PHONE, 'a missing kind takes the phone default');
+});
+
 test('Dynamic info: a fresh settings file has the mods kind off and the other eleven on', () => {
   const out = run(`${managerLua}
     local manager = newManager()
@@ -750,8 +783,8 @@ test('Dynamic info: a fresh settings file has the mods kind off and the other el
   assert.deepEqual(out.flags, expected);
   assert.deepEqual(out.mods, [false, true]);
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, expected);
-  assert.deepEqual(out.phone, expected, 'a fresh install: the phone set starts the same as the in-person set');
-  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, expected);
+  assert.deepEqual(out.phone, PHONE, 'a fresh install: the phone set has its own defaults');
+  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, PHONE);
   assert.equal(out.malformed, false);
 });
 

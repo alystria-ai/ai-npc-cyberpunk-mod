@@ -685,16 +685,18 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   assert(mcm.row('Location').type == 'bool' and mcm.row('Location').value == true and mcm.row('Quest and journal').type == 'bool')
   -- Two sets of the same twelve switches: the first heading is talk in person (ids dynamic:<kind>), the second holocalls and Phone Chat (ids dynamicPhone:<kind>).
   assert(mcm.row('dynamic:location').category == 'In person' and mcm.row('dynamicPhone:location').category == 'Phone calls and texts')
-  assert(mcm.row('dynamicPhone:location').type == 'bool' and mcm.row('dynamicPhone:location').value == true and mcm.row('dynamicPhone:mods').value == false)
+  -- The phone set has its own defaults: a caller or texter does not see V (location, company, condition, money, gear, media, dialogue and mods are off).
+  assert(mcm.row('dynamicPhone:location').type == 'bool' and mcm.row('dynamicPhone:location').value == false and mcm.row('dynamicPhone:mods').value == false)
+  assert(mcm.row('dynamicPhone:time').value == true and mcm.row('dynamicPhone:quest').value == true and mcm.row('dynamicPhone:about').value == true and mcm.row('dynamicPhone:lastTalk').value == true)
   local switchCount = 0
   for _, row in ipairs(mcm.rows()) do if row.type == 'bool' then switchCount = switchCount + 1 end end
   assert(switchCount == 24, switchCount)
   assert(mcm.set('Location', false) and mcm.set('Recent game dialogue', false) and mcm.apply())
   local info = manager.snapshot(player).settings.dynamicInfo
-  assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfoSet('dialogue', false) == false and manager.dynamicInfoSet('dialogue', true) == true)
+  assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfoSet('dialogue', false) == false and manager.dynamicInfoSet('dialogue', true) == false)
   assert(mcm.row('Location').value == false and mcm.config().navigation.pageId == 'dynamic-info|1|1', 'still on the page after Apply')
-  assert(mcm.row('dynamicPhone:location').value == true, 'the phone set did not move')
-  assert(mcm.set('dynamicPhone:time', false) and mcm.set('dynamicPhone:money', false) and mcm.apply())
+  assert(mcm.row('dynamicPhone:location').value == false, 'the phone set did not move')
+  assert(mcm.set('dynamicPhone:time', false) and mcm.set('dynamicPhone:location', true) and mcm.apply())
   local phone = manager.snapshot(player).settings.dynamicInfoPhone
   info = manager.snapshot(player).settings.dynamicInfo
   assert(phone.time == false and phone.money == false and phone.location == true and info.time == true and info.money == true and info.location == false)
@@ -705,7 +707,8 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   info = manager.snapshot(player).settings.dynamicInfo
   for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
   phone = manager.snapshot(player).settings.dynamicInfoPhone
-  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(phone[kind] == (kind ~= 'mods'), 'phone ' .. kind) end
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(phone[kind] == manager.dynamicInfoDefault(kind, true), 'phone ' .. kind) end
+  assert(phone.location == false and phone.time == true and phone.quest == true and phone.money == false, 'the phone defaults, not the in-person ones')
   assert(mcm.row('Location').value == true and mcm.row('Other mods’ state').value == false)
   assert(mcm.row('dynamicPhone:time').value == true and mcm.row('dynamicPhone:mods').value == false)
   press('Back to settings')

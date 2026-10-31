@@ -6,7 +6,7 @@ the player turn each kind off, and says how the place is worded. The audit of wh
 
 ## What the player sees
 
-**Settings > Conversations > Dynamic info (Open)** opens a page with two sets of the same twelve switches (see "Two sets of switches" below: the first heading **In person**, the second **Phone calls and texts**). Each set has twelve switches, all on by default except **Other mods' state**, which is off by default (a missing or malformed saved value takes the default, in the game and in the bridge). An off kind is left out of every conversation
+**Settings > Conversations > Dynamic info (Open)** opens a page with two sets of the same twelve switches (see "Two sets of switches" below: the first heading **In person**, the second **Phone calls and texts**). In person, all twelve switches are on by default except **Other mods' state**, which is off by default. **Phone calls and texts** has defaults of its own (see "Defaults and old files"). In both sets a missing or malformed saved value takes the set's default, in the game and in the bridge. An off kind is left out of every conversation
 provider (Convai, Mistral, Local AI and Custom) and the mod stops reading it from the game. The page has the usual Back row and takes part in
 Restore defaults (Native Settings UI's own button, and the Defaults footer button in Mod Configuration Menu).
 
@@ -42,10 +42,18 @@ groups of the same twelve rows, in the same row style, in the same order:
 Restore defaults resets both groups. Only three new texts were added to the catalogue and the 15 locale files ("In person", "Phone calls and texts" and the
 sentence under the second heading). The labels and help of the rows are the same strings as before.
 
-**Defaults and old files.** A player who never touched the phone set gets a copy of their in-person choices: when the settings load, every kind that has no saved
-boolean in `dynamicInfoPhone` takes the player's current in-person value, and the file is saved once, so an update changes nothing for anyone. A fresh install has the
-same defaults in both sets (all on except Other mods' state), so there is nothing to explain. After that the two sets are independent. The bridge does the same copy
-on its own when it reads a file that has no phone set yet (`offKinds(settings, true)`), so a bridge that starts before the game has saved the file behaves the same.
+**Defaults and old files (changed 2026-10-31).** A caller or texter does not see V, so the phone set starts with its own defaults, not a copy of the in-person set.
+Off by default on the phone: **Location**, **Company and vehicle**, **Health, heat and fights**, **V's money**, **V's gear and clothes**, **Music and TV**, **Recent game dialogue**
+and **Other mods' state**. On by default on the phone: **Time and weather**, **V's gender and lifepath**, **Quest and journal** and **Time since last talk**. (Money is off because
+nobody on the other end sees a wallet. The weather stays on because a caller can say "it's pouring over there".) The defaults are `dynamicInfoDefault(kind, true)` in
+`mod/manager.lua` and `OFF_BY_DEFAULT_PHONE` in `bridge/dynamic-info.mjs`, which a test keeps equal, and the page's rows use them as the value Restore defaults goes back to.
+
+Every player gets the new defaults once, because the phone set is new in this update. The mark is `settings.dynamicInfoPhoneDefaults = 1` in `runtime/settings.json`. While it is
+missing, the settings load treats a phone set that is missing, empty or an exact copy of the in-person set (what the first build of the phone set wrote on the first load: no choice
+of the player's) as untouched and replaces it with the defaults. A phone set that differs from the in-person set in any kind is the player's own choice: its saved booleans stay and
+only the kinds with no saved boolean take the defaults. Then the mark is saved, and from then on a saved phone set is never reset. A fresh install gets the defaults and the mark at once.
+The bridge applies the same defaults when it reads a file that has no phone set or a missing kind (`offKinds(settings, true)`), so a bridge that starts before the game has saved the file
+behaves the same.
 
 **Which set a turn uses.** The phone set applies to a Phone Chat text (`input.channel === 'phone'`) and to a one-to-one holocall (`input.holocall.mode` is `audio` or
 `holo`, not a group round), unless the character is standing within a few metres of V (the party row says `near`, `besideV` in `bridge/turn-context.mjs`): that character is
@@ -65,7 +73,7 @@ The support report lists the kinds that are off in each set (`dynamicInfoOff`, `
 ## Where it is applied
 
 Both halves follow the same saved tables (`runtime/settings.json`, `"dynamicInfo": {"location": true, ...}` for talk in person and `"dynamicInfoPhone": {...}` for holocalls and texts;
-a missing or non-boolean value is on, a key that is not a kind is dropped on load, and a missing phone value takes the in-person choice. The tables are also in the support report's
+a missing or non-boolean value takes the set's default (on in person except Other mods' state, the phone defaults above on the phone), a key that is not a kind is dropped on load. The tables are also in the support report's
 settings section, with `dynamicInfoOff` and `dynamicInfoPhoneOff` lists of the kinds that are off).
 
 - **Game side** (`mod/manager.lua`: `dynamicInfoKinds`, `M.dynamicInfo(kind)`, `applySettings` key `dynamicInfo`, `convaiDynamicInfo` global published on load and

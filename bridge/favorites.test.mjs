@@ -269,3 +269,110 @@ test('without mod/favorites.lua the two pages have no favorite rows and nothing 
   ns.interact.press(ns.find('Person 05')); frames(4)
   assert(not ns.find('Add to favorites'), 'even in the party: ' .. table.concat(ns.outline(), ' | '))
 `));
+
+// ---- Side characters to invite (docs/SIDE_CHARACTERS.md) ------------------------------------------------------------------------------
+// The Side characters page has the same Favorites block as the main list. The favorites are the same set ('characters': a key is in one list
+// only, and the phone's Chat tab stars the same keys), and the block is worked out from the favorite keys, not from the 557 side characters.
+
+const sideRoster = `
+  local roster = {}
+  for _, profile in ipairs(profiles) do roster[#roster + 1] = profile end
+  for index = 1, 30 do
+    roster[#roster + 1] = {key = 'side-' .. index, name = ({'Alan', 'Bea', 'Cora'})[(index - 1) // 10 + 1] .. ' Side ' .. string.format('%02d', index), kind = 'named',
+      invite = true, minor = true, records = {'Character.side_' .. index}}
+  end
+  manager.configure(api, roster)
+  core.refresh(); frames(4)
+`;
+
+test('Native Settings UI: a side character has Invite, then Add to favorites with Add copy under it, and a Favorites block above the list', () => run(`${nsHarness()}
+  ${sideRoster}
+  press('Side characters to invite')
+  assert(not ns.find('Favorites') and #ns.sections() == 3, 'nothing to favorite before an invitation: ' .. outline())
+  press('Alan Side 01', 'Invite')
+  local list = section(ns.sections()[3].id)
+  assert(list:find('Alan Side 01 = Add to favorites | Alan Side 01 = Add copy (1) | Alan Side 02 = Invite', 1, true), list)
+  press('Alan Side 01', 'Add to favorites')
+  assert(outline():find('is now a favorite', 1, true), outline())
+  local sections = ns.sections()
+  assert(sections[1].options[1].label == 'Back to Companion Manager' and sections[3].label == 'Favorites', 'the block follows Back and the Search section: ' .. outline())
+  assert(section(sections[3].id) == 'Alan Side 01 = Add copy (1) | Remove Alan Side 01 = Remove', section(sections[3].id))
+  local rest = section(sections[4].id)
+  assert(rest:find('Alan Side 01 = Add copy (1) | Alan Side 02 = Invite', 1, true) and not rest:find('Add to favorites', 1, true), rest)
+  assert(saved().characters['side-1'] == true and saved().version == 1, 'saved the way the main list saves')
+  -- Her Add copy row in the block works like the one in the list; Remove puts the two rows back.
+  press('Alan Side 01', 'Add copy')
+  assert(section(ns.sections()[3].id):find('Alan Side 01 = Add copy (2)', 1, true), outline())
+  press('Remove Alan Side 01')
+  assert(not ns.find('Favorites') and #ns.sections() == 3, outline())
+  assert(section(ns.sections()[3].id):find('Alan Side 01 = Add to favorites | Alan Side 01 = Add copy (2)', 1, true), outline())
+  assert(next(saved().characters) == nil)
+`));
+
+test('Native Settings UI: side favorites come back in a new session, stay out of the main page, and a favorite that is not invited has Invite in the block', () => run(`${nsHarness()}
+  ${sideRoster}
+  files['runtime/favorites.json'] = 'seed'
+  jsonFixtures['seed'] = {version = 1, characters = {['side-12'] = true, ['side-2'] = true, ['person-4'] = true}, models = {}}
+  convaiFavorites.reset(); core.refresh(); frames(6)
+  press('Main characters to invite')
+  assert(section(ns.sections()[3].id) == 'Person 04 = Invite | Remove Person 04 from favorites = Remove', 'the main block holds only main characters: ' .. outline())
+  press('Back to Companion Manager')
+  press('Side characters to invite')
+  local block = section(ns.sections()[3].id)
+  assert(ns.sections()[3].label == 'Favorites', outline())
+  assert(block == 'Alan Side 02 = Invite | Remove Alan Side 02 = Remove | Bea Side 12 = Invite | Remove Bea Side 12 = Remove', 'in list order: ' .. block)
+  -- The block is on page 1 only.
+  ns.interact.slide(ns.find('Page'), 2); frames(6)
+  assert(not ns.find('Favorites') and #ns.sections() == 3, outline())
+`));
+
+test('Native Settings UI: the side Favorites block follows the Starts with group and the search', () => run(`${nsHarness()}
+  ${sideRoster}
+  files['runtime/favorites.json'] = 'seed'
+  jsonFixtures['seed'] = {version = 1, characters = {['side-1'] = true, ['side-12'] = true, ['side-23'] = true}, models = {}}
+  convaiFavorites.reset(); core.refresh(); frames(6)
+  press('Side characters to invite')
+  local function names()
+    local out = {}
+    for name in section(ns.sections()[3].id):gmatch('([^|]-) = Invite') do out[#out + 1] = name:gsub('^%s+', '') end
+    return table.concat(out, ' | ')
+  end
+  assert(names() == 'Alan Side 01 | Bea Side 12 | Cora Side 23', names())
+  assert(core.setUi('ui:group', 3)); frames(4)
+  assert(ns.sections()[3].label == 'Favorites' and names() == 'Bea Side 12', 'only the letter B: ' .. names())
+  assert(core.setUi('ui:group', 4)); frames(4)
+  assert(names() == 'Cora Side 23', names())
+  assert(core.setSearch('side 01')); frames(4)
+  assert(ns.sections()[3].label == 'Favorites' and names() == 'Alan Side 01', 'a search covers all letters: ' .. names())
+  assert(core.setSearch('nobody')); frames(4)
+  assert(not ns.find('Favorites'), 'no favorite matches: ' .. outline())
+`));
+
+test('the side Favorites block is worked out from the favorite keys: it reads the favorites\' own entries of a 557 long list, never the list', () => run(`${nsHarness()}
+  local reads, store, position, all = 0, {}, {}, {}
+  for index = 1, 557 do store[index] = {key = 'side-' .. index, name = 'Name ' .. index}; position['side-' .. index] = index end
+  setmetatable(all, {__index = function(_, index) reads = reads + 1; return store[index] end, __len = function() return #store end})
+  for _, key in ipairs({'side-400', 'side-12', 'side-300', 'person-1'}) do convaiFavorites.set('characters', key) end
+  local picked = core.sideFavorites(all, {index = position}, false, nil)
+  assert(#picked == 3 and picked[1].key == 'side-12' and picked[2].key == 'side-300' and picked[3].key == 'side-400', 'list order, side characters only')
+  assert(reads == 3, 'three reads for three favorites, not 557: ' .. reads)
+  reads = 0
+  assert(#core.sideFavorites(all, {index = position}, false, 'Z') == 0 and reads == 3, 'a letter group is checked on the favorites only')
+  -- No favorites: nothing is read at all.
+  for _, key in ipairs({'side-400', 'side-12', 'side-300', 'person-1'}) do convaiFavorites.set('characters', key, false) end
+  reads = 0
+  assert(#core.sideFavorites(all, {index = position}, false, nil) == 0 and reads == 0)
+`));
+
+test('Mod Configuration Menu: the side list has the same favorite rows, a Favorites category above the list, and no block on page 2', () => run(`${mcmHarness()}
+  ${sideRoster}
+  press('Side characters to invite')
+  press('invite:side-1')
+  assert(rowsText():find('favorite:add:side-1 = Add to favorites | invite:side-1 = Add copy (1)', 1, true), rowsText())
+  press('favorite:add:side-1')
+  assert(categoryNames():find('^Companion Manager | Search characters | Favorites | Side characters to invite'), categoryNames())
+  assert(rowsText():find('invite:favorite:side-1 = Add copy (1) | favorite:remove:side-1 = Remove', 1, true), rowsText())
+  assert(saved().characters['side-1'] == true)
+  press('ui:page:next')
+  assert(not categoryNames():find('Favorites', 1, true), 'page 2 has no block')
+`));

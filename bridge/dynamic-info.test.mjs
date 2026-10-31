@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {DynamicInfo, KINDS, NO_KINDS, dynamicInfo, offKinds, phoneTurn, stripSnapshot} from './dynamic-info.mjs';
+import {DynamicInfo, KINDS, NO_KINDS, OFF_BY_DEFAULT_PHONE, dynamicInfo, offKinds, phoneTurn, stripSnapshot} from './dynamic-info.mjs';
 import {parseInput, archetypeContext} from './protocol.mjs';
 import {conversationContext, conversationContextBlocks, voiceConversationBlocks} from './quest-context.mjs';
 import {describeTurnContext, parseTurnContext, turnContext} from './turn-context.mjs';
@@ -114,10 +114,23 @@ test('the kinds are the twelve of the page, in page order, and every kind has a 
   assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
 });
 
+// What the phone set turns off when nothing is saved: a caller or texter does not see V (owner, 31 Oct 2026). On: time, about, quest, lastTalk.
+const PHONE_OFF = ['location', 'company', 'condition', 'money', 'gear', 'dialogue', 'media', 'mods'];
+
+test('the phone defaults are the same in the bridge and in the game\'s manager (mod/manager.lua dynamicInfoPhoneOff)', () => {
+  const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
+  const table = /local dynamicInfoPhoneOff = \{([^}]*)\}/.exec(lua);
+  assert(table, 'dynamicInfoPhoneOff moved');
+  const luaOff = [...table[1].matchAll(/(\w+) = true/g)].map(match => match[1]);
+  assert.deepEqual([...luaOff].sort(), [...OFF_BY_DEFAULT_PHONE].sort());
+  assert.deepEqual(KINDS.filter(kind => !OFF_BY_DEFAULT_PHONE.has(kind)), ['time', 'about', 'quest', 'lastTalk'].sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b)), 'on by default on the phone');
+  assert(Object.isFrozen(OFF_BY_DEFAULT_PHONE));
+});
+
 test('the setting follows settings.json: all on by default except mods, only a saved false turns a kind off, anything unreadable changes nothing', () => {
   const info = new DynamicInfo();
-  assert.equal(info.describe(), 'off: mods');
-  assert.equal(info.update({dynamicInfo: {mods: true}}), true); assert.equal(info.describe(), 'all on');
+  assert.deepEqual([...info.off], ['mods']); assert.deepEqual([...info.offPhone].sort(), [...PHONE_OFF].sort(), 'the phone set starts with its own defaults');
+  assert.equal(info.update({dynamicInfo: {mods: true}}), true); assert.deepEqual([...info.off], []);
   assert.equal(info.update(undefined), false); assert.equal(info.update(null), false); assert.equal(info.update('x'), false);
   assert.equal(info.update({dynamicInfo: {mods: true}}), false);
   assert.equal(info.update({dynamicInfo: 'off'}), true, 'a malformed table takes the defaults: mods is off again'); assert.equal(info.update({dynamicInfo: {mods: true}}), true);
@@ -125,7 +138,7 @@ test('the setting follows settings.json: all on by default except mods, only a s
   assert.equal(info.update({dynamicInfo: {mods: true, location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
   assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false, quest: true}}), true);
   assert.deepEqual([...info.off], ['location', 'gear']);
-  assert.equal(info.on('location'), false); assert.equal(info.on('time'), true); assert.equal(info.describe(), 'off: location, gear');
+  assert.equal(info.on('location'), false); assert.equal(info.on('time'), true); assert.match(info.describe(), /^in person off: location, gear, phone off: location, /);
   assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false}}), false, 'the same set is no change');
   assert.equal(info.update({version: 2}), true, 'a file without the key takes the defaults: only mods is off');
   assert.deepEqual([...info.off], ['mods']);
@@ -242,28 +255,32 @@ test('a phone chat and an add-on voice honour the switches too', () => {
 });
 
 // ---- two sets of switches: in person, and holocalls and Phone Chat texts -----------------------------------------------------------------------------
-test('the phone set is saved beside the in-person set: a file without it (before the phone set existed) follows the in-person choices, kind by kind', () => {
-  assert.deepEqual(offKinds({dynamicInfo: {location: false, gear: false, mods: true}}, true), ['location', 'gear'], 'no phone set: a copy of the in-person set');
-  assert.deepEqual(offKinds({dynamicInfo: {money: false}}, true), ['money', 'mods'], 'the default of a fresh file is the in-person default (Other mods state off)');
-  assert.deepEqual(offKinds({}, true), ['mods']);
-  assert.deepEqual(offKinds({dynamicInfo: {location: false}, dynamicInfoPhone: 'x'}, true), ['location', 'mods'], 'a malformed phone set is ignored');
-  assert.deepEqual(offKinds({dynamicInfo: {location: false, mods: true}, dynamicInfoPhone: {location: true, time: false, gear: 'no'}}, true), ['time'],
-    'a saved boolean wins over the in-person choice, anything else follows it');
-  assert.deepEqual(offKinds({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: false}}, true), ['mods']);
+test('the phone set is saved beside the in-person set and has defaults of its own: a kind it does not carry as a boolean takes the phone default, whatever the in-person set says', () => {
+  const defaults = KINDS.filter(kind => PHONE_OFF.includes(kind));
+  assert.deepEqual(offKinds({dynamicInfo: {location: false, gear: false, mods: true}}, true), defaults, 'no phone set: the phone defaults, not a copy of the in-person set');
+  assert.deepEqual(offKinds({dynamicInfo: {time: false}}, true), defaults, 'an in-person choice does not reach the phone set');
+  assert.deepEqual(offKinds({}, true), defaults);
+  assert.deepEqual(offKinds({dynamicInfo: {location: false}, dynamicInfoPhone: 'x'}, true), defaults, 'a malformed phone set is ignored');
+  assert.deepEqual(offKinds({dynamicInfo: {location: false, mods: true}, dynamicInfoPhone: {location: true, time: false, gear: 'no'}}, true), ['company', 'condition', 'money', 'gear', 'time', 'dialogue', 'media', 'mods'].sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b)),
+    'a saved boolean wins, anything else takes the phone default');
+  assert.deepEqual(offKinds({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, location: true, company: true, condition: true, money: true, gear: true, dialogue: true, media: true}}, true), [],
+    'a player can turn any of them on');
+  assert.deepEqual(offKinds({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: false}}, true), defaults);
   assert.deepEqual(offKinds({dynamicInfo: {location: false}, dynamicInfoPhone: {location: true, mods: true}}), ['location', 'mods'], 'the in-person set never reads the phone set');
+  const on = Object.fromEntries(PHONE_OFF.map(kind => [kind, true]));   // a phone set with every default switched on
   const info = new DynamicInfo();
-  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {...on, gear: false}}), true);
   assert.deepEqual([...info.off], []); assert.deepEqual([...info.offPhone], ['gear']);
   assert.equal(info.on('gear'), true); assert.equal(info.on('gear', true), false); assert.equal(info.offFor(true), info.offPhone); assert.equal(info.offFor(false), info.off);
   assert.equal(info.onAny('gear'), true, 'the game is read for a kind that either set wants');
   assert.equal(info.describe(), 'in person all on, phone off: gear');
-  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false}}), false);
-  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false, money: false}}), true, 'a change of only the phone set is a change');
-  assert.equal(info.update({dynamicInfo: {mods: true, money: false}, dynamicInfoPhone: {mods: true, gear: false, money: false}}), true, 'and so is a change of only the in-person set');
-  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}, dynamicInfoPhone: {mods: true, location: false, time: false}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {...on, gear: false}}), false);
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {...on, gear: false, money: false}}), true, 'a change of only the phone set is a change');
+  assert.equal(info.update({dynamicInfo: {mods: true, money: false}, dynamicInfoPhone: {...on, gear: false, money: false}}), true, 'and so is a change of only the in-person set');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}, dynamicInfoPhone: {...on, location: false, time: false}}), true);
   assert.equal(info.onAny('time'), false); assert.equal(info.describe(), 'off: location, time');
-  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}}), false, 'a phone set that vanished follows the in-person set (here the same)');
-  assert.equal(info.update({dynamicInfo: {mods: true, location: false}}), true); assert.deepEqual([...info.offPhone], ['location']);
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}}), true, 'a phone set that vanished takes the phone defaults');
+  assert.deepEqual([...info.offPhone].sort(), [...PHONE_OFF].sort());
   assert.equal(new DynamicInfo().update({dynamicInfo: {mods: true, money: false}}), true);
 });
 

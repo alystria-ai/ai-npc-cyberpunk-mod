@@ -144,7 +144,7 @@ test('the report holds versions, settings, party, providers, recent errors and b
     assert.equal(summary.settings.conversationEnabledCount, 1);
     assert.deepEqual(summary.settings.dynamicInfo, {location: false, quest: true}, 'Dynamic info is in the settings section');
     assert.deepEqual(summary.settings.dynamicInfoOff, ['location', 'mods'], 'and the kinds that are off are listed (the mods kind is off unless saved true)');
-    assert.deepEqual(summary.settings.dynamicInfoPhoneOff, ['location', 'mods'], 'the phone set follows the in-person one when the file has none');
+    assert.deepEqual(summary.settings.dynamicInfoPhoneOff, ['location', 'company', 'condition', 'money', 'gear', 'dialogue', 'media', 'mods'], 'the phone set has its own defaults when the file has none');
     assert(!('apiKey' in summary.settings) || summary.settings.apiKey === '[redacted]');
     assert.deepEqual(summary.party.companions.map(row => row.profile), ['bob-sagan', 'judy-alvarez']);
     const bob = summary.providers.companions.find(row => row.profile === 'bob-sagan');

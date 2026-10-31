@@ -1,4 +1,5 @@
--- Favorites of the Companion Manager: the characters (Characters to invite) and the game models (Model browser) the player starred. A
+-- Favorites of the Companion Manager: the characters (Main and Side characters to invite, one set: a key is in one list only, and the phone's Chat
+-- tab stars the same keys) and the game models (Model browser) the player starred. A
 -- favorite is listed in the Favorites block at the top of its page, and first in the phone's Chat tab. Pure data:
 -- the page logic is in manager-ui.lua (per-row buttons), the phone side in mod/phone-chat.lua.
 --
@@ -96,6 +97,16 @@ function M.count(scope)
     local count = 0
     for _ in pairs(data[scope]) do count = count + 1 end
     return count
+end
+
+-- The favorite keys of a page, in no order: a few at most (the file holds up to LIMIT). The Side characters page works from these instead of
+-- from its whole list, so a page build costs the favorites and not the 557 side characters.
+function M.keys(scope)
+    local out = {}
+    if not SCOPES[scope] then return out end
+    M.load()
+    for key in pairs(data[scope]) do out[#out + 1] = key end
+    return out
 end
 
 -- Turns the favorite of `key` on or off (nil: the other way). Returns whether it is a favorite now, and false as the second value when the

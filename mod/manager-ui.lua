@@ -630,7 +630,7 @@ local function voiceMenuLabels(pack, mistral, matureOn, savedProvider)
                 label = ui.t('Voxtral · not with Mature')
                 disabled[#elements + 1] = ui.t('Voxtral is not used with Mature content.')
             else
-                label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
+                label = (mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')
             end
         else
             label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
@@ -1217,13 +1217,10 @@ local function ownKeyRows(snapshot)
         -- several languages) and what to do goes into the Mistral key row's help (the real limit comes from the sign-in backend,
         -- bridge/shared-key-guard.mjs).
         note = ui.t('Convai free tier: daily limit reached')
-        -- When they come back: the next 00:00 UTC on this computer's clock (ui.dailyResetClock), else "tomorrow".
-        local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
-        if at then
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).', {limit = own.daily.limit, time = at})
-        else
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).', {limit = own.daily.limit})
-        end
+        -- When they come back: the sign-in backend's reset (00:00 UTC) on this computer's clock (ui.dailyResetClock); a clock that cannot be read gets
+        -- the UTC time itself, never the word "tomorrow".
+        local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or ui.clockText('00:00') .. ' UTC'
+        limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).', {limit = own.daily.limit, time = at})
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
@@ -1548,7 +1545,7 @@ local function pageSignature(snapshot)
             tostring((snapshot.mistral or {}).saved)}, '|'))
         add(modelFind.text)
     end
-    if (view == 'characters' or view == 'models') and convaiFavorites then add('favorites:' .. tostring(convaiFavorites.revision())) end
+    if (view == 'characters' or view == 'side' or view == 'models') and convaiFavorites then add('favorites:' .. tostring(convaiFavorites.revision())) end
     if view == 'party' and convaiSavedParties then add('parties:' .. tostring(convaiSavedParties.revision()) .. '|' .. tostring(convaiSavedParties.armed())) end
     if view == 'models' then
         -- The list is built once the scan has finished (the models are sorted then); until then only the status line shows.
@@ -1766,8 +1763,8 @@ end
 local function dynamicInfoRows(snapshot, phone)
     local on = (phone and snapshot.settings.dynamicInfoPhone or snapshot.settings.dynamicInfo) or {}
     local function row(kind, label, description)
-        -- All on by default except Other mods' state.
-        local default = kind ~= 'mods'
+        -- In person: all on by default except Other mods' state. On the phone: only what a caller or texter could know (manager.dynamicInfoDefault).
+        local default = manager.dynamicInfoDefault(kind, phone)
         local value = on[kind]
         if type(value) ~= 'boolean' then value = default end
         return setting((phone and 'dynamicPhone:' or 'dynamic:') .. kind, label, 'bool', value, default, description)
@@ -1800,8 +1797,9 @@ local function dynamicInfoRows(snapshot, phone)
     }
 end
 
--- ---- Favorites (Characters to invite, Model browser) ------------------------------------------------------------------------------
--- Per-row buttons only: the settings screens cannot tell which row the player is on, so there is no page-wide button. On both pages:
+-- ---- Favorites (Main and Side characters to invite, Model browser) ------------------------------------------------------------------------------
+-- Per-row buttons only: the settings screens cannot tell which row the player is on, so there is no page-wide button. On the three pages
+-- (the Side characters page shares the 'characters' favorites with the main list: a key is in one list only):
 --   * a character (model) that is not invited has one row, Invite;
 --   * once she is in the party the row's button is Add to favorites, and a row of the same name right under it is Add copy (the old button);
 --   * a favorite has no Add to favorites row: she is in the Favorites block at the top of page 1, each with her Invite / Add copy row and,
@@ -2555,22 +2553,41 @@ end
 -- ---- Side characters to invite (docs/SIDE_CHARACTERS.md) ---------------------------------------------------------------------------
 -- The minor characters of the roster (snapshot.side, built once by the manager): a search, the first letter of the name as a group (the Model
 -- browser's Starts with), and twelve rows a page like the other long lists. The letter groups are worked out the first time the page is built for a
--- list and held; a page build then reads twelve rows, never all of them. No Favorites block: favorites are the main list's and the Model browser's.
+-- list and held; a page build then reads twelve rows, never all of them. The Favorites block on page 1 is worked out from the favorite keys (a few),
+-- not from the list, through the position index held with the letter groups.
 -- A function of M, not a local, so schema() gains no upvalue.
 local sideGroupsCache = {}
 local function sideGroups(list)
     if sideGroupsCache.list ~= list or sideGroupsCache.count ~= #list then
-        local lists, order = {}, {}
-        for _, profile in ipairs(list) do
+        local lists, order, index = {}, {}, {}
+        for position, profile in ipairs(list) do
+            index[profile.key] = position
             local group = groupOf(profile.name)
             local bucket = lists[group]
             if not bucket then bucket = {}; lists[group] = bucket; order[#order + 1] = group end
             bucket[#bucket + 1] = profile
         end
         table.sort(order)
-        sideGroupsCache = {list = list, count = #list, order = order, lists = lists}
+        sideGroupsCache = {list = list, count = #list, order = order, lists = lists, index = index}
     end
     return sideGroupsCache
+end
+
+-- The side favorites the page's search or letter group allows, in list (name) order: from the favorite keys and the held position index.
+function M.sideFavorites(all, cache, searching, group)
+    local picked, found = {}, {}
+    if not convaiFavorites or convaiFavorites.count('characters') == 0 then return picked end
+    for _, key in ipairs(convaiFavorites.keys('characters')) do
+        local position = cache.index[key]
+        local profile = position and all[position]
+        if profile and (not searching or profileMatches(profile)) and (not group or groupOf(profile.name) == group) then
+            picked[#picked + 1] = position
+            found[position] = profile
+        end
+    end
+    table.sort(picked)
+    for slot, position in ipairs(picked) do picked[slot] = found[position] end
+    return picked
 end
 
 function M.sideRows(snapshot, party, canInvite, rows, categories)
@@ -2595,17 +2612,25 @@ function M.sideRows(snapshot, party, canInvite, rows, categories)
             'Show only the characters whose name starts with this letter.', groupElements, {elements = true})
     end
     for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end, 'characters', #profiles)) do rows[#rows + 1] = row end
-    for index = first, last do
-        local profile = profiles[index]
+    local function inviteOf(profile, id)
         local key = profile.key
         local count = countKey(party, key)
         local available = manager.definition(key) ~= nil
-        rows[#rows + 1] = action('invite:' .. key, profile.name,
-            available and (count > 0 and ui.t('Add copy ({count})', {count = count}) or 'Invite') or 'Profile only',
+        return action(id, profile.name, available and (count > 0 and ui.t('Add copy ({count})', {count = count}) or 'Invite') or 'Profile only',
             profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
     end
     local searchBlock = M.searchCategory(#profiles)
     if searchBlock then categories[#categories + 1] = searchBlock end
+    -- The Favorites block above the list, on page 1, like the main list (its rows are the same, built for the favorites only).
+    if listPage == 1 then
+        local favorites = favoriteRows('characters', M.sideFavorites(all, cache, searching, not searching and listGroup > 1 and groupElements[listGroup] or nil),
+            function(profile) return profile.name end, inviteOf)
+        if #favorites > 0 then categories[#categories + 1] = category('favorites', 'Favorites', favorites) end
+    end
+    for index = first, last do
+        local profile = profiles[index]
+        entryRows(rows, 'characters', profile, profile.name, countKey(party, profile.key), inviteOf)
+    end
     categories[#categories + 1] = category('side', 'Side characters to invite', rows,
         'Everyday people of Night City, from shopkeepers to fixers. Each joins as your own copy with their own personality.')
 end
