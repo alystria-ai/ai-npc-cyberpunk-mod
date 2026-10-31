@@ -47,6 +47,8 @@ def main() -> int:
     ap.add_argument("--vgmstream", required=True)
     ap.add_argument("--sample", type=int, default=20)
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--keys", help="prove exactly these voice keys (comma separated)")
+    ap.add_argument("--new-since", help="a manifest file as it was before: prove every voice that is not in it")
     ap.add_argument("--batch", action="store_true")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--out", default=None)
@@ -56,7 +58,16 @@ def main() -> int:
     manifest_path = REPO / "characters" / "voice-language-clips" / f"{lang}.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     voices = manifest["voices"]
-    keys = choose(voices, None if args.all else args.sample, args.seed)
+    if args.keys:
+        keys = sorted(k for k in args.keys.split(",") if k)
+        unknown = [k for k in keys if k not in voices]
+        if unknown:
+            raise SystemExit(f"not in the {lang} manifest: {', '.join(unknown)}")
+    elif args.new_since:
+        before = json.loads(Path(args.new_since).read_text(encoding="utf-8-sig"))["voices"]
+        keys = sorted(k for k in voices if k not in before)
+    else:
+        keys = choose(voices, None if args.all else args.sample, args.seed)
     out = Path(args.out) if args.out else Path(sys.argv[0]).resolve().parent / ".." / ".." / ".prove-language-tmp" / lang
     out = out.resolve()
     if out.exists():
