@@ -1733,6 +1733,8 @@ return {
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "A Gemini-modell most nem érhető el. Próbáld később, vagy használd a Local AI-t.",
     ["Google Gemini: model unavailable"] = "Google Gemini: a modell nem érhető el",
     ["Mistral (your key)"] = "Mistral (kulcsod)",
+    ["Mistral API key"] = "Mistral API-kulcs",
+    ["Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it."] = "A Mistral-kulcsod a(z) „Egyéni endpoint” oldalon módosítható, nem itt. Nyisd meg azt az oldalt, hogy új kulcsot illessz be, vagy töröld a régit. Ezt használja: Mistral (kulcsod).",
     ["Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)"] = "Mistral-kulcs szükséges (add hozzá a Mistral-előbeállítással a Custom endpoint oldalon)",
     ["The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider."] = "Elérted a beszélgetési keretet. Próbáld újra később, vagy a Beállítások > Beszélgetési szolgáltató menüpontban válaszd a Local AI-t vagy a Google Geminit.",
     ["The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai."] = "A leghosszabb válasz szavakban. Google Gemini, Local AI és Custom esetén működik, Convai esetén nem.",

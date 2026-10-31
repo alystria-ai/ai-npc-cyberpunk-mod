@@ -1733,6 +1733,8 @@ return {
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Gemini モデルは現在利用できません。後で再試行するか、Local AI をご利用ください。",
     ["Google Gemini: model unavailable"] = "Google Gemini：モデルが利用できません",
     ["Mistral (your key)"] = "Mistral（自分のキー）",
+    ["Mistral API key"] = "Mistral APIキー",
+    ["Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it."] = "Mistral のキーはここではなく「カスタムエンドポイント」ページで変更します。そのページを開いて、新しいキーを貼り付けるか削除してください。Mistral（自分のキー） がこのキーを使います。",
     ["Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)"] = "Mistral キーが必要です（Custom endpoint のページにある Mistral プリセットで追加してください）",
     ["The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider."] = "会話の上限に達しました。しばらくしてから再度お試しいただくか、設定 > 会話プロバイダー で Local AI または Google Gemini を選んでください。",
     ["The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai."] = "語数で示した返答の最大長です。Google Gemini、Local AI、Customで機能し、Convaiでは機能しません。",

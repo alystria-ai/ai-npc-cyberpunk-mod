@@ -1733,6 +1733,8 @@ return {
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Модель Gemini сейчас недоступна. Попробуйте позже или используйте Local AI.",
     ["Google Gemini: model unavailable"] = "Google Gemini: модель недоступна",
     ["Mistral (your key)"] = "Mistral (ваш ключ)",
+    ["Mistral API key"] = "Ключ API Mistral",
+    ["Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it."] = "Ваш ключ Mistral меняется на странице «Свой эндпоинт», а не здесь. Откройте эту страницу, чтобы вставить новый ключ или удалить его. Его использует Mistral (ваш ключ).",
     ["Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)"] = "Нужен ключ Mistral (добавьте его с пресетом Mistral на странице Custom endpoint)",
     ["The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider."] = "Достигнут лимит бесед. Попробуйте позже или выберите Local AI или Google Gemini в меню Настройки > Поставщик бесед.",
     ["The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai."] = "Максимальная длина ответа в словах. Работает с Google Gemini, Local AI и Custom, но не с Convai.",

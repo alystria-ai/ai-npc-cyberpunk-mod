@@ -1733,6 +1733,8 @@ return {
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Gemini 模型暫時無法使用，請稍後再試或使用 Local AI。",
     ["Google Gemini: model unavailable"] = "Google Gemini：模型目前無法使用",
     ["Mistral (your key)"] = "Mistral（你的金鑰）",
+    ["Mistral API key"] = "Mistral API 金鑰",
+    ["Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it."] = "你的 Mistral 金鑰要在「自訂端點」頁面更改，而不是在這裡。開啟該頁面即可貼上新金鑰或移除金鑰。Mistral（你的金鑰） 會使用它。",
     ["Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)"] = "需要 Mistral 金鑰（請在 Custom endpoint 頁面使用 Mistral 預設新增）",
     ["The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider."] = "已達到對話上限。請稍後再試，或在 設定 > 對話提供者 中選擇 Local AI 或 Google Gemini。",
     ["The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai."] = "最長回覆的字數。適用於 Google Gemini、Local AI 和 Custom，不適用於 Convai。",

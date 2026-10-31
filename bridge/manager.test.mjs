@@ -4957,6 +4957,48 @@ test('Settings pages: the list holds only the Open rows, Relationships is a butt
   `);
 });
 
+test('Mistral (your key) shows a row under the provider that says the key is changed on the Custom endpoint page and opens it, and every provider has its key or options on the page it is chosen on', () => {
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}${matureStateFixture}${customReadyFixture}
+    assert(invoke('tab:settings').ok and invoke('settings:provider').ok and managerUi.inspect().view == 'settings-provider')
+    custom(false)
+    local function ids()
+      local out = {}
+      for _, category in ipairs(loaded.categories) do
+        if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do out[#out + 1] = item.id end end
+      end
+      return out
+    end
+    local function has(id) for _, item in ipairs(ids()) do if item == id then return true end end return false end
+    local function choose(fields)
+      assert(manager.applySettings(player, fields))
+      loaded = core.model()
+    end
+    -- No Mistral row for anybody who is not on Mistral.
+    assert(not has('mistral-key'), 'Convai free tier')
+    -- Every provider reaches its key or options from the page where it is chosen.
+    choose({conversationProvider = 'convai', useOwnConvaiKey = true}); assert(has('own-key'), 'Convai API key: its key row')
+    choose({conversationProvider = 'gemini'}); assert(has('gemini-key') and not has('mistral-key'), 'Google Gemini: its key row')
+    choose({conversationProvider = 'local'}); assert(has('localModel') and has('localOffload'), 'Local AI: its model and RAM rows')
+    choose({conversationProvider = 'custom'}); assert(has('custom-endpoint') and not has('mistral-key'), 'Custom: the endpoint page')
+    -- Mistral (your key): a row right under the selector, an Open row like the Custom endpoint button, so it works in every host.
+    choose({conversationProvider = 'mistral'})
+    local order = ids()
+    assert(order[1] == 'conversationProvider' and order[2] == 'mistral-key', table.concat(order, ','))
+    assert(has('custom-endpoint') and has('own-key') and has('gemini-key'), 'the other rows are still there')
+    local button = row('mistral-key')
+    assert(button.type == 'action' and button.label == 'Mistral API key' and button.value == 'Open', tostring(button.label))
+    assert(button.description:find('Custom endpoint page', 1, true) and button.description:find('paste a new key or remove it', 1, true))
+    assert(not button.description:find('launcher', 1, true))
+    -- It opens the Custom endpoint page, whose Mistral preset row holds the key, and Back returns to the provider page.
+    assert(invoke('mistral-key').ok)
+    assert(core.view() == 'custom-endpoint', core.view())
+    assert(row('custom-preset-mistral') ~= nil and row('custom-preset-mistral').label == 'Mistral', 'the Mistral key row is on that page')
+    assert(invoke('custom-endpoint:back').ok and core.view() == 'settings-provider')
+    -- Leaving Mistral takes the row away.
+    choose({conversationProvider = 'local'}); assert(not has('mistral-key'))
+  `);
+});
+
 test('The Convai API key row: Paste or Remove with the state in brackets, the failure first in its help, no free-key promotion, two commands, and a status that never shows the key', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end

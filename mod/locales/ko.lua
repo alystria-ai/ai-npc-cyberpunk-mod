@@ -1733,6 +1733,8 @@ return {
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Gemini 모델을 지금 사용할 수 없습니다. 나중에 다시 시도하거나 Local AI를 사용하세요.",
     ["Google Gemini: model unavailable"] = "Google Gemini: 모델을 사용할 수 없음",
     ["Mistral (your key)"] = "Mistral (내 키)",
+    ["Mistral API key"] = "Mistral API 키",
+    ["Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it."] = "Mistral 키는 여기가 아니라 “사용자 지정 엔드포인트” 페이지에서 바꿉니다. 해당 페이지를 열어 새 키를 붙여 넣거나 삭제하세요. Mistral (내 키)에서 이 키를 사용합니다.",
     ["Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)"] = "Mistral 키가 필요합니다 (Custom endpoint 페이지의 Mistral 프리셋으로 추가하세요)",
     ["The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider."] = "대화 한도에 도달했습니다. 나중에 다시 시도하거나, 설정 > 대화 제공자에서 Local AI 또는 Google Gemini을 선택하세요.",
     ["The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai."] = "단어 수로 정한 가장 긴 응답입니다. Google Gemini, Local AI, Custom에서 작동하며 Convai에서는 작동하지 않습니다.",
