@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {noticeProblems} from './notice-fit.mjs';
 
-export const NOTICE = 'Open AI NPC Cyberpunk Mod in the Mods list.';
+export const NOTICE = 'Open AI Companions in the Mods list.';
 const CODES = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const unescape = text => text.replace(/\\(["\\n])/g, (_, char) => char === 'n' ? '\n' : char);
@@ -26,6 +26,6 @@ for (const code of CODES) {
     assert.ok(translated, `${code} has no translation of: ${NOTICE}`);
     assert.notEqual(translated, NOTICE, `${code}: the notice is not translated`);
     assert.deepEqual(noticeProblems(translated), [], `${code}: ${translated}`);
-    assert.ok(translated.includes('AI NPC Cyberpunk Mod'), `${code}: the name of the mod is the one on the Mods screen: ${translated}`);
+    assert.ok(translated.includes('AI Companions'), `${code}: the name of the mod is the one on the Mods screen: ${translated}`);
   });
 }

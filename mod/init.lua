@@ -3534,6 +3534,46 @@ function convaiComposerWatch.closed(player, context)
     log('Composer closed without a message: generation=' .. tostring(context.generation) .. ' result=' .. result
         .. (opened and (' open=' .. math.floor(os.time() - opened) .. 's') or ''))
     if result == 'empty' or result == 'nodata' then convaiComposerWatch.notify(player) end
+    if result == 'parked' then convaiComposerWatch.parked(player, context) end
+end
+-- A click outside the box parked it (Composer.reds): the box is gone, V is free to walk and look, and the words are kept for the talk key.
+-- Nothing was typed, nothing is kept (the box simply closed). The notice names the key that types again. A key press, never per frame.
+convaiComposerWatch.KEEP_S = 300
+function convaiComposerWatch.parked(player, context)
+    local ok, text = pcall(function() return player:ConvaiDraftText() end)
+    if not ok or type(text) ~= 'string' or text == '' then
+        convaiComposerWatch.draft = nil
+        log('Composer parked with no words: nothing kept')
+        return
+    end
+    local action = context.head and 'cyberpunk_convai_johnny_text' or context.participants and 'cyberpunk_convai_group_text' or 'cyberpunk_convai_text'
+    convaiComposerWatch.draft = {key = context.profileKey, group = context.participants ~= nil, at = os.clock()}
+    log('Composer parked: generation=' .. tostring(context.generation) .. ' words=' .. #text)
+    convaiNotices.send(player, 'talk-draft', ui.t('Your message to {name} is kept. Press {key} to type again.', {name = context.name, key = convaiKeyHint(action)}))
+end
+-- The talk key opened a new box for `key`: the kept words are shown in it when the same character is addressed the same way within
+-- KEEP_S seconds, and dropped otherwise. True when they will be shown.
+function convaiComposerWatch.takeDraft(player, key, group)
+    local draft = convaiComposerWatch.draft
+    convaiComposerWatch.draft = nil
+    local fits = draft ~= nil and draft.key == key and draft.group == group and os.clock() - draft.at <= convaiComposerWatch.KEEP_S
+    if fits and convaiComposerInput then
+        convaiComposerInput.restoreDraft = true
+        return true
+    end
+    if convaiComposerInput then convaiComposerInput.restoreDraft = nil end
+    pcall(function() player:ConvaiClearDraft() end)
+    if draft then log('Parked message dropped: another character, another chat or too old') end
+    return false
+end
+-- Safety net: the scripts still call the box open although the game no longer shows it (see composer-input.lua orphaned). Asked once per
+-- frame, but only while a talk is active and the box is said to be open. True when the box was let go.
+function convaiComposerWatch.orphan(player)
+    local input = convaiComposerInput
+    if not input or type(input.orphaned) ~= 'function' or not input.orphaned(os.clock()) then return false end
+    local ok = pcall(function() player:ConvaiForgetComposer() end)
+    log('Composer box gone while still marked open: let go' .. (ok and '' or ' (not possible: the scripts lack ConvaiForgetComposer)'))
+    return ok
 end
 -- A message that was typed and then dropped on this side (`why` names the cause).
 function convaiComposerWatch.lost(player, why, context)
@@ -3590,6 +3630,8 @@ local function beginTextNow(groupMode, waited, talkJohnny)
             convaiComposerRefused(player)
             return
         end
+        if convaiComposerInput and convaiComposerInput.expect then convaiComposerInput.expect(os.clock()) end
+        local draftBack = convaiComposerWatch.takeDraft(player, key, participants ~= nil)
         cancelAutomatic('manual-text')
         gameplayActions.revoke('new-conversation')
         speech.stop('new-conversation')
@@ -3631,7 +3673,7 @@ local function beginTextNow(groupMode, waited, talkJohnny)
         convaiComposerWatch.opened(generation)
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name
             .. ' speed=' .. speedAtOpen .. ' moveAxis=' .. moveAtOpen
-            .. (waited and string.format(' waited=%.2f', waited) or ''))
+            .. (waited and string.format(' waited=%.2f', waited) or '') .. (draftBack and ' draft=kept words' or ''))
     end)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end
@@ -6404,6 +6446,16 @@ local function openManager()
                 local player = convaiPlayer()
                 if player then convaiNotices.send(player, 'manager-seated', ui.t('Stand up to open the Companion Manager')) end
             end)
+        elseif ok and type(managerUi.where) == 'function' then
+            -- Any other refusal (no save yet, a scene, a text box open): the page could not open now, so the notice says where it is.
+            pcall(function()
+                local player = convaiPlayer()
+                local where = managerUi.where()
+                if player and where then
+                    convaiNotices.send(player, 'manager-where', where == 'mcm' and ui.t('The settings are in Mod Configuration Menu, under AI Companions.')
+                        or ui.t('The settings are on the Mods screen, in the AI Companions tab.'))
+                end
+            end)
         end
     end
 end
@@ -8531,6 +8583,8 @@ registerForEvent('onUpdate', function(delta)
                 active = nil
                 warmConversation(nil, nil)
                 focusUntil = os.time() + 1
+            elseif openOk and composerOpen then
+                pcall(convaiComposerWatch.orphan, player)
             end
         end
         return

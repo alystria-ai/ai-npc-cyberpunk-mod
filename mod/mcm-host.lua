@@ -1,7 +1,7 @@
 local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The Companion Manager inside Mod Configuration Menu (MCM, Nexus Mods 31640), version 0.10.5 or later. This is the second host of
--- the page that mod/manager-ui.lua builds (the first is Native Settings UI, mod/nsui.lua): it registers one provider, "AI NPC
--- Cyberpunk Mod", with MCM and gives MCM the page as a schema of categories and rows. The pages, the actions and the rules for
+-- the page that mod/manager-ui.lua builds (the first is Native Settings UI, mod/nsui.lua): it registers one provider, "AI Companions"
+-- (the name the player knows the mod by; the page inside it is the Companion Manager), with MCM and gives MCM the page as a schema of categories and rows. The pages, the actions and the rules for
 -- applying a setting are in manager-ui.lua; nothing here knows what a setting means.
 --
 -- Only MCM's public API is used: GetMod('ModConfigurationMenuAPI'), providers.registerProvider and the provider callbacks
@@ -49,6 +49,8 @@ local function sittingPlainly()
 end
 
 local PROVIDER, MOD = 'cyberpunk-convai', 'manager'
+-- What MCM's list shows for the mod, as a product name (the same in every language, like the tab of Native Settings UI).
+local LIST_NAME = 'AI Companions'
 local MOD_KEY = PROVIDER .. ':' .. MOD
 local MIN_VERSION = {0, 10, 5}
 local SLOW_PERIOD = 0.25
@@ -484,10 +486,10 @@ end
 local function buildProvider()
     return {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
-        name = 'AI NPC Cyberpunk Mod', shortName = 'CONVAI',
+        name = LIST_NAME, shortName = 'AI',
         capabilities = {index = true, lazy = true, draft = true, action = true, atomicApply = true, dynamicSchema = true},
         listMods = function()
-            return {complete = true, revision = tostring(ui.revision()), mods = {{id = MOD, name = ui.t(core.LABEL),
+            return {complete = true, revision = tostring(ui.revision()), mods = {{id = MOD, name = LIST_NAME,
                 description = ui.t('Your companions, character models and conversation settings.')}}}
         end,
         closeMod = function(id)

@@ -602,6 +602,13 @@ local function gameLine(id, check)
     end
     if check.state == 'ok' then
         if id == 'red4ext' or id == 'redscript' then return line(id, label, 'ok', ui.t('Loaded.')) end
+        if id == 'nsui' and (check.code == 'mcm' or check.code == 'found') then
+            -- Say where the settings are, and the key that opens them (a player on Mod Configuration Menu looks for them in the game's Settings).
+            local where = check.code == 'mcm' and ui.t('The settings are in Mod Configuration Menu, under AI Companions.')
+                or ui.t('The settings are on the Mods screen, in the AI Companions tab.')
+            local key = ui.boundKey('cyberpunk_convai_manager')
+            return line(id, label, 'ok', versionText(check) .. ' ' .. where .. (key and (' ' .. ui.t('Press {key} to open them.', {key = key})) or ''))
+        end
         return line(id, label, 'ok', versionText(check))
     end
     if check.state == 'unknown' then return line(id, label, 'unknown', '') end

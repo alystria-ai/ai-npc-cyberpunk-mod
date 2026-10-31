@@ -64,7 +64,7 @@ export const mcmFake = String.raw`
 
   local function newMcm(options)
     options = options or {}
-    local F = {version = options.version or '0.10.5', calls = {}, errors = {}, loads = 0}
+    local F = {version = options.version or '0.10.5', calls = {}, errors = {}, loads = 0, refuseProvider = options.refuseProvider}
     local providers, providerOrder, catalog, drafts, config = {}, {}, {}, {}, {}
     local active, context, renderer, openRequest = nil, {open = false}, options.renderer ~= false, nil
     local scroll, scrollRequests, lastPage = 0, {}, nil
@@ -104,6 +104,7 @@ export const mcmFake = String.raw`
     api.providers = {apiVersion = 2}
     function api.providers.registerProvider(provider)
       note('registerProvider')
+      if F.refuseProvider then return false, 'The registry is not ready.' end
       if type(provider) ~= 'table' then return false, 'Provider descriptor must be a table.' end
       if type(provider.id) ~= 'string' or provider.id == '' then return false, 'Provider ID must be a non-empty string.' end
       if type(provider.registrationKey) ~= 'string' or provider.registrationKey == '' then return false, 'Provider registrationKey must be a non-empty string.' end

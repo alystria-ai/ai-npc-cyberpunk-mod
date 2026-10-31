@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 local M = convaiComposerInput or {patched = 0}
 local locale = convaiUiLocale
 if type(locale) ~= 'table' then
@@ -228,6 +229,8 @@ function M.apply(controller)
     if not kind then return end
     -- A Search characters box that really came up: mod/manager-ui.lua asks (M.searchShownAt) before it believes the box is on screen.
     if kind == 'search' then M.searchShownAt = os.clock() end
+    -- A talk box that really came up (orphaned, below, tells a box that was shown and is gone while the scripts still call it open).
+    if kind == 'talk' then M.shownAt = os.clock() end
     local backdropOk, backdropErr = pcall(M.clearBackdrop, controller)
     if not backdropOk then M.lastBackdropError = tostring(backdropErr) end
     local placeOk, placeErr = pcall(M.placeDialog, controller)
@@ -258,6 +261,11 @@ function M.apply(controller)
         -- it is hidden (localizePresentation). SetDefaultText changes only the hint, never an existing typed draft.
         input:SetDefaultText(kind == 'search' and text('Type part of a name') or '')
         pcall(M.padInputText, input)
+        -- A box the talk key opened after a click outside had parked one: the kept words are put back (init.lua beginTextNow sets the flag).
+        if kind == 'talk' and M.restoreDraft then
+            M.restoreDraft = nil
+            pcall(M.putDraft, input)
+        end
         M.patched = M.patched + 1
         M.lastCase = tostring(input:GetLetterCase())
         M.lastPlaceholder = input:GetDefaultText()
@@ -336,12 +344,44 @@ function M.update()
     end
 end
 
+-- The words a park kept (Composer.reds m_convaiDraft), shown in the box that just opened. Once per park.
+function M.putDraft(input)
+    local player = convaiPlayer()
+    local text = player and player:ConvaiTakeDraft()
+    if type(text) == 'string' and text ~= '' then
+        input:SetText(text)
+        M.restored = #text
+    end
+end
+
+-- Safety net for a talk box that is gone while the scripts still call it open (the game closed it without the close callback, or it never
+-- came up): the scripts' token would block the talk key and the Companion Manager for good. Asked by mod/init.lua only while a talk is
+-- active and the token says open, never per frame otherwise. expect(now) is called when a box is opened; shownAt is set when its dialog
+-- initialises (apply), goneAt when an owned dialog is torn down (install). Conservative: a teardown that cannot be read as ours counts for
+-- nothing, so another popup closing never frees a box that is still up.
+M.GONE_GRACE = 1.5     -- seconds the close callback gets after the dialog is gone
+M.UNSHOWN_LIMIT = 8    -- seconds a box may take to come up at all
+function M.expect(now) M.expectAt = now end
+function M.orphaned(now)
+    local shown, gone, expected = M.shownAt, M.goneAt, M.expectAt
+    if shown and expected and shown >= expected then
+        return gone ~= nil and gone >= shown and now - gone > M.GONE_GRACE
+    end
+    return expected ~= nil and now - expected > M.UNSHOWN_LIMIT
+end
+
 function M.install()
     if M.installed then return end
     ObserveAfter('GenericMessageNotification', 'OnInitialize', function(controller)
         local ok, err = pcall(M.apply, controller)
         if not ok then M.lastError = tostring(err) end
     end)
+    -- A talk dialog being torn down: noted for orphaned(). The user data is read inside the pcall, and only a box that is ours counts.
+    local watching, why = pcall(ObserveAfter, 'GenericMessageNotification', 'OnUninitialize', function(controller)
+        local ok, kind = pcall(function() return boxKind(controller:GetRootWidget():GetUserData('GenericMessageNotificationData')) end)
+        if ok and kind == 'talk' then M.goneAt = os.clock() end
+    end)
+    if not watching then M.lastError = 'dialog teardown not watched: ' .. tostring(why) end
     M.installed = true
 end
 
