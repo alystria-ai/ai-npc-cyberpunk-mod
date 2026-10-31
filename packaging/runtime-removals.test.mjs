@@ -317,7 +317,7 @@ test('the start without a list reports no removals, and a Runtime missing the st
 });
 
 // ---------------------------------------------------------------- the player's browser.txt
-// browser.txt in the plugin folder beside launcher.ini names the browser program; the start feeds it to the same setting as a developer's
+// browser.txt in the plugin folder (red4ext/plugins/AiNpcCyberpunkMod, no launcher.ini needed) names the browser program; the start feeds it to the same setting as a developer's
 // CYBERPUNK_CONVAI_BROWSER, an update never removes it, and a file that names nothing usable only says so in the log.
 test('the start reads browser.txt, ignores one that names nothing usable, and a developer variable wins', async () => {
   const f = await installation();

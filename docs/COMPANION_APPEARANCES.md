@@ -62,3 +62,6 @@ only while it is out of V's view. The facial graph survives it because the redsc
 (`Face.reds` `OnReassemble`; docs/FACIAL_ANIMATION.md "A replaced model"). A new copy of a curated character is created in the look that suits the hour and the place,
 through the same spawn specification; Kerry's clothed appearance above stays the base look of his list.
 
+## The invited person's own look (2026-10-31)
+
+Kerry was the first record that needed a named look at creation. The rule is now general: a new copy is never created without asking for its character's look when one is known. The roster `appearanceName`, the curated base look and the remembered look of the record are tried in that order after the outfit module and the adopted or returning look. See docs/SIDE_CHARACTERS.md, "Who the copy is".

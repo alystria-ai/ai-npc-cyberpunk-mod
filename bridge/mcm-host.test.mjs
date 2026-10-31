@@ -1693,6 +1693,17 @@ const customState = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
+test('Mod Configuration Menu: with Mistral (your key) chosen, AI provider shows a Mistral API key button under the selector that opens the Custom endpoint page', () => withScreen(`
+  ${footer}
+  ${customState}
+  assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+  settingsPage('AI provider')
+  local button = mcm.row('Mistral API key')
+  assert(button and button.type == 'action' and button.value == 'Open', 'the key row is on AI provider while Mistral is chosen')
+  press('Mistral API key')
+  assert(mcm.config().navigation.pageId == 'custom-endpoint|1|1', tostring(mcm.config().navigation.pageId))
+`));
+
 test('Custom endpoint is a page of its own: one button on AI provider where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => withScreen(`
   ${footer}
   ${customState}

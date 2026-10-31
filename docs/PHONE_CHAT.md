@@ -130,6 +130,20 @@ After Enter, or after a chat is closed again, the search is still there (the row
 
 Live check (to do, one game restart for the redscript): see TODO.md captain's log, 2026-10-31.
 
+
+### Search keys and a V who walks (31 Oct Discord report, branch `fix/discord-1101`. Redscript plus Lua, GAME RESTART. Not yet seen in the game)
+
+Many players use a mod that lets V move while the phone is open (texting from the back of a car, or walking). The first search keys were live on the whole Chat state and the search box could take the keyboard while a movement key was down. What changed:
+
+* **O and / are live only on the Chat list itself and with V not moving on foot** (`ConvaiSearchKeysLive`: the Chat list is the phone's state, it is on the screen with no menu over it, and `ConvaiPhoneChatIsFootMoving()` is false). Anywhere else the key does nothing here and stays the game's or another mod's. These key callbacks only watch: they never consume a key, and the one swallowing that exists (`ConvaiSearchSwallows`, `ConvaiChatSwallowsAction`) is only while a box has the keyboard, names no movement action, and lets every release other than the phone's own click actions through.
+* **A click on the search bar always works.** The row opens at once. If V is moving on foot at that moment the box takes the keyboard a moment later, on the first 10 Hz tick where V is not moving (`m_convaiSearchWantFocus`, given in `ConvaiSearchTick`, which also keeps a waiting search from counting as idle). Nothing is refused.
+* **A box never takes the keyboard while a movement key may be down.** This is the stuck walk of the Talk box (the game's box takes the keyboard, a movement key released meanwhile is never seen, V walks on), kept from the phone. The chat page does the same: its automatic focus keeps its ask while V moves and is given by the same tick (`ConvaiChatAdvanceGuard`), and the opening Enter does nothing while V moves.
+* **Where "moving on foot" comes from.** Lua, on the phone tick it already has (`mod/phone-chat.lua` `pushFootMoving`, 10 Hz, only while the phone is open, sent only when the answer changes, false when the phone closes). The reading is the Talk gate's own (`mod/init.lua` `phoneChat.footMoving`, `talkBusy`): a movement axis held with V actually moving, or V still moving from one, and never while V is mounted in a vehicle. A held axis with V standing still (a stale reading) does not count, so nothing can wait for ever. The redscript adds no game call of its own for this and no per-frame work.
+
+With Developer mode on, `probe.log` shows `search: the box waits for the movement keys` when a click had to wait. The Talk timeline lines of the Talk box are unchanged.
+
+Live check (owner), with a phone-moves-with-V mod on and without it: (1) walk with W held, open the phone, press O: nothing happens and V keeps walking. Stop: O opens the search. (2) Walk, click the search bar: the bar goes active, type nothing yet. Let go of W: the cursor is in the box and typing works, V does not walk on. (3) In a car (not driving), O opens the search. (4) Open a chat while walking: the box waits, then takes the keyboard after V stops. After Esc or Enter no movement key sticks (read `probe.log`).
+
 ## History and memory
 
 History and per-contact drafts persist across game launches, save loads, bridge

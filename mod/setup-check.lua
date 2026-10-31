@@ -112,7 +112,7 @@ local SCRIPT_METHODS = {
     {'chat', 'ConvaiPhoneChatContact ConvaiPhoneChatTick ConvaiPhoneChatTyping ConvaiPhoneChatDraft ConvaiPhoneChatTakeSubmission ConvaiPhoneChatPresent '
         .. 'ConvaiPhoneChatClearContacts ConvaiPhoneChatRegisterContact ConvaiPhoneChatClearFavorites ConvaiPhoneChatAddFavorite '
         .. 'ConvaiPhoneChatTakeFavoriteRequest ConvaiPhoneChatClearParty ConvaiPhoneChatAddParty ConvaiPhoneChatTakeTrace '
-        .. 'ConvaiPhoneChatSearchSeq ConvaiPhoneChatSearchQuery ConvaiPhoneChatSearchJournal ConvaiPhoneChatSearchResult'},
+        .. 'ConvaiPhoneChatSearchSeq ConvaiPhoneChatSearchQuery ConvaiPhoneChatSearchJournal ConvaiPhoneChatSearchResult ConvaiPhoneChatFootMoving'},
     {'composer', 'ConvaiComposerOpen ConvaiOpenComposer ConvaiTakeDraft ConvaiDraftText ConvaiClearDraft ConvaiForgetComposer ConvaiComposerClosedInfo '
         .. 'ConvaiFrameFlags ConvaiMoveHeld ConvaiMoveForget ConvaiOpenSearchBox ConvaiSearchBoxState ConvaiTakeSearchText ConvaiForgetSearchBox'},
     {'holocall', 'ConvaiHolocallBegin ConvaiHolocallConnect ConvaiHolocallEnd ConvaiHolocallHasBacking ConvaiHolocallTakeEvent ConvaiHolocallTakeRequest'},
@@ -608,7 +608,7 @@ function M.serviceWhy(now)
     end
     if check.code == 'browser-missing' then
         return {key = 'browser-missing', label = ui.t('Needs a browser'),
-            description = ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')}
+            description = ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.')}
     end
     if check.code == 'never' then
         if check.detail == 'no-launcher-trace' then
@@ -802,7 +802,7 @@ local function bridgeLines(out)
     if browser and browser.code == 'found' then
         out[#out + 1] = line('browser', ui.t('Browser'), 'ok', ui.t('Found: {list}.', {list = text(browser.name, 60) or '?'}))
     elseif browser and browser.code == 'missing' then
-        out[#out + 1] = line('browser', ui.t('Browser'), 'problem', ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.'))
+        out[#out + 1] = line('browser', ui.t('Browser'), 'problem', ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.'))
     end
     -- The Pocket voice failed to start (two 0.2.2 players had no voice from V and no way to tell why). Only a failure has a line: a voice that works
     -- needs none. Pocket ships inside the Runtime, so the line says nothing needs installing.

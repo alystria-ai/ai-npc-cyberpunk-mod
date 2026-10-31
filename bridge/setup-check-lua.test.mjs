@@ -465,7 +465,7 @@ test('the microphone: the input in use, chosen or the Windows default, and a not
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`
   installFiles(); serviceRunning()
   answer({browser = {id = 'browser', state = 'problem', code = 'missing'}}); check.run()
-  assert(lineOf('browser').state == 'problem' and lineOf('browser').description == 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
+  assert(lineOf('browser').state == 'problem' and lineOf('browser').description == 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.')
   assert(#check.problems() == 0, 'a missing browser is told by the service status and its own notice')
   answer({browser = {id = 'browser', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('browser') == nil, 'a browser not looked up yet (the first, light answer) shows no line')

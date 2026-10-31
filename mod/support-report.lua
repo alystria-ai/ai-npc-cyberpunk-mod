@@ -499,7 +499,7 @@ function M.new(options)
         -- The commonest reason the service never started: say it first, in plain words (the code is bridge-service.json's).
         if self.serviceFault() == 'browser' then
             table.insert(out, 2, 'PROBLEM: no browser for the conversation page (service status code browser-missing). a Chromium browser such as '
-                .. 'Microsoft Edge, Google Chrome, Brave or Opera must be installed, or its path written in browser.txt next to launcher.ini, then restart the game.')
+                .. 'Microsoft Edge, Google Chrome, Brave or Opera must be installed, or its path written in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.')
         elseif reason == 'service-never-started' then
             -- No status at all: the launcher that starts the service never ran. Likeliest first (the Runtime is a separate download).
             table.insert(out, 2, 'PROBLEM: the conversation service never started (runtime/bridge-service.json is missing, empty or from an earlier '

@@ -94,7 +94,7 @@ export function parseSupervisorArguments(argv, {defaultProject, env = process.en
 
 // Wine's own stand-in for a default browser is what the lookup reports on a Windows game run on Linux or the Steam Deck (Proton): its prefix has no browser,
 // and the hidden one plays every voice and hears the microphone, so the service stops there (26 Oct: every browser-missing report of 0.3.2 was such a prefix).
-const WINE_BROWSER_MESSAGE = 'This looks like Wine or Proton (Linux, Steam Deck): there is no Windows browser in the game prefix, and the mod needs one for sound and the microphone. Install Chrome or Edge into the prefix and write its path in browser.txt next to launcher.ini.';
+const WINE_BROWSER_MESSAGE = 'This looks like Wine or Proton (Linux, Steam Deck): there is no Windows browser in the game prefix, and the mod needs one for sound and the microphone. Install Chrome or Edge into the prefix and write its path in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed).';
 
 export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,

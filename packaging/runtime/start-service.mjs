@@ -417,7 +417,7 @@ try {
 const localAiJoined = assembleParts(layout.localAi, {log}).catch(error => { log(`Local AI pack: ${error?.message || error}`); return []; });
 
 const env = serviceEnvironment(layout, {...prepared, usvfs: Boolean(usvfsCompat)});
-// The player's own choice of browser: browser.txt in the plugin folder beside launcher.ini names a Chromium program installed where no
+// The player's own choice of browser: browser.txt in the plugin folder (red4ext/plugins/AiNpcCyberpunkMod, no launcher.ini needed) names a Chromium program installed where no
 // lookup finds it (bridge/system-browser.mjs). It feeds the same setting as a developer's CYBERPUNK_CONVAI_BROWSER, which wins when both
 // are set. A file that names nothing usable is said so once in the log and the usual lookup goes on. One small read; a failure never stops the start.
 try {

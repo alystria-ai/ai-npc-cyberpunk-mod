@@ -1381,6 +1381,16 @@ local function ownKeyRows(snapshot)
                 return navigate('custom-endpoint')
             end))
     end
+    -- Mistral (your key), kept as the third entry for a player who chose it before 0.4.0, is a preset of the Custom endpoint now: its key lives on that page. A row right
+    -- under the selector says so and opens the page, in every host (an Open row works in the overlay, Mod Configuration Menu and Native Settings UI alike).
+    if snapshot.settings.conversationProvider == 'mistral' and customProvider.instance then
+        table.insert(rows, 2, action('mistral-key', 'Mistral API key', 'Open',
+            'Your Mistral key is changed on the Custom endpoint page, not here. Open that page to paste a new key or remove it. Mistral (your key) uses it.',
+            function()
+                pcall(customProvider.instance.state, true)
+                return navigate('custom-endpoint')
+            end))
+    end
     -- Convai paid tier: right under the Convai API key row, whose key a plan is bought for.
     if paidTier then
         local at = #rows + 1
@@ -2958,7 +2968,7 @@ local function schema()
         -- started, or failed for a reason the setup check knows, gets the setup check's fix instead.
         local serviceValue = support.serviceLabel()
         local serviceHelp = support.serviceFault() == 'browser'
-            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
+            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.')
             or ui.t('The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.')
         local setupLines, summary = {}, ''
         if setup then

@@ -153,6 +153,16 @@ public final func ConvaiPhoneChatSearchView(view: wref<NewHudPhoneGameController
 public final func ConvaiPhoneChatSearchTyping() -> Bool {
     return IsDefined(this.m_convaiSearchView) && this.m_convaiSearchView.ConvaiSearchTyping();
 }
+// V is moving on foot (mod/phone-chat.lua pushes it on its 10 Hz tick while the phone is open, and false when the phone closes). The text boxes of the phone never take
+// the keyboard while it is true, so a movement key that is down cannot lose its release to a box (a player who walks with the phone open, with a mod that allows it,
+// would keep walking). False in a vehicle, whatever the pad or keys do, and false from a Lua that does not push it.
+@addField(PlayerPuppet)
+private let m_convaiFootMoving: Bool;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatFootMoving(moving: Bool) -> Void { this.m_convaiFootMoving = moving; }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatIsFootMoving() -> Bool { return this.m_convaiFootMoving; }
+
 // Lua's 10 Hz tick (ConvaiPhoneChatTick): the search lets go of everything that outlived its box.
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatSearchTick() -> Void {
@@ -200,6 +210,10 @@ private let m_convaiSearchLeavingAt: Float;
 private let m_convaiSearchDrop: Bool;
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchIdle: Int32;
+// A click on the row came while V was moving on foot: the row is open and the box exists, but the keyboard goes to it only when the movement keys are up (the 10 Hz tick
+// gives it). The click is never refused, and a key that is down never loses its release to the box.
+@addField(NewHudPhoneGameController)
+private let m_convaiSearchWantFocus: Bool;
 @addField(NewHudPhoneGameController)
 private let m_convaiSearchMuted: Bool;
 
@@ -375,10 +389,20 @@ private final func ConvaiSearchKey(key: EInputKey) -> Bool {
         return true;
     };
     if Equals(key, EInputKey.IK_O) || Equals(key, EInputKey.IK_Slash) {
+        // Only while the Chat list itself is up and V is not moving on foot: anywhere else O and / belong to the game or to another mod, and this callback only
+        // watches (it never consumes a key).
+        if !this.ConvaiSearchKeysLive() { return false; };
         this.ConvaiSearchOpen();
         return true;
     };
     return false;
+}
+
+// The search keys (O and /) are live: the Chat list is the phone's state and is on the screen (phone open, no menu over it, the dialer shown), and V is not moving on foot.
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSearchKeysLive() -> Bool {
+    if !IsDefined(this.m_player) || NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) || !this.ConvaiSearchOnScreen() { return false; };
+    return !this.m_player.ConvaiPhoneChatIsFootMoving();
 }
 
 // Starts the search (or puts the keyboard back in its box): the row is made if it is not there, the box is made inside it and takes the focus.
@@ -401,6 +425,13 @@ private final func ConvaiSearchOpen() -> Void {
         this.m_player.ConvaiPhoneChatTrace("search: opened");
     };
     this.m_contactListLogicController.ConvaiSearchRowLook(true, StrLen(this.ConvaiSearchBoxText()) == 0);
+    // A click always opens the search. With V moving on foot the keyboard is given to the box a moment later, when the movement keys are up (ConvaiSearchTick).
+    if this.m_player.ConvaiPhoneChatIsFootMoving() {
+        this.m_convaiSearchWantFocus = true;
+        this.m_player.ConvaiPhoneChatTrace("search: the box waits for the movement keys");
+        return;
+    };
+    this.m_convaiSearchWantFocus = false;
     this.ConvaiSearchBoxFocus(true);
 }
 
@@ -521,6 +552,7 @@ private final func ConvaiSearchEnd(rebuild: Bool, later: Bool) -> Void {
         if IsDefined(selected) { selectId = selected.id; };
     };
     let wasOpen = this.m_convaiSearchOpen;
+    this.m_convaiSearchWantFocus = false;
     this.m_convaiSearchOpen = false;
     this.m_convaiSearchFilter = false;
     this.m_convaiSearchLeaveOnAnswer = false;
@@ -559,6 +591,7 @@ public final func ConvaiSearchUninitialize() -> Void {
 // never meets the state of an old one. The full list is then built from the journal as on a first opening.
 @addMethod(NewHudPhoneGameController)
 public final func ConvaiSearchReset() -> Void {
+    this.m_convaiSearchWantFocus = false;
     this.m_convaiSearchOpen = false;
     this.m_convaiSearchFilter = false;
     this.m_convaiSearchLeaveOnAnswer = false;
@@ -596,6 +629,19 @@ public final func ConvaiSearchTick() -> Void {
     if this.m_convaiSearchDrop {
         this.ConvaiSearchBoxDrop();
         return;
+    };
+    if this.m_convaiSearchWantFocus {
+        if !this.m_convaiSearchOpen || NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
+            this.m_convaiSearchWantFocus = false;
+        } else {
+            // Waiting for the movement keys: not an idle search. The box takes the keyboard on the first tick where V is not moving on foot.
+            if !this.m_player.ConvaiPhoneChatIsFootMoving() {
+                this.m_convaiSearchWantFocus = false;
+                this.m_convaiSearchIdle = 0;
+                this.ConvaiSearchBoxFocus(true);
+            };
+            return;
+        };
     };
     if this.m_convaiSearchOpen && Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
         if !this.ConvaiSearchBoxFocused() && StrLen(this.ConvaiSearchBoxText()) == 0 {

@@ -1,6 +1,7 @@
 // Generic journal observations are evidence of V's journal, never a decision
 // mapping or a durable memory event. This module has no persistence or I/O.
 import {isImmutable, isParsed, markParsed, memoOf} from './parsed-snapshot.mjs';
+import {touches, tieWords} from './character-type.mjs';
 const LIMIT = Object.freeze({bytes: 4 * 1024 * 1024, quests: 4096, objectives: 16384,
   perQuest: 256, output: 12000, selected: 6, selectedObjectives: 16});
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -183,7 +184,7 @@ export function freshQuest(history, row, age, now) {
 
 /** Filtered context only. No durable-memory events are produced by this layer. */
 export function selectJournalHistory({snapshot, generation, worldToken, profileKey, query = '', topics, questCatalog = [],
-  maxChars = 6000, now = Date.now(), trackedQuestId, bound: given} = {}) {
+  maxChars = 6000, now = Date.now(), trackedQuestId, bound: given, tied = false, place} = {}) {
   const limit = Number.isSafeInteger(maxChars) ? Math.max(0, Math.min(maxChars, LIMIT.output)) : 6000;
   const diagnostics = {status: 'unavailable', selected: [], omitted: 0};
   const unavailable = reason => ({context: '', events: [], diagnostics: {...diagnostics, reason}});
@@ -193,6 +194,7 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
   const current = bound.history, age = bound.age;
   query = typeof query === 'string' ? query.slice(0, 4096) : '';
   // `topics`: the words of the whole talk (bridge/topic-words.mjs) rank the quests, so the block stays as it was until V brings up something new (a stable prefix for the model's cache).
+  const tiedWords = tied ? new Set([...tieWords(profileKey), ...(place ?? [])]) : null;
   const tokens = words(typeof topics === 'string' && topics ? topics : query); const historyQuestion = /\b(completed|finished|failed|past|history|previous)\b/iu.test(query);
   const ranked = current.quests.map(row => {
     if (!freshQuest(current, row, age, now)) return null;
@@ -208,6 +210,10 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
     if (!isTracked && !titleHits && !objectiveHits && !(historyQuestion && row.state !== 'active')) return null;
     // Scanning the catalog only affects the score, so do it for candidates only.
     const isRelated = related(row, profileKey, questCatalog?.quests ?? questCatalog);
+    // A side character (docs/CONTEXT_BY_TYPE.md): only a quest tied to this character (the catalog lists them in it, its words name them, their faction or role or the
+    // place they stand in) or one V's words are about. The tracked quest or an old one is not told to everyone.
+    if (tied && !isRelated && !titleHits && !objectiveHits
+        && !touches([row.title, ...row.objectives.map(objective => objective.text)].join(' '), tiedWords)) return null;
     const score = (isTracked ? 1000 : 0) + titleHits * 70 + Math.min(60, objectiveHits * 5)
       + (isRelated ? 40 : 0) + (row.state === 'active' ? 10 : historyQuestion ? 2 : 0);
     return score > 0 ? {row, score, isTracked, isRelated} : null;
@@ -240,6 +246,8 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
     diagnostics.selected.push(row.id);
   }
   diagnostics.status = 'ready'; diagnostics.omitted = current.quests.length - document.quests.length;
+  // A side character with no quest tied to them is told nothing of V's journal history, not even its counts.
+  if (tied && !document.quests.length) return {context: '', events: [], diagnostics};
   return {context: render(), events: [], diagnostics};
 }
 

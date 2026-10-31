@@ -1880,7 +1880,11 @@ local function definitionFor(profile)
         for _, id in ipairs(profile.records) do if type(id) == 'string' and marked[id] then list[#list + 1] = id end end
     end
     local record = list[1]
-    return record and {id = record, name = profile.name, records = list} or nil
+    -- appearanceName: the roster row's own look, so the invited person is the same person at every spawn (companions.lua ownLook). It belongs to the profile's
+    -- first record, so it goes with that record only (a record tried instead has its own look or none).
+    local look = type(profile.appearanceName) == 'string' and profile.appearanceName ~= '' and profile.appearanceName or nil
+    if look and record ~= (type(profile.records) == 'table' and profile.records[1] or nil) then look = nil end
+    return record and {id = record, name = profile.name, records = list, appearance = look} or nil
 end
 
 function M.configure(companionApi, profileList)

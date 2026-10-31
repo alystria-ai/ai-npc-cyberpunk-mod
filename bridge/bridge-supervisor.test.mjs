@@ -318,7 +318,7 @@ test('a service stopped for a missing browser on Wine or Proton says so in its l
     browserReport: () => 'Browser lookup: LOCALAPPDATA set. Browser folders found: none. Registered programs found: none. Default browser: winebrowser.exe. Start menu browsers: none.'});
   await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
   const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
-  assert.match(log, /This looks like Wine or Proton .*Install Chrome or Edge into the prefix and write its path in browser\.txt/);
+  assert.match(log, /This looks like Wine or Proton .*Install Chrome or Edge into the prefix and write its path in a browser\.txt file in the red4ext\/plugins\/AiNpcCyberpunkMod folder of the game \(no launcher\.ini is needed\)/);
   run.endGame(); await run.done;
   const g = await fixture(t);
   const plain = supervise(g, {browserAvailable: () => false, browserReport: () => 'Browser lookup: LOCALAPPDATA set. Default browser: ChromeHTML. Start menu browsers: none.'});

@@ -78,6 +78,7 @@
     "records": [
       "Character.mq306_aaron"
     ],
+    "appearanceName": "man_big__mq306__aaron_default",
     "voice": "convai-kokoro-d854e05c9f9c4646",
     "voiceName": "Logan (Expressive Young-Adult American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -383,6 +384,7 @@
     "records": [
       "Character.alex"
     ],
+    "appearanceName": "alex_default",
     "voice": "convai-kokoro-8a2919b7b1a581e7",
     "voiceName": "Anna (Expressive Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -1738,6 +1740,7 @@
     "records": [
       "Character.Claire"
     ],
+    "appearanceName": "clair_default",
     "voice": "convai-kokoro-66f6de32b10f0a58",
     "voiceName": "Katie (Husky Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -2681,6 +2684,7 @@
     "records": [
       "Character.Evelyn"
     ],
+    "appearanceName": "evelyn_default",
     "voice": "convai-kokoro-ec5ab9b858b3bb52",
     "voiceName": "Julia (Expressive Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -2884,6 +2888,7 @@
     "records": [
       "Character.Hanako"
     ],
+    "appearanceName": "hanako_default",
     "voice": "convai-kokoro-14992a358de8d395",
     "voiceName": "Freya (Authoritative Adult British Female)",
     "model": "fast-gemma-4-31b-it",
@@ -3130,6 +3135,7 @@
     "records": [
       "Character.Jackie"
     ],
+    "appearanceName": "jackie_welles_default",
     "voice": "convai-kokoro-cdaba86a412f444f",
     "voiceName": "Noah (Confident Adult American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -3899,6 +3905,7 @@
     "records": [
       "Character.sq021_joss"
     ],
+    "appearanceName": "citizen__lowlife_wa__sq029__joss",
     "voice": "convai-kokoro-36c981057bd1e1c6",
     "voiceName": "Helen (Gentle Middle-Aged American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -3992,6 +3999,7 @@
     "records": [
       "Character.Judy"
     ],
+    "appearanceName": "judy_default",
     "voice": "convai-kokoro-ec5ab9b858b3bb52",
     "voiceName": "Julia (Expressive Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -4223,6 +4231,7 @@
     "records": [
       "Character.Kerry"
     ],
+    "appearanceName": "kerry_eurodyne_kerry_eurodyne_old_no_sunglasses",
     "voice": "convai-kokoro-d854e05c9f9c4646",
     "voiceName": "Logan (Expressive Young-Adult American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -6261,6 +6270,7 @@
     "records": [
       "Character.Ozob"
     ],
+    "appearanceName": "ozob_default",
     "voice": "convai-kokoro-d854e05c9f9c4646",
     "voiceName": "Logan (Expressive Young-Adult American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -6637,6 +6647,7 @@
     "records": [
       "Character.Panam"
     ],
+    "appearanceName": "panam_default",
     "voice": "convai-kokoro-66f6de32b10f0a58",
     "voiceName": "Katie (Husky Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -7853,6 +7864,7 @@
     "records": [
       "Character.Sobchak"
     ],
+    "appearanceName": "river_ward_default",
     "voice": "convai-kokoro-c06cbef9a39378f9",
     "voiceName": "Ethan (Calm Young-Adult American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -8085,6 +8097,7 @@
     "records": [
       "Character.Rogue"
     ],
+    "appearanceName": "rogue_rogue_old",
     "voice": "convai-kokoro-5bcc8b021c01ea90",
     "voiceName": "Sarah (Authoritative Middle-Aged American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -8791,6 +8804,7 @@
     "records": [
       "Character.reed"
     ],
+    "appearanceName": "reed_default",
     "voice": "convai-kokoro-adc3f8cb01f0badb",
     "voiceName": "John (Deep Calm Middle-Aged American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -8980,6 +8994,7 @@
     "records": [
       "Character.songbird"
     ],
+    "appearanceName": "songbird_default",
     "voice": "convai-kokoro-8a2919b7b1a581e7",
     "voiceName": "Anna (Expressive Young-Adult American Female)",
     "model": "fast-gemma-4-31b-it",
@@ -9457,6 +9472,7 @@
     "records": [
       "Character.Takemura"
     ],
+    "appearanceName": "goro_takemura_ronin_shirt",
     "voice": "convai-kokoro-adc3f8cb01f0badb",
     "voiceName": "John (Deep Calm Middle-Aged American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -9655,6 +9671,7 @@
     "records": [
       "Character.Thompson"
     ],
+    "appearanceName": "thompson_coat",
     "voice": "convai-kokoro-04c5659ef7eeef25",
     "voiceName": "Harry (Deep Middle-Aged British Male)",
     "model": "fast-gemma-4-31b-it",
@@ -10132,6 +10149,7 @@
     "records": [
       "Character.Yorinobu"
     ],
+    "appearanceName": "yorinobu_arasaka_yorinobu_default",
     "voice": "convai-kokoro-a140acd135a0d3a1",
     "voiceName": "Mark (Bold Middle-Aged American Male)",
     "model": "fast-gemma-4-31b-it",
@@ -12201,6 +12219,7 @@
     "records": [
       "Character.dante"
     ],
+    "appearanceName": "man_average__mq305__dante",
     "voice": "convai-kokoro-c06cbef9a39378f9",
     "voiceName": "Ethan (Calm Young-Adult American Male)",
     "model": "fast-gemma-4-31b-it",
