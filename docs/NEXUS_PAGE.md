@@ -5,7 +5,7 @@
 The page text is kept short: each fact is said once, in the section where a player looks for it, and features get one tight line. Sections in order: one download with the game versions, videos, key features (the old FAQ is folded in here and into the packs section), the settings block (local first, then cloud, then video memory), install (requirements, then three routes: by hand, Vortex, Mod Organizer 2, each with its update line), optional packs and your own models (including the second PC setup), languages, privacy and error reports, troubleshooting. Release history stays in the changelog, not on the page.
 
 ```text
-These demo videos are from older versions and show how the mod worked then.
+[b]These demo videos are from older versions and show how the mod worked then. See Settings Screenshots for more updated information.[/b]
 [youtube]iR0lOYfrFx8[/youtube]
 
 [youtube]7hoYG5tmZ98[/youtube]
