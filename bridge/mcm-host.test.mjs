@@ -1888,7 +1888,7 @@ for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl'
 test('MCM: the Character editor row of Home writes one editor command, the page stays on Home and the status line carries the notice', () => withScreen(`
   local row = mcm.row('Character editor')
   assert(row and row.type == 'action' and row.value == 'Open' and row.id == 'character-editor:home' and row.capabilities.action == true)
-  assert(row.description:find('Google Gemini, Local AI and Custom, not Convai', 1, true) and row.description:find('prompting for each AI option', 1, true))
+  assert(row.description:find('With Convai, your changes are sent as notes with each reply', 1, true) and row.description:find('prompting for each AI option', 1, true))
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
   local before = commandWrites()
   press('Character editor')

@@ -80,7 +80,7 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   const {page} = e;
   assert.equal(await page.title(), 'Character editor');
   assert.equal(await page.locator('#banner').isHidden(), true, 'no warning when a text provider answers');
-  assert.match(await page.locator('#sub').textContent(), /Google Gemini, Local AI and Custom\. They do not apply to Convai\./);
+  assert.match(await page.locator('#sub').textContent(), /Your changes work with every conversation option\. With Convai they are sent as notes with each reply\./);
   assert.equal(await page.locator('#picker').isVisible(), true, 'with nobody chosen yet the picker is open on the page');
   assert.equal(await page.locator('#pickerhead').textContent(), 'Choose a character to start editing.');
   assert.deepEqual(await groupTitles(page), ['Romances', 'Companions', 'Story', 'Side characters', 'V’s voice']);
@@ -224,7 +224,7 @@ test('with Convai answering the page says the changes do not apply yet, and the 
     'Romances': 'Romanzen', 'Choose a character to start editing.': 'Wähle einen Charakter zum Bearbeiten aus.', 'Unsaved changes': 'Nicht gespeicherte Änderungen', 'Close': 'Schließen'}});
   const {page} = e;
   assert.equal(await page.locator('#banner').isVisible(), true);
-  assert.match(await page.locator('#banner').textContent(), /Convai is answering right now, so these changes have no effect yet\./);
+  assert.match(await page.locator('#banner').textContent(), /Convai is answering right now\. Your changes reach it as notes sent with each reply/);
   assert.equal(await page.title(), 'Charakter-Editor');
   assert.equal(await page.locator('html').getAttribute('lang'), 'de');
   assert.equal(await page.locator('#close').textContent(), 'Editor schließen');
@@ -540,7 +540,7 @@ test('the new-character form works at phone width and in the light theme', {skip
   await e.shot('13-phone');
 });
 
-test('with Convai answering, a note beside the text fields says the edits do not apply, and it follows the provider when the player comes back to the page', {skip, timeout: 120000}, async t => {
+test('with Convai answering, a note beside the text fields says a long edit is shortened, and it follows the provider when the player comes back to the page', {skip, timeout: 120000}, async t => {
   const e = await open(t, {route: 'convai'});
   const {page} = e;
   await page.locator('#list button.pick').nth(2).click();
@@ -549,7 +549,7 @@ test('with Convai answering, a note beside the text fields says the edits do not
   for (const tab of ['bio', 'style', 'rules', 'memories']) {
     await page.locator('#tab-' + tab).click();
     assert.equal(await note.isVisible(), true, `the ${tab} tab has the note while Convai answers`);
-    assert.match(await note.textContent(), /Google Gemini, Local AI and Custom\. They do not apply to Convai\./);
+    assert.match(await note.textContent(), /A long edit is shortened for Convai\. The rules, memories and speaking style are kept first\./);
   }
   // The player switches the conversation provider in the game and comes back to the open page: the warnings follow without a reload.
   e.state.route = 'local';

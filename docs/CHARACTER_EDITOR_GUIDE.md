@@ -16,13 +16,19 @@ The character editor is a page in your web browser where you change who a charac
 | Google Gemini | Yes |
 | Local AI | Yes |
 | Custom | Yes |
-| Convai | No |
+| Convai | Yes, as notes sent with each reply |
 
-Convai keeps its own copy of every character in its cloud, shared by all players, so the mod cannot change it. While Convai is answering, the editor shows a warning bar under the top bar and a note above the text fields. Your edits are still saved, and they are used as soon as you choose Google Gemini, Local AI or Custom in **Settings > Conversation provider**.
+Convai keeps its own copy of every character in its cloud, shared by all players, so the mod cannot change it. Instead, once you have edited a character, the mod sends Convai a short note with every reply from that character. The note says who the character is now: your speaking style, your rules, your memories, the bio paragraphs you wrote or changed, your own example lines, and a few words about the old bio paragraphs you took out. Convai is told that the note is current and that its older text is out of date where the two differ. A character you did not edit gets no note, and nothing changes for it.
+
+Because the note is added to what Convai already knows, Convai follows an edit a little less firmly than the other providers do, and it can still drift back to its stored character in a long talk. If it does, say it plainly in a rule ("Always call V by name.") or in a memory, which are the parts it follows best.
+
+The note has room for about 4,000 characters. A short edit goes in whole. When an edit is longer, the mod keeps things in this order: your rules, your memories, the speaking style, the bio paragraphs you wrote, your example lines, and last the list of removed paragraphs. A list loses its last lines and a long text is cut at the end of a sentence. The shipped text is never sent again, because Convai already has it. While Convai is answering, the editor shows a warning bar under the top bar and a note above the text fields that say this.
 
 Convai also answers when the provider you chose cannot be used, for example Google Gemini with no key saved. The warning bar says so. If an edit seems to be ignored, check this first. The page looks again whenever you come back to its tab, so the warning follows what you set in the game.
 
-Some parts of the editor work with every provider, Convai included: **Look and moves** (outfit, gestures, seating, reply length) and **World rules** (the rules for the whole world).
+Two things still do not reach Convai: the reply length of **Look and moves** (Convai writes its own length) and the **Prompting** page. Your own characters (**New character**) speak only with Google Gemini, Local AI or Custom, because Convai has no profile for them.
+
+Some parts of the editor work with every provider, Convai included: **Look and moves** (outfit, gestures, seating, but not the reply length) and **World rules** (the rules for the whole world).
 
 ## What each tab does
 
@@ -47,7 +53,7 @@ Everything written for one character together stays under 12,500 characters. **R
 
 ## Make a character know a new fact
 
-1. **Use Memories, Things they always know.** Write one short fact per line, as a plain sentence that names who it is about: "V has a sister called Lena." or "Judy keeps a tabby cat called Biscuit." These lines go into every talk, on every provider, and they are never shortened.
+1. **Use Memories, Things they always know.** Write one short fact per line, as a plain sentence that names who it is about: "V has a sister called Lena." or "Judy keeps a tabby cat called Biscuit." These lines go into every talk, on every provider, and they are never shortened (with Convai they are among the first things kept in its note).
 2. **Use the Bio for bigger things:** a history, a look, a change of personality. Put each new piece in a paragraph of its own, with a blank line before and after.
 3. **Keep the bio tight.** Smaller models, such as the Local AI Lite model, and slow computers read a shortened character text. When the bio has to be shortened, the paragraphs you added or changed are kept and the shipped paragraphs are dropped from the end first. A very long bio still costs speed, so keep it tight.
 4. **Fix the old line, do not just add a new one.** If the shipped bio says the opposite of your fact, change or delete that line. The model reads both and may follow the old one.
@@ -57,7 +63,7 @@ Everything written for one character together stays under 12,500 characters. **R
 
 ## If a character still does not know
 
-- Is Convai answering? Look for the warning bar. Choose Google Gemini, Local AI or Custom in the settings.
+- Is Convai answering? Look for the warning bar. Convai follows an edit less firmly than the other providers. Put the fact in a rule or a memory, keep the edit short, or choose Google Gemini, Local AI or Custom in the settings.
 - Did you press **Save**? **Unsaved changes** beside the buttons means you did not. A dot on a tab marks unsaved changes on it.
 - Is it the right character? The name at the top of the page is the one you are editing.
 - Is the fact buried at the end of a long bio? Move it to Memories.

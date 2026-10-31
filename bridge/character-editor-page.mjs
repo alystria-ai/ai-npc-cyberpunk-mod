@@ -1184,9 +1184,9 @@ export function editorClient() {
 
   // ---- the page
   const TAB_ICONS = {bio: 'fileText', style: 'message', rules: 'listChecks', memories: 'bookmark', voice: 'mic', look: 'shirt'};
-  // Beside the text fields of the four text tabs, while Convai is the conversation provider: these edits are not used by it (the banner under the top bar says it too, and follows the provider).
+  // Beside the text fields of the four text tabs, while Convai is the conversation provider: these edits reach it as notes with each turn and a long one is shortened (the banner under the top bar says it too, and follows the provider).
   const convaiNote = () => h('p', {class: 'convai-note', role: 'note', hidden: model.state.provider === 'convai' ? false : true},
-    icon('alert'), h('span', {}, T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.')));
+    icon('alert'), h('span', {}, T('A long edit is shortened for Convai. The rules, memories and speaking style are kept first.')));
   const panel = tab => {
     const body = panelBody(tab);
     return ['bio', 'style', 'rules', 'memories'].includes(tab) ? h('div', {}, convaiNote(), body) : body;
@@ -1391,7 +1391,7 @@ export function editorClient() {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').replaceChildren(icon('info'), h('span', {}, T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.')));
+    $('sub').replaceChildren(icon('info'), h('span', {}, T('Your changes work with every conversation option. With Convai they are sent as notes with each reply.')));
     $('close').replaceChildren(...withIcon('power', T('Close editor')));
     $('logo').replaceChildren(icon('users'));
     $('searchicon').replaceChildren(icon('search'));
@@ -1416,7 +1416,7 @@ export function editorClient() {
   function drawBanner() {
     const banner = $('banner');
     // The Look and moves tab has its own sentence about Convai (most of its choices work with it), so the warning about the text edits is left out there.
-    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.replaceChildren(icon('alert'), document.createTextNode(T('Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.'))); }
+    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.replaceChildren(icon('alert'), document.createTextNode(T('Convai is answering right now. Your changes reach it as notes sent with each reply, so it may follow them a little less exactly than Google Gemini, Local AI or Custom.'))); }
     else banner.hidden = true;
     for (const note of document.querySelectorAll('.convai-note')) note.hidden = model.state.provider !== 'convai';
   }

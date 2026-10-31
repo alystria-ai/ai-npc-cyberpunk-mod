@@ -59,7 +59,7 @@
     ]
   },
   "counts": {
-    "strings": 1876,
+    "strings": 1877,
     "dynamicTemplates": 52,
     "contexts": 40
   },
@@ -80,6 +80,7 @@
     "A few sentences the character keeps about your past talks. Edit them or clear them.": "A few sentences the character keeps about your past talks. Edit them or clear them.",
     "A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted.": "A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted.",
     "A line this character might say": "A line this character might say",
+    "A long edit is shortened for Convai. The rules, memories and speaking style are kept first.": "A long edit is shortened for Convai. The rules, memories and speaking style are kept first.",
     "A memory cannot be empty.": "A memory cannot be empty.",
     "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
     "A memory is too long. Keep each one under {max} characters.": "A memory is too long. Keep each one under {max} characters.",
@@ -354,7 +355,7 @@
     "Convai free tier: limit used up": "Convai free tier: limit used up",
     "Convai free tier: {left} of {limit} left today": "Convai free tier: {left} of {limit} left today",
     "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.": "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-    "Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.",
+    "Convai is answering right now. Your changes reach it as notes sent with each reply, so it may follow them a little less exactly than Google Gemini, Local AI or Custom.": "Convai is answering right now. Your changes reach it as notes sent with each reply, so it may follow them a little less exactly than Google Gemini, Local AI or Custom.",
     "Convai paid tier": "Convai paid tier",
     "Convai sign-in is busy right now. Wait a few minutes, then invite again.": "Convai sign-in is busy right now. Wait a few minutes, then invite again.",
     "Convai voice": "Convai voice",
@@ -473,9 +474,9 @@
     "Each line also comes with vision: a recent view of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model with vision. A model without it just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.": "Each line also comes with vision: a recent view of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model with vision. A model without it just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.",
     "Earlier turns kept": "Earlier turns kept",
     "Eddies with characters": "Eddies with characters",
-    "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.",
+    "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.",
     "Edit characters": "Edit characters",
-    "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.": "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.",
+    "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.": "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.",
     "Edited": "Edited",
     "Empties the Search box and shows the whole list again.": "Empties the Search box and shows the whole list again.",
     "End": "End",
@@ -1759,7 +1760,7 @@
     "Your Custom models and APIs": "Your Custom models and APIs",
     "Your browser could not be opened.": "Your browser could not be opened.",
     "Your car has no free passenger seat for V.": "Your car has no free passenger seat for V.",
-    "Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.": "Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.",
+    "Your changes work with every conversation option. With Convai they are sent as notes with each reply.": "Your changes work with every conversation option. With Convai they are sent as notes with each reply.",
     "Your character": "Your character",
     "Your characters": "Your characters",
     "Your companion is driving to the selected waypoint.": "Your companion is driving to the selected waypoint.",
@@ -2204,9 +2205,9 @@
       "Delete",
       "Deletes this saved party. The characters in your party now are not touched.",
       "Dynamic info",
-      "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.",
+      "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.",
       "Edit characters",
-      "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.",
+      "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.",
       "Empties the Search box and shows the whole list again.",
       "Every character who lives at your place moves out at once, from every apartment. Party members who do not live there are not touched. A housemate who is with you stays in your party.",
       "Evict",
@@ -2852,6 +2853,7 @@
       "A display name is too long. Keep each one under {max} characters.",
       "A few sentences the character keeps about your past talks. Edit them or clear them.",
       "A line this character might say",
+      "A long edit is shortened for Convai. The rules, memories and speaking style are kept first.",
       "A memory cannot be empty.",
       "A memory is too long. Keep each one under {max} characters.",
       "A model ID is a short name like that, not a web address.",
@@ -3006,7 +3008,7 @@
       "Convai free tier: limit used up",
       "Convai free tier: {left} of {limit} left today",
       "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-      "Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.",
+      "Convai is answering right now. Your changes reach it as notes sent with each reply, so it may follow them a little less exactly than Google Gemini, Local AI or Custom.",
       "Convai sign-in is busy right now. Wait a few minutes, then invite again.",
       "Convai voice",
       "Convai · Cloud voice",
@@ -3937,7 +3939,7 @@
       "Your Custom endpoint does not accept vision, so replies use only your words.",
       "Your Custom models and APIs",
       "Your browser could not be opened.",
-      "Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.",
+      "Your changes work with every conversation option. With Convai they are sent as notes with each reply.",
       "Your character",
       "Your characters",
       "Your companion is driving to the selected waypoint.",
@@ -4216,7 +4218,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:267"
+        "mod/character-editor.lua:268"
       ]
     },
     "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.": {
@@ -4257,6 +4259,14 @@
       ],
       "references": [
         "mod/character-editor.lua:138"
+      ]
+    },
+    "A long edit is shortened for Convai. The rules, memories and speaking style are kept first.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:198"
       ]
     },
     "A memory cannot be empty.": {
@@ -4345,7 +4355,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:324"
+        "mod/character-editor.lua:325"
       ]
     },
     "A report is already being created.": {
@@ -4377,7 +4387,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:404"
+        "mod/character-editor.lua:405"
       ]
     },
     "A saved party holds {count} characters, so the rest were left out.": {
@@ -4410,7 +4420,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:391"
+        "mod/character-editor.lua:392"
       ]
     },
     "A speaker with a reply length of its own": {
@@ -4418,7 +4428,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:331"
+        "mod/character-editor.lua:332"
       ]
     },
     "A stop text is too long. Keep each one under {max} characters.": {
@@ -4426,7 +4436,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:259"
+        "mod/character-editor.lua:260"
       ]
     },
     "A text that ends the reply": {
@@ -4434,7 +4444,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:326"
+        "mod/character-editor.lua:327"
       ]
     },
     "AI NPC Cyberpunk Mod: companion manager": {
@@ -4629,7 +4639,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:325"
+        "mod/character-editor.lua:326"
       ]
     },
     "Add an endpoint URL and a model ID first.": {
@@ -4645,7 +4655,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:293"
+        "mod/character-editor.lua:294"
       ]
     },
     "Add copy ({count})": {
@@ -4731,7 +4741,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:236"
+        "mod/character-editor.lua:237"
       ]
     },
     "All": {
@@ -4806,7 +4816,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:294"
+        "mod/character-editor.lua:295"
       ]
     },
     "An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself.": {
@@ -4863,7 +4873,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:202"
+        "mod/character-editor.lua:203"
       ]
     },
     "Arasaka work clothes, no jacket": {
@@ -4871,7 +4881,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:370"
+        "mod/character-editor.lua:371"
       ]
     },
     "As shipped": {
@@ -4963,7 +4973,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:382",
+        "mod/character-editor.lua:383",
         "mod/init.lua:5891",
         "mod/manager-ui.lua:218"
       ]
@@ -4980,7 +4990,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:381"
+        "mod/character-editor.lua:382"
       ]
     },
     "Back": {
@@ -5023,7 +5033,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:339"
+        "mod/character-editor.lua:340"
       ]
     },
     "Back to the shipped text.": {
@@ -5039,7 +5049,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:378"
+        "mod/character-editor.lua:379"
       ]
     },
     "Backspace": {
@@ -5056,7 +5066,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:361"
+        "mod/character-editor.lua:362"
       ]
     },
     "Behavior: {list}": {
@@ -5195,7 +5205,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:366"
+        "mod/character-editor.lua:367"
       ]
     },
     "CEO look with coat": {
@@ -5203,7 +5213,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:365"
+        "mod/character-editor.lua:366"
       ]
     },
     "CHARACTERS": {
@@ -5274,7 +5284,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:387"
+        "mod/character-editor.lua:388"
       ]
     },
     "Cancel": {
@@ -5583,7 +5593,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:379"
+        "mod/character-editor.lua:380"
       ]
     },
     "Choose 16 or 32 voice steps.": {
@@ -6089,7 +6099,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:208"
+        "mod/character-editor.lua:209"
       ]
     },
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
@@ -6198,7 +6208,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:315"
+        "mod/character-editor.lua:316"
       ]
     },
     "Closing line": {
@@ -6206,7 +6216,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:226"
+        "mod/character-editor.lua:227"
       ]
     },
     "Closing line for a speaker with a reply length of its own": {
@@ -6214,7 +6224,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:227"
+        "mod/character-editor.lua:228"
       ]
     },
     "Club night, no jacket": {
@@ -6222,7 +6232,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:355"
+        "mod/character-editor.lua:356"
       ]
     },
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": {
@@ -6239,7 +6249,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:352"
+        "mod/character-editor.lua:353"
       ]
     },
     "Comment on fights and loot": {
@@ -6247,7 +6257,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:398"
+        "mod/character-editor.lua:399"
       ]
     },
     "Companion": {
@@ -6472,7 +6482,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:203"
+        "mod/character-editor.lua:204"
       ]
     },
     "Content packs that change this prompt: {names}. Your own changes stay on top of theirs, and Reset to default goes back to the pack’s wording.": {
@@ -6480,7 +6490,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:205"
+        "mod/character-editor.lua:206"
       ]
     },
     "Controller {button}": {
@@ -6594,7 +6604,7 @@
         "mod/manager-ui.lua:3517"
       ]
     },
-    "Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.": {
+    "Convai is answering right now. Your changes reach it as notes sent with each reply, so it may follow them a little less exactly than Google Gemini, Local AI or Custom.": {
       "contexts": [
         "ui.localized"
       ],
@@ -7170,7 +7180,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:209"
+        "mod/character-editor.lua:210"
       ]
     },
     "Cyber Engine Tweaks logs": {
@@ -7252,7 +7262,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:357"
+        "mod/character-editor.lua:358"
       ]
     },
     "Defaults": {
@@ -7299,7 +7309,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:277"
+        "mod/character-editor.lua:278"
       ]
     },
     "Delete this memory?": {
@@ -7520,7 +7530,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:362"
+        "mod/character-editor.lua:363"
       ]
     },
     "Driver boarding": {
@@ -7587,7 +7597,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:238"
+        "mod/character-editor.lua:239"
       ]
     },
     "Eddies with characters": {
@@ -7598,7 +7608,7 @@
         "mod/manager-ui.lua:2370"
       ]
     },
-    "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.": {
+    "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.": {
       "contexts": [
         "page.action"
       ],
@@ -7614,7 +7624,7 @@
         "mod/manager-ui.lua:1394"
       ]
     },
-    "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.": {
+    "Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.": {
       "contexts": [
         "page.action"
       ],
@@ -7749,7 +7759,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:291"
+        "mod/character-editor.lua:292"
       ]
     },
     "Example reply {n}": {
@@ -7757,7 +7767,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:295"
+        "mod/character-editor.lua:296"
       ]
     },
     "Experimental. Pocket speaks until it is ready. A local voice never switches to a cloud voice.": {
@@ -7773,7 +7783,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:305"
+        "mod/character-editor.lua:306"
       ]
     },
     "Face a nearby character to talk.": {
@@ -7893,7 +7903,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:281"
+        "mod/character-editor.lua:282"
       ]
     },
     "For a speaker with a reply length of its own": {
@@ -7901,7 +7911,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:280"
+        "mod/character-editor.lua:281"
       ]
     },
     "For example: Character.Rebecca": {
@@ -7917,7 +7927,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:201"
+        "mod/character-editor.lua:202"
       ]
     },
     "For example: Rebecca": {
@@ -8059,7 +8069,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:234"
+        "mod/character-editor.lua:235"
       ]
     },
     "Friend": {
@@ -8091,7 +8101,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:204"
+        "mod/character-editor.lua:205"
       ]
     },
     "From their story: {story}, from talking: {talk}": {
@@ -8107,7 +8117,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:268"
+        "mod/character-editor.lua:269"
       ]
     },
     "GAME MODELS": {
@@ -8222,7 +8232,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:338"
+        "mod/character-editor.lua:339"
       ]
     },
     "Go back to the shipped prompting for {name}? Your changes to this part are removed.": {
@@ -8230,7 +8240,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:337"
+        "mod/character-editor.lua:338"
       ]
     },
     "Go back to the shipped text for {name}? All your changes to this character are removed.": {
@@ -8254,7 +8264,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:377"
+        "mod/character-editor.lua:378"
       ]
     },
     "Good friend": {
@@ -8453,7 +8463,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:221"
+        "mod/character-editor.lua:222"
       ]
     },
     "Heading of the example replies": {
@@ -8461,7 +8471,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:216"
+        "mod/character-editor.lua:217"
       ]
     },
     "Heading of the format notes": {
@@ -8469,7 +8479,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:217"
+        "mod/character-editor.lua:218"
       ]
     },
     "Heading of the notes for this turn": {
@@ -8477,7 +8487,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:222"
+        "mod/character-editor.lua:223"
       ]
     },
     "Heading of the output rules": {
@@ -8485,7 +8495,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:215"
+        "mod/character-editor.lua:216"
       ]
     },
     "Heading of the right-now facts": {
@@ -8493,7 +8503,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:220"
+        "mod/character-editor.lua:221"
       ]
     },
     "Heading of the things remembered about V": {
@@ -8501,7 +8511,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:223"
+        "mod/character-editor.lua:224"
       ]
     },
     "Heading of the world and quest context": {
@@ -8509,7 +8519,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:218"
+        "mod/character-editor.lua:219"
       ]
     },
     "Heading of what the character remembers": {
@@ -8517,7 +8527,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:219"
+        "mod/character-editor.lua:220"
       ]
     },
     "Health, heat and fights": {
@@ -8614,7 +8624,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:348"
+        "mod/character-editor.lua:349"
       ]
     },
     "Home clothes: t-shirt and trousers": {
@@ -8622,7 +8632,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:351"
+        "mod/character-editor.lua:352"
       ]
     },
     "Home clothes: tank top and trousers": {
@@ -8630,7 +8640,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:349"
+        "mod/character-editor.lua:350"
       ]
     },
     "Home clothes: tank top, boxer shorts, flip-flops": {
@@ -8638,7 +8648,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:345"
+        "mod/character-editor.lua:346"
       ]
     },
     "Hooded jacket": {
@@ -8646,7 +8656,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:350"
+        "mod/character-editor.lua:351"
       ]
     },
     "Housemates": {
@@ -8698,7 +8708,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:262"
+        "mod/character-editor.lua:263"
       ]
     },
     "How everyone sounds, and how you talk.": {
@@ -8714,7 +8724,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:304"
+        "mod/character-editor.lua:305"
       ]
     },
     "How long it has been since V last talked to this character, in the game and in real days: since last night, or days ago. Said only when the gap is long enough to matter, and not again in the same conversation.\n\nOff: it is not sent, and the mod stops reading the game clock for it.": {
@@ -8794,7 +8804,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:385"
+        "mod/character-editor.lua:386"
       ]
     },
     "How the world reacts to V.": {
@@ -8883,7 +8893,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:392"
+        "mod/character-editor.lua:393"
       ]
     },
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": {
@@ -8959,7 +8969,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:261"
+        "mod/character-editor.lua:262"
       ]
     },
     "In your party: {count}": {
@@ -9313,7 +9323,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:242"
+        "mod/character-editor.lua:243"
       ]
     },
     "Keep memories": {
@@ -9426,7 +9436,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:301"
+        "mod/character-editor.lua:302"
       ]
     },
     "Leave a version empty to use the rule text.": {
@@ -9434,7 +9444,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:279"
+        "mod/character-editor.lua:280"
       ]
     },
     "Left arrow": {
@@ -9451,7 +9461,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:307"
+        "mod/character-editor.lua:308"
       ]
     },
     "Level {level}": {
@@ -9491,7 +9501,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:265"
+        "mod/character-editor.lua:266"
       ]
     },
     "Live picture unavailable. The call continues with the portrait.": {
@@ -9509,7 +9519,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:388"
+        "mod/character-editor.lua:389"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -9725,7 +9735,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:211"
+        "mod/character-editor.lua:212"
       ]
     },
     "Local AI, Lite, Mature on": {
@@ -9733,7 +9743,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:213"
+        "mod/character-editor.lua:214"
       ]
     },
     "Local AI, Standard": {
@@ -9741,7 +9751,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:212"
+        "mod/character-editor.lua:213"
       ]
     },
     "Local AI, Standard, Mature on": {
@@ -9749,7 +9759,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:214"
+        "mod/character-editor.lua:215"
       ]
     },
     "Location": {
@@ -9765,7 +9775,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:237"
+        "mod/character-editor.lua:238"
       ]
     },
     "Longest reply (in tokens)": {
@@ -9773,7 +9783,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:235"
+        "mod/character-editor.lua:236"
       ]
     },
     "Look and moves": {
@@ -9781,7 +9791,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:405"
+        "mod/character-editor.lua:406"
       ]
     },
     "MIOpen convolutions (AMD)": {
@@ -9837,7 +9847,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:333"
+        "mod/character-editor.lua:334"
       ]
     },
     "Mature content is turned off because you chose a model that is not a Mature model.": {
@@ -9853,7 +9863,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:310"
+        "mod/character-editor.lua:311"
       ]
     },
     "Mature layer and closing line, for models that allow explicit sex": {
@@ -9861,7 +9871,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:322"
+        "mod/character-editor.lua:323"
       ]
     },
     "Mature layer and closing line, for models that keep sex suggestive": {
@@ -9869,7 +9879,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:323"
+        "mod/character-editor.lua:324"
       ]
     },
     "Meet at my waypoint when I ask": {
@@ -9997,7 +10007,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:376"
+        "mod/character-editor.lua:377"
       ]
     },
     "Message could not be delivered. Please try again.": {
@@ -10050,7 +10060,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:231"
+        "mod/character-editor.lua:232"
       ]
     },
     "Minor character": {
@@ -10090,7 +10100,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:210",
+        "mod/character-editor.lua:211",
         "mod/custom-provider.lua:295"
       ]
     },
@@ -10107,7 +10117,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:264"
+        "mod/character-editor.lua:265"
       ]
     },
     "Mistral cloud voice (Voxtral)": {
@@ -10134,7 +10144,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:249"
+        "mod/character-editor.lua:250"
       ]
     },
     "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.": {
@@ -10158,7 +10168,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:306"
+        "mod/character-editor.lua:307"
       ]
     },
     "Mistral: key not accepted": {
@@ -10290,7 +10300,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:276"
+        "mod/character-editor.lua:277"
       ]
     },
     "Move onto open, walkable ground to invite a companion here.": {
@@ -10314,7 +10324,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:275"
+        "mod/character-editor.lua:276"
       ]
     },
     "Move rule {n} up": {
@@ -10322,7 +10332,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:273"
+        "mod/character-editor.lua:274"
       ]
     },
     "Move up": {
@@ -10330,7 +10340,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:274"
+        "mod/character-editor.lua:275"
       ]
     },
     "Move-in apartment": {
@@ -10517,7 +10527,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:336"
+        "mod/character-editor.lua:337"
       ]
     },
     "No conversation profile. This model joins as a follower without AI conversations.": {
@@ -10550,7 +10560,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:335"
+        "mod/character-editor.lua:336"
       ]
     },
     "No jacket": {
@@ -10558,7 +10568,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:346"
+        "mod/character-editor.lua:347"
       ]
     },
     "No jacket and harness": {
@@ -10566,7 +10576,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:347"
+        "mod/character-editor.lua:348"
       ]
     },
     "No key added": {
@@ -10712,7 +10722,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:390"
+        "mod/character-editor.lua:391"
       ]
     },
     "None found: installed by hand.": {
@@ -10744,7 +10754,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:389"
+        "mod/character-editor.lua:390"
       ]
     },
     "None: they keep the stance they have": {
@@ -10752,7 +10762,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:395"
+        "mod/character-editor.lua:396"
       ]
     },
     "Normal": {
@@ -10760,7 +10770,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:386"
+        "mod/character-editor.lua:387"
       ]
     },
     "Normal memory": {
@@ -10924,7 +10934,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:240"
+        "mod/character-editor.lua:241"
       ]
     },
     "Nothing answered at that address. Check that the server is running, that the address and port are right and that both PCs are on the same network. A server started with its default only listens on its own PC: start it with the listen address 0.0.0.0.": {
@@ -10969,7 +10979,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:283",
+        "mod/character-editor.lua:284",
         "mod/manager-ui.lua:2184",
         "mod/manager-ui.lua:2238",
         "mod/manager-ui.lua:2329",
@@ -11376,7 +11386,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:296"
+        "mod/character-editor.lua:297"
       ]
     },
     "Opening line for a named character": {
@@ -11384,7 +11394,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:224"
+        "mod/character-editor.lua:225"
       ]
     },
     "Opening line for an ordinary person": {
@@ -11392,7 +11402,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:225"
+        "mod/character-editor.lua:226"
       ]
     },
     "Opening microphone…": {
@@ -11408,7 +11418,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:438"
+        "mod/character-editor.lua:439"
       ]
     },
     "Opening the page in your browser…": {
@@ -11505,7 +11515,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:278"
+        "mod/character-editor.lua:279"
       ]
     },
     "Outfit": {
@@ -11513,7 +11523,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:380"
+        "mod/character-editor.lua:381"
       ]
     },
     "Output rules": {
@@ -11521,7 +11531,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:289"
+        "mod/character-editor.lua:290"
       ]
     },
     "Own Python": {
@@ -11590,7 +11600,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:360"
+        "mod/character-editor.lua:361"
       ]
     },
     "Parties": {
@@ -11606,7 +11616,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:317"
+        "mod/character-editor.lua:318"
       ]
     },
     "Partner paragraph: nothing invented": {
@@ -11614,7 +11624,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:318"
+        "mod/character-editor.lua:319"
       ]
     },
     "Parts of the character": {
@@ -11638,7 +11648,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:373"
+        "mod/character-editor.lua:374"
       ]
     },
     "Party: {count}": {
@@ -11743,7 +11753,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:394"
+        "mod/character-editor.lua:395"
       ]
     },
     "Plans": {
@@ -11956,7 +11966,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:233"
+        "mod/character-editor.lua:234"
       ]
     },
     "Press Confirm to put every setting back to its default.": {
@@ -12060,7 +12070,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:328"
+        "mod/character-editor.lua:329"
       ]
     },
     "Previous page": {
@@ -12126,7 +12136,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:340"
+        "mod/character-editor.lua:341"
       ]
     },
     "Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": {
@@ -12150,7 +12160,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:367"
+        "mod/character-editor.lua:368"
       ]
     },
     "Quest and journal": {
@@ -12267,7 +12277,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:371"
+        "mod/character-editor.lua:372"
       ]
     },
     "Red parade dress with bracelets": {
@@ -12275,7 +12285,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:372"
+        "mod/character-editor.lua:373"
       ]
     },
     "Redscript log": {
@@ -12487,7 +12497,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:232"
+        "mod/character-editor.lua:233"
       ]
     },
     "Repeat the “where you are” sentence right before V’s words": {
@@ -12495,7 +12505,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:287"
+        "mod/character-editor.lua:288"
       ]
     },
     "Replaces the characters of this saved party with the ones in your party now.": {
@@ -12519,7 +12529,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:292"
+        "mod/character-editor.lua:293"
       ]
     },
     "Reply length": {
@@ -12527,7 +12537,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:400"
+        "mod/character-editor.lua:401"
       ]
     },
     "Reply length in words": {
@@ -12535,7 +12545,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:332"
+        "mod/character-editor.lua:333"
       ]
     },
     "Report for the developer": {
@@ -12675,7 +12685,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:207"
+        "mod/character-editor.lua:208"
       ]
     },
     "Review the memory clear below, then choose Confirm or Cancel.": {
@@ -12725,7 +12735,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:239"
+        "mod/character-editor.lua:240"
       ]
     },
     "Romance": {
@@ -12741,7 +12751,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:314"
+        "mod/character-editor.lua:315"
       ]
     },
     "Romances": {
@@ -12776,7 +12786,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:270"
+        "mod/character-editor.lua:271"
       ]
     },
     "Rule {n} is empty. Write the rule or delete it.": {
@@ -12784,7 +12794,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:243"
+        "mod/character-editor.lua:244"
       ]
     },
     "Rule {n} is too long. Keep each one under {max} characters.": {
@@ -12792,7 +12802,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:244"
+        "mod/character-editor.lua:245"
       ]
     },
     "Rule {n}, for Mature content": {
@@ -12800,7 +12810,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:272"
+        "mod/character-editor.lua:273"
       ]
     },
     "Rule {n}, for a speaker with a reply length of its own": {
@@ -12808,7 +12818,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:271"
+        "mod/character-editor.lua:272"
       ]
     },
     "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.": {
@@ -12816,7 +12826,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:200"
+        "mod/character-editor.lua:201"
       ]
     },
     "Run OmniVoice on your AMD Radeon card with AMD’s ROCm: one download, set up from here.": {
@@ -12888,7 +12898,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:330"
+        "mod/character-editor.lua:331"
       ]
     },
     "Sampling": {
@@ -12896,7 +12906,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:303"
+        "mod/character-editor.lua:304"
       ]
     },
     "Save": {
@@ -13159,7 +13169,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:299"
+        "mod/character-editor.lua:300"
       ]
     },
     "See the characters you have talked to and how close each one is to you: the bond level, what raised or hurt it, their quests and the stories they are in.": {
@@ -13368,7 +13378,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:282"
+        "mod/character-editor.lua:283"
       ]
     },
     "Shipped: the mod’s own limit": {
@@ -13376,7 +13386,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:284"
+        "mod/character-editor.lua:285"
       ]
     },
     "Shipped: {value}": {
@@ -13384,7 +13394,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:269"
+        "mod/character-editor.lua:270"
       ]
     },
     "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.": {
@@ -13440,7 +13450,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:308"
+        "mod/character-editor.lua:309"
       ]
     },
     "Shorter: up to about {words} words": {
@@ -13448,7 +13458,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:402"
+        "mod/character-editor.lua:403"
       ]
     },
     "Show companion reply subtitles during conversations.": {
@@ -13536,7 +13546,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:396"
+        "mod/character-editor.lua:397"
       ]
     },
     "Solo look": {
@@ -13544,7 +13554,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:356"
+        "mod/character-editor.lua:357"
       ]
     },
     "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-Companions-LLM, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.": {
@@ -13736,7 +13746,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:312"
+        "mod/character-editor.lua:313"
       ]
     },
     "Speech: {list}": {
@@ -13884,7 +13894,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:327"
+        "mod/character-editor.lua:328"
       ]
     },
     "Stop texts": {
@@ -13892,7 +13902,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:309"
+        "mod/character-editor.lua:310"
       ]
     },
     "Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.": {
@@ -13974,7 +13984,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:375"
+        "mod/character-editor.lua:376"
       ]
     },
     "Street reputation": {
@@ -14006,7 +14016,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:354"
+        "mod/character-editor.lua:355"
       ]
     },
     "Support report saved: {path}": {
@@ -14046,7 +14056,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:399"
+        "mod/character-editor.lua:400"
       ]
     },
     "Switched off.": {
@@ -14062,7 +14072,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:358"
+        "mod/character-editor.lua:359"
       ]
     },
     "TALK TO {character}": {
@@ -14097,7 +14107,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:397"
+        "mod/character-editor.lua:398"
       ]
     },
     "Takes {name} out of your favorites. Her place in the list below stays.": {
@@ -14186,7 +14196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:384"
+        "mod/character-editor.lua:385"
       ]
     },
     "Tank top": {
@@ -14194,7 +14204,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:374"
+        "mod/character-editor.lua:375"
       ]
     },
     "Temperature": {
@@ -14202,7 +14212,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:228"
+        "mod/character-editor.lua:229"
       ]
     },
     "Test": {
@@ -14319,7 +14329,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:342"
+        "mod/character-editor.lua:343"
       ]
     },
     "That companion is no longer in your party.": {
@@ -14414,7 +14424,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:250"
+        "mod/character-editor.lua:251"
       ]
     },
     "That is too long.": {
@@ -14439,7 +14449,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:341"
+        "mod/character-editor.lua:342"
       ]
     },
     "That model is no longer available.": {
@@ -14474,7 +14484,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:241"
+        "mod/character-editor.lua:242"
       ]
     },
     "That setting is read-only.": {
@@ -15148,7 +15158,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:423"
+        "mod/character-editor.lua:424"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -15379,7 +15389,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:437"
+        "mod/character-editor.lua:438"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -15387,7 +15397,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:198"
+        "mod/character-editor.lua:199"
       ]
     },
     "The editor keeps choices for {max} characters. Reset one first.": {
@@ -15395,7 +15405,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:343"
+        "mod/character-editor.lua:344"
       ]
     },
     "The endpoint URL was removed.": {
@@ -15491,7 +15501,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:263"
+        "mod/character-editor.lua:264"
       ]
     },
     "The files could not be unpacked. Try again.": {
@@ -15507,7 +15517,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:297"
+        "mod/character-editor.lua:298"
       ]
     },
     "The free daily limit for this model was reached. It resets at {time}.": {
@@ -15610,7 +15620,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:300"
+        "mod/character-editor.lua:301"
       ]
     },
     "The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.": {
@@ -15702,7 +15712,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:298"
+        "mod/character-editor.lua:299"
       ]
     },
     "The list will refresh in a moment.": {
@@ -15718,7 +15728,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:401"
+        "mod/character-editor.lua:402"
       ]
     },
     "The manager could not be prepared: {reason}": {
@@ -15858,7 +15868,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:288"
+        "mod/character-editor.lua:289"
       ]
     },
     "The numbered rules the model reads before every reply. Use {name} for the character’s name and {words} for the reply length of a speaker that has one.": {
@@ -15866,7 +15876,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:290"
+        "mod/character-editor.lua:291"
       ]
     },
     "The party could not be saved.": {
@@ -15906,7 +15916,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:334"
+        "mod/character-editor.lua:335"
       ]
     },
     "The profile could not be assigned.": {
@@ -15930,7 +15940,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:329"
+        "mod/character-editor.lua:330"
       ]
     },
     "The provider said: {detail}": {
@@ -16013,7 +16023,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:245"
+        "mod/character-editor.lua:246"
       ]
     },
     "The saved clip could not be loaded.": {
@@ -16255,7 +16265,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:311"
+        "mod/character-editor.lua:312"
       ]
     },
     "The words said in the clip are too long. Keep them under {max} characters.": {
@@ -16271,7 +16281,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:206"
+        "mod/character-editor.lua:207"
       ]
     },
     "The yellow border is Windows showing a capture. Turn off Companion vision to stop it.": {
@@ -16375,7 +16385,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:383"
+        "mod/character-editor.lua:384"
       ]
     },
     "This character needs Google Gemini, Local AI or Custom to answer.": {
@@ -16569,7 +16579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:251"
+        "mod/character-editor.lua:252"
       ]
     },
     "This option does not get the Mature layer.": {
@@ -16577,7 +16587,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:321"
+        "mod/character-editor.lua:322"
       ]
     },
     "This setting must be on or off.": {
@@ -16619,7 +16629,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:247"
+        "mod/character-editor.lua:248"
       ]
     },
     "This text is too long. Keep it under {max} characters.": {
@@ -16627,7 +16637,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:246"
+        "mod/character-editor.lua:247"
       ]
     },
     "Time and weather": {
@@ -16691,7 +16701,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:316"
+        "mod/character-editor.lua:317"
       ]
     },
     "Too many display names. Keep {max} or fewer.": {
@@ -16715,7 +16725,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:252"
+        "mod/character-editor.lua:253"
       ]
     },
     "Too many memories. Keep {max} or fewer.": {
@@ -16747,7 +16757,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:258"
+        "mod/character-editor.lua:259"
       ]
     },
     "Top K": {
@@ -16755,7 +16765,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:230"
+        "mod/character-editor.lua:231"
       ]
     },
     "Top P": {
@@ -16763,7 +16773,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:229"
+        "mod/character-editor.lua:230"
       ]
     },
     "Trench coat": {
@@ -16771,7 +16781,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:363"
+        "mod/character-editor.lua:364"
       ]
     },
     "Trip cancelled from Companion Manager.": {
@@ -17110,7 +17120,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:248"
+        "mod/character-editor.lua:249"
       ]
     },
     "Use profile": {
@@ -17126,7 +17136,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:255"
+        "mod/character-editor.lua:256"
       ]
     },
     "Use the Search box, top right": {
@@ -17206,7 +17216,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:344"
+        "mod/character-editor.lua:345"
       ]
     },
     "V (female voice)": {
@@ -17262,7 +17272,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:353"
+        "mod/character-editor.lua:354"
       ]
     },
     "Valentino look, collar open": {
@@ -17270,7 +17280,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:368"
+        "mod/character-editor.lua:369"
       ]
     },
     "Vehicle exit workspot state is unavailable.": {
@@ -17328,7 +17338,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:403"
+        "mod/character-editor.lua:404"
       ]
     },
     "Vest": {
@@ -17336,7 +17346,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:359"
+        "mod/character-editor.lua:360"
       ]
     },
     "Vest and rucksack": {
@@ -17344,7 +17354,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:369"
+        "mod/character-editor.lua:370"
       ]
     },
     "View": {
@@ -17855,7 +17865,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:393"
+        "mod/character-editor.lua:394"
       ]
     },
     "What to do": {
@@ -17927,7 +17937,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:302"
+        "mod/character-editor.lua:303"
       ]
     },
     "Where the logs are": {
@@ -18080,7 +18090,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:364"
+        "mod/character-editor.lua:365"
       ]
     },
     "Word bank": {
@@ -18088,7 +18098,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:313"
+        "mod/character-editor.lua:314"
       ]
     },
     "Words said in the clip": {
@@ -18104,7 +18114,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:199"
+        "mod/character-editor.lua:200"
       ]
     },
     "Write a message...  /  Enter to send  /  Esc to stop typing": {
@@ -18342,7 +18352,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:266"
+        "mod/character-editor.lua:267"
       ]
     },
     "Your browser could not be opened.": {
@@ -18361,7 +18371,7 @@
         "mod/companion-chauffeur.lua:156"
       ]
     },
-    "Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.": {
+    "Your changes work with every conversation option. With Convai they are sent as notes with each reply.": {
       "contexts": [
         "ui.localized"
       ],
@@ -18722,7 +18732,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:286"
+        "mod/character-editor.lua:287"
       ]
     },
     "all characters you have talked to": {
@@ -18765,7 +18775,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:285"
+        "mod/character-editor.lua:286"
       ]
     },
     "characters": {
@@ -19060,7 +19070,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:260"
+        "mod/character-editor.lua:261"
       ]
     },
     "{first} and {second}": {
@@ -19717,7 +19727,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:319"
+        "mod/character-editor.lua:320"
       ]
     },
     "{part}, for models that keep sex suggestive": {
@@ -19725,7 +19735,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:320"
+        "mod/character-editor.lua:321"
       ]
     },
     "{plan}, {price} a month": {
@@ -19845,7 +19855,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:254"
+        "mod/character-editor.lua:255"
       ]
     },
     "“{name}” is not a usable key name. Use letters, digits and underscores.": {
@@ -19853,7 +19863,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:253"
+        "mod/character-editor.lua:254"
       ]
     },
     "“{name}” is set by the mod and cannot be changed here.": {
@@ -19861,7 +19871,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:256"
+        "mod/character-editor.lua:257"
       ]
     },
     "“{name}” needs a number, a text, true or false, or a list of those.": {
@@ -19869,7 +19879,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:257"
+        "mod/character-editor.lua:258"
       ]
     }
   },
