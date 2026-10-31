@@ -798,6 +798,33 @@ assert(not m.pending and not paints[#paints].allowed and m.history.judy[1].text=
 resetJournal({}, {}, {});update();assert(paints[#paints].allowed)
 `));
 
+test('a healthy journal naming 1800 characters (the shipped ids with the side characters) admits a send', () => runLua(setup + `
+update()
+local families,epochs={},{}
+for i=1,1800 do families['npc-side-'..i]='npc-side-'..i; if i<=800 then epochs['npc-side-'..i]=0 end end
+resetJournal({}, {}, {})
+local current=json.decode(files['runtime/memory-chat-resets.json'])
+current.profileFamilies=families;current.memoryEpochs={version=1,globalEpoch=0,characterEpochs=epochs}
+put('runtime/memory-chat-resets.json',current)
+submission={contact='judy',text='Hello after a big journal'};update()
+assert(m.pending and paints[#paints].allowed and m.resetHealthy==true and not m.resetDegraded)
+`));
+
+test('a journal that stays unreadable blocks sending, retries, then lets the player send with a log line, and a readable one ends it', () => runLua(setup + `
+local lines={};m.trace=function(line) lines[#lines+1]=line end
+update();resetJournal({}, {}, {});update()
+put('runtime/memory-chat-resets.json',{version=1,revision=2,baseline={},tracked={},receipts={clearAction('unowned')},pending={},blockedProfiles={},blockAll=false})
+submission={contact='judy',text='Too early'};update()
+assert(not m.pending and not paints[#paints].allowed and #lines==0)
+clock=clock+14;update();assert(not m.resetDegraded and #lines==0)
+clock=clock+2;submission={contact='judy',text='After the wait'};update()
+assert(m.resetDegraded and m.pending and m.pending.text=='After the wait' and paints[#paints].allowed)
+assert(#lines==1 and lines[1]:find('could not be verified') and lines[1]:find('allowed'))
+update();assert(#lines==1)
+resetJournal({}, {}, {});update()
+assert(not m.resetDegraded and #lines==2 and lines[2]:find('verified again'))
+`));
+
 test('a fast failed clear cancels an old queued reply even when no blocked frame was observed', () => runLua(setup + `
 update();submission={contact='judy',text='Before failed clear'};update();local old=m.pending
 local failed=clearAction('missed-pending','judy-alvarez')
