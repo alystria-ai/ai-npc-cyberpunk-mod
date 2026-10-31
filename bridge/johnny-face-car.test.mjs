@@ -77,8 +77,8 @@ test('luaActorSafe: a commanded AI does not shut a projection\'s mouth; dialogue
 
 test('world-talk exposes the projection list; init.lua marks only a projection and clears the flag with the story speaker', () => {
   assert.match(worldTalk, /M\.PROJECTIONS = \{\['johnny-silverhand'\] = true\}/);
-  assert.match(worldTalk, /local service = \{held = \{\}, count = 0, runtimeQuest = M\.runtimeQuest, PROJECTIONS = M\.PROJECTIONS\}/);
-  assert.match(init, /convaiWorldTalk\.PROJECTIONS\[key\] == true or nil\s+convaiStory = primary\.story and \{entity = primary\.entity, key = key, name = name, projection = projection\} or nil/);
+  assert.match(worldTalk, /local service = \{held = \{\}, count = 0, runtimeQuest = M\.runtimeQuest, PROJECTIONS = M\.PROJECTIONS, read = M\.read,/);
+  assert.match(init, /convaiWorldTalk\.PROJECTIONS\[key\] == true or nil[\s\S]{0,400}convaiStory = primary\.story and \{entity = primary\.entity, key = key, name = name, projection = projection, mission = mission, npc = mission and npc or nil\} or nil/);
   assert.match(init, /convaiFacialPlayback\.storyProjection = projection == true/);
   assert.match(init, /convaiFacialPlayback\.storyEntity = primary\.entity\s+convaiFacialPlayback\.storyProjection = false/, 'a quest-bound archetype is never a projection');
   assert.match(init, /convaiFacialPlayback\.storyEntity, convaiFacialPlayback\.storyProjection = nil, nil/, 'cleared with the session');
@@ -106,6 +106,14 @@ test('convaiFaceRequestFor: Johnny\'s puppet is told before the request; nobody 
     convaiStory = nil
     convaiFaceRequestFor(npc(true), '10327ULL')
     assert(names() == 'request', 'no story talk, no mark')
+    -- A mission character (Talk during missions) is marked only while the game is not driving it (mod/mission-companion.lua).
+    function convaiMissionFree(entity) return entity == 'FREE' end
+    convaiStory = {entity = 'FREE', key = 'judy-alvarez', mission = true}
+    convaiFaceRequestFor(npc(true), 'FREE')
+    assert(names() == 'projection=true,request', 'a free mission character is told first')
+    convaiStory = {entity = 'HELD', key = 'judy-alvarez', mission = true}
+    convaiFaceRequestFor(npc(true), 'HELD')
+    assert(names() == 'request', 'a mission character the script drives is never marked')
     convaiStory = {entity = '10327ULL', key = 'johnny-silverhand', projection = true}
     ok, status = convaiFaceRequestFor(npc(false), '10327ULL')
     assert(ok == true and status == 'prepared:man_average_sermo' and names() == 'request', 'scripts from before the method: the plain request, no error')
@@ -115,5 +123,5 @@ test('convaiFaceRequestFor: Johnny\'s puppet is told before the request; nobody 
   `);
   // The two talk starts that can have Johnny as the speaker use it; nothing else in init.lua marks a puppet.
   assert.equal([...init.matchAll(/convaiFaceRequestFor\(/g)].length, 3, 'the definition, the text start and the voice start');
-  assert.equal([...init.matchAll(/ConvaiFaceProjection\(true\)/g)].length, 1);
+  assert.equal([...init.matchAll(/ConvaiFaceProjection\(true\)/g)].length, 2, 'Johnny\'s start, and the free mission character (the request and the freed hook)');
 });
