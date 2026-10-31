@@ -102,21 +102,31 @@ test('the pages that open from a category page go back to it, not to Settings', 
   `);
 });
 
-test('Restore defaults covers every category page and no page that is not a Settings page', () => {
+test('Restore defaults is on every category page and every sub-page with settings of its own, and not on the Settings list or a page without settings', () => {
   run(`${nsuiFixture}
-    local DEFAULTS = {'settings', 'settings-provider', 'settings-voice', 'settings-conversations', 'settings-companions', 'settings-night-city', 'settings-interface', 'settings-privacy',
+    local DEFAULTS = {'settings-provider', 'settings-voice', 'settings-conversations', 'settings-companions', 'settings-night-city', 'settings-interface', 'settings-privacy',
       'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}
     for _, name in ipairs(DEFAULTS) do assert(core.hasDefaults(name), name .. ' has Restore defaults') end
-    for _, name in ipairs({'home', 'characters', 'party', 'models', 'memory', 'help', 'custom-endpoint'}) do assert(not core.hasDefaults(name), name .. ' has none') end
-    -- Changing rows on four different pages and restoring puts every one back.
+    for _, name in ipairs({'settings', 'home', 'characters', 'party', 'models', 'memory', 'help', 'custom-endpoint'}) do assert(not core.hasDefaults(name), name .. ' has none') end
+    -- Rows on four different pages are changed. Restoring one page puts back that page's rows and no others.
     assert(registered.applyBatch('manager', {{id = 'reputation', value = false}, {id = 'companionReactions', value = false}, {id = 'vVoice', value = 3}, {id = 'subtitleStyle', value = 3}}).ok)
     assert(saved.reputation == false and saved.battleReactions == false and saved.lootReactions == false and saved.vVoiceMic == true and saved.subtitleStyle == 'overhead')
-    local changes = core.defaults()
-    local byId = {}
-    for _, change in ipairs(changes) do byId[change.id] = change.value end
-    assert(byId.reputation == true and byId.companionReactions == true and byId.vVoice == 2 and byId.subtitleStyle == 2, 'the defaults of rows on four pages')
-    assert(registered.applyBatch('manager', changes).ok)
-    assert(saved.reputation == true and saved.npcThreats == true and saved.battleReactions == true and saved.lootReactions == true and saved.vVoice == true and saved.vVoiceMic == false and saved.subtitleStyle == 'dialogue')
+    local function batch(name)
+      local byId = {}
+      for _, change in ipairs(core.defaults(name)) do byId[change.id] = change.value end
+      return byId
+    end
+    local voice = batch('settings-voice')
+    assert(voice.vVoice == 2 and voice.reputation == nil and voice.companionReactions == nil and voice.subtitleStyle == nil, 'the Voice page names its own rows only')
+    assert(batch('settings-night-city').reputation == true and batch('settings-night-city').vVoice == nil)
+    assert(batch('settings-companions').companionReactions == true and batch('settings-companions').reputation == nil)
+    assert(batch('settings-interface').subtitleStyle == 2 and batch('settings-interface').vVoice == nil)
+    assert(next(core.defaults('settings')) == nil and next(core.defaults('home')) == nil and next(core.defaults('memory')) == nil, 'a page without settings restores nothing')
+    assert(registered.applyBatch('manager', core.defaults('settings-voice')).ok)
+    assert(saved.vVoice == true and saved.vVoiceMic == false, 'the Voice page is back')
+    assert(saved.reputation == false and saved.battleReactions == false and saved.lootReactions == false and saved.subtitleStyle == 'overhead', 'nothing of the other pages came back')
+    for _, name in ipairs({'settings-night-city', 'settings-companions', 'settings-interface'}) do assert(registered.applyBatch('manager', core.defaults(name)).ok) end
+    assert(saved.reputation == true and saved.npcThreats == true and saved.battleReactions == true and saved.lootReactions == true and saved.subtitleStyle == 'dialogue')
   `);
 });
 

@@ -337,7 +337,7 @@ Extra video memory each setup uses on top of the game's own:
 
 ## Settings
 
-Everything lives under **Companion Manager > Settings**, a short list of pages: **AI provider**, **Voice AI and microphone**, **Conversations**, **Companions**, **Night City**, **Interface**, **Content packs** (only when an add-on or a content pack is installed) and **Privacy and help**. Open a page, and **Back to settings** returns to the list. Some rows open a page of their own and go back to the page they came from. Restore defaults puts every setting back. Defaults are for a new install; your saved choices always win.
+Everything lives under **Companion Manager > Settings**, a short list of pages: **AI provider**, **Voice AI and microphone**, **Conversations**, **Companions**, **Night City**, **Interface**, **Content packs** (only when an add-on or a content pack is installed) and **Privacy and help**. Open a page, and **Back to settings** returns to the list. Some rows open a page of their own and go back to the page they came from. Restore defaults, on a page, puts back the settings of that page only. Defaults are for a new install; your saved choices always win.
 
 | Setting | Page | Default |
 |---|---|---|

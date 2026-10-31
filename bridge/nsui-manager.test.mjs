@@ -391,7 +391,7 @@ test('with Mature content on the Voxtral entries say so in their labels and a cl
 `));
 
 
-test('Restore defaults goes through the same validated path, on Settings and every category page, and only there', () => run(`${harness()}
+test('Restore defaults goes through the same validated path and puts back only the rows of the page it is pressed on', () => run(`${harness()}
   -- On a page that has none (Home) it says where it works and changes nothing.
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
@@ -403,28 +403,58 @@ test('Restore defaults goes through the same validated path, on Settings and eve
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true and settings.reputation == true,
-    'the rows of every page, from the Voice page')
+  assert(settings.voiceVolume == 150 and settings.vVoiceVolume == 150, 'the Voice page rows')
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
+  -- Nothing of any other page was touched (1 Nov 2026: Restore defaults on one page switched off settings on another).
+  assert(settings.lootReactions == false and settings.battleReactions == false and settings.subtitleStyle == 'overhead' and settings.reputation == false,
+    'the rows of the other pages are as they were')
   assert(ns.find('Companion voice volume (%)').currentValue == 150 and ns.find('V’s voice volume (%)').currentValue == 150 and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   press('Back to settings'); press('Companions')
+  assert(ns.find('Companions react').state == false, 'Companions is still as it was')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
   assert(ns.find('Companions react').state == true and ns.find('Battle reactions') == nil)
+  settings = manager.snapshot(player).settings
+  assert(settings.battleReactions == true and settings.lootReactions == true and settings.subtitleStyle == 'overhead' and settings.reputation == false, 'only this page')
   press('Back to settings'); press('Interface')
+  assert(ns.find('Subtitles').selectedElementIndex == 3, 'Interface is still as it was')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
   assert(ns.find('Subtitles').selectedElementIndex == 2)
-  -- Restore defaults after the cloud voice was chosen puts the default voice back, from the Settings list too.
+  assert(manager.snapshot(player).settings.reputation == false, 'Night City is still as it was')
+  -- The Settings list has no setting of its own: the button says where it works and changes nothing.
+  press('Back to settings')
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
   frames(4)
-  press('Back to settings')
+  ns.interact.restoreDefaults(); frames(8)
+  assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.reputation == false)
+  assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
+  -- Restore defaults after the cloud voice was chosen puts the default voice back, from the Voice page.
+  press('Voice AI and microphone')
   ns.interact.restoreDefaults(); frames(8)
   assert(manager.snapshot(player).settings.voiceProvider == 'pocket')
   -- The Relationships page is part of Settings: its rows go back to Auto too.
   assert(manager.applySettings(player, {relationshipModes = {['judy-alvarez'] = 'on'}}))
-  press('Conversations'); press('Romantic relationships'); frames(4)
+  press('Back to settings'); press('Conversations'); press('Romantic relationships'); frames(4)
   assert(ns.find('Judy Alvarez').selectedElementIndex == 2)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto')
   assert(ns.find('Judy Alvarez').selectedElementIndex == 1)
+`));
+
+test('the owner’s case of 1 Nov 2026 on the Native Settings UI tab: Restore defaults on Dynamic info leaves Character bonds and Story packs switched on', () => run(`${harness()}
+  settingsPage('Companions')
+  ns.interact.toggle(ns.find('Character bonds')); frames(8); ns.verify()
+  ns.interact.toggle(ns.find('Story packs')); frames(8); ns.verify()
+  assert(saved.characterBonds == true and saved.storyPacks == true)
+  press('Back to settings'); press('Conversations'); press('Dynamic info')
+  ns.interact.toggle(ns.find('Location')); frames(8); ns.verify()
+  assert(manager.snapshot(player).settings.dynamicInfo.location == false)
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  local settings = manager.snapshot(player).settings
+  assert(settings.dynamicInfo.location == true, 'the Dynamic info row is back')
+  assert(settings.characterBonds == true and settings.storyPacks == true, 'Character bonds and Story packs stay on')
+  assert(saved.characterBonds == true and saved.storyPacks == true)
+  assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));
 
 test('Dynamic info is a page of its own on the Native Settings UI tab: twelve switches in each of two sets (in person, phone calls and texts), applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
@@ -1154,7 +1184,7 @@ test('V’s voice is one list over typed and spoken lines and its engine is its 
   assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket')
 `));
 
-test('Companions react is on by default, and Restore defaults puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on', () => run(`${harness()}
+test('Companions react is on by default, and Restore defaults on each page puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on, one page at a time', () => run(`${harness()}
   settingsPage('Companions')
   assert(ns.find('Companions react').state == true and ns.find('React to battles') == nil and ns.find('React to collected loot') == nil)
   ns.interact.toggle(ns.find('Companions react'))
@@ -1168,17 +1198,26 @@ test('Companions react is on by default, and Restore defaults puts Johnny to Off
   ns.interact.select(ns.find('V’s voice'), 1)
   frames(10); ns.verify()
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
+  -- The Voice page: V's voice only.
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
-  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'normal', 'companions are back to Often')
   assert(settings.vVoice == true and settings.vVoiceMic == false and settings.vVoiceEngine == 'pocket', 'V speaks typed lines with Pocket')
   assert(ns.find('V’s voice').selectedElementIndex == 2 and ns.find('V’s voice engine').selectedElementIndex == 1)
+  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are untouched by the Voice page')
+  assert(settings.johnnyInHead == true and settings.companionSpeakUp == 'normal', 'Conversations is untouched by the Voice page')
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
+  -- Conversations: Johnny and the speak-up.
   press('Back to settings'); press('Conversations')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  settings = manager.snapshot(player).settings
+  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('Companions speak up').selectedElementIndex == 4)
+  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are untouched by Conversations')
+  -- Companions: the reactions.
   press('Back to settings'); press('Companions')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  settings = manager.snapshot(player).settings
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(ns.find('Companions react').state == true)
 `));
 
