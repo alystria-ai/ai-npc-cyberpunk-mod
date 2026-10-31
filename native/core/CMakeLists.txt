@@ -29,7 +29,11 @@ if(CONVAI_GAME STREQUAL "2.31")
   set(RED4EXT_SDK_REPOSITORY "https://github.com/WopsS/RED4ext.SDK.git")
 elseif(CONVAI_GAME STREQUAL "2.5")
   set(RED4EXT_SDK_COMMIT "b139fcbd51b1c391399662f9fbfc00c5977f7231")
-  set(RED4EXT_SDK_REPOSITORY "https://github.com/KelpHect/RED4ext.SDK-psiberx.git")
+  # The fork that held this commit is gone (404 since 2026-10-31). The commit lives on as the head of upstream
+  # pull request #228 (refs/pull/228/head), which a clone does not fetch, so the source archive of the commit
+  # is downloaded instead and checked against its SHA-256.
+  set(RED4EXT_SDK_URL "https://github.com/WopsS/RED4ext.SDK/archive/b139fcbd51b1c391399662f9fbfc00c5977f7231.tar.gz")
+  set(RED4EXT_SDK_URL_SHA256 "678f46cee5a22971e1c222650609d4c8421886f014ea5cd7bc5bbde6c0f7ee63")
 else()
   message(FATAL_ERROR "CONVAI_GAME must be 2.31 or 2.5, not '${CONVAI_GAME}'.")
 endif()
@@ -43,12 +47,21 @@ if(RED4EXT_SDK_DIR)
   add_subdirectory("${RED4EXT_SDK_DIR}" red4ext-sdk EXCLUDE_FROM_ALL)
 else()
   include(FetchContent)
-  FetchContent_Declare(
-    red4ext_sdk
-    GIT_REPOSITORY "${RED4EXT_SDK_REPOSITORY}"
-    GIT_TAG "${RED4EXT_SDK_COMMIT}"
-    GIT_SHALLOW FALSE
-  )
+  if(RED4EXT_SDK_URL)
+    FetchContent_Declare(
+      red4ext_sdk
+      URL "${RED4EXT_SDK_URL}"
+      URL_HASH "SHA256=${RED4EXT_SDK_URL_SHA256}"
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+  else()
+    FetchContent_Declare(
+      red4ext_sdk
+      GIT_REPOSITORY "${RED4EXT_SDK_REPOSITORY}"
+      GIT_TAG "${RED4EXT_SDK_COMMIT}"
+      GIT_SHALLOW FALSE
+    )
+  endif()
   FetchContent_MakeAvailable(red4ext_sdk)
 endif()
 

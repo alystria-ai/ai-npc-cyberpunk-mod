@@ -10,7 +10,7 @@ unsuffixed default and 2.5 the `-for-2.5` option. The source tree is still the 2
 |---|---|---|
 | Game exe | 3.0.88.46235 | 3.0.80.51928 |
 | Version of the first release | 0.3.1 | 0.3.1 (0.3.0 and older were 2.31 only) |
-| Native plugin SDK | RED4ext.SDK `b139fcbd` (KelpHect/RED4ext.SDK-psiberx: official #227 plus the #228 layouts) | RED4ext.SDK `ad727771` (WopsS) |
+| Native plugin SDK | RED4ext.SDK `b139fcbd` (official #227 plus the #228 layouts, the head of upstream pull request #228, fetched as its source archive with a SHA-256 check since the original fork is gone) | RED4ext.SDK `ad727771` (WopsS) |
 | Native plugin declares | `RED4EXT_V1_RUNTIME_VERSION_2_50` | `RED4EXT_V1_RUNTIME_VERSION_2_31` |
 | File names | `…-Scripts-<v>.zip`, `Runtime-<v>.zip` | `…-Scripts-<v>-for-2.31.zip`, `Runtime-<v>-for-2.31.zip` |
 | release.json `game` | `2.5` | `2.31` (a release.json without the field is a 2.31 build, `LEGACY_GAME` in `packaging/lib/game-variants.mjs`) |
