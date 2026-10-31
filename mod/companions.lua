@@ -139,7 +139,8 @@ function M.registerDefinition(key, definition)
     -- conversation profile comes afterwards, from the record (settleProfiles). The flag only lets a Chat row carrying the character's key invite it (phoneContactKey).
     records[key] = {id = id, recordID = definition.recordID,
         name = tostring(definition.name or id or key),
-        profileKey = definition.profileKey, profileName = definition.profileName, custom = definition.custom == true or nil}
+        profileKey = definition.profileKey, profileName = definition.profileName, custom = definition.custom == true or nil,
+        appearance = type(definition.appearance) == 'string' and definition.appearance ~= '' and definition.appearance or nil}
     return true
 end
 
@@ -154,7 +155,7 @@ function M.definition(key)
     local value = records[key]
     if not value then return nil end
     return {id = value.id, recordID = value.recordID, name = value.name,
-        profileKey = value.profileKey, profileName = value.profileName, custom = value.custom}
+        profileKey = value.profileKey, profileName = value.profileName, custom = value.custom, appearance = value.appearance}
 end
 
 function M.phoneContactKey(contactId)
@@ -396,6 +397,81 @@ local function settleOnFloor(entry)
     end
 end
 
+-- The look of an invited character (Discord reports of 31 Oct 2026: a chosen person came as another look of the same record). A record whose template lists many looks
+-- (or defaults to 'random') gives a different person at each spawn unless the spawn names the look. The order, first hit wins, and the same record always
+-- gives the same answer: (1) the roster row's own `appearanceName` (characters/roster.json), (2) the base look of the curated outfit table
+-- (mod/companion-outfits-data.lua), whatever the outfit setting says, (3) the look the last copy of this record was seen in, kept in
+-- runtime/spawn-looks.json (read once, written once per new person at attach). Nothing runs per frame: one table lookup per spawn.
+local LOOKS_FILE = 'runtime/spawn-looks.json'
+local curatedBases, rememberedLooks
+local function curatedBase(recordId)
+    if curatedBases == nil then
+        curatedBases = {}
+        local loaded, data = pcall(dofile, 'companion-outfits-data.lua')
+        if loaded and type(data) == 'table' and type(data.characters) == 'table' then
+            for record, character in pairs(data.characters) do
+                if type(character) == 'table' and type(character.base) == 'string' and character.base ~= '' then curatedBases[record] = character.base end
+            end
+        end
+    end
+    return curatedBases[recordId]
+end
+local function looksMemory()
+    if rememberedLooks == nil then
+        rememberedLooks = {}
+        local opened, file = pcall(io.open, LOOKS_FILE, 'rb')
+        if opened and file then
+            local readable, raw = pcall(function() return file:read('*a') end)
+            pcall(function() file:close() end)
+            local ok, data = false, nil
+            if readable and type(raw) == 'string' and type(json) == 'table' then ok, data = pcall(json.decode, raw) end
+            if ok and type(data) == 'table' and type(data.looks) == 'table' then
+                for record, name in pairs(data.looks) do
+                    if type(record) == 'string' and type(name) == 'string' and name ~= '' then rememberedLooks[record] = name end
+                end
+            end
+        end
+    end
+    return rememberedLooks
+end
+local function saveLooks()
+    if type(json) ~= 'table' then return end
+    local ok, text = pcall(json.encode, {version = 1, looks = rememberedLooks})
+    if not ok then return end
+    local opened, file = pcall(io.open, LOOKS_FILE, 'wb')
+    if opened and file then file:write(text); file:close() end
+end
+-- The appearance a new copy of this record is asked for, and where the name came from; nil when nothing is known (the game then picks).
+local function ownLook(definition)
+    local recordId = definition.id
+    if type(recordId) ~= 'string' then return nil end
+    if type(definition.appearance) == 'string' and definition.appearance ~= '' then return definition.appearance, 'roster' end
+    local base = curatedBase(recordId)
+    if base then return base, 'curated' end
+    local seen = looksMemory()[recordId]
+    if seen then return seen, 'remembered' end
+    return nil
+end
+-- One Developer mode line per spawn: the record and the appearance it was asked for.
+local function lookLine(recordId, name, source)
+    if not (M.developerMode and M.developerMode() == true and M.devLog) then return end
+    pcall(M.devLog, 'Companion look: record ' .. tostring(recordId) .. ', appearance '
+        .. (name or 'none (the game picks one)') .. ' (' .. source .. ')')
+end
+-- At attach, once: a copy made without a named look reads the look the game gave it, so a fast travel recreation and the next invitation of this
+-- person are the same person. A look that was asked for is kept as it is.
+local function learnLook(entry, npc)
+    if entry.appearance or entry.lookAsked or entry.transitRecreated then return end
+    local ok, name = pcall(function() return NameToString(npc:GetCurrentAppearanceName()) end)
+    if not ok or type(name) ~= 'string' or name == '' or name == 'None' then return end
+    entry.appearance = name
+    local recordId = entry.record
+    if type(recordId) ~= 'string' or looksMemory()[recordId] == name then return end
+    rememberedLooks[recordId] = name
+    saveLooks()
+    lookLine(recordId, name, 'learned')
+end
+
 local function attachFollower(entry, player)
     local npc = entry.system:GetEntity(entry.entityID)
     if not npc or not npc:IsAttached() then return nil, 'Awaiting entity attachment' end
@@ -419,6 +495,7 @@ local function attachFollower(entry, player)
     end
     entry.phantomControllersDisabled = appearance.prepare(npc)
     entry.npc = npc
+    learnLook(entry, npc)
     if entry.visitor then
         -- An immersive-invitation visitor (mod/immersive-invitations.lua): no follower role yet. She is moved by AI commands from
         -- her own module and joins the party (M.joinVisitor) when V reaches her. Every loop below keys on state 'ready', so a
@@ -544,8 +621,11 @@ local function spawnCopy(key, invitation, returning)
         local okOutfit,outfit=pcall(M.spawnOutfit,definition.id or tostring(recordID),invitation and invitation.profileKey or definition.profileKey)
         if okOutfit and type(outfit)=='string' and outfit~='' then appearance=outfit end
     end
+    local lookSource = appearance and (returning and 'returning' or adoption and 'adopted original' or 'outfit') or nil
+    if not appearance and not spawnAppearance then appearance, lookSource = ownLook(definition) end
     if appearance then spec.appearanceName = CName.new(appearance)
-    elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
+    elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance); lookSource = 'spawn record' end
+    lookLine(definition.id or tostring(recordID), appearance or spawnAppearance, lookSource or 'none')
     -- The navmesh stands up to 30 cm above the real floor in some interiors; the AI undoes any later transform
     -- teleport, so a fresh copy is created on the floor itself when one ray finds it just below the navmesh point.
     local floorZ=floorBelow(spawnPosition, placeDrop)
@@ -587,7 +667,7 @@ local function spawnCopy(key, invitation, returning)
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
         spawnPosition = copyPosition(spawnPosition),
-        clearance = body, appearance = appearance,
+        clearance = body, appearance = appearance, lookAsked = (appearance or spawnAppearance) and true or nil,
         person = behavior.new(returning and returning.serial or serial),
         transitRecreated = returning ~= nil,
         visitor = appointment and true or nil, appointmentId = appointment and appointment.id or nil,

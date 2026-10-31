@@ -1854,7 +1854,9 @@ local function definitionFor(profile)
     -- They only let the talk path recognise that mod's copy; we never spawn one of our own from the menus.
     if profile.invite == false then return nil end
     local record = type(profile.records) == 'table' and profile.records[1] or nil
-    return record and {id = record, name = profile.name} or nil
+    -- appearanceName: the roster row's own look, so the invited person is the same person at every spawn (companions.lua ownLook).
+    return record and {id = record, name = profile.name,
+        appearance = type(profile.appearanceName) == 'string' and profile.appearanceName ~= '' and profile.appearanceName or nil} or nil
 end
 
 function M.configure(companionApi, profileList)

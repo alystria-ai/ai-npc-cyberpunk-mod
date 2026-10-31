@@ -38,6 +38,24 @@ without a flag (doris-soto, marcus-barros, sofia-ramirez, randy-kutcher). The mo
 * **Favorites** work as on the main list (`docs/MANAGER_UI.md`, "Favorites"): once a side character is in the party her row is Add to favorites with Add copy under it, and a Favorites block sits above the list on page 1 (her Invite / Add copy row and Remove from favorites), narrowed by the search and the Starts with group like the list. They are the same favorites as the main list (`runtime/favorites.json`, scope `characters`), so the phone's Chat tab lists them first too. The block is built from the favorite keys and a position index held with the letter groups, never by walking the 557.
 * The MCM host and the search box take the `side` view like `characters` (`mod/mcm-host.lua`).
 
+## Who the copy is
+
+Reported on Discord on 31 Oct: a player picked one named side character and got another look of that record. Root cause: the Companion Manager spawned `records[1]` with no appearance name. A record whose entity template lists many looks, or defaults to `random`, then gets a different look at every spawn, so the chosen person was a stranger of the same kind. A copy remade after a fast travel had no look to be remade in either.
+
+Every spawn now asks for the character's own look. `mod/companions.lua` `ownLook` takes the first hit of:
+
+1. the roster row's `appearanceName` (`characters/roster.json`, also in `game-roster.json`, passed through `mod/manager.lua` `definitionFor`),
+2. the base look of the curated outfit table (`mod/companion-outfits-data.lua`), whatever the outfit setting says,
+3. the look the last copy of that record was seen in, kept in `runtime/spawn-looks.json`. It is read once, and written once per new person when the copy attaches (`learnLook` reads `GetCurrentAppearanceName` once). The same value is kept on the copy, so a fast travel remakes the same person.
+
+A look from the outfit module, a world character's adopted look, a fast travel receipt and the spawn record of Kerry and Johnny all still come first. Nothing runs per frame.
+
+With Developer mode on, `probe.log` gets one line per spawn: `Companion look: record Character.x, appearance y (roster|curated|remembered|outfit|adopted original|returning|spawn record|none)`. A first copy of an unknown person logs `none (the game picks one)`, and one more line with `learned` when the game's pick was read back and kept.
+
+### Where the names come from
+
+The repo holds no game appearance lists for the side cast (no tweakdb appearance names, no extracted templates). Only the 19 records of the outfit table are proven against the installed game (`characters/companion-outfit-evidence.json`), and `node scripts/cast-sweep/spawn-looks.mjs` writes their base look into the roster rows (`--check` verifies, `--report` counts the rest), then `node scripts/Build-GameRoster.mjs`. Result of 31 Oct: 19 rows have a name. **663 invitable rows still have none** (557 side characters and 106 of the shipped cast, `--report` lists the keys). Those rows are pinned at runtime by the learned look (step 3): the first copy shows whatever the game picks, and from then on that record is always that person. To remove even the first pick, add `appearanceName` to the row with a name the record's own template lists (WolvenKit, as `scripts/Extract-CompanionOutfitEvidence.mjs` does for the outfit table) and rerun the two scripts.
+
 ## Voice
 
 45 of the 575 side characters speak with a voice of their own: one game line each (`clip` in `characters/cast-sweep-voices.json`), rebuilt on the player's PC from the game files (`docs/VOICE_EXTRACTION.md`). 27 were found by a name at the start of the voice file name, 18 more by a voice tag that is proven to be the person's (`link`, rule and rejections in `docs/CAST_SWEEP.md`, "Own voices by voice tag" and "Voice models"): Cassius Ryder, Katherine McCannon, Milt Nauman, Susanna Quinn, Theo Price, Dorian, Driss "Scorpion" Meriana, Emmerick Bronson, Fredrik Persson, Gottfrid Persson, Mark Muratovich, Matilda K. Rose, Michael Maldonado, Reverend Colver, Roh Chi-Won, Roxanne Sumner, Taylor Gibbs and Tom Caldera. 137 more speak with the archetype voice of the generic voice model the game's scenes give them (`voiceModel` in the same file, `docs/CAST_SWEEP.md`, "Voice models"), and the other 393 keep a guessed archetype voice because no scene lets them speak.

@@ -2179,6 +2179,8 @@ if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
 companions.developerMode = function() return manager.developerMode() end
+-- Developer mode lines of the spawn (companions.lua lookLine: the record and the appearance a new copy was asked for).
+companions.devLog = function(line) log(line) end
 companions.recoveryLog = function(kind, fields)
     local ok, text = pcall(json.encode, fields or {})
     log('Companion recovery ' .. tostring(kind) .. ' ' .. (ok and text or ''))
