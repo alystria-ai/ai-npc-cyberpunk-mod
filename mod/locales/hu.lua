@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "Az egyéni modelleket te adtad hozzá; méret szerint az alapértelmezetthez csatlakoznak.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "A minden emlék elfelejtése ezekre a karakterekre vonatkozik.\n\nA katalógus böngészése vagy társ meghívása nem ad hozzá senkit ehhez a számhoz.",
     ["Talk to story characters"] = "Beszélgetés történetbeli karakterekkel",
+    ["Talk during missions"] = "Beszélgetés küldetések alatt",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "Kísérleti, jeleneteket törhet el. A küldetések alatt megszólított történetbeli karakterek bekapcsolódnak: harcban és autóban is beszélnek, megjegyzéseket tesznek, követnek és veled utaznak. A játéké az elsőbbség: ha küldetésszkript irányítja őket, a mod visszahúzódik. Soha nem teleportálja vagy távolítja el őket, és nem nyúl a küldetések állapotához. Szükséges: Beszélgetés történetbeli karakterekkel.",
     ["{name} is busy right now."] = "{name} most elfoglalt.",
     ["{name} is not in your head right now."] = "{name} most nincs a fejedben.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}: kapcsold be a „Beszélgetés történetbeli karakterekkel” opciót (Esc > Mods).",

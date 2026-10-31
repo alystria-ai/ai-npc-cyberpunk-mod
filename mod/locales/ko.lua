@@ -656,6 +656,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "사용자 지정 모델은 직접 추가한 모델이며, 크기 순으로 기본 선택에 포함됩니다.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "“모두의 기억 삭제”는 이 캐릭터들에게 적용됩니다.\n\n목록을 둘러보거나 동료를 초대해도 이 수에는 추가되지 않습니다.",
     ["Talk to story characters"] = "스토리 캐릭터와 대화",
+    ["Talk during missions"] = "미션 중 대화",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "실험적 기능이며 장면을 망가뜨릴 수 있습니다. 미션 중 말을 건 스토리 캐릭터가 함께합니다. 전투 중이나 차 안에서도 대화하고, 말을 걸고, 따라오고, 동승합니다. 게임이 항상 우선이며 미션 스크립트가 움직이는 동안 모드는 물러납니다. 순간이동이나 제거는 하지 않고 퀘스트 상태도 건드리지 않습니다. '스토리 캐릭터와 대화'가 필요합니다.",
     ["{name} is busy right now."] = "{name}은(는) 지금 바쁩니다.",
     ["{name} is not in your head right now."] = "{name}은(는) 지금 머릿속에 없습니다.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}은(는) 스토리 캐릭터입니다. Esc > Mods에서 스토리 캐릭터와 대화를 켜세요.",

@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "Własne modele to te, które dodałeś; dołączają do domyślnego wyboru według rozmiaru.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "Opcja Zapomnij wszystkie wspomnienia dotyczy tych postaci.\n\nPrzeglądanie katalogu ani zapraszanie towarzysza nie dodaje nikogo do tej liczby.",
     ["Talk to story characters"] = "Rozmowy z postaciami fabularnymi",
+    ["Talk during missions"] = "Rozmowy podczas misji",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "Eksperymentalne, może psuć sceny. Postacie fabularne, z którymi rozmawiasz w misjach, dołączają: mówią w walce i w aucie, komentują, idą za tobą i jadą z tobą. Gra ma pierwszeństwo: gdy prowadzi je skrypt misji, mod ustępuje. Nigdy ich nie teleportuje ani nie usuwa i nie rusza stanu zadań. Wymaga ustawienia Rozmowy z postaciami fabularnymi.",
     ["{name} is busy right now."] = "{name} nie może teraz rozmawiać.",
     ["{name} is not in your head right now."] = "{name} nie jest teraz w twojej głowie.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name} to postać fabularna. Włącz Rozmowy z postaciami fabularnymi w Esc > Mods.",

@@ -518,6 +518,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
         {
+          "source": "mod/mission-companion.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mission-companion.lua"
+        },
+        {
           "source": "mod/npc-reactions.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-reactions.lua"
         },

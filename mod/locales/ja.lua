@@ -656,6 +656,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "カスタムモデルは追加したものです。サイズ順に、既定の選択肢に加わります。",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "「全員の記憶を消去」の対象はこのキャラクターたちです。\n\n一覧の閲覧やコンパニオンの招待では、この人数は増えません。",
     ["Talk to story characters"] = "ストーリーキャラクターと会話",
+    ["Talk during missions"] = "ミッション中も会話",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "実験的な機能で、シーンを壊すことがあります。ミッション中に話しかけたストーリーキャラクターが加わり、戦闘中や車内でも会話し、コメントし、あなたに付いてきて同乗します。ゲームが常に優先され、ミッションのスクリプトが動かしている間はMODは手を引きます。テレポートや削除は行わず、クエストの状態にも触れません。「ストーリーキャラクターと会話」が必要です。",
     ["{name} is busy right now."] = "{name}は今手が離せません。",
     ["{name} is not in your head right now."] = "{name}は今、頭の中にいません。",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}：Esc > Mods で「ストーリーキャラクターと会話」をオンにしてください。",

@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "Les modèles personnalisés sont ceux que vous avez ajoutés, classés par taille.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "Effacer tous les souvenirs s’applique à ces personnages.\n\nParcourir le catalogue ou inviter un compagnon n’ajoute personne à ce décompte.",
     ["Talk to story characters"] = "Parler aux personnages de l’histoire",
+    ["Talk during missions"] = "Parler pendant les missions",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "Expérimental, peut casser des scènes. Les personnages de l’histoire à qui tu parles en mission participent : ils parlent en combat et en voiture, commentent, te suivent et roulent avec toi. Le jeu reste prioritaire : si un script de mission les dirige, le mod s’efface. Il ne les téléporte ni ne les supprime jamais et ne touche pas aux quêtes. Nécessite Parler aux personnages de l’histoire.",
     ["{name} is busy right now."] = "{name} est occupé pour l’instant.",
     ["{name} is not in your head right now."] = "{name} n’est pas dans votre tête pour l’instant.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name} : activez « Parler aux personnages de l’histoire » dans Esc > Mods.",

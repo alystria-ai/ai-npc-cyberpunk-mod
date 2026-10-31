@@ -1118,6 +1118,15 @@ test('Custom endpoint is not offered without the provider module: no button on A
   assert(managerUi.inspect().view ~= 'custom-endpoint', 'the view falls back: ' .. tostring(managerUi.inspect().view))
 `));
 
+test('Talk during missions is a switch on the Conversations page of the Native Settings fallback: Off by default, toggles and is saved', () => run(`${harness()}
+  settingsPage('Conversations')
+  local row = assert(ns.find('Talk during missions'), 'no Talk during missions row in Native Settings UI')
+  ns.interact.toggle(row); frames(8); ns.verify()
+  assert(saved.storyMissionTalk == true, 'the toggle is saved')
+  ns.interact.toggle(ns.find('Talk during missions')); frames(8); ns.verify()
+  assert(saved.storyMissionTalk == false)
+`));
+
 test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
   settingsPage('Conversations')
   assert(ns.find('Johnny speaks up') == nil and ns.find('Johnny’s standing') == nil, 'the separate rows are gone')

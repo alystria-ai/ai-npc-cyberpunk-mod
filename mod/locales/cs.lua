@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "Vlastní modely jsou ty, které jsi přidal; řadí se mezi výchozí volby podle velikosti.",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "Zapomenutí všech vzpomínek se týká těchto postav.\n\nProcházení katalogu ani pozvání společníka nikoho do tohoto počtu nepřidá.",
     ["Talk to story characters"] = "Mluvit s postavami příběhu",
+    ["Talk during missions"] = "Mluvit během misí",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "Experimentální, může narušit scény. Postavy příběhu, se kterými mluvíš během misí, se zapojí: mluví v boji i v autě, komentují, následují tě a jedou s tebou. Hra má přednost: když je řídí skript mise, mod ustoupí. Nikdy je nepřemístí ani neodstraní a nesahá na stav úkolů. Vyžaduje Mluvit s postavami příběhu.",
     ["{name} is busy right now."] = "{name} teď nemůže mluvit.",
     ["{name} is not in your head right now."] = "{name} teď není v tvé hlavě.",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name} je postava příběhu. Zapni Mluvit s postavami příběhu v Esc > Mods.",

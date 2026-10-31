@@ -220,7 +220,7 @@ test('describe: a refusal\'s facts are plain text, "?" for what was not read, an
 test('wiring: the log line of a refusal carries the facts, and Johnny\'s key reaches every place that asks', () => {
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
   assert.match(select, /log\('World conversation refused: profile=' \.\. key \.\. ' reason=' \.\. why[\s\S]*?convaiWorldTalk\.facts[\s\S]*?convaiUnprofiledWhy\(npc\)/);
-  assert.match(init, /convaiWorldTalk:refusal\(actor, convaiPlayer()\(\), story\.entity, story\.key, story\.idle\)/);
+  assert.match(init, /convaiWorldTalk:refusal\(actor, convaiPlayer()\(\), story\.entity, story\.key, story\.idle, story\.mission\)/);
   assert.match(init, /log\('World conversation ended: profile=' \.\. story\.key[\s\S]*?convaiWorldTalk\.facts/);
 });
 
@@ -443,15 +443,15 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
   // A group key on a story character takes it into the round (2026-10-28); only while the game is in charge of it ("busy") is it left out.
   assert.doesNotMatch(select, /convaiWorldPolicy\.story\(npc\) == true then\s+npc, reason = nil,/, 'a story character is no longer kept out of a group round');
-  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, faced, not story or nil\)[\s\S]{0,200}npc, reason = nil, 'Face a nearby character to talk\.'/, 'a faced character the game is in charge of builds the round without it');
+  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, faced, not story or nil, story and convaiMissionOn\(\) or nil\)[\s\S]{0,200}npc, reason = nil, 'Face a nearby character to talk\.'/, 'a faced character the game is in charge of builds the round without it');
   assert.match(select, /primary\.story = convaiWorldPolicy ~= nil and convaiWorldPolicy\.story\(npc\) == true or nil/);
-  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, key\)/, 'a fresh read on the key press, with the profile key');
+  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, key, nil, mission\)/, 'a fresh read on the key press, with the profile key');
   assert.match(select, /convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.'/);
   assert.match(select, /convaiFacialPlayback\.storyEntity = convaiStory and convaiStory\.entity or nil/);
   // No gaze: both talk paths skip the focus for a story character.
   assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
   assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not \(primary\.story or primary\.guarded\) then beginFocus\(player, npc\) end/);
-  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, convaiPlayer()\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
+  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, convaiPlayer()\(\), entity, primary\.profileKey, primary\.guarded, primary\.story and convaiStory ~= nil and convaiStory\.mission or nil\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);

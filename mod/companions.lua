@@ -1326,6 +1326,11 @@ function M.expressionActors(player)
     -- A holocall's live-picture copy has the companions' face too (mod/holocall.lua faceRow), within 0.1 s of its picture.
     local holocall = convaiHolocall and convaiHolocall.faceRow and convaiHolocall.faceRow()
     if holocall then expressionRows[#expressionRows + 1] = holocall end
+    -- A story character who joined in during a mission, while the game is not driving it (Talk during missions, mod/mission-companion.lua).
+    local mission = convaiMission
+    if mission then
+        for _, row in ipairs(mission:faces()) do expressionRows[#expressionRows + 1] = row end
+    end
     expressionRowsAt, expressionRowsList, expressionRowsCount = now, entries, #entries
     return expressionRows
 end

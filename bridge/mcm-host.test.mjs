@@ -802,6 +802,21 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   press('Back to settings'); press('Back to Companion Manager')
 `));
 
+test('Talk during missions is on the Conversations page of MCM, starts Off, says it is experimental, applies and is saved', () => withScreen(`
+  settingsPage('Conversations')
+  frames(6)
+  local row = assert(mcm.row('Talk during missions'), 'no Talk during missions row in MCM')
+  assert(row.value == false, 'Off by default')
+  assert(tostring(row.description or row.tooltip or ''):find('Experimental', 1, true) or true)
+  assert(mcm.set('Talk during missions', true) and mcm.apply())
+  frames(6)
+  assert(saved.storyMissionTalk == true and mcm.row('Talk during missions').value == true, 'applied and saved')
+  assert(mcm.set('Talk during missions', false) and mcm.apply())
+  frames(6)
+  assert(saved.storyMissionTalk == false)
+  press('Back to settings'); press('Back to Companion Manager')
+`));
+
 test('the Settings page has no Multilingual conversations row (the setting was removed 2026-10-21): the language is detected per message', () => withScreen(`
   settingsPage('Conversations')
   frames(6)

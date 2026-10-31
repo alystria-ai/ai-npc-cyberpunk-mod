@@ -73,6 +73,7 @@ function selectionRun(body) {
     local busy = {}
     convaiWorldPolicy = {spawned = function(n) return info[n.hash].spawned == true end, story = function(n) return info[n.hash].story == true end,
       protected = function(n) return info[n.hash].story == true or info[n.hash].quest == true end}
+    function convaiMissionOn() return false end
     convaiWorldTalk = {PROJECTIONS = {}, runtimeQuest = function(n) return info[n.hash].quest == true end,
       refusal = function(_, n) return busy[n.hash] and 'scene' or nil end}
     convaiNpcNames = {nameFor = function(n) return 'Name ' .. n.hash end}
@@ -204,6 +205,7 @@ test('the speaker\'s turn: a game-placed speaker gets the story rules for its fa
   function log(line) lines[#lines + 1] = line end
   local busy = false
   convaiWorldTalk = {PROJECTIONS = {['johnny-silverhand'] = true}, detail = nil, refusal = function() return busy and 'scene' or nil end}
+  function convaiMissionOn() return false end
   convaiFacialPlayback = {}
   convaiStory = nil
   ${speakerStory}

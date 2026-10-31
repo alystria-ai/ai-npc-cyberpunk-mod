@@ -660,6 +660,8 @@ return {
     ["Custom models are ones you added; they join the default choice by size."] = "自定义模型是你添加的模型；它们会按大小加入默认选项。",
     ["Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count."] = "“清除全部记忆”适用于这些角色。\n\n浏览角色列表或邀请伙伴不会计入此数量。",
     ["Talk to story characters"] = "与剧情角色对话",
+    ["Talk during missions"] = "任务期间对话",
+    ["Experimental, and it may break scenes. Story characters you talk to during missions join in: they talk in fights and in cars, comment, follow you and ride along. The game keeps priority: when a mission script drives them, the mod steps back. It never teleports or despawns them or touches quest state. Needs Talk to story characters."] = "实验性功能，可能破坏剧情场景。你在任务中交谈过的剧情角色会加入：在战斗和车里也会说话、评论、跟随你并同乘。游戏始终优先：任务脚本控制他们时，模组会退让。它绝不会传送或移除角色，也不触碰任务状态。需要开启“与剧情角色对话”。",
     ["{name} is busy right now."] = "{name}现在正忙。",
     ["{name} is not in your head right now."] = "{name}现在不在你的脑中。",
     ["{name} is a story character. Turn on Talk to story characters in Esc > Mods."] = "{name}是剧情角色。请在 Esc > Mods 中开启“与剧情角色对话”。",

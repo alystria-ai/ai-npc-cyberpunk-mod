@@ -136,7 +136,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     voice: 'yes', subtitles: 1, subtitleStyle: 3, audioDelay: 'fast', voiceVolume: 'loud', developerMode: 'true', useOwnConvaiKey: 0,
     conversationProvider: 7, battleReactions: 'on', lootReactions: [], bodyGestures: 'no', autoConnectNearby: 'yes', holocallLiveImage: 'x',
     gameDialogueContext: 2, decisionLedger: 'y', witnessReceipts: 9, eyeContactHeight: 'high', headFollowStrength: 99,
-    voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
+    voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, storyMissionTalk: 'x', johnnyInHead: 'x',
     johnnyRemarks: 5, companionSpeakUp: 'often', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', replyLanguage: 'klingon', replyLanguageOther: 'klingon', subtitleLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
