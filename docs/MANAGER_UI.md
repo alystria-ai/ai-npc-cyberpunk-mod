@@ -3,14 +3,14 @@
 The manager has two hosts that draw the same pages (`mod/manager-ui.lua`) and read and write the same saved settings:
 
 - **Mod Configuration Menu** (MCM, the CET mod `ModConfigurationMenuAPI`, [Nexus Mods 31640](https://www.nexusmods.com/cyberpunk2077/mods/31640)),
-  version **0.10.5 or newer**: the default. The manager is a mod of MCM named **AI NPC Cyberpunk Mod** (see "The MCM host").
+  version **0.10.5 or newer**: the default. The manager is a mod of MCM named **AI Companions** (see "The MCM host").
 - **Native Settings UI** (NSUI: the CET mod `nativeSettings`, [Nexus Mods 3518](https://www.nexusmods.com/cyberpunk2077/mods/3518),
-  developed against 1.96): optional, for players who prefer it. The manager is one tab, **AI NPC Cyberpunk Mod**, on its Mods screen.
+  developed against 1.96): optional, for players who prefer it. The manager is one tab, **AI Companions**, on its Mods screen.
   Every control is one of NSUI's own widgets (switch, selector, slider, button); nothing is drawn with ImGui.
 
 No file or saved preference of NSUI, MCM or any other mod is edited. The manager needs one of the two: Mod Configuration Menu 0.10.5 or
 newer, or Native Settings UI. With both installed, MCM hosts it and the Native Settings UI tab does not exist (not registered, or taken down if MCM turned up late; see "Both installed"); both hosts still read and write the same saved settings. The player opens
-it with the manager shortcut, with **Esc, Mods, AI NPC Cyberpunk Mod** (NSUI), or from MCM's own list.
+it with the manager shortcut, with **Esc, Mods, AI Companions** (NSUI), or from MCM's own list.
 
 The page below ("Page layout", "Player flow") is the same in both hosts. "How a change is applied" and "How lists page" describe the
 NSUI host; the MCM host differs where it says so ("The MCM host").
@@ -28,7 +28,7 @@ that sub-pages stuck. The page logic moved to `mod/manager-ui.lua`, the NSUI hos
 
 ```
 Mods screen (Esc > Mods)
- +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
+ +-- tab "AI Companions"            id aiNpcCyberpunkMod; one tab for the whole manager
       +-- section "Companion Manager"      first section of every page, kept when the page changes
       |     Home:         Characters to invite, Parties, Model browser, Character editor,   (button "Open")
       |                   Key bindings, Settings
@@ -421,7 +421,7 @@ manager (see "The MCM host"). This is the case whether or not Native Settings UI
    game's own Settings item has the localized word) and activates it with `OnMenuItemActivated`, so NSUI marks the screen as its own
    and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s. (With Mod Configuration Menu installed
    the item is MCM's own: see "Beside MCM".)
-4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI NPC Cyberpunk Mod from the
+4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI Companions from the
    pause menu under Mods." (logged) and activates nothing else. Pressing the shortcut again during the walk changes nothing.
 5. **While the manager is open the shortcut closes it**, the way Esc does (`RequestClose`).
 6. **Closing returns to the game, when the shortcut opened the pause menu.** Only a walk that started in gameplay (the shortcut itself opened the
@@ -459,12 +459,12 @@ MCM 0.10.4 (not read) changed its internals, and its author keeps only the publi
 as it can. With MCM's setting "Redirect Framework Menu Entries" on (the default) MCM keeps NSUI's Mods item in the pause menu's list but hides its
 widget (`SetVisible(false)`), adds its own item (data labelled "Mods" like NSUI's, event `OnSwitchToMCM`, shown as "MCM" or "Mods" by
 MCM's own setting), turns an activation of NSUI's item into MCM's screen too, and imports NSUI's tabs through a snapshot, so the manager
-is a row of MCM's list of mods (`AI NPC Cyberpunk Mod`, with the prefix `[CET]` when MCM shows provider prefixes). MCM's public API
+is a row of MCM's list of mods (`AI Companions`, with the prefix `[CET]` when MCM shows provider prefixes). MCM's public API
 cannot select a row of that list (`openMod` only sets the API's own active mod; the screen keeps its own selection), and the entry never
 calls or hooks MCM's `McmUi*` functions, so the shortcut ends at the list: it reads the pause menu's list, takes NSUI's item unless MCM's item is there and NSUI's widget is hidden (or
 the game does not say), in which case it activates MCM's item with `OnMenuItemActivated`, as the player would (an item still labelled
 "Mods" and visible, not NSUI's, Resume or Mod Settings'/RCF's, is taken for it if a later MCM renames the event); when MCM's Settings
-screen has opened the walk is done and the host posts the notice "Open AI NPC Cyberpunk Mod in the Mods list." (id `manager-in-mcm-list`,
+screen has opened the walk is done and the host posts the notice "Open AI Companions in the Mods list." (id `manager-in-mcm-list`,
 15 translations; it is posted from the pause menu, where the game may hide the warning line, so whether the player sees it is a live
 check). The 8 s guard, the logged timeout sentence and "pressing the shortcut again" are the same, and closing the MCM screen that the
 shortcut opened returns to the game like the Mods screen does (matched by engine identity, Resume once after the detach; the shortcut

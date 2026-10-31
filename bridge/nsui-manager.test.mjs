@@ -38,7 +38,7 @@ const harness = (options = {}) => nsuiHarness({modules: everything, ...options})
 
 test('every page builds on the tab and the tab always starts with the way back, in the order Native Settings UI keeps', () => run(`${harness()}
   ns.verify()
-  assert(ns.data[TAB].label == 'AI NPC Cyberpunk Mod', 'one tab, named for the mod')
+  assert(ns.data[TAB].label == 'AI Companions', 'one tab, named for the mod')
   local function check(name, back)
     ns.verify(); assert(dense(ns.data[TAB]), name .. ': Native Settings UI would hold a hole in its section list')
     local sections = ns.sections()
@@ -765,7 +765,7 @@ test('beside MCM the real host walks to MCM\'s item, and once MCM\'s screen is u
   assert(managerUi.inspect().entry.route == 'mcm' and #popups == 0, 'no notice before MCM\\'s screen is up')
   ns.fire('SettingsMainGameController.OnInitialize', {nativeId = 901})
   frames(2)
-  assert(#popups == 1 and popups[1] == 'Open AI NPC Cyberpunk Mod in the Mods list.', tostring(popups[1]))
+  assert(#popups == 1 and popups[1] == 'Open AI Companions in the Mods list.', tostring(popups[1]))
   assert(managerUi.inspect().entry.stage == 'idle' and managerUi.inspect().entry.notice == 'mcm-list')
   -- Nothing else on NSUI\\'s side was touched by the walk: the tab was not selected, no widget was built.
   assert(ns.screen == nil and ns.currentTab == '' and ns.callCount('setOption') == 0)
@@ -788,7 +788,7 @@ test('beside MCM the notice is in the player\'s language and a translation never
   for (const code of ['de', 'ja', 'ru']) run(`${mcmMenu({locale: code})}
     convaiUiLocale.configure('${code}'); convaiUiLocale.update(0); assert(convaiUiLocale.current() == '${code}')
     managerUi._test.notify('mcm-list')
-    assert(#popups == 1 and popups[1] ~= 'Open AI NPC Cyberpunk Mod in the Mods list.' and popups[1]:find('AI NPC Cyberpunk Mod', 1, true), tostring(popups[1]))
+    assert(#popups == 1 and popups[1] ~= 'Open AI Companions in the Mods list.' and popups[1]:find('AI Companions', 1, true), tostring(popups[1]))
   `);
 });
 

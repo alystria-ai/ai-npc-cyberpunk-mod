@@ -44,6 +44,7 @@ M.catalog = {
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
     ['manager-needs-nsui'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key was pressed and Native Settings UI is missing or too old (mod/nsui.lua)
+    ['manager-where'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key could not open the page right now (no save, a scene, a text box): says where the settings are (mod/init.lua openManager)
     ['manager-seated'] = {class = PLAYER, repeatS = 5}, -- the Companion Manager key was pressed while V sits: Mod Configuration Menu does not open in a scene sit, so stand up (mod/init.lua openManager)
     ['manager-in-mcm-list'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key opened Mod Configuration Menu, which hides Native Settings UI's Mods screen: the manager is chosen in its list (mod/nsui.lua)
     ['error-reports-on'] = {class = PLAYER},           -- error reports are sent automatically and where to turn them off: once, at the first load after updating (mod/error-reports.lua)
@@ -117,6 +118,7 @@ M.catalog = {
     ['holocall-refused'] = {class = PLAYER, repeatS = 10},      -- a holocall could not start (a game call, combat, a scene, calls blocked)
     ['holocall-ended'] = {class = PLAYER},                      -- the call ended for a reason other than V hanging up
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
+    ['talk-draft'] = {class = PLAYER, repeatS = 5},           -- the text box was left with a click and its words are kept: the key that types again (mod/init.lua, Composer.reds park)
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
     ['mic-error'] = {class = PLAYER, repeatS = 15},
@@ -268,7 +270,7 @@ end
 -- scripts, which the ordinary notice needs (a missing redscript is one of the problems it reports).
 -- Cost: one table lookup per permitted line of a notice. The loading notice may not cover such a notice before that time
 -- plus the intro and outro has passed (lastSentWait).
-M.showS = {['daily-limit'] = 9, ['setup-problem'] = 9}
+M.showS = {['daily-limit'] = 9, ['setup-problem'] = 9, ['talk-draft'] = 20}
 local INTRO_OUTRO_S = 3.6
 
 -- The notice held on screen: {text, at, mode, mask (which loads it lists), sig (the texts of the lines that change while their load goes on), matched, checkedAt, menu}, or nil.

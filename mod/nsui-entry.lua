@@ -338,7 +338,7 @@ function M.new(options)
         updateReturnToGame()
         if stage == 'idle' then return end
         if os.time() > deadline then
-            abort('The shortcut timed out. Choose AI NPC Cyberpunk Mod from the pause menu under Mods.')
+            abort('The shortcut timed out. Choose AI Companions from the pause menu under Mods.')
             return
         end
         if stage == 'pause' then

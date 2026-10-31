@@ -18,7 +18,7 @@ test('with everything installed every line says OK, nothing is a problem and the
   assert(game_.label == 'Game version' and game_.description == 'Version 2.31.')
   assert(red4ext_.label == 'RED4ext' and red4ext_.description == 'Loaded.')
   assert(lineOf('codeware').description == 'Version 1.20.5.')
-  assert(lineOf('cet').description == 'Version 1.37.1.' and lineOf('nsui').description == 'Version 1.96.')
+  assert(lineOf('cet').description == 'Version 1.37.1.' and lineOf('nsui').description == 'Version 1.96. The settings are on the Mods screen, in the AI Companions tab.')
   assert(check.serviceLine() == nil, 'a running service is explained by the existing Conversation service row')
   -- the files the check opens: the four catalogs, release.json, the answer (none yet) and the service status files; the folder list
   local allowed = {}
@@ -100,7 +100,13 @@ test('the Companion Manager host: Mod Configuration Menu 0.10.5 or newer, or Nat
   assert(table.concat(check.reportLines(), '\n'):find('nsui: problem missing', 1, true))
   -- Mod Configuration Menu 0.10.5 is the default host: it meets the requirement alone, and its line names it with its version.
   env.nsui, env.mcm = 'none', 'ok'; applyEnv(); check.run()
-  assert(lineOf('nsui').state == 'ok' and lineOf('nsui').label == 'Mod Configuration Menu' and lineOf('nsui').description == 'Version 0.10.5.', tostring(lineOf('nsui').description))
+  assert(lineOf('nsui').state == 'ok' and lineOf('nsui').label == 'Mod Configuration Menu' and lineOf('nsui').description == 'Version 0.10.5. The settings are in Mod Configuration Menu, under AI Companions.', tostring(lineOf('nsui').description))
+  -- The row names the key that opens the settings when the manager key is bound.
+  IsBound = function(action) return action == 'cyberpunk_convai_manager' end
+  GetBind = function() return 'F4' end
+  check.refresh()
+  assert(lineOf('nsui').description == 'Version 0.10.5. The settings are in Mod Configuration Menu, under AI Companions. Press F4 to open them.', tostring(lineOf('nsui').description))
+  IsBound, GetBind = nil, nil
   assert(#check.problems() == 0 and table.concat(check.reportLines(), '\n'):find('nsui: ok mcm 0.10.5', 1, true), table.concat(check.reportLines(), '\n'))
   -- Both installed: Mod Configuration Menu is the one named, Native Settings UI is the alternative and is not a problem either way.
   env.nsui = 'ok'; applyEnv(); check.run()

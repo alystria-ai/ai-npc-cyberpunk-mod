@@ -20,7 +20,8 @@ local core = dofile('manager-ui.lua')
 local entryModule = dofile('nsui-entry.lua')
 local fontLibrary = dofile('ui-fonts.lua')
 
-local TAB, TAB_LABEL = 'aiNpcCyberpunkMod', 'AI NPC Cyberpunk Mod'
+-- The name the player knows the mod by (the short form of its Nexus Mods name), the same in Mod Configuration Menu (mod/mcm-host.lua).
+local TAB, TAB_LABEL = 'aiNpcCyberpunkMod', 'AI Companions'
 local TAB_PATH = '/' .. TAB
 local NEEDS_HOST = 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI'
 local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI'
@@ -638,7 +639,7 @@ local function notify(kind)
     pcall(function()
         local player = convaiPlayer()
         if player and type(convaiNotices) == 'table' then
-            convaiNotices.sendLines(player, {{id = 'manager-in-mcm-list', text = ui.t('Open AI NPC Cyberpunk Mod in the Mods list.')}})
+            convaiNotices.sendLines(player, {{id = 'manager-in-mcm-list', text = ui.t('Open AI Companions in the Mods list.')}})
         end
     end)
 end
@@ -750,6 +751,14 @@ end
 function M.configure(domain, companions, queueFactory, readiness)
     core.configure(domain, companions, queueFactory, readiness)
     entry = newEntry()
+end
+
+-- Where the settings are right now, for the notice the manager key posts when it cannot open them: 'mcm' (Mod Configuration Menu hosts
+-- the page), 'nsui' (the Native Settings UI tab is registered) or nil (neither is up).
+function M.where()
+    if otherHostReady() then return 'mcm' end
+    if ns then return 'nsui' end
+    return nil
 end
 
 -- Another host of the page (mod/mcm-host.lua). It gets the page logic this module draws (the same instance), and is installed,

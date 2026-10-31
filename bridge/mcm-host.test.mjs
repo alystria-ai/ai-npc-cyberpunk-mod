@@ -2053,3 +2053,61 @@ test('Parties takes MCM\'s Search box as the new name for Rename: the provider s
   press('Back to Companion Manager')
   assert(mcm.searchText() == '' and mcm.config().navigation.searchMode == 'filter')
 `));
+
+// ---- 2026-10-31, "I'm using MCM so the mod settings don't show up" ------------------------------------------------------------------
+test('MCM lists the mod by the name the player knows, AI Companions, in the provider and in the list of mods (the page inside is the Companion Manager)', () => run(`${harness({screen: false})}
+  local provider = mcmHost._test.provider()
+  assert(provider.name == 'AI Companions', tostring(provider.name))
+  local listed = provider.listMods().mods
+  assert(#listed == 1 and listed[1].name == 'AI Companions', tostring(listed[1] and listed[1].name))
+  assert(managerUi.where() == 'mcm', 'the manager key can say where the settings are')
+`));
+
+test('MCM refuses the provider (its registry is not ready) and Native Settings UI is installed: the tab is there after the bounded wait, so the settings are never missing; and MCM wins when it takes the provider later', () => {
+  run(`${harness({screen: false, mcm: {version: '0.10.5', refuseProvider: true}, earlyClock: true})}
+    assert(not mcmHost.ready() and ns.data[TAB] == nil, 'within the wait: MCM may still take the provider')
+    assert(managerUi.where() == nil)
+    frames(30)
+    assert(ns.data[TAB] == nil, 'still within the wait')
+    frames(120)
+    assert(ns.data[TAB] ~= nil, 'the wait is bounded: the tab is registered')
+    assert(managerUi.where() == 'nsui')
+    mcm.refuseProvider = false
+    frames(120)
+    assert(mcmHost.ready(), 'MCM took the provider on a later try')
+    assert(ns.data[TAB] == nil and managerUi.where() == 'mcm', 'and the tab went (one host at a time)')
+  `);
+});
+
+test('the shortcut that cannot open the page now (no save, a scene, a text box) says where the settings are, in the host that has them; a seated V keeps the Stand up notice', () => {
+  const handler = between('-- (The count is a global: the main chunk is near', "-- The phone queues a request only while it is open");
+  const harnessFor = (open, where) => `
+    local logs, sent = {}, {}
+    local function log(line) logs[#logs + 1] = line end
+    local ui = {t = function(text) return 'T:' .. text end}
+    convaiNotices = {send = function(_, id, text) sent[#sent + 1] = {id = id, text = text}; return true end}
+    Game = {GetPlayer = function() return {} end}
+    gameplayActions = {revoke = function() end}
+    local function endFocus() end
+    local function resetGaze() end
+    local focusMode, focusEntity, focusUntil
+    managerUi = {open = ${open}, where = function() return ${where} end}
+    ${handler}
+  `;
+  run(`${harnessFor("function() return false, 'Load a save first.' end", "'mcm'")}
+    openManager()
+    assert(#sent == 1 and sent[1].id == 'manager-where' and sent[1].text == 'T:The settings are in Mod Configuration Menu, under AI Companions.', tostring(sent[1] and sent[1].text))
+  `);
+  run(`${harnessFor("function() return false, 'Close the text box first.' end", "'nsui'")}
+    openManager()
+    assert(#sent == 1 and sent[1].id == 'manager-where' and sent[1].text == 'T:The settings are on the Mods screen, in the AI Companions tab.')
+  `);
+  run(`${harnessFor("function() return false, 'Stand up to open the Companion Manager', 'seated' end", "'mcm'")}
+    openManager()
+    assert(#sent == 1 and sent[1].id == 'manager-seated')
+  `);
+  run(`${harnessFor("function() return false, 'Finish the scene first.' end", "nil")}
+    openManager()
+    assert(#sent == 0, 'no host is up: nothing to point at')
+  `);
+});

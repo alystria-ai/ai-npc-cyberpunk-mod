@@ -212,7 +212,7 @@ test('the walk gives up after eight seconds with a sentence naming the way by ha
   clock = clock + 5; entry.update(); assert(entry.state() == 'pause')
   clock = clock + 4; entry.update()
   assert(entry.state() == 'idle' and #activated == 0)
-  assert(entry.inspect().problem == 'The shortcut timed out. Choose AI NPC Cyberpunk Mod from the pause menu under Mods.', entry.inspect().problem)
+  assert(entry.inspect().problem == 'The shortcut timed out. Choose AI Companions from the pause menu under Mods.', entry.inspect().problem)
   assert(#logs == 1 and logs[1]:find('Manager entry:', 1, true) == 1)
   -- Without the Mods item (Native Settings UI did not add it) the same: the game's own Settings item is never used in its place.
   entry.reset(); logs = {}; clock = clock + 1
@@ -603,7 +603,7 @@ test('with MCM, a walk whose Settings screen never opens gives up after eight se
   clock = clock + 7; entry.update(); assert(entry.state() == 'mcm')
   clock = clock + 2; entry.update()
   assert(entry.state() == 'idle' and #activated == 1 and #notices == 0)
-  assert(entry.inspect().problem == 'The shortcut timed out. Choose AI NPC Cyberpunk Mod from the pause menu under Mods.', entry.inspect().problem)
+  assert(entry.inspect().problem == 'The shortcut timed out. Choose AI Companions from the pause menu under Mods.', entry.inspect().problem)
   assert(#logs == 1 and logs[1]:find('Manager entry:', 1, true) == 1)
   -- A screen that opens after the give-up is nobody\'s: no notice, and closing it resumes nothing.
   local late = {nativeId = 811}
