@@ -54,6 +54,12 @@ export const REACH_NOTE_TURNS = 3, OFFER_HOURS = 24, LEVELS_CACHE_MS = 30000;
 const SHIPPED_PACK_FOLDER = fileURLToPath(new URL('../characters/bond-packs/', import.meta.url));
 const MAX_FILE_CHARS = 1_000_000;
 const MAX_STEPS = 8;
+/**
+ * The game seconds a stage's timeout is stretched by: the travel allowance (V answered over the phone with her far away) and the wait (the same hours when she was beside V but
+ * the stage was brought on over the phone or a holocall). Live 31 Oct: Panam's driving school began in a holocall, her opening lines were not spoken, and the stage timed out
+ * after its own 2 game hours (about 15 real minutes) before V had been told it was waiting, so the quest ended in its chicken ending unseen.
+ */
+const stageSlack = step => (step?.grace ?? 0) + (step?.wait ?? 0);
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const whole = value => Number.isSafeInteger(value) && value >= 0;
 
@@ -98,9 +104,12 @@ export class BondPacks {
    */
   constructor({packs = shippedOrNone(), characters = null, path = null, effectsPath = null, bonds = null, random = Math.random,
     now = Date.now, read = file => readFile(file, 'utf8'), write = (file, text) => atomicFile(file, text), log = () => {}, debounceMs = 5000,
-    packFolder = SHIPPED_PACK_FOLDER, exists = file => existsSync(file), readFacts = null, reach = undefined, levelsOf = null, explain = null,
+    packFolder = SHIPPED_PACK_FOLDER, exists = file => existsSync(file), readFacts = null, reach = undefined, levelsOf = null, explain = null, fast = false,
     timers = {set: (fn, ms) => setTimeout(fn, ms), clear: handle => clearTimeout(handle)}} = {}) {
     Object.assign(this, {path, effectsPath, bonds, random, now, read, write, log, debounceMs, timers, characters, packFolder, exists, readFacts, levelsOf, explain});
+    // Development only (bridge/story-packs-gate.mjs storyPacksFast): no quiet days, no daily rolls, a start chance of 1. Said once, here.
+    this.fast = fast === true;
+    if (this.fast) log('dev fast mode (story-packs-dev-fast.flag): a pack whose gate is open starts on the next eligible turn, with no quiet days, no daily rolls and a start chance of 1');
     this.explained = new Map();    // pack id (or profile key) -> the game day its reason was last logged
     this.packs = new Map();
     for (const pack of packs) {
@@ -119,6 +128,7 @@ export class BondPacks {
     this.loggedTypes = new Set();
     this.timer = null; this.dirty = false; this.chain = Promise.resolve();
     this.effectsText = ''; this.effectsRevision = 0; this.effectsChain = Promise.resolve();
+    this.phoneTurn = false;        // true while V's words over the phone or a holocall move a pack with her beside V
     this.remoteTurn = false;       // true while V's words over the phone or a holocall (she is not beside V) move a pack: a stage that needs her in person gets a travel allowance
     this.on = false;               // Story packs was on at the last turn (a meeting's outcome moves a pack only then)
     this.lastClock = undefined;
@@ -209,7 +219,7 @@ export class BondPacks {
     for (const step of row.trail) {
       if (!plain(step) || typeof step.stage !== 'string' || !(whole(step.at) || step.at === null)) return null;
       trail.push({stage: step.stage, at: step.at, ...(typeof step.choice === 'string' ? {choice: step.choice.slice(0, 40)} : {}), ...(step.ending === true ? {ending: true} : {}),
-        ...(whole(step.grace) && step.grace <= 48 * HOUR ? {grace: step.grace} : {})});
+        ...(whole(step.grace) && step.grace <= 48 * HOUR ? {grace: step.grace} : {}), ...(whole(step.wait) && step.wait <= 48 * HOUR ? {wait: step.wait} : {})});
     }
     const last = trail.at(-1), ended = last.ending === true;
     if (ended ? !(last.stage in pack.endings) : !pack.stages.some(stage => stage.id === last.stage)) return null;
@@ -353,7 +363,8 @@ export class BondPacks {
       if (!stage) { this.#finish(pack, entry, Object.keys(pack.endings)[0], gameSeconds, choice); break; }
       // A stage that needs her in person, entered by V's words over the phone: its clock gets a travel allowance (bridge/quest-rendezvous.mjs).
       const grace = this.remoteTurn ? travelGrace(pack, stage) : 0;
-      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ...(grace ? {grace} : {})});
+      const wait = !grace && this.phoneTurn ? travelGrace(pack, stage) : 0;
+      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ...(grace ? {grace} : {}), ...(wait ? {wait} : {})});
       entry.presented = false; entry.beat = null; entry.gap = null;
       this.log(`pack=${pack.id} stage=${next}${choice ? ` via ${choice}` : ''}`);
       this.#enter(pack, stage, gameSeconds);
@@ -379,7 +390,7 @@ export class BondPacks {
         const flow = item.on.slice(7), last = eddiesRow?.last;
         if (last?.story === tag && last.flow === flow && last.result === 'done' && (flow !== 'repayToV' || debts(eddiesRow).owesV === 0)) { next = item.next; choice = item.id; break; }
       }
-      if (!next && whole(gameSeconds) && whole(at) && stage.timeout && gameSeconds >= at + stage.timeout.gameHours * HOUR + (entry.trail.at(-1).grace ?? 0)) { next = stage.timeout.next; choice = 'timeout'; }
+      if (!next && whole(gameSeconds) && whole(at) && stage.timeout && gameSeconds >= at + stage.timeout.gameHours * HOUR + stageSlack(entry.trail.at(-1))) { next = stage.timeout.next; choice = 'timeout'; }
       if (!next && !stage.choices && !stage.timeout && typeof stage.next === 'string' && entry.presented) { next = stage.next; choice = 'next'; }
       if (!next) break;
       this.#go(pack, entry, next, gameSeconds, choice);
@@ -549,7 +560,7 @@ export class BondPacks {
     // A reach-out sent a pack's offer: that pack starts on this talk without the dice and the quiet days (its gate still applies). It expires after a game day.
     const offer = meta.offer && gameSeconds >= meta.offer.at && gameSeconds - meta.offer.at <= OFFER_HOURS * HOUR ? meta.offer : null;
     if (meta.offer && !offer) { meta.offer = null; this.#schedule(); }
-    const quiet = meta.endedAt !== null && gameSeconds - meta.endedAt < COOLDOWN_DAYS * DAY;
+    const quiet = !this.fast && meta.endedAt !== null && gameSeconds - meta.endedAt < COOLDOWN_DAYS * DAY;
     const finishedPacks = new Set([...this.entries].filter(([id, entry]) => entry.status === 'done' && this.packs.get(id)?.character === profile).map(([id]) => id));
     const bonds = input.bonds;
     // Story packs first, then hangouts; the pack an offer names comes before both.
@@ -567,7 +578,7 @@ export class BondPacks {
         settings: {eddies: bonds.eddies === true, invitations: bonds.invitations === true}, facts: pack.requires?.facts ? this.#facts() : null});
       if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance})); continue; }
       // The dice (DAILY_ROLLS above): only when a pack could start, every ROLL_EVERY_TURNS eligible turns, at most DAILY_ROLLS a game day per character.
-      if (!offered) {
+      if (!offered && !this.fast) {
         if (meta.rolled !== today) { meta.rolled = today; meta.rolls = 0; meta.idle = ROLL_EVERY_TURNS - 1; }   // the first eligible turn of a game day rolls at once
         if (meta.rolls >= DAILY_ROLLS) { this.#waits(pack.id, gameSeconds, `the ${DAILY_ROLLS} rolls of today are used`); return null; }
         if (!ticked) { meta.idle += 1; ticked = true; this.#schedule(); }
@@ -651,12 +662,15 @@ export class BondPacks {
       const {pack, gameSeconds} = decision;
       // V's words over the phone or a holocall (she is not beside V) move the pack: a stage that needs her in person gets its travel allowance.
       this.remoteTurn = decision.channel !== 'own' && decision.near !== true;
+      // A phone or holocall turn with her beside V: no travel allowance (the bridge does not bring her to V), but the stage's clock still waits (stageSlack).
+      this.phoneTurn = decision.channel !== 'own' && decision.near === true;
       if (decision.start) {
         const known = this.entries.get(pack.id);
         if (known && (!decision.start.restart || known.status === 'active')) return;
         const variation = decision.start.variation;
         const grace = this.remoteTurn ? travelGrace(pack, pack.stages[0]) : 0;
-        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null, ...(grace ? {grace} : {})}], presented: true, beat: null, ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
+        const wait = !grace && this.phoneTurn ? travelGrace(pack, pack.stages[0]) : 0;
+        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null, ...(grace ? {grace} : {}), ...(wait ? {wait} : {})}], presented: true, beat: null, ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
         this.entries.set(pack.id, entry);
         const meta = this.#meta(pack.character);
         if (pack.kind === 'hangout') {
@@ -695,7 +709,7 @@ export class BondPacks {
     } catch (error) {
       this.log(`record failed: ${String(error?.message ?? error).slice(0, 120)}`);
     } finally {
-      this.remoteTurn = false;
+      this.remoteTurn = false; this.phoneTurn = false;
     }
   }
 
@@ -998,7 +1012,7 @@ export class BondPacks {
         if (gap) gaps[key] = {...(gap.idle ? {idle: gap.idle} : {}), ...(gap.situation ? {situation: gap.situation} : {}), ...(gap.resumeAfterSeconds ? {resumeAfterSeconds: gap.resumeAfterSeconds} : {}),
           ...(gap.resumeOn ? {resumeOn: swap ? gap.resumeOn.map(name => remapName(name, swap)) : gap.resumeOn} : {})};
       }
-      const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR + (last.grace ?? 0) : undefined;
+      const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR + stageSlack(last) : undefined;
       const gifts = doList.some(spec => spec?.p === 'gift' && spec.dir === 'give') ? likesFor(pack.character) : null;
       quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: doList, script,
         ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {}), ...(entry.via ? {via: entry.via} : {}),
