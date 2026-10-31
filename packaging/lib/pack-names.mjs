@@ -35,9 +35,9 @@ export const legacyHfPath = (config, id) => `${packFiles(config).packs[id].folde
 /** Both titles of a pack, new first, so a lookup by name can accept either: ['LocalAI-Lite-Bonsai-2-4B', 'LocalAI-Lite']. */
 export const packTitles = (config, id) => [packTitle(config, id), legacyPackTitle(config, id)].filter(Boolean);
 
-/** The title of a PocketTTS model zip for a language title ('French'), and the one before 0.3.4. */
-export const pocketModelTitle = (config, language) => `${packFiles(config).pocketModels.prefix}${language}`;
-export const legacyPocketModelTitle = (config, language) => `${packFiles(config).pocketModels.legacyPrefix}${language}`;
+/** The title of a PocketTTS model zip for a language title ('French'), and the one before 0.3.4 (none for a language that came later: the Russian model has 90M parameters, the others 100M). */
+export const pocketModelTitle = (config, language) => `${packFiles(config).pocketModels.languagePrefixes?.[language] ?? packFiles(config).pocketModels.prefix}${language}`;
+export const legacyPocketModelTitle = (config, language) => packFiles(config).pocketModels.languagePrefixes?.[language] ? null : `${packFiles(config).pocketModels.legacyPrefix}${language}`;
 
 /** The pack id a zip name belongs to, whatever its version and whether it carries the new or the old title (null when it is none of them). */
 export function packIdOfName(config, name) {

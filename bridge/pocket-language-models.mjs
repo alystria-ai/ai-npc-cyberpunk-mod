@@ -1,8 +1,10 @@
-// PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
-// Portuguese, cloned from the game's own dub of a character in that language (the multilingual pack of the same language, bridge/voice-language-packs.mjs).
+// PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish,
+// Portuguese and Russian, cloned from the game's own dub of a character in that language (the multilingual pack of the same language, bridge/voice-language-packs.mjs).
 //
 // A model is a folder <references>/multilingual-pocket/<lang>/ (a sibling of <references>/multilingual/<lang>/, the voice pack) with pocket-model.json,
-// model.safetensors, tokenizer.json, inference.yaml and NOTICE.txt. This module finds the models and checks each one all-or-none, like the packs:
+// model.safetensors, tokenizer.json, inference.yaml and NOTICE.txt. The Russian model (a fine-tune of Kyutai's, docs/POCKET_TTS_RUNTIME.md "Russian") has a
+// SentencePiece tokenizer.model instead of tokenizer.json and one more file, its stress table stress-ru.bin. This module finds the models and checks each one
+// all-or-none, like the packs:
 //
 //   scan()      reads every pocket-model.json and stats the files it names (sizes must match; the SHA-256 of the big file is checked by the worker when it
 //               loads the model, so a start does not read 220 MB per model). A model that is not valid is ignored as a whole, with one log line.
@@ -20,17 +22,30 @@ export const POCKET_MODEL_FOLDER = 'multilingual-pocket';
 export const POCKET_MODEL_MANIFEST = 'pocket-model.json';
 /** The pinned Pocket source every model was checked against (bridge/pocket-voice.mjs POCKET_SOURCE_*): the 3.3.0 source runs the v4 language models unchanged. */
 export const POCKET_MODEL_SOURCE = '3.3.0';
+/** The files of a model by default (Kyutai's languages). A language that differs names its own in POCKET_LANGUAGES: see pocketModelFiles(). */
 export const POCKET_MODEL_FILES = Object.freeze(['model.safetensors', 'tokenizer.json', 'inference.yaml', 'NOTICE.txt']);
-export const POCKET_MODEL_LIMITS = Object.freeze({manifestBytes: 64 * 1024, modelBytes: 1024 * 1024 * 1024, smallBytes: 2 * 1024 * 1024});
+/** The two tokenizer files a model can have: Hugging Face tokenizers (the default) and SentencePiece (the Russian model). */
+export const POCKET_TOKENIZERS = Object.freeze(['tokenizer.json', 'tokenizer.model']);
+export const POCKET_MODEL_LIMITS = Object.freeze({manifestBytes: 64 * 1024, modelBytes: 1024 * 1024 * 1024, smallBytes: 2 * 1024 * 1024, extraBytes: 16 * 1024 * 1024});
 export const RESCAN_MS = 30_000;
-/** Pack folder name -> {tag, name (English), pocket (Kyutai's name)}. The languages the game is voiced in that Kyutai's v4 models speak. */
+/**
+ * Pack folder name -> {tag, name (English), pocket (the language's name in the model's source), tokenizer?, extras?}. The languages the game is voiced in that
+ * Kyutai's v4 models speak, and Russian (GenVoice's xVibePocketTTS, a Russian-only full fine-tune of kyutai/pocket-tts). `tokenizer` is the tokenizer file when it is not
+ * tokenizer.json; `extras` are more files of the model, name -> the field of the worker's `expected` that holds the file's hash.
+ */
 export const POCKET_LANGUAGES = Object.freeze({
   fr: Object.freeze({tag: 'fr', name: 'French', pocket: 'french'}),
   it: Object.freeze({tag: 'it', name: 'Italian', pocket: 'italian'}),
   de: Object.freeze({tag: 'de', name: 'German', pocket: 'german'}),
   'es-es': Object.freeze({tag: 'es', name: 'Spanish', pocket: 'spanish'}),
   'pt-br': Object.freeze({tag: 'pt', name: 'Portuguese', pocket: 'portuguese'}),
+  ru: Object.freeze({tag: 'ru', name: 'Russian', pocket: 'russian', tokenizer: 'tokenizer.model', extras: Object.freeze({'stress-ru.bin': 'stressSha256'})}),
 });
+/** The tokenizer file name of a pack folder's model. */
+export const pocketTokenizerOf = folder => POCKET_LANGUAGES[folder]?.tokenizer ?? 'tokenizer.json';
+/** The files a pack folder's model must have, the manifest lists and the worker checks: model, tokenizer, configuration, notice, then the language's extras. */
+export const pocketModelFiles = folder => POCKET_LANGUAGES[folder]
+  ? Object.freeze(['model.safetensors', pocketTokenizerOf(folder), 'inference.yaml', 'NOTICE.txt', ...Object.keys(POCKET_LANGUAGES[folder].extras ?? {})]) : POCKET_MODEL_FILES;
 export const pocketFolderOfTag = tag => Object.entries(POCKET_LANGUAGES).find(([, value]) => value.tag === tag)?.[0] ?? null;
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -74,25 +89,29 @@ export async function loadPocketModel({directory, language, files = defaultFiles
   if (manifest.layers !== 6) return {problem: `${String(manifest.layers).slice(0, 10)} layers, the runtime runs the six-layer models`};
   if (!plain(manifest.files)) return {problem: `${POCKET_MODEL_MANIFEST} lists no files`};
   const listed = {};
-  for (const name of POCKET_MODEL_FILES) {
+  const names = pocketModelFiles(language);
+  for (const name of names) {
     const row = manifest.files[name];
-    const limit = name === 'model.safetensors' ? POCKET_MODEL_LIMITS.modelBytes : POCKET_MODEL_LIMITS.smallBytes;
+    const limit = name === 'model.safetensors' ? POCKET_MODEL_LIMITS.modelBytes : Object.hasOwn(info.extras ?? {}, name) ? POCKET_MODEL_LIMITS.extraBytes : POCKET_MODEL_LIMITS.smallBytes;
     if (!plain(row) || !Number.isSafeInteger(row.bytes) || row.bytes < 1 || row.bytes > limit || !SHA256.test(row.sha256 ?? '')) return {problem: `${POCKET_MODEL_MANIFEST} does not describe ${name}`};
     listed[name] = {bytes: row.bytes, sha256: row.sha256};
   }
   const failures = [];
-  for (const name of POCKET_MODEL_FILES) {
+  for (const name of names) {
     try {
       const file = await files.stat(resolve(directory, name));
       if (!file.isFile()) failures.push(`${name}: not a file`);
       else if (file.size !== listed[name].bytes) failures.push(`${name}: ${file.size} bytes, expected ${listed[name].bytes}`);
     } catch (error) { failures.push(`${name}: ${reasonOf(error)}`); }
   }
-  if (failures.length) return {problem: `${failures.length} of ${POCKET_MODEL_FILES.length} files unusable (${failures.slice(0, 3).join('; ')})`};
+  if (failures.length) return {problem: `${failures.length} of ${names.length} files unusable (${failures.slice(0, 3).join('; ')})`};
+  const tokenizer = pocketTokenizerOf(language);
   return {model: Object.freeze({language, tag: info.tag, name: info.name, directory, version: typeof manifest.built === 'string' ? manifest.built.slice(0, 20) : null,
     files: Object.freeze(listed), bytes: listed['model.safetensors'].bytes,
     // What the worker checks the files against before it loads the model.
-    expected: Object.freeze({sha256: listed['model.safetensors'].sha256, tokenizerSha256: listed['tokenizer.json'].sha256, configSha256: listed['inference.yaml'].sha256})})};
+    // The tokenizer's name travels only when it is not tokenizer.json, and each extra file's hash under its own field.
+    expected: Object.freeze({sha256: listed['model.safetensors'].sha256, ...(tokenizer === 'tokenizer.json' ? {} : {tokenizerName: tokenizer}), tokenizerSha256: listed[tokenizer].sha256,
+      configSha256: listed['inference.yaml'].sha256, ...Object.fromEntries(Object.entries(info.extras ?? {}).map(([name, field]) => [field, listed[name].sha256]))})})};
 }
 
 // ---- the set of models ---------------------------------------------------------------------------------------------------------

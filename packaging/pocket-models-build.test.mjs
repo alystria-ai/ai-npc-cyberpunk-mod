@@ -3,17 +3,20 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash, randomBytes} from 'node:crypto';
-import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {
-  BUILT, CHANGES_SENTENCE, INSTALL_NOTE_NAME, LANGUAGES, PROHIBITED_USE, UPSTREAM, buildLanguage, buildManifest, buildNotice, checkConfig, manifestText,
-  packBase, parseConfig, relocateConfig, zipEntryNames,
+  BUILT, CHANGES_SENTENCE, INSTALL_NOTE_NAME, LANGUAGES, PROHIBITED_USE, RUSSIAN_CHANGES_SENTENCE, RUSSIAN_UPSTREAM, STRESS_DATA, STRESS_DEFAULT_PATH, STRESS_SOURCE_PATH, UPSTREAM,
+  buildLanguage, buildManifest, buildNotice, checkConfig, checkStressDictionary, manifestFiles, manifestText, packBase, parseConfig, parseSums, readRussianSource, relocateConfig,
+  repositoryPath, russianFileNames, tokenizerName, zipEntryNames,
 } from './build-pocket-models.mjs';
 import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
 
 const ROOT = 'red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket';
+// Kyutai's own languages (the Russian model is a fine-tune with its own files, tested at the end).
+const KYUTAI = Object.entries(LANGUAGES).filter(([, info]) => !info.fineTune);
 const sha256 = data => createHash('sha256').update(data).digest('hex');
 const gitId = data => createHash('sha1').update(`blob ${data.length}\0`).update(data).digest('hex');
 
@@ -113,7 +116,7 @@ test('a configuration that is not the 6-layer float32 24 kHz mono model is rejec
 });
 
 test('the manifest has the fields and values the bridge validates', () => {
-  for (const [lang, info] of Object.entries(LANGUAGES)) {
+  for (const [lang, info] of KYUTAI) {
     const files = Object.fromEntries(['model.safetensors', 'tokenizer.json', 'inference.yaml', 'NOTICE.txt'].map((name, i) => [name, {bytes: 10 + i, sha256: sha256(name)}]));
     const manifest = buildManifest(lang, files);
     assert.deepEqual(Object.keys(manifest), ['version', 'kind', 'language', 'languageTag', 'pocketLanguage', 'built', 'pocketSource', 'layers', 'files', 'upstream', 'needsVoicePack', 'changes']);
@@ -137,13 +140,13 @@ test('the manifest has the fields and values the bridge validates', () => {
     assert.equal(JSON.parse(manifestText(manifest)).language, lang);
   }
   assert.deepEqual(Object.fromEntries(Object.entries(LANGUAGES).map(([lang, info]) => [lang, [info.tag, info.pocket]])), {
-    fr: ['fr', 'french'], it: ['it', 'italian'], de: ['de', 'german'], 'es-es': ['es', 'spanish'], 'pt-br': ['pt', 'portuguese']});
+    fr: ['fr', 'french'], it: ['it', 'italian'], de: ['de', 'german'], 'es-es': ['es', 'spanish'], 'pt-br': ['pt', 'portuguese'], ru: ['ru', 'russian']});
   assert.throws(() => buildManifest('fr', {}), /no size and sha256/);
   assert.throws(() => buildManifest('xx', {}), /unknown language/);
 });
 
 test('the notice carries the licence, Kyutai\'s prohibited-use terms and the changes', () => {
-  for (const [lang, info] of Object.entries(LANGUAGES)) {
+  for (const [lang, info] of KYUTAI) {
     const notice = buildNotice(lang).replace(/\r\n/g, '\n');
     assert.ok(notice.includes(`Kyutai's Pocket TTS ${info.title} model (kyutai/pocket-tts, languages/${info.pocket}/model.safetensors, revision ${UPSTREAM.revision})`));
     assert.ok(notice.includes('licensed CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/); copyright Kyutai'));
@@ -158,7 +161,7 @@ test('the notice carries the licence, Kyutai\'s prohibited-use terms and the cha
 });
 
 test('the zip layout is the sibling multilingual-pocket folder, sorted, with the install note first', () => {
-  for (const lang of Object.keys(LANGUAGES)) {
+  for (const [lang] of KYUTAI) {
     const names = zipEntryNames(lang);
     assert.equal(names[0], INSTALL_NOTE_NAME);
     const rest = names.slice(1);
@@ -213,5 +216,146 @@ test('a build from stand-in files writes the zip and the listing (no checksum fi
     await assert.rejects(buildLanguage('pt-br', {...common, out: join(dir, 'bad'), pins: {...pins, model: {...pins.model, sha256: 'a'.repeat(64)}}}), /sha256 .* differs from the pinned/);
     await assert.rejects(buildLanguage('pt-br', {...common, out: join(dir, 'bad'), pins: {...pins, model: {...pins.model, bytes: 5}}}), /expected 5/);
     await assert.rejects(buildLanguage('pt-br', {...common, out: join(dir, 'bad'), configText: UPSTREAM_YAML.replace('num_layers: 6', 'num_layers: 24')}), /expected 6/);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+// ---- the Russian model (genvoice/xVibePocketTTS): SentencePiece tokenizer.model, a stress table, its own notice ----------------------------------------
+
+// The shape of the fine-tune's config.yaml: Kyutai's configuration with `tokenizer: sentencepiece` and a .model file (the key without voice cloning may be absent).
+const RUSSIAN_YAML = UPSTREAM_YAML
+  .replace(/^weights_path:.*$/m, 'weights_path: hf://genvoice/xVibePocketTTS/model.safetensors@ac4f9f11eb4a110964c75a1e6f4104005455ac18')
+  .replace('    tokenizer: tokenizers\n', '    tokenizer: sentencepiece\n')
+  .replace(/^( +)tokenizer_path:.*$/m, '$1tokenizer_path: hf://genvoice/xVibePocketTTS/tokenizer.model@ac4f9f11eb4a110964c75a1e6f4104005455ac18');
+
+test('the Russian configuration is relocated to tokenizer.model and must say sentencepiece', () => {
+  const edited = relocateConfig(RUSSIAN_YAML, {tokenizer: 'tokenizer.model'});
+  const config = parseConfig(edited);
+  assert.equal(config.flow_lm.lookup_table.tokenizer_path, 'tokenizer.model');
+  assert.equal(config.flow_lm.lookup_table.tokenizer, 'sentencepiece');
+  assert.equal(config.weights_path, 'model.safetensors');
+  // A SentencePiece file under a configuration that says tokenizers would be read as JSON by the upstream loader: refused.
+  assert.throws(() => relocateConfig(RUSSIAN_YAML.replace('tokenizer: sentencepiece', 'tokenizer: tokenizers'), {tokenizer: 'tokenizer.model'}), /tokenizer is "tokenizers", expected "sentencepiece"/);
+  // The default stays tokenizer.json, and a key without voice cloning that is absent is accepted only for the fine-tune.
+  assert.equal(parseConfig(relocateConfig(UPSTREAM_YAML)).flow_lm.lookup_table.tokenizer_path, 'tokenizer.json');
+  const without = RUSSIAN_YAML.replace(/^weights_path_without_voice_cloning:.*\n/m, '');
+  assert.throws(() => relocateConfig(without, {tokenizer: 'tokenizer.model'}), /0 "weights_path_without_voice_cloning" lines/);
+  assert.equal(parseConfig(relocateConfig(without, {tokenizer: 'tokenizer.model', lenient: true})).flow_lm.lookup_table.tokenizer_path, 'tokenizer.model');
+});
+
+test('the Russian files are found from the configuration and the repository\'s checksum list', () => {
+  assert.deepEqual(russianFileNames(RUSSIAN_YAML), {weights: 'model.safetensors', tokenizer: 'tokenizer.model'});
+  assert.equal(repositoryPath('hf://genvoice/xVibePocketTTS/weights/x.safetensors@ac4f9f1', 'genvoice/xVibePocketTTS'), 'weights/x.safetensors');
+  assert.equal(repositoryPath('./tokenizer.model', 'genvoice/xVibePocketTTS'), 'tokenizer.model');
+  for (const bad of ['', '/etc/passwd', '../x', 'a\\b', 'https://example.com/x', 'hf://other/repo/x']) assert.throws(() => repositoryPath(bad, 'genvoice/xVibePocketTTS'), /cannot take/, bad);
+  const a = 'a'.repeat(64), b = 'b'.repeat(64);
+  assert.deepEqual(parseSums(`${a}  model.safetensors\n${b.toUpperCase()} *./tokenizer.model\n\n`), {'model.safetensors': a, 'tokenizer.model': b});
+  assert.throws(() => parseSums('not a checksum line'), /cannot read/);
+});
+
+test('the Russian pack lists tokenizer.model and the stress table, and the pack is named with its 90M parameters', () => {
+  assert.equal(tokenizerName('ru'), 'tokenizer.model');
+  assert.equal(tokenizerName('fr'), 'tokenizer.json');
+  assert.deepEqual(manifestFiles('ru'), ['model.safetensors', 'tokenizer.model', 'inference.yaml', 'NOTICE.txt', 'stress-ru.bin']);
+  assert.deepEqual(manifestFiles('fr'), ['model.safetensors', 'tokenizer.json', 'inference.yaml', 'NOTICE.txt']);
+  const names = zipEntryNames('ru');
+  assert.equal(names[0], INSTALL_NOTE_NAME);
+  assert.deepEqual(names.slice(1).map(name => name.slice(`${ROOT}/ru/`.length)), ['NOTICE.txt', 'inference.yaml', 'model.safetensors', 'pocket-model.json', 'stress-ru.bin', 'tokenizer.model']);
+  assert.equal(packBase('ru'), 'PocketTTS-Model-90M-Russian');
+  assert.equal(LANGUAGES.ru.tag, 'ru');
+  assert.equal(RUSSIAN_UPSTREAM.revision, 'ac4f9f11eb4a110964c75a1e6f4104005455ac18');
+  assert.equal(RUSSIAN_UPSTREAM.tag, 'v0.1.0');
+});
+
+test('the Russian notice credits Kyutai and GenVoice, repeats the prohibited-use terms and names the stress data and its licence', () => {
+  const notice = buildNotice('ru').replace(/\r\n/g, '\n');
+  const flat = notice.replace(/\s+/g, ' ');
+  assert.ok(notice.includes(PROHIBITED_USE), 'Kyutai\'s terms word for word');
+  assert.ok(notice.includes('voice impersonation or cloning without explicit and lawful consent'));
+  assert.ok(flat.includes('xVibePocketTTS by GenVoice') && flat.includes('https://huggingface.co/genvoice/xVibePocketTTS'));
+  assert.ok(flat.includes('Code: MIT license'));
+  assert.ok(flat.includes('Pocket TTS by Kyutai. https://kyutai.org/pocket-tts') && flat.includes('CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)'));
+  assert.ok(flat.includes(RUSSIAN_UPSTREAM.revision) && flat.includes('tag v0.1.0'));
+  assert.ok(flat.includes(STRESS_DATA.repository) && flat.includes(STRESS_DATA.commit) && flat.includes('CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)'));
+  assert.ok(flat.includes('Wiktionary'));
+  assert.ok(notice.includes(RUSSIAN_CHANGES_SENTENCE));
+  assert.ok(/impersonate a real person/.test(notice));
+  // The licence of the data is the one the build script records beside the committed table.
+  return readFile(STRESS_SOURCE_PATH, 'utf8').then(text => {
+    const source = JSON.parse(text).source;
+    assert.equal(source.repository, STRESS_DATA.repository);
+    assert.equal(source.commit, STRESS_DATA.commit);
+    assert.equal(source.license, STRESS_DATA.license);
+  });
+});
+
+test('the committed stress table is valid and its record matches the file', async () => {
+  const table = await readFile(STRESS_DEFAULT_PATH);
+  const checked = checkStressDictionary(table);
+  const record = JSON.parse(await readFile(STRESS_SOURCE_PATH, 'utf8'));
+  assert.equal(checked.entries, record.counts.entries);
+  assert.equal(checked.payloadSha256, record.payloadSha256);
+  assert.equal(table.length, record.bytes);
+  assert.throws(() => checkStressDictionary(Buffer.from('nothing')), /not a Russian stress dictionary/);
+  const damaged = Buffer.from(table); damaged[100] ^= 0xff;
+  assert.throws(() => checkStressDictionary(damaged));
+});
+
+test('a Russian build from stand-in files checks the repository\'s checksum list and writes the seven entries', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pocket-russian-'));
+  try {
+    const source = join(dir, 'source');
+    const model = randomBytes(4096), tokenizer = randomBytes(300);
+    const config = Buffer.from(RUSSIAN_YAML);
+    await mkdir(source, {recursive: true});
+    await writeFile(join(source, 'model.safetensors'), model);
+    await writeFile(join(source, 'tokenizer.model'), tokenizer);
+    await writeFile(join(source, 'config.yaml'), config);
+    await writeFile(join(source, 'SHA256SUMS'), `${sha256(model)}  model.safetensors\n${sha256(tokenizer)}  tokenizer.model\n${sha256(config)}  config.yaml\n`);
+    const read = await readRussianSource(source);
+    assert.deepEqual(read.pins, {model: {bytes: model.length, sha256: sha256(model)}, tokenizerSha256: sha256(tokenizer)});
+    assert.equal(read.unpinned.length, 2, 'the pins are not in the build yet: the build says which values to pin');
+
+    const first = await buildLanguage('ru', {...read, out: join(dir, 'one')});
+    const second = await buildLanguage('ru', {...read, out: join(dir, 'two')});
+    assert.equal(first.sha256, second.sha256, 'the same files give the same zip');
+    assert.equal(first.entries, 7);
+    assert.equal(first.zip, join(dir, 'one', 'ru', 'PocketTTS-Model-90M-Russian.zip'));
+    const entries = await listZip(first.zip);
+    assert.deepEqual(entries.map(entry => entry.name), zipEntryNames('ru'));
+    const get = async name => readEntry(first.zip, entries.find(entry => entry.name === name));
+    const folder = `${ROOT}/ru`;
+    assert.deepEqual(await get(`${folder}/model.safetensors`), model);
+    assert.deepEqual(await get(`${folder}/tokenizer.model`), tokenizer);
+    assert.deepEqual(await get(`${folder}/stress-ru.bin`), await readFile(STRESS_DEFAULT_PATH));
+    assert.equal(entries.find(entry => entry.name === `${folder}/tokenizer.json`), undefined);
+    const yaml = (await get(`${folder}/inference.yaml`)).toString('utf8');
+    assert.equal(parseConfig(yaml).flow_lm.lookup_table.tokenizer_path, 'tokenizer.model');
+    assert.equal(parseConfig(yaml).flow_lm.lookup_table.tokenizer, 'sentencepiece');
+    const manifest = JSON.parse((await get(`${folder}/pocket-model.json`)).toString('utf8'));
+    assert.equal(manifest.language, 'ru');
+    assert.equal(manifest.languageTag, 'ru');
+    assert.equal(manifest.built, '2026-10-31');
+    assert.equal(manifest.layers, 6);
+    assert.deepEqual(Object.keys(manifest.files), ['model.safetensors', 'tokenizer.model', 'inference.yaml', 'NOTICE.txt', 'stress-ru.bin']);
+    for (const name of Object.keys(manifest.files)) { const data = await get(`${folder}/${name}`); assert.deepEqual(manifest.files[name], {bytes: data.length, sha256: sha256(data)}, name); }
+    assert.equal(manifest.upstream.repo, 'genvoice/xVibePocketTTS');
+    assert.equal(manifest.upstream.revision, 'ac4f9f11eb4a110964c75a1e6f4104005455ac18');
+    assert.equal(manifest.upstream.codeLicense, 'MIT');
+    assert.deepEqual(manifest.upstream.base, {repo: 'kyutai/pocket-tts', license: 'CC-BY-4.0'});
+    assert.deepEqual(manifest.tokenizer, {file: 'tokenizer.model', kind: 'sentencepiece'});
+    assert.equal(manifest.stress.source.license, 'CC-BY-SA-4.0');
+    assert.equal(manifest.stress.accent, 'U+0301');
+    assert.deepEqual(manifest.needsVoicePack, {language: 'ru', minManifestVersion: 1});
+    assert.equal((await get(`${folder}/NOTICE.txt`)).toString('utf8'), buildNotice('ru'));
+
+    // A file that is not the one the repository lists stops the build, and so does a pack with no stress table or no checksum for its weights.
+    await writeFile(join(source, 'tokenizer.model'), randomBytes(300));
+    await assert.rejects(readRussianSource(source), /tokenizer\.model does not match the repository's checksum list/);
+    await writeFile(join(source, 'tokenizer.model'), tokenizer);
+    await writeFile(join(source, 'SHA256SUMS'), `${sha256(tokenizer)}  tokenizer.model\n${sha256(config)}  config.yaml\n`);
+    await assert.rejects(readRussianSource(source), /no line for model\.safetensors/);
+    await assert.rejects(buildLanguage('ru', {...read, out: join(dir, 'bad'), pins: {...read.pins, tokenizerSha256: 'f'.repeat(64)}}), /tokenizer\.model is not the expected file/);
+    await assert.rejects(buildLanguage('ru', {...read, out: join(dir, 'bad'), stressPath: join(dir, 'missing.bin')}), /ENOENT/);
+    await assert.rejects(buildLanguage('ru', {...read, out: join(dir, 'bad'), stressPath: join(source, 'tokenizer.model')}), /not a Russian stress dictionary/);
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
