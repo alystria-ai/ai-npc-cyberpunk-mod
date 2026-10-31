@@ -977,7 +977,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "名前がこの文字で始まるモデルだけを表示します。",
     ["Starts with"] = "先頭文字",
     ["Open AI Companions in the Mods list."] = "Mods の一覧から AI Companions を開いてください。",
-    ["Your message to {name} is kept. Press {key} to type again."] = "{name}へのメッセージは保存されています。{key}を押して、もう一度入力してね。",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "設定は Mod Configuration Menu の AI Companions にあります。",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "設定は Mods 画面の AI Companions タブにあります。",
     ["Press {key} to open them."] = "{key}を押して開いてね。",

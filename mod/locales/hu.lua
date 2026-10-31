@@ -981,7 +981,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "Csak azokat a modelleket mutatja, amelyek neve ezzel a betűvel kezdődik.",
     ["Starts with"] = "Kezdőbetű",
     ["Open AI Companions in the Mods list."] = "Nyisd meg az AI Companions-ot a Mods listájában.",
-    ["Your message to {name} is kept. Press {key} to type again."] = "Az üzeneted {name} részére megmaradt. Nyomd meg a {key} gombot, és írd be újra.",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "A beállítások a Mod Configuration Menu menüben vannak, az AI Companions alatt.",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "A beállítások a Mods képernyőn vannak, az AI Companions fülön.",
     ["Press {key} to open them."] = "A megnyitásukhoz nyomd meg a {key} gombot.",

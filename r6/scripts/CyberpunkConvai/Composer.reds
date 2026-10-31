@@ -12,9 +12,13 @@ import Codeware.UI.*
 public class ConvaiMoveWatch {
     private let x: Float;
     private let y: Float;
+    // Movement events the game has reported so far. Evidence only (probe.log, convaiComposerWatch.moveEvidence): the difference between
+    // a text box opening and closing says whether movement keys reached gameplay while it was up.
+    private let events: Int32;
 
     protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
         let name: CName = ListenerAction.GetName(action);
+        this.events += 1;
         if Equals(name, n"MoveX") {
             this.x = ListenerAction.GetValue(action);
         } else {
@@ -23,6 +27,10 @@ public class ConvaiMoveWatch {
             };
         };
         return false;
+    }
+
+    public final func Events() -> Int32 {
+        return this.events;
     }
 
     public final func IsHeld() -> Bool {
@@ -72,6 +80,12 @@ public final func ConvaiMoveHeld() -> Bool {
     return IsDefined(this.m_convaiMoveWatch) && this.m_convaiMoveWatch.IsHeld();
 }
 
+// How many movement events the game has reported (0 when the tracker is not installed).
+@addMethod(PlayerPuppet)
+public final func ConvaiMoveEvents() -> Int32 {
+    return IsDefined(this.m_convaiMoveWatch) ? this.m_convaiMoveWatch.Events() : 0;
+}
+
 // Gives up on a held reading that did not clear (an unseen key-up), so the next
 // talk request is not delayed by it.
 @addMethod(PlayerPuppet)
@@ -111,14 +125,9 @@ private let m_convaiSearchState: String;
 @addField(PlayerPuppet)
 private let m_convaiSearchText: String;
 
-// Park: the talk box lets go of the keyboard and the mouse without losing what was typed. A click outside the dialog (the way a player
-// "leaves" a box with the mouse) used to leave the box on screen with its popup state still holding V in place, so V stood frozen while the
-// world ran. Now that click closes the native box at once (the game's own close path gives V back, cursor and all) and keeps the words:
-// m_convaiParkRequested marks the close that follows as a park, m_convaiDraft holds the words until the talk key opens the box again
-// (mod/init.lua beginTextNow puts them back, mod/composer-input.lua apply). Esc and Enter close the box as before and keep nothing.
-@addField(PlayerPuppet)
-private let m_convaiParkRequested: Bool;
-
+// Words typed and not sent: the box closed any way but a send (Esc, the game closing it). m_convaiDraft holds them until the talk key opens
+// the box again (mod/init.lua beginTextNow decides whether they fit: the same character, within a few minutes), and a send or an Enter on
+// an empty box empties it. Only the box's own words are kept, nothing is shown.
 @addField(PlayerPuppet)
 private let m_convaiDraft: String;
 
@@ -139,7 +148,6 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
     };
 
     this.m_convaiComposerMode = "talk";
-    this.m_convaiParkRequested = false;
     this.m_convaiSubmissionReady = false;
     this.m_convaiSubmittedText = "";
     this.m_convaiCloseInfo = "";
@@ -175,7 +183,6 @@ public final func ConvaiOpenSearchBox() -> Bool {
     };
 
     this.m_convaiComposerMode = "search";
-    this.m_convaiParkRequested = false;
     this.m_convaiSearchState = "open";
     this.m_convaiSearchText = "";
     this.m_convaiComposerToken = GenericMessageNotification.ShowInput(
@@ -207,18 +214,12 @@ protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> 
         };
         return true;
     };
-    if this.m_convaiParkRequested {
-        // A park: the words stay for the talk key, the box is gone and so is its hold on V. Never a submission.
-        this.m_convaiParkRequested = false;
-        this.m_convaiDraft = IsDefined(result) ? result.input : "";
-        this.m_convaiCloseInfo = "parked";
-        return true;
-    };
     if !IsDefined(result) {
         this.m_convaiCloseInfo = "nodata";
         return true;
     };
     if Equals(result.result, GenericMessageNotificationResult.Confirm) {
+        this.m_convaiDraft = "";
         if StrLen(result.input) > 0 {
             this.m_convaiSubmittedText = result.input;
             this.m_convaiSubmissionReady = true;
@@ -227,45 +228,11 @@ protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> 
             this.m_convaiCloseInfo = "empty";
         };
     } else {
+        // Esc or the game closing the box: what was typed stays for the next box.
+        this.m_convaiDraft = result.input;
         this.m_convaiCloseInfo = "closed:" + IntToString(EnumInt(result.result));
     };
     return true;
-}
-
-// A click outside the talk box's dialog parks it. Codeware's own handler of the same event only takes the keyboard focus off the text
-// field for such a click and leaves the box up, where it goes on holding V in place: that is the "frozen while everything around me still
-// moves" report. A click inside the dialog (the text field, a button, the frame) is left to the game and Codeware as before.
-@if(ModuleExists("Codeware.UI"))
-@addMethod(GenericMessageNotification)
-private final func ConvaiClickInsideDialog(target: wref<inkWidget>) -> Bool {
-    let dialog: wref<inkWidget> = this.GetChildWidgetByPath(n"notification");
-    if !IsDefined(dialog) {
-        return true;
-    };
-    let widget: wref<inkWidget> = target;
-    let depth: Int32 = 0;
-    while IsDefined(widget) && depth < 40 {
-        if Equals(widget, dialog) {
-            return true;
-        };
-        widget = widget.GetParentWidget();
-        depth += 1;
-    };
-    return false;
-}
-
-@if(ModuleExists("Codeware.UI"))
-@wrapMethod(GenericMessageNotification)
-protected cb func OnHandlePressInput(evt: ref<inkPointerEvent>) -> Bool {
-    let handled: Bool = wrappedMethod(evt);
-    if evt.IsAction(n"click") && this.m_data.isInput && StrBeginsWith(this.m_data.title, "TALK TO ")
-        && !this.ConvaiClickInsideDialog(evt.GetTarget()) {
-        let player = this.GetPlayerControlledObject() as PlayerPuppet;
-        if IsDefined(player) && player.ConvaiParkRequest() {
-            this.Close(GenericMessageNotificationResult.Cancel);
-        };
-    };
-    return handled;
 }
 
 // Without Codeware's text input box this mod's scripts still compile (a compile error would disable every redscript mod): the box
@@ -324,17 +291,7 @@ public final func ConvaiComposerOpen() -> Bool {
     return IsDefined(this.m_convaiComposerToken);
 }
 
-// The next close of an open talk box is a park (see above). False when no talk box is open (a search box is never parked).
-@addMethod(PlayerPuppet)
-public final func ConvaiParkRequest() -> Bool {
-    if !IsDefined(this.m_convaiComposerToken) || !Equals(this.m_convaiComposerMode, "talk") {
-        return false;
-    };
-    this.m_convaiParkRequested = true;
-    return true;
-}
-
-// The words a park kept ("" when none).
+// The words the last box left unsent ("" when none).
 @addMethod(PlayerPuppet)
 public final func ConvaiDraftText() -> String {
     return this.m_convaiDraft;
@@ -351,16 +308,6 @@ public final func ConvaiTakeDraft() -> String {
 @addMethod(PlayerPuppet)
 public final func ConvaiClearDraft() -> Void {
     this.m_convaiDraft = "";
-}
-
-// Safety net for a box the game no longer shows while the token still says open (mod/composer-input.lua orphaned, asked by mod/init.lua
-// only while a talk is active): the token and the park flag are let go, so the talk key and the Companion Manager are never blocked by
-// a box that is not there.
-@addMethod(PlayerPuppet)
-public final func ConvaiForgetComposer() -> Void {
-    this.m_convaiComposerToken = null;
-    this.m_convaiParkRequested = false;
-    this.m_convaiCloseInfo = "orphan";
 }
 
 // The per-frame world facts onUpdate asks for, in one call instead of eleven. A bit mask, the same answers the separate calls give:

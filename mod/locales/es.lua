@@ -981,7 +981,6 @@ return {
     ["Show only the models whose name starts with this letter."] = "Muestra solo los modelos cuyo nombre empieza por esta letra.",
     ["Starts with"] = "Empieza por",
     ["Open AI Companions in the Mods list."] = "Abre AI Companions en la lista de Mods.",
-    ["Your message to {name} is kept. Press {key} to type again."] = "Tu mensaje para {name} se ha guardado. Pulsa {key} para volver a escribirlo.",
     ["The settings are in Mod Configuration Menu, under AI Companions."] = "Los ajustes están en Mod Configuration Menu, en AI Companions.",
     ["The settings are on the Mods screen, in the AI Companions tab."] = "Los ajustes están en la pantalla Mods, en la pestaña AI Companions.",
     ["Press {key} to open them."] = "Pulsa {key} para abrirlos.",
