@@ -455,7 +455,7 @@ function M.new(options)
         end
         if id == 'gemini-limit' then return ui.t('Google Gemini is rate limiting you. Wait a minute, then try again.') end
         if id == 'gemini-region' then return ui.t('Google Gemini is not available in your region. Use Convai or Local AI.') end
-        if id == 'gemini-server' then return ui.t('Google Gemini is busy or had an error. Wait a minute, then try again.') end
+        if id == 'gemini-server' then return ui.t('Google Gemini is busy right now. Try again in a moment.') end
         if id == 'gemini-unreachable' then return ui.t('Google Gemini could not be reached. Check your internet connection, then try again.') end
         if id == 'gemini-model' then return ui.t('The Gemini model is not available right now. Try again later or use Local AI.') end
         return nil

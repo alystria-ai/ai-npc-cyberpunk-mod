@@ -120,7 +120,7 @@ async function harness(mock, {matureOn = false} = {}) {
   provider.setPreference('gemini'); provider.apply();
   const memory = await MistralMemory.open({path: null});
   const logs = [];
-  const route = customRoute({provider, custom: gemini, name: 'gemini', chat: options => streamChat({...options, ...quick})});
+  const route = customRoute({provider, custom: gemini, name: 'gemini', chat: options => streamChat({...options, ...quick}), busyBackoffMs: [5, 10]});
   const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: matureOn});
   const host = new TextProviderHost({provider, memory, personas: new PersonaBook(roster), routes: {gemini: route}, log: line => logs.push(line), matureContent});
   return {gemini, provider, route, host, logs};
@@ -208,8 +208,8 @@ test('Gemini has its own notice for each answer Google gives, and none of them i
       [{status: 429, body: quotaBody('GenerateContentInputTokensPerModelPerMinute-FreeTier', '45s')}, 'limit', 'gemini-limit', 'rate', 1],
       [{status: 400, body: [{error: {code: 400, message: 'User location is not supported for the API use.', status: 'FAILED_PRECONDITION'}}]}, 'region', 'gemini-region', 'region', 1],
       [{status: 400, body: [{error: {code: 400, message: 'Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.', status: 'FAILED_PRECONDITION'}}]}, 'region', 'gemini-region', 'region', 1],
-      [{status: 503, body: [{error: {code: 503, message: 'The model is overloaded. Please try again later.', status: 'UNAVAILABLE'}}]}, 'network', 'gemini-server', null, 2],
-      [{status: 500, body: [{error: {code: 500, message: 'An internal error has occurred.', status: 'INTERNAL'}}]}, 'network', 'gemini-server', null, 2],
+      [{status: 503, body: [{error: {code: 503, message: 'The model is overloaded. Please try again later.', status: 'UNAVAILABLE'}}]}, 'network', 'gemini-server', null, 3],   // busy: the first request and two retries (bridge/hedged-request.mjs)
+      [{status: 500, body: [{error: {code: 500, message: 'An internal error has occurred.', status: 'INTERNAL'}}]}, 'network', 'gemini-server', null, 3],
       [{status: 504, body: [{error: {code: 504, message: 'The request timed out.', status: 'DEADLINE_EXCEEDED'}}]}, 'network', 'gemini-server', null, 2],
       [{status: 404, body: [{error: {code: 404, message: 'models/gemini-old is not found for API version v1beta', status: 'NOT_FOUND'}}]}, 'model', 'gemini-model', 'model', 1],
     ];
@@ -264,7 +264,8 @@ test('a Custom route keeps the Custom wording for the same answers (the Gemini t
 test('Google quota answers: the per-day and per-minute quotas, the wait Google names, and the next midnight on the Pacific clock', () => {
   assert.deepEqual(googleQuota(quotaBody('GenerateRequestsPerDayPerProjectPerModel-FreeTier', '37s')[0]), {daily: true, retryMs: 37000});
   assert.deepEqual(googleQuota(quotaBody('GenerateRequestsPerMinutePerProjectPerModel-FreeTier', '21.5s')[0]), {daily: false, retryMs: 21500});
-  assert.deepEqual(googleQuota({error: {status: 'RESOURCE_EXHAUSTED', message: 'Resource has been exhausted (e.g. check quota).'}}, 'resource has been exhausted (e.g. check quota).'), {daily: false});
+  assert.deepEqual(googleQuota({error: {status: 'RESOURCE_EXHAUSTED', message: 'Resource has been exhausted (e.g. check quota).'}}, 'resource has been exhausted (e.g. check quota).'), {daily: false, busy: true}, 'a 429 that names no quota is Google being busy');
+  assert.deepEqual(googleQuota({error: {status: 'RESOURCE_EXHAUSTED', message: 'You exceeded your current quota, please check your plan and billing details.'}}, 'you exceeded your current quota, please check your plan and billing details.'), {daily: false}, 'a quota without detail stays the limit');
   assert.deepEqual(googleQuota({error: {message: 'Please retry in 12.5s'}}, 'quota exceeded for metric: generativelanguage.googleapis.com/x. please retry in 12.5s.'), {daily: false, retryMs: 12500});
   assert.equal(googleQuota({error: {message: 'Rate limit exceeded: free-models-per-day'}}, 'rate limit exceeded: free-models-per-day'), null, 'not Google: OpenRouter keeps its own handling');
   // Midnight in Los Angeles: 07:00 UTC in winter (PST), 07:00 UTC in summer is 00:00 PDT. Always within the next 24 hours and on a whole minute.

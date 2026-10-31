@@ -6123,7 +6123,7 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'gemini-region' then
         return 'gemini-region', ui.t('Google Gemini is not available in your region. Use Convai or Local AI.')
     elseif reply.errorCode == 'gemini-server' then
-        return 'gemini-server', ui.t('Google Gemini is busy or had an error. Wait a minute, then try again.')
+        return 'gemini-server', ui.t('Google Gemini is busy right now. Try again in a moment.')
     elseif reply.errorCode == 'gemini-unreachable' then
         return 'gemini-unreachable', ui.t('Google Gemini could not be reached. Check your internet connection, then try again.')
     elseif reply.errorCode == 'gemini-model' then

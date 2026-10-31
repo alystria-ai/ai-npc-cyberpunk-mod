@@ -559,7 +559,7 @@
     "Google Gemini API key": "Google Gemini API key",
     "Google Gemini could not be reached. Check your internet connection, then try again.": "Google Gemini could not be reached. Check your internet connection, then try again.",
     "Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.": "Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.",
-    "Google Gemini is busy or had an error. Wait a minute, then try again.": "Google Gemini is busy or had an error. Wait a minute, then try again.",
+    "Google Gemini is busy right now. Try again in a moment.": "Google Gemini is busy right now. Try again in a moment.",
     "Google Gemini is not available in your region. Use Convai or Local AI.": "Google Gemini is not available in your region. Use Convai or Local AI.",
     "Google Gemini is rate limiting you. Wait a minute, then try again.": "Google Gemini is rate limiting you. Wait a minute, then try again.",
     "Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.": "Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.",
@@ -3136,7 +3136,7 @@
       "Google Gemini API key",
       "Google Gemini could not be reached. Check your internet connection, then try again.",
       "Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.",
-      "Google Gemini is busy or had an error. Wait a minute, then try again.",
+      "Google Gemini is busy right now. Try again in a moment.",
       "Google Gemini is not available in your region. Use Convai or Local AI.",
       "Google Gemini is rate limiting you. Wait a minute, then try again.",
       "Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.",
@@ -8317,7 +8317,7 @@
         "mod/init.lua:6232"
       ]
     },
-    "Google Gemini is busy or had an error. Wait a minute, then try again.": {
+    "Google Gemini is busy right now. Try again in a moment.": {
       "contexts": [
         "ui.localized"
       ],

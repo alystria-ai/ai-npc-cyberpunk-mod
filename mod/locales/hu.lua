@@ -1728,7 +1728,7 @@ return {
     ["Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI."] = "A mai ingyenes Gemini-kereted elfogyott. Holnap áll vissza. Használd a Convai-t vagy a Local AI-t.",
     ["Google Gemini is rate limiting you. Wait a minute, then try again."] = "A Google Gemini korlátoz. Várj egy percet, aztán próbáld újra.",
     ["Google Gemini is not available in your region. Use Convai or Local AI."] = "A Google Gemini nem érhető el a régiódban. Használd a Convai-t vagy a Local AI-t.",
-    ["Google Gemini is busy or had an error. Wait a minute, then try again."] = "A Google Gemini foglalt vagy hibázott. Várj egy percet, aztán próbáld újra.",
+    ["Google Gemini is busy right now. Try again in a moment."] = "A Google Gemini éppen foglalt. Próbáld újra egy pillanat múlva.",
     ["Google Gemini could not be reached. Check your internet connection, then try again."] = "Nem érhető el a Google Gemini. Ellenőrizd az internetet, aztán próbáld újra.",
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "A Gemini-modell most nem érhető el. Próbáld később, vagy használd a Local AI-t.",
     ["Google Gemini: model unavailable"] = "Google Gemini: a modell nem érhető el",

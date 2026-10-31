@@ -246,6 +246,8 @@ const safeJson = value => { try { return JSON.stringify(value) ?? ''; } catch { 
 // ones) and a RetryInfo detail with retryDelay ("21s"). Its message "You exceeded your current quota, please check your plan and billing details" is NOT about credit on the free plan.
 // A free plan that is not offered in the player's country answers 400 FAILED_PRECONDITION ("User location is not supported for the API use").
 const detailsOf = first => (Array.isArray(first?.error?.details) ? first.error.details : []).filter(item => item && typeof item === 'object');
+// Google's words for "too many people are asking right now" (a 503 UNAVAILABLE "The model is overloaded", a 429 RESOURCE_EXHAUSTED "Resource has been exhausted (e.g. check quota)" with no quota named).
+const GOOGLE_BUSY = /overloaded|experiencing high demand|resource has been exhausted|resource exhausted|try again later/;
 const GOOGLE_REGION = /user location is not supported|location is not supported|not available in your (?:country|region)|not supported in your (?:country|region)/;
 
 /** For a 429 that comes from Google: {daily, retryMs?} (retryMs is the RetryInfo wait, or "Please retry in 21.1s" in the message). Null for any other answer. */
@@ -259,7 +261,9 @@ export function googleQuota(first, lower = '') {
   const info = details.find(item => /RetryInfo/.test(String(item['@type'] ?? '')));
   const given = typeof info?.retryDelay === 'string' ? /^(\d+(?:\.\d+)?)s$/.exec(info.retryDelay.trim())?.[1] : /retry in (\d+(?:\.\d+)?)\s*s/.exec(lower)?.[1];
   const seconds = given === undefined ? NaN : Number(given);
-  return {daily, ...(Number.isFinite(seconds) && seconds >= 0 ? {retryMs: Math.min(seconds, 3600) * 1000} : {})};
+  // A 429 that names no quota at all (no QuotaFailure violation, no RetryInfo) and says the model is overloaded or the resource is exhausted is Google being busy, not the player's allowance.
+  const busy = !daily && !ids.trim() && given === undefined && GOOGLE_BUSY.test(lower);
+  return {daily, ...(busy ? {busy} : {}), ...(Number.isFinite(seconds) && seconds >= 0 ? {retryMs: Math.min(seconds, 3600) * 1000} : {})};
 }
 
 /** When Google's daily allowance comes back: the next midnight on the US Pacific clock (ai.google.dev/gemini-api/docs/rate-limits), as epoch ms; undefined if the clock cannot be read. */
@@ -314,6 +318,8 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
       error.daily = true;
       return error;
     }
+    // Google is busy (no quota is named): a server-side fault the route asks again for, shown as "busy", never as the player's limit.
+    if (google.busy) return Object.assign(make('network', 'is busy (HTTP 429)', {slow: true}), {busy: true});
     return make('limit', 'is rate limiting requests', options.retryAfterMs === undefined && google.retryMs !== undefined ? {retryAfterMs: google.retryMs} : {});
   }
   // Some providers answer an account that has spent its credit with 429 ("insufficient_quota") instead of 402.
@@ -351,7 +357,8 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
   // "404 page not found") is a wrong address: a path without /v1, Ollama's own /api, a site's web page. The player is sent to the address, not the model.
   if (status === 404 && !/model|no endpoints found/.test(lower)) return Object.assign(make('network', `has no chat endpoint at that address (HTTP 404)${text ? `: ${text}` : ''}`), {permanent: true});
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return make('model', `does not know that model: ${text || `HTTP ${status}`}`);
-  if (status === 408 || (status >= 500 && status <= 599)) return make('network', `had a server fault (HTTP ${status})`, {slow: true});
+  // A 500 INTERNAL, a 503 UNAVAILABLE or any 5xx that says the model is overloaded is Google being busy (`busy`): the Google Gemini route asks again with a short backoff (bridge/hedged-request.mjs).
+  if (status === 408 || (status >= 500 && status <= 599)) return Object.assign(make('network', `had a server fault (HTTP ${status})`, {slow: true}), {busy: status === 500 || status === 503 || (status >= 500 && GOOGLE_BUSY.test(lower))});
   return make('request', `refused the request: ${text || `HTTP ${status}`}`);
 }
 
@@ -667,6 +674,7 @@ const contentText = content => typeof content === 'string' ? content
  *     are cut to what is left, so a turn ends with its own explanation before the game gives up on it (the game waits 90 s).
  *   thinkingPieces: more than this many pieces of the model's thinking with no reply text ends the attempt at once (0: off)
  *   retries / backoffMs: for 429, 5xx, a timeout, an empty answer (a local server's timeout is never retried: it would repeat the wait)
+ *   deferBusy: an answer Google gave as busy (`error.busy`: 500, 503, an overloaded body) is thrown at once, for the caller to ask again (bridge/hedged-request.mjs)
  *   onRetry({attempt, error, waitMs}): called before each retry, so the caller can log why a turn took long
  *   reasoning (custom only): the steps of the field that asks a reasoning model to think less (bridge/reasoning.mjs reasoningSteps); adapt.reasoningStep says which one is current
  *   thinkingRoom (custom only, default true): a reply that comes back empty because the model spent the whole budget on thinking is asked once more with more room
@@ -685,7 +693,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
   adapt, headers, reasoning, noThinking, askedKeys, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout,
-  images, onImagesRejected} = {}) {
+  images, onImagesRejected, deferBusy = false} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
@@ -789,7 +797,8 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
       }
       // A Retry-After longer than a reply can wait is not waited for (the custom provider; Mistral's is capped at a minute and waited up to 8 s).
       const tooLong = provider === 'custom' && lastError.kind === 'limit' && lastError.retryAfterMs > MAX_RETRY_WAIT_MS;
-      if (attempt >= retries || !retryable(lastError) || tooLong) { lastError.failed = failed; throw lastError; }
+      // deferBusy: the caller (the Google Gemini hedge) asks again after a busy answer itself, with its own backoff, so this loop does not.
+      if (attempt >= retries || !retryable(lastError) || tooLong || (deferBusy && lastError.busy === true)) { lastError.failed = failed; throw lastError; }
       let wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, MAX_RETRY_WAIT_MS);
       if (hasDeadline) wait = Math.max(0, Math.min(wait, deadlineAt - now() - minAttemptMs));
       try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: wait, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }

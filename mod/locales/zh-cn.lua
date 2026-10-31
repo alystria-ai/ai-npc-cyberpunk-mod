@@ -1728,7 +1728,7 @@ return {
     ["Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI."] = "你今天的 Gemini 免费额度已用完，明天重置。请使用 Convai 或 Local AI。",
     ["Google Gemini is rate limiting you. Wait a minute, then try again."] = "Google Gemini 正在限制你的请求，请等一分钟再试。",
     ["Google Gemini is not available in your region. Use Convai or Local AI."] = "你所在的地区无法使用 Google Gemini。请使用 Convai 或 Local AI。",
-    ["Google Gemini is busy or had an error. Wait a minute, then try again."] = "Google Gemini 繁忙或出错，请等一分钟再试。",
+    ["Google Gemini is busy right now. Try again in a moment."] = "Google Gemini 现在繁忙，请稍后再试。",
     ["Google Gemini could not be reached. Check your internet connection, then try again."] = "无法连接 Google Gemini，请检查网络后再试。",
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Gemini 模型暂时不可用，请稍后再试或使用 Local AI。",
     ["Google Gemini: model unavailable"] = "Google Gemini：模型暂不可用",
