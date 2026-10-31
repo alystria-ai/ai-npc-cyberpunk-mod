@@ -606,7 +606,9 @@ function M.new(options)
         -- Leave on combat (instantly), on a native guard, on real movement, or
         -- after the reply ends plus a short linger.
         if context.combat then requestExit(s, 'combat', true); return end
-        local allowed, reason = self.allowed(npc, self.player)
+        -- A story character who joined in during a mission (mod/mission-companion.lua) carries its own check: the scene flag of the party's
+        -- check stays true for it in ordinary gameplay. Nil for every party member: the shared check.
+        local allowed, reason = (s.entry.allowed or self.allowed)(npc, self.player)
         if not allowed then requestExit(s, reason or 'guard', false); return end
         if context.settled then s.unsettledSince = nil else s.unsettledSince = s.unsettledSince or self.clock end
         local moved = distance(s.playerAnchor, self.playerPosition)
@@ -761,7 +763,7 @@ function M.new(options)
                 local known, family, familyKey = characterOf(entry)
                 if not known then return end
                 if native.inWorkspot(entry.npc) ~= false then return end -- seats and scenes own their workspots
-                local allowed = self.allowed(entry.npc, self.player)
+                local allowed = (entry.allowed or self.allowed)(entry.npc, self.player)
                 if not allowed then return end
                 begin(s, known, family, false, flavour, familyKey)
             end

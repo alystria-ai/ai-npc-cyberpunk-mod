@@ -125,6 +125,11 @@ function M.new(options)
         if quest == nil then return false end
         self.members[#self.members + 1] = {npc = npc, entity = entity, key = key, name = name or key, quest = quest, bodyType = bodyType,
             attachedAt = now(), level = nil, questMiss = 0, rideTries = 0}
+        -- The row the gesture controller sees (mod/companion-gestures.lua): stable per member, its own "allowed" check, no scene flag.
+        local m = self.members[#self.members]
+        m.entry = {serial = 'mission:' .. entity, entityID = {hash = entity}, npc = npc, profileKey = key, name = m.name, state = 'ready',
+            mission = true, speed = 0, facingError = 0, allowed = options.gestureAllowed,
+            record = options.record and select(2, pcall(options.record, npc)) or nil}
         log('Mission companion joined: ' .. tostring(name) .. ' (' .. key .. ') quest=' .. tostring(quest))
         publish()
         return true
@@ -207,6 +212,13 @@ function M.new(options)
     local function poll(m, player, sample, t)
         if not (options.alive and options.alive(m.npc)) then service:release(m.entity, 'gone', true); return end
         local gap = options.distance and options.distance(m.npc, player) or nil
+        m.entry.playerGap = gap
+        -- Her own speed since the last poll: the gesture controller starts a stance only for a character standing still.
+        local at = options.position and options.position(m.npc) or nil
+        if at and m.lastAt and t > m.lastAt and m.lastPosition then
+            m.entry.speed = math.sqrt((at.x - m.lastPosition.x) ^ 2 + (at.y - m.lastPosition.y) ^ 2) / (t - m.lastAt)
+        end
+        m.lastPosition, m.lastAt = at, t
         if gap and gap > M.FAR then
             m.farSince = m.farSince or t
             if t - m.farSince >= M.FAR_GRACE then service:release(m.entity, 'left-behind'); return end
@@ -278,6 +290,25 @@ function M.new(options)
             end
         end
         return rows
+    end
+
+    -- Body gestures (docs/COMPANION_GESTURES.md) through the party's gesture controller, only for a member the game is not driving. Per frame,
+    -- but only while somebody has joined in: observe each free member (a standing, settled one may enter a talk or idle stance) and hand back
+    -- the rows with theirs added, so the controller does not drop their state. A member that steps back or is released has its stance left at
+    -- once by the `stepped` and `released` hooks. `rows` is not changed.
+    function service:gestures(controller, step, combat, rows)
+        local out = {}
+        for index, row in ipairs(rows or {}) do out[index] = row end
+        local playerSpeed = tonumber(controller.playerSpeed) or 0
+        for _, m in ipairs(self.members) do
+            if not m.level then
+                local still = (tonumber(m.entry.speed) or 0) < 0.18 and not m.follow and not m.mount
+                local ok = pcall(controller.observe, m.entry, {idle = still, settled = still and playerSpeed < 0.28, phase = 'settled',
+                    combat = combat == true, crouched = false, suspendHold = function() end, resumeHold = function() end}, step)
+                if ok then out[#out + 1] = {entry = m.entry, transport = false} end
+            end
+        end
+        return out
     end
 
     -- The members whose face the idle writer may drive (the game is not driving them): no native call, a table read.

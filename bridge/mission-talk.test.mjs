@@ -485,8 +485,8 @@ test('it adds no per-frame work: it is polled from the battle observer\'s half-s
 test('everything it attaches is released with the world: a session reset releases the members and the face sets', () => {
   const abandon = between('convaiStory = nil\n    if convaiFacialPlayback then convaiFacialPlayback.storyEntity', 'if convaiWorldTalk then convaiWorldTalk:reset() end');
   assert.match(abandon, /convaiMissionReset\(reason\)/);
-  assert.match(init, /released = function\(member, reason, quiet\)[\s\S]{0,300}ConvaiFaceProjection\(false\)[\s\S]{0,300}clearExpression/);
-  assert.match(init, /stepped = function\(member\) pcall\(function\(\) member\.npc:ConvaiFaceProjection\(false\)/);
+  assert.match(init, /released = function\(member, reason, quiet\)[\s\S]{0,500}ConvaiFaceProjection\(false\)[\s\S]{0,500}clearExpression/);
+  assert.match(init, /stepped = function\(member\)\s+pcall\(function\(\) member\.npc:ConvaiFaceProjection\(false\)/);
   assert.match(init, /changed = function\(free, held\)[\s\S]{0,200}facial\.missionFaces, facial\.faceHeld = free, held/);
   // The reaction rows come from members the game is not driving.
   assert.match(init, /for _, person in ipairs\(convaiMissionRows\(player\)\) do/);
@@ -516,4 +516,138 @@ test('the docs say what the setting does, what it never does and how the game ke
     assert.ok(doc.toLowerCase().includes(needle.toLowerCase()), needle);
   }
   assert.match(read('../README.md'), /Talk during missions/);
+});
+
+// ---- 8. Gestures through the party's controller, behind the same arbiter ----------------------------------------------------------------
+
+const gestureController = read('../mod/companion-gestures.lua');
+const gestureSelection = read('../mod/gesture-selection.lua');
+const gestureCatalog = read('../mod/gesture-catalog.lua');
+function withGestures(code) {
+  run(`
+    local selectionSource = [==[${gestureSelection}]==]
+    local catalogSource = [==[${gestureCatalog}]==]
+    local realDofile = dofile
+    dofile = function(path)
+      if path == 'gesture-selection.lua' then return load(selectionSource)() end
+      if path == 'gesture-catalog.lua' then return load(catalogSource)() end
+      if path == 'gesture-workspot.lua' then return {} end
+      error('unexpected dofile ' .. path)
+    end
+    local calls = {}
+    local function count(name) local n = 0; for _, c in ipairs(calls) do if c.name == name then n = n + 1 end end; return n end
+    local function last(name) for i = #calls, 1, -1 do if calls[i].name == name then return calls[i] end end end
+    local npc = {inside = false}
+    local native = {TAG = 't'}
+    function native.inWorkspot(n) return n.inside end
+    function native.spawnDevice(n, t) calls[#calls + 1] = {name = 'spawn'}; return true, {hash = 9} end
+    function native.deviceEntity() return {device = true} end
+    function native.moveDevice() return true end
+    function native.devicePlaced() return true end
+    function native.deleteDevice() calls[#calls + 1] = {name = 'delete'}; return true end
+    function native.sweep() return true end
+    function native.play(d, n, component) calls[#calls + 1] = {name = 'play', component = component}; n.entering = true; return true end
+    function native.jump(n, clip, instant) calls[#calls + 1] = {name = 'jump'}; return true end
+    function native.exit(n, instant) calls[#calls + 1] = {name = 'exit', instant = instant == true}; n.leaving = true; return true end
+    function native.stopInDevice() return true end
+    local Gestures = (load([==[${gestureController}]==]))()
+    local partyAllowed = false   -- the party's own check refuses a story character in ordinary gameplay
+    local speaking = nil
+    local seed = 7
+    local controller = Gestures.new({enabled = function() return true end,
+      speech = function(entity) if speaking and entity == '77' then return speaking end end,
+      allowed = function() return partyAllowed, 'party check' end, native = native,
+      random = function() seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648 end,
+      log = function() end})
+    dofile = realDofile
+    local MC = (function() ${missionSource} end)()
+    local player = {pos = {x = 0, y = 0, z = 0}}
+    function player:GetWorldPosition() return self.pos end
+    local tt = {clock = 100, facts = {gone = false, hub = false, dialogue = false, driven = false, hurt = false, mounted = false, workspot = false, staged = false, combat = false},
+      stepped = 0, released = {}}
+    local host = {
+      setting = function() return true end, now = function() return tt.clock end, alive = function() return true end,
+      distance = function() return 2 end, read = function() return tt.facts end, quest = function() return 'q1' end,
+      position = function() return {x = 0, y = 0} end, record = function() return 'Character.Judy' end,
+      gestureAllowed = function() return true, 'mission check' end,
+      follow = function() return {state = 'Executing'} end, playerVehicle = function() return nil end, mounted = function() return false end,
+      state = function(op) return op.state end, cancel = function(op) op.state = 'Cancelled'; return true end,
+      changed = function() end, freed = function() end,
+      stepped = function(member) tt.stepped = tt.stepped + 1; controller.release(member.entry, 'mission-script') end,
+      released = function(member, why, quiet) tt.released[#tt.released + 1] = why; if not quiet then controller.release(member.entry, 'mission-' .. why) end end,
+      log = function() end}
+    local service = MC.new(host)
+    local function frames(seconds)
+      for _ = 1, math.max(1, math.floor(seconds / .1 + .5)) do
+        tt.clock = tt.clock + .1
+        service:update(player, {})
+        local rows = service:gestures(controller, .1, false, {})
+        controller.tick(player, .1, rows)
+        if npc.entering then npc.entering = nil; npc.inside = true end
+        if npc.leaving then npc.leaving = nil; npc.inside = false end
+        if speaking then speaking.at = math.min(speaking.knownEnd, (speaking.at or 0) + .1) end
+      end
+    end
+    ${code}
+  `);
+}
+
+test('GESTURES: a mission character enters a talk stance and gestures while the game is not driving it, with its own check, not the party\'s', () => withGestures(`
+  assert(service:attach(npc, 'judy-alvarez', 'Judy', '77') == true)
+  service:check('77', player, {})
+  speaking = {knownEnd = 14, at = 0, family = 'joy', scale = 2}
+  frames(4)
+  assert(last('play') and last('play').component:find('convai_talk', 1, true), 'a talk stance began: ' .. tostring(last('play') and last('play').component))
+  frames(8); assert(count('jump') >= 1, 'gestures played')
+`));
+
+test('GESTURES: the party\'s check still refuses a character without the mission row (the shared check is unchanged)', () => withGestures(`
+  local partyEntry = {serial = 1, record = 'Character.Judy', entityID = {hash = '77'}, npc = npc, playerGap = 1.8, speed = 0}
+  speaking = {knownEnd = 14, at = 0, family = 'joy', scale = 2}
+  for _ = 1, 40 do
+    controller.tick(player, .1, {{entry = partyEntry}})
+    controller.observe(partyEntry, {idle = true, settled = true, combat = false, phase = 'settled'}, .1)
+  end
+  assert(count('play') == 0, 'the party check (false here) decides for an ordinary entry')
+`));
+
+test('STEP BACK: when the script begins to drive her the stance is left at once and no gesture starts until the script lets go', () => withGestures(`
+  service:attach(npc, 'judy-alvarez', 'Judy', '77'); service:check('77', player, {})
+  speaking = {knownEnd = 60, at = 0, family = 'joy', scale = 2}
+  frames(4); assert(count('play') == 1 and npc.inside, 'in the stance')
+  tt.facts.driven = true
+  frames(1)
+  assert(tt.stepped == 1, 'she stepped back')
+  assert(last('exit') and last('exit').instant == true, 'the stance is left at once, not eased out')
+  local plays = count('play')
+  frames(8)
+  assert(count('play') == plays and not npc.inside, 'no new stance while the script drives her')
+  -- The script lets go: after the clear period she may gesture again.
+  tt.facts.driven = false
+  frames(30)
+  assert(service:member('77').level == nil and count('play') > plays, 'resumed and gesturing again')
+`));
+
+test('RELEASE: turning the setting off or ending the mission leaves the stance and removes the device', () => withGestures(`
+  service:attach(npc, 'judy-alvarez', 'Judy', '77'); service:check('77', player, {})
+  speaking = {knownEnd = 60, at = 0, family = 'joy', scale = 2}
+  frames(4); assert(npc.inside)
+  service:releaseAll('setting-off')
+  assert(last('exit') and last('exit').instant == true and tt.released[1] == 'setting-off')
+  assert(count('delete') >= 1, 'the device is deleted')
+  frames(10); assert(#service.members == 0 and count('play') == 1, 'nothing starts after the release')
+`));
+
+test('GESTURES: wired through the existing controller with a nil check, and the shared check is untouched for a companion', () => {
+  const gestures = read('../mod/companion-gestures.lua');
+  assert.match(gestures, /\(s\.entry\.allowed or self\.allowed\)\(npc, self\.player\)/);
+  assert.match(gestures, /\(entry\.allowed or self\.allowed\)\(entry\.npc, self\.player\)/);
+  assert.match(init, /local mission = convaiMission\s+local gestureRows = rows\s+if c and mission then/);
+  assert.match(init, /if convaiGestures then pcall\(convaiGestures\.release, member\.entry, 'mission-script'\) end/);
+  assert.match(init, /pcall\(convaiGestures\.release, member\.entry, 'mission-' \.\. tostring\(reason\)\)/);
+  // The mission check never reads the scene flag of the party's check, and fails closed.
+  const allowed = between('gestureAllowed = function(npc, player)', 'playerVehicle = function(player)');
+  assert.doesNotMatch(allowed, /IsEntityInScene\(/);
+  assert.match(allowed, /return false, 'guard unavailable'/);
+  assert.match(allowed, /not npc:IsOnAutonomousAI\(\)/);
 });

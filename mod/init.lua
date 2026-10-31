@@ -2478,7 +2478,15 @@ do
             -- Settling in V's flat (mod/companion-settle.lua): a nil global away from home.
             local z = convaiSettle
             if z then pcall(z.tick, player, step, rows) end
-            if c then pcall(c.tick, player, step, rows) end
+            -- A story character who joined in during a mission (Talk during missions) takes part in the gestures while the game is not
+            -- driving it: its row is added, and a nil check otherwise.
+            local mission = convaiMission
+            local gestureRows = rows
+            if c and mission then
+                local good, extended = pcall(mission.gestures, mission, c, step, battleSample ~= nil and battleSample.combat == true, rows)
+                if good and type(extended) == 'table' then gestureRows = extended end
+            end
+            if c then pcall(c.tick, player, step, gestureRows) end
             if p then return p.tick(player, step, rows) end
         end,
         -- Seating owns the copy: companions.lua skips its distant/stranded recovery.
@@ -4187,6 +4195,29 @@ do
             return ok and value or nil
         end,
         read = function(npc, player, sample) return convaiWorldTalk.read(npc, player, function() return sample end, nil, true) end,
+        record = function(npc) return tostring(npc:GetRecordID()) end,
+        position = function(npc)
+            local ok, at = pcall(function() local p = npc:GetWorldPosition(); return {x = p.x, y = p.y} end)
+            return ok and at or nil
+        end,
+        -- May a gesture stance start on her now? The party's check without the scene flag (it stays true for a story character in
+        -- ordinary gameplay): an AI the game commands, a character that is not relaxed, V in a scene tier above 1, a dialogue of V's or hers,
+        -- a fight and an injury all refuse (a workspot of the game's is refused by the controller itself before a stance starts). Read when a stance would start and while it runs, as for a companion. Fails closed.
+        gestureAllowed = function(npc, player)
+            local ok, allowed, reason = pcall(function()
+                if not npc:IsOnAutonomousAI() then return false, 'not autonomous' end
+                if npc:GetHighLevelStateFromBlackboard() ~= Enum.new('gamedataNPCHighLevelState', 'Relaxed') then return false, 'not relaxed' end
+                local scene = Game.GetSceneSystem():GetScriptInterface()
+                if PlayerPuppet.GetSceneTier(player) ~= 1 or scene:IsEntityInDialogue(player:GetEntityID())
+                    or scene:IsEntityInDialogue(npc:GetEntityID()) or NPCPuppet.IsInCombat(npc) then return false, 'scene or fight' end
+                for _, tag in ipairs({'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}) do
+                    if StatusEffectSystem.ObjectHasStatusEffectWithTag(npc, CName.new(tag)) then return false, 'status ' .. tag end
+                end
+                return true
+            end)
+            if not ok then return false, 'guard unavailable' end
+            return allowed, reason
+        end,
         quest = function()
             local ok, tracked = pcall(questContext.trackedQuest)
             return ok and type(tracked) == 'table' and tracked.id or nil
@@ -4270,9 +4301,16 @@ do
             if facial then facial.missionFaces, facial.faceHeld = free, held end
         end,
         freed = function(member) pcall(function() member.npc:ConvaiFaceProjection(true) end) end,
-        stepped = function(member) pcall(function() member.npc:ConvaiFaceProjection(false) end) end,
+        stepped = function(member)
+            pcall(function() member.npc:ConvaiFaceProjection(false) end)
+            -- A gesture stance is left at once (the workspot is the game's to take back), the device removed.
+            if convaiGestures then pcall(convaiGestures.release, member.entry, 'mission-script') end
+        end,
         released = function(member, reason, quiet)
-            if not quiet then pcall(function() member.npc:ConvaiFaceProjection(false) end) end
+            if not quiet then
+                pcall(function() member.npc:ConvaiFaceProjection(false) end)
+                if convaiGestures then pcall(convaiGestures.release, member.entry, 'mission-' .. tostring(reason)) end
+            end
             local facial = convaiFacialPlayback
             if facial and type(facial.clearExpression) == 'function' then pcall(facial.clearExpression, member.entity) end
         end,

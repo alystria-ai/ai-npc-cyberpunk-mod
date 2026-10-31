@@ -143,7 +143,8 @@ A player (Nexus, 31 Oct) wanted to talk to story characters during story mission
 | Cutscenes and dialogue choices | The key press during one is refused as today. A reply that is already on its way when a cutscene or dialogue choice scene begins **holds the reply**: `convaiMissionReply` (called from `reactionCanDeliver`, asked at most twice a second) keeps it until the scene ends, for at most 25 seconds (`MISSION_HOLD_SECONDS`), and drops it if the wait runs out or the character is gone, hurt or unreadable (the private reply is retired and nothing is spoken over the game). A scene that begins while a reply is playing ends that reply, as before. |
 | Live context | The turn already carries the quest journal, the fight (`battle`), the vehicle (the turn context) and the dialogue; a story character is not an "ambient" speaker, so it gets all of them (tested). Companions can see, bonds, memory and Eddies work for any speaker and are unchanged. |
 | Joining in | The first successful talk while a quest is tracked makes the character a **mission companion** (`convaiMissionJoin`, at most three). It then gets combat remarks and loot reactions and speak-up (it is appended to `reactionPeople`, so every system that reads that list sees it), the idle face (blinks, resting and listening faces; `companions.expressionActors` appends its row), following V on foot (one `AIFollowTargetCommand`, teleport off, no change of the AI role) and a seat in V's car (one `AIMountCommand` into a free passenger seat while V is in the car, and the ordinary unmount when V gets out). |
-| Not done | **Gestures.** The gesture controller plays through a spawned workspot device and its own guard refuses a character that is in a scene (`IsEntityInScene` stays true in ordinary gameplay for story characters), so wiring it needs a live measurement first. It is not attached. The other party systems (equipment, stance, outfits, formation, tactics, chauffeur driving, convoy, catch-up teleport) are not attached either, on purpose. |
+| Gestures | The party's gesture controller (`mod/companion-gestures.lua`) takes the mission character as one more row: while the game is not driving it, a standing, settled character that speaks or listens enters the talk stance and plays gestures, and may take an idle move. The row carries its own `allowed` check (`gestureAllowed` in `mod/init.lua`: an autonomous AI, relaxed, V at scene tier 1, no dialogue of V's or hers, no fight, no injury, and no scene flag, which stays true for a story character in ordinary gameplay); the controller itself still refuses a character that is already in a workspot, so a post or a scene's workspot is never taken. The device workspot is the controller's, exactly as for a companion. When the script starts to drive the character (or the setting goes off, or the mission ends) the stance is left at once and the device deleted. |
+| Not done | Equipment, stance, outfits, formation, tactics, chauffeur driving, convoy and catch-up teleport are not attached, on purpose: they assume a copy the mod spawned, and teleport and appearance changes are forbidden here. |
 
 ### The game has priority: the arbiter
 
@@ -159,7 +160,7 @@ A player (Nexus, 31 Oct) wanted to talk to story characters during story mission
 | `scripted-vehicle` | body | mounted by the script |
 | `unreadable` | scene | any fact that could not be read: fail closed |
 
-On the first poll that says "driving", every system steps back at once: our commands are cancelled, the reaction rows and the face row are withdrawn, the face layer is kept off the character, and the character is told it is no longer free. Nothing is commanded while the script drives. The character resumes only after the script has let go for 1.5 seconds. The talk itself stays voice and subtitles, because `Face.reds` `TalkRefusal` already refuses the face of a commanded or dialogue character (`skipped:driven`, `skipped:dialogue`) and the Lua face writer is blocked for a held character.
+On the first poll that says "driving", every system steps back at once: our commands are cancelled, the reaction rows and the face row are withdrawn, the face layer is kept off the character, a gesture stance is left at once, and the character is told it is no longer free. Nothing is commanded while the script drives. The character resumes only after the script has let go for 1.5 seconds. The talk itself stays voice and subtitles, because `Face.reds` `TalkRefusal` already refuses the face of a commanded or dialogue character (`skipped:driven`, `skipped:dialogue`) and the Lua face writer is blocked for a held character.
 
 ### What it never does
 
@@ -171,7 +172,7 @@ A member is released when the setting is turned off (next poll, within half a se
 
 ### Cost
 
-Nothing per frame. Off: a nil check in `updateBattles`, `reactionPeople` and `expressionActors`. On, with nobody joined: the same. With members (at most three): one `world-talk` read each per half second, one quest read each per two seconds, and at most one command at a time.
+Nothing per frame. Off: a nil check in `updateBattles`, `reactionPeople` and `expressionActors`. On, with nobody joined: the same. With members (at most three): one `world-talk` read each per half second, one quest read each per two seconds, at most one command at a time, and the gesture controller's usual per-frame observation of each free member (the only per-frame work, and only while somebody has joined in).
 
 ### Log lines
 
@@ -181,7 +182,7 @@ Nothing per frame. Off: a nil check in `updateBattles`, `reactionPeople` and `ex
 
 1. Setting off (default): Judy in a fight, in a car or under a scene still gets "busy right now", and `probe.log` has no `Mission companion` line.
 2. Setting on (and Talk to story characters on): during a mission, talk to the game's Judy while walking, then while she fights, then in V's car. She answers. She follows V between scripted points and sits in the passenger seat.
-3. When the mission script moves her (a scripted walk, a cutscene, a workspot, a scripted ride) she stops following at once (`steps back`), says nothing of her own, and resumes after the scene (`resumes`). The script is never fought: no stuck character, no missed trigger.
+3. Standing beside V in a calm moment, she speaks and gestures (talk stance) and may take an idle move. When the mission script moves her (a scripted walk, a cutscene, a workspot, a scripted ride) she stops following and leaves any stance at once (`steps back`), says nothing of her own, and resumes after the scene (`resumes`). The script is never fought: no stuck character, no missed trigger.
 4. Press talk inside a cutscene: the busy notice. Ask a question and let a cutscene start before the answer: the answer waits for the end of the scene, or is dropped after 25 seconds.
 5. Turn the setting off mid-mission: she stops following within a second and, if we seated her, gets out of the car; `released ... reason=setting-off`. Finish the mission: `reason=mission-ended`. Reload: `reason=world-reset`.
 6. FPS: no new per-frame row in the perf probe.
