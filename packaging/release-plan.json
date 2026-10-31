@@ -1206,6 +1206,7 @@
             "bridge/voice-cuda-graph.py",
             "bridge/pocket-voice-worker.py",
             "bridge/pocket_voice_runtime.py",
+            "bridge/russian_stress.py",
             "bridge/voice_clip_build.py",
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",

@@ -37,7 +37,7 @@
       "vision-bonsai": {"folder": "local-ai/vision", "title": "Vision-Bonsai-2-4B-projector"},
       "vision-qwen": {"folder": "mature/vision", "title": "Vision-Qwen3.5-4B-projector"}
     },
-    "pocketModels": {"folder": "multilingual", "prefix": "PocketTTS-Model-100M-", "legacyPrefix": "PocketTTS-Model-"}
+    "pocketModels": {"folder": "multilingual", "prefix": "PocketTTS-Model-100M-", "legacyPrefix": "PocketTTS-Model-", "languagePrefixes": {"Russian": "PocketTTS-Model-90M-"}}
   },
   "toolchain": {
     "node": {
@@ -423,7 +423,7 @@
   ],
   "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
   "bridgeWorkers": [
-    "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py", "bridge/voice_clip_build.py",
+    "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py", "bridge/russian_stress.py", "bridge/voice_clip_build.py",
     "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py",
     "bridge/choice-keys.py"
   ],

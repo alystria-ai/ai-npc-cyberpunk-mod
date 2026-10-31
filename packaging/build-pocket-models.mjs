@@ -1,9 +1,18 @@
 // Builds the optional PocketTTS models (the Pocket voice speaking another language): PocketTTS-Model-100M-<Language>.zip (French, Italian, German, Spanish, Portuguese;
-// the file name carries the model's parameter count since 0.3.4, before that PocketTTS-Model-<Language>.zip: packaging/release.config.json, "packFiles").
-// They are published in the multilingual/ folder of the Hugging Face repository.
+// the file name carries the model's parameter count since 0.3.4, before that PocketTTS-Model-<Language>.zip: packaging/release.config.json, "packFiles") and
+// PocketTTS-Model-90M-Russian.zip (below). They are published in the multilingual/ folder of the Hugging Face repository.
 //
 //   node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out E:/SteamLibrary/AiNpc-voice-packs/pocket
 //        [--token-file <path>] [--download]
+//   node packaging/build-pocket-models.mjs --languages ru --russian-source <folder of genvoice/xVibePocketTTS at v0.1.0> --out <folder>
+//        [--stress-dict packaging/russian-stress/stress-ru.bin] [--download]
+//
+// RUSSIAN (genvoice/xVibePocketTTS, revision ac4f9f11eb4a110964c75a1e6f4104005455ac18, tag v0.1.0): a Russian-only full fine-tune of kyutai/pocket-tts, public.
+// --russian-source is a folder with the repository's files (config.yaml, the weights and tokenizer.model it names, and its checksum list); --download fetches the missing
+// ones. Every file is checked against the repository's own checksum list, and against the pins below once they are filled in (the first local build prints them).
+// The pack differs from the others in three files: tokenizer.model (SentencePiece, the configuration says `tokenizer: sentencepiece`) instead of tokenizer.json,
+// the stress table stress-ru.bin (packaging/build-russian-stress.py, the openrussian.org data, CC BY-SA 4.0), and a NOTICE.txt that credits Kyutai, GenVoice
+// and the stress data. The folder inside is ru, the tag ru.
 //
 // Each zip carries one language of Kyutai's Pocket TTS (CC-BY-4.0, the gated cloning weights of kyutai/pocket-tts) under
 // red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/, a sibling of the multilingual pack's multilingual/<lang>/ folder:
@@ -23,11 +32,13 @@ import {mkdir, readFile, rename, stat, writeFile, link, symlink, copyFile, rm} f
 import {createReadStream, createWriteStream, readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {inflateSync} from 'node:zlib';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {ZipWriter} from './lib/zip.mjs';
 import {pocketModelTitle} from './lib/pack-names.mjs';
+import {UPSTREAM_SUMS, parseSums, repositoryPath} from './lib/pocket-russian-source.mjs';
 
 export const BUILT = '2026-10-22';
 export const POCKET_SOURCE = '3.3.0';
@@ -40,6 +51,21 @@ export const UPSTREAM = {
   configTag: 'v4.0.0',
   license: 'CC-BY-4.0',
 };
+// The Russian model: GenVoice's fine-tune of Kyutai's pocket-tts. The weights are derived from Kyutai's (CC-BY-4.0, Kyutai's prohibited-use terms apply); the
+// fine-tune's code is MIT. `pins` are the weights' size and SHA-256 and the tokenizer's SHA-256: null until the first local build has printed them.
+export const RUSSIAN_UPSTREAM = {
+  repo: 'genvoice/xVibePocketTTS',
+  revision: 'ac4f9f11eb4a110964c75a1e6f4104005455ac18',
+  tag: 'v0.1.0',
+  license: 'CC-BY-4.0',
+  codeLicense: 'MIT',
+  base: {repo: UPSTREAM.repo, license: UPSTREAM.license},
+  pins: {model: null, tokenizer: null},
+};
+// The stress table of the Russian pack and the data it is built from (packaging/build-russian-stress.py; the record beside the committed table).
+export const STRESS_FILE = 'stress-ru.bin';
+export const STRESS_DEFAULT_PATH = fileURLToPath(new URL('./russian-stress/stress-ru.bin', import.meta.url));
+export const STRESS_SOURCE_PATH = fileURLToPath(new URL('./russian-stress/source.json', import.meta.url));
 const MODEL_ROOT = 'red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket';
 
 // The five languages: the voice-pack folder name, the reply-language code, Kyutai's name, and the pinned files (sizes and sha256 of the upstream
@@ -69,6 +95,11 @@ export const LANGUAGES = {
     tag: 'pt', pocket: 'portuguese', title: 'Portuguese',
     model: {bytes: 219029196, sha256: '32ddeaeb06f8e824d85c030d31625e08b0e6b6e2283d20024dcc18786065dbd4'},
     tokenizerGit: '7c07317c6c617d98bfc412473a9b357f83717d76',
+  },
+  // Not Kyutai's own file: see RUSSIAN_UPSTREAM. `model` and `tokenizerSha256` come from the pins there, or from the repository's checksum list.
+  ru: {
+    tag: 'ru', pocket: 'russian', title: 'Russian', params: '90M', built: '2026-10-31',
+    tokenizer: 'tokenizer.model', stress: STRESS_FILE, fineTune: RUSSIAN_UPSTREAM,
   },
 };
 
@@ -110,6 +141,10 @@ export function languageInfo(lang) {
   if (!info) throw Error(`unknown language "${lang}" (expected one of ${Object.keys(LANGUAGES).join(', ')})`);
   return {lang, ...info};
 }
+/** The tokenizer file of a language's pack: tokenizer.json (Kyutai's languages) or tokenizer.model (the Russian model, SentencePiece). */
+export const tokenizerName = lang => languageInfo(lang).tokenizer ?? 'tokenizer.json';
+/** The files the manifest lists, in its order (the same list as bridge/pocket-language-models.mjs pocketModelFiles). */
+export const manifestFiles = lang => ['model.safetensors', tokenizerName(lang), 'inference.yaml', 'NOTICE.txt', ...(languageInfo(lang).stress ? [languageInfo(lang).stress] : [])];
 
 // ---- the configuration -------------------------------------------------------------------------------------------------------------
 
@@ -208,7 +243,7 @@ export function parseConfig(text) {
 
 // The checks every shipped configuration must pass: the 6-layer Pocket model the mod's runtime is built for, float32, 24 kHz mono, and the
 // local paths this pack puts in place.
-export function checkConfig(config) {
+export function checkConfig(config, {tokenizer = 'tokenizer.json', lenient = false} = {}) {
   const problems = [];
   const expect = (label, actual, wanted) => { if (actual !== wanted) problems.push(`${label} is ${JSON.stringify(actual)}, expected ${JSON.stringify(wanted)}`); };
   expect('flow_lm.transformer.num_layers', config?.flow_lm?.transformer?.num_layers, LAYERS);
@@ -217,33 +252,115 @@ export function checkConfig(config) {
   expect('mimi.sample_rate', config?.mimi?.sample_rate, 24000);
   expect('mimi.channels', config?.mimi?.channels, 1);
   expect('weights_path', config?.weights_path, 'model.safetensors');
-  expect('weights_path_without_voice_cloning', config?.weights_path_without_voice_cloning, null);
-  expect('flow_lm.lookup_table.tokenizer_path', config?.flow_lm?.lookup_table?.tokenizer_path, 'tokenizer.json');
+  // A fine-tune's configuration may not have this key at all (the worker sets it to null itself): `lenient` accepts that.
+  expect('weights_path_without_voice_cloning', lenient ? config?.weights_path_without_voice_cloning ?? null : config?.weights_path_without_voice_cloning, null);
+  expect('flow_lm.lookup_table.tokenizer_path', config?.flow_lm?.lookup_table?.tokenizer_path, tokenizer);
+  // The upstream loader takes a SentencePiece file only when the configuration says so (pocket_tts/modules/text_conditioner.py build_tokenizer).
+  if (tokenizer === 'tokenizer.model') expect('flow_lm.lookup_table.tokenizer', config?.flow_lm?.lookup_table?.tokenizer, 'sentencepiece');
   if (problems.length) throw Error(`the configuration is not the expected Pocket ${LAYERS}-layer model: ${problems.join('; ')}`);
 }
 
 // Kyutai's configuration with only the three paths changed to the local files. Everything else, comments and the replace_characters block
 // included, stays byte for byte. Throws when a line to change is missing or ambiguous, or when the result is not the expected 6-layer model.
-export function relocateConfig(upstream) {
+export function relocateConfig(upstream, {tokenizer = 'tokenizer.json', lenient = false} = {}) {
   const edits = [
     ['weights_path', /^weights_path:.*$/gm, 'weights_path: model.safetensors'],
     ['weights_path_without_voice_cloning', /^weights_path_without_voice_cloning:.*$/gm, 'weights_path_without_voice_cloning: null'],
-    ['flow_lm.lookup_table.tokenizer_path', /^( +)tokenizer_path:.*$/gm, '$1tokenizer_path: tokenizer.json'],
+    ['flow_lm.lookup_table.tokenizer_path', /^( +)tokenizer_path:.*$/gm, `$1tokenizer_path: ${tokenizer}`],
   ];
   let text = upstream;
   for (const [label, pattern, replacement] of edits) {
     const found = text.match(pattern) ?? [];
+    if (lenient && label === 'weights_path_without_voice_cloning' && found.length === 0) continue;
     if (found.length !== 1) throw Error(`the configuration has ${found.length} "${label}" lines, expected exactly one`);
     text = text.replace(pattern, replacement);
   }
-  checkConfig(parseConfig(text));
+  checkConfig(parseConfig(text), {tokenizer, lenient});
   return text;
+}
+
+// ---- the Russian model's files -------------------------------------------------------------------------------------------------------
+
+/** The weights file and the tokenizer file the Russian configuration names, as paths inside the repository. */
+export {parseSums, repositoryPath};
+export function russianFileNames(configText) {
+  const config = parseConfig(configText);
+  return {weights: repositoryPath(config.weights_path, RUSSIAN_UPSTREAM.repo), tokenizer: repositoryPath(config.flow_lm?.lookup_table?.tokenizer_path, RUSSIAN_UPSTREAM.repo)};
+}
+// The stress table (bridge/russian_stress.py has the format): checked here without Python: the magic, the payload's length and its SHA-256, the group sizes.
+export function checkStressDictionary(buffer) {
+  if (buffer.length < 45 || buffer.subarray(0, 8).toString('latin1') !== 'AINPCRS1') throw Error('the stress table is not a Russian stress dictionary');
+  const length = buffer.readUInt32LE(40);
+  const payload = inflateSync(buffer.subarray(44), {maxOutputLength: 64 * 1024 * 1024});
+  if (payload.length !== length || createHash('sha256').update(payload).digest('hex') !== buffer.subarray(8, 40).toString('hex')) throw Error('the stress table is damaged');
+  let at = 1, entries = 0, bytes = 0;
+  for (let group = 0; group < payload[0]; group++, at += 5) { entries += payload.readUInt32LE(at + 1); bytes += payload.readUInt32LE(at + 1) * (payload[at] + 1); }
+  if (1 + payload[0] * 5 + bytes !== payload.length) throw Error('the stress table is damaged');
+  return {entries, payloadSha256: buffer.subarray(8, 40).toString('hex')};
 }
 
 // ---- notice and manifest -----------------------------------------------------------------------------------------------------------
 
+export const RUSSIAN_CHANGES_SENTENCE = 'Changes: model.safetensors and tokenizer.model are unmodified. inference.yaml is the model\'s config.yaml with the weight and tokenizer '
+  + 'paths changed to the local files in this folder. stress-ru.bin is new: the stress data below, converted into a compact lookup table.';
+
+// The stress data behind stress-ru.bin: where it comes from and under what licence (packaging/build-russian-stress.py, packaging/russian-stress/source.json).
+export const STRESS_DATA = {
+  name: 'openrussian.org dictionary data', repository: 'https://github.com/Badestrand/russian-dictionary', commit: '50e210c4803237779cb562bc1abcea529066031c',
+  website: 'https://en.openrussian.org', license: 'CC-BY-SA-4.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+};
+
+function buildRussianNotice(info) {
+  const up = info.fineTune;
+  const heading = 'Russian PocketTTS model (xVibePocketTTS)';
+  return [
+    heading,
+    '='.repeat(heading.length),
+    '',
+    `This model is xVibePocketTTS by GenVoice (https://huggingface.co/${up.repo}, tag ${up.tag}, revision ${up.revision}), a Russian-only full fine-tune of Kyutai's `
+      + `Pocket TTS (${up.base.repo}). The fine-tune's code is MIT-licensed. Its weights are derived from Kyutai's, which are licensed CC-BY-4.0 `
+      + '(https://creativecommons.org/licenses/by/4.0/) and copyrighted by Kyutai, so Kyutai\'s attribution and prohibited-use terms below apply to this model too.',
+    '',
+    'Attribution',
+    '-----------',
+    'Pocket TTS by Kyutai. https://kyutai.org/pocket-tts',
+    `Base model: https://huggingface.co/${up.base.repo} (CC-BY-4.0).`,
+    `Russian fine-tune: xVibePocketTTS by GenVoice. https://huggingface.co/${up.repo} (tag ${up.tag}, revision ${up.revision}). Code: MIT license.`,
+    'Pocket TTS code: https://github.com/kyutai-labs/pocket-tts (MIT license).',
+    `Stress data: ${STRESS_DATA.name}, ${STRESS_DATA.repository} (commit ${STRESS_DATA.commit}), ${STRESS_DATA.website}. CC-BY-SA-4.0 (${STRESS_DATA.licenseUrl}).`,
+    '',
+    "Kyutai's prohibited-use terms",
+    '-----------------------------',
+    'Kyutai publishes the original weights behind a Hugging Face access form that asks for acceptance of the terms below. They are repeated here',
+    'word for word, from the "Prohibited use" section of the model card, so they travel with this copy:',
+    '',
+    `"${PROHIBITED_USE}"`,
+    '',
+    'Stress marks (stress-ru.bin)',
+    '----------------------------',
+    'Written Russian has no stress marks. The model reads a stressed vowel as the vowel followed by U+0301, so the mod looks every word up in stress-ru.bin and',
+    'adds the mark before the line is spoken. The table is built from the openrussian.org dictionary data (' + STRESS_DATA.repository + ', commit ' + STRESS_DATA.commit + '),',
+    'which comes from various sources including Wiktionary and the corrections of the openrussian.org team and users, and is licensed CC-BY-SA-4.0',
+    `(${STRESS_DATA.licenseUrl}). stress-ru.bin is an adaptation of that data and is shared under the same license, CC-BY-SA-4.0.`,
+    'Changes to the data: the word forms were converted into a compact table of plain word to stressed letter. Words with the letter yo, words with one vowel',
+    'and words that have two different stresses in the data were left out.',
+    '',
+    'Changes',
+    '-------',
+    RUSSIAN_CHANGES_SENTENCE,
+    '',
+    'How this mod uses the model',
+    '---------------------------',
+    "The AI NPC Cyberpunk Mod uses this model only to speak replies in Russian in a character's voice cloned from the game's own dub of that character,",
+    'from the multilingual pack of the same language. Do not use it, with the mod or on its own, to impersonate a real person or to clone a real',
+    `person's voice without their explicit and lawful consent: Kyutai's terms above prohibit "voice impersonation or cloning without explicit and`,
+    `lawful consent".`,
+    ''].join('\r\n');
+}
+
 export function buildNotice(lang) {
   const info = languageInfo(lang);
+  if (info.fineTune) return buildRussianNotice(info);
   const {title, pocket} = info;
   return [
     `Kyutai Pocket TTS - ${title} model`,
@@ -279,12 +396,33 @@ export function buildNotice(lang) {
     ''].join('\r\n');
 }
 
-export function buildManifest(lang, files) {
+export function buildManifest(lang, files, stress = null) {
   const info = languageInfo(lang);
-  const order = ['model.safetensors', 'tokenizer.json', 'inference.yaml', 'NOTICE.txt'];
+  const order = manifestFiles(lang);
   for (const name of order) {
     const entry = files?.[name];
     if (!entry || !Number.isInteger(entry.bytes) || entry.bytes <= 0 || !/^[0-9a-f]{64}$/.test(entry.sha256)) throw Error(`no size and sha256 for ${name}`);
+  }
+  if (info.fineTune) {
+    if (!stress?.entries || !/^[0-9a-f]{64}$/.test(stress.payloadSha256 ?? '')) throw Error('no stress table description');
+    const up = info.fineTune;
+    return {
+      version: 1,
+      kind: 'pocket-language-model',
+      language: lang,
+      languageTag: info.tag,
+      pocketLanguage: info.pocket,
+      built: info.built,
+      pocketSource: POCKET_SOURCE,
+      layers: LAYERS,
+      files: Object.fromEntries(order.map(name => [name, {bytes: files[name].bytes, sha256: files[name].sha256}])),
+      upstream: {repo: up.repo, revision: up.revision, tag: up.tag, license: up.license, codeLicense: up.codeLicense, base: up.base},
+      tokenizer: {file: info.tokenizer, kind: 'sentencepiece'},
+      stress: {file: info.stress, entries: stress.entries, payloadSha256: stress.payloadSha256, format: 'AINPCRS1', accent: 'U+0301',
+        source: {repository: STRESS_DATA.repository, commit: STRESS_DATA.commit, license: STRESS_DATA.license}},
+      needsVoicePack: {language: lang, minManifestVersion: 1},
+      changes: 'inference.yaml: weight and tokenizer paths point at the local files; the weights and the tokenizer are unmodified; stress-ru.bin is the stress table built from the openrussian.org data',
+    };
   }
   return {
     version: 1,
@@ -317,30 +455,42 @@ export const packBase = lang => pocketModelTitle(RELEASE_CONFIG, languageInfo(la
 
 // The zip's entries in order: the install note, then the five pack files (sorted by name).
 export function zipEntryNames(lang) {
-  languageInfo(lang);
+  const info = languageInfo(lang);
   const folder = `${MODEL_ROOT}/${lang}`;
-  return [INSTALL_NOTE_NAME, ...['NOTICE.txt', 'inference.yaml', 'model.safetensors', 'pocket-model.json', 'tokenizer.json'].map(name => `${folder}/${name}`).sort(byName)];
+  return [INSTALL_NOTE_NAME, ...['NOTICE.txt', 'inference.yaml', 'model.safetensors', 'pocket-model.json', tokenizerName(lang), ...(info.stress ? [info.stress] : [])].map(name => `${folder}/${name}`).sort(byName)];
 }
 
 // Builds one language's zip from the model and tokenizer files and the upstream configuration text. Returns what the caller prints.
-// `pins` (tests only) replaces the pinned size, sha256 and tokenizer git id, so the build can run on tiny stand-in files.
-export async function buildLanguage(lang, {modelPath, tokenizerPath, configText, out, pins}) {
+// `pins` (tests only for Kyutai's languages) replaces the pinned size, sha256 and tokenizer git id, so the build can run on tiny stand-in files.
+// The Russian model has no pin of Kyutai's kind: `pins` = {model: {bytes, sha256}, tokenizerSha256} comes from the repository's checksum list (see main), and
+// `stressPath` is the stress table (packaging/russian-stress/stress-ru.bin).
+export async function buildLanguage(lang, {modelPath, tokenizerPath, configText, out, pins, stressPath}) {
   const info = {...languageInfo(lang), ...pins};
+  const tokenizerFile = tokenizerName(lang);
   const tokenizer = await readFile(tokenizerPath);
-  if (gitBlobId(tokenizer) !== info.tokenizerGit) throw Error(`${lang}: tokenizer.json is not the pinned file (git id ${gitBlobId(tokenizer)})`);
+  if (info.fineTune) {
+    if (!info.model?.sha256 || !info.tokenizerSha256) throw Error(`${lang}: the weights and the tokenizer have no checksum to be checked against`);
+    if (sha256Of(tokenizer) !== info.tokenizerSha256) throw Error(`${lang}: ${tokenizerFile} is not the expected file (sha256 ${sha256Of(tokenizer)})`);
+  } else if (gitBlobId(tokenizer) !== info.tokenizerGit) throw Error(`${lang}: tokenizer.json is not the pinned file (git id ${gitBlobId(tokenizer)})`);
   const modelStat = await stat(modelPath);
-  if (modelStat.size !== info.model.bytes) throw Error(`${lang}: model.safetensors is ${modelStat.size} bytes, expected ${info.model.bytes}`);
+  if (info.model.bytes != null && modelStat.size !== info.model.bytes) throw Error(`${lang}: model.safetensors is ${modelStat.size} bytes, expected ${info.model.bytes}`);
   const modelSha = await sha256File(modelPath);
   if (modelSha !== info.model.sha256) throw Error(`${lang}: model.safetensors sha256 ${modelSha} differs from the pinned ${info.model.sha256}`);
+  let stress = null, stressBuffer = null;
+  if (info.stress) {
+    stressBuffer = await readFile(stressPath ?? STRESS_DEFAULT_PATH);
+    stress = checkStressDictionary(stressBuffer);
+  }
 
-  const yaml = Buffer.from(relocateConfig(configText), 'utf8');
+  const yaml = Buffer.from(relocateConfig(configText, {tokenizer: tokenizerFile, lenient: Boolean(info.fineTune)}), 'utf8');
   const notice = Buffer.from(buildNotice(lang), 'utf8');
   const manifest = buildManifest(lang, {
     'model.safetensors': {bytes: modelStat.size, sha256: modelSha},
-    'tokenizer.json': {bytes: tokenizer.length, sha256: sha256Of(tokenizer)},
+    [tokenizerFile]: {bytes: tokenizer.length, sha256: sha256Of(tokenizer)},
     'inference.yaml': {bytes: yaml.length, sha256: sha256Of(yaml)},
     'NOTICE.txt': {bytes: notice.length, sha256: sha256Of(notice)},
-  });
+    ...(stressBuffer ? {[info.stress]: {bytes: stressBuffer.length, sha256: sha256Of(stressBuffer)}} : {}),
+  }, stress);
   const manifestBuffer = Buffer.from(manifestText(manifest), 'utf8');
 
   const folder = `${MODEL_ROOT}/${lang}`;
@@ -350,7 +500,8 @@ export async function buildLanguage(lang, {modelPath, tokenizerPath, configText,
     [`${folder}/inference.yaml`]: {buffer: yaml},
     [`${folder}/model.safetensors`]: {source: modelPath},
     [`${folder}/pocket-model.json`]: {buffer: manifestBuffer},
-    [`${folder}/tokenizer.json`]: {buffer: tokenizer},
+    [`${folder}/${tokenizerFile}`]: {buffer: tokenizer},
+    ...(stressBuffer ? {[`${folder}/${info.stress}`]: {buffer: stressBuffer}} : {}),
   };
   const names = zipEntryNames(lang);
   if (names.length !== Object.keys(sources).length) throw Error('the entry list and the sources disagree');
@@ -359,7 +510,7 @@ export async function buildLanguage(lang, {modelPath, tokenizerPath, configText,
   await mkdir(folderOut, {recursive: true});
   const base = packBase(lang);
   const temporary = resolve(folderOut, `${base}.zip.tmp`);
-  const writer = await ZipWriter.create(temporary, {timestamp: new Date(`${BUILT}T00:00:00Z`)});
+  const writer = await ZipWriter.create(temporary, {timestamp: new Date(`${info.built ?? BUILT}T00:00:00Z`)});
   const files = [];
   let archive;
   try {
@@ -440,12 +591,57 @@ async function downloadPublic(lang, cacheRoot) {
   }
 }
 
+// ---- the Russian model's source folder ---------------------------------------------------------------------------------------------------
+
+const russianUrl = path => `https://huggingface.co/${RUSSIAN_UPSTREAM.repo}/resolve/${RUSSIAN_UPSTREAM.revision}/${path.split('/').map(encodeURIComponent).join('/')}`;
+
+// Fetches what is missing of the repository's files into the folder: config.yaml and the checksum list first (they name the rest), then the weights and the tokenizer.
+// The repository is public: a token is sent only when one is given. Every file is checked against the checksum list by main() afterwards.
+async function downloadRussian(folder, token) {
+  const headers = token ? {Authorization: `Bearer ${token}`} : {};
+  const fetchInto = async path => {
+    const destination = resolve(folder, ...path.split('/'));
+    if (await exists(destination)) return;
+    const got = await fetchToFile(russianUrl(path), destination, headers);
+    await rename(got.part, destination);
+  };
+  await fetchInto('config.yaml');
+  await fetchInto(UPSTREAM_SUMS);
+  const names = russianFileNames(await readFile(resolve(folder, 'config.yaml'), 'utf8'));
+  await fetchInto(names.tokenizer);
+  await fetchInto(names.weights);
+}
+
+/** Reads the Russian source folder and checks every file against the repository's checksum list and against the pins. Returns what buildLanguage takes. */
+export async function readRussianSource(folder) {
+  const read = async path => readFile(resolve(folder, ...path.split('/')));
+  const configText = (await read('config.yaml')).toString('utf8');
+  const names = russianFileNames(configText);
+  const sums = parseSums((await read(UPSTREAM_SUMS)).toString('utf8'));
+  const modelPath = resolve(folder, ...names.weights.split('/')), tokenizerPath = resolve(folder, ...names.tokenizer.split('/'));
+  const observed = {};
+  for (const [label, path, relative] of [['weights', modelPath, names.weights], ['tokenizer', tokenizerPath, names.tokenizer], ['config.yaml', resolve(folder, 'config.yaml'), 'config.yaml']]) {
+    if (!await exists(path)) throw Error(`${label} (${relative}) is missing from ${folder}`);
+    if (!sums[relative]) throw Error(`the repository's checksum list has no line for ${relative}`);
+    observed[label] = await sha256File(path);
+    if (observed[label] !== sums[relative]) throw Error(`${relative} does not match the repository's checksum list (${observed[label]} against ${sums[relative]})`);
+  }
+  const model = {bytes: (await stat(modelPath)).size, sha256: observed.weights};
+  const pinned = RUSSIAN_UPSTREAM.pins;
+  const problems = [];
+  if (pinned.model && (pinned.model.sha256 !== model.sha256 || (pinned.model.bytes != null && pinned.model.bytes !== model.bytes))) problems.push(`the weights are ${model.bytes} bytes, sha256 ${model.sha256}; pinned ${pinned.model.bytes} bytes, ${pinned.model.sha256}`);
+  if (pinned.tokenizer && pinned.tokenizer.sha256 !== observed.tokenizer) problems.push(`the tokenizer has sha256 ${observed.tokenizer}; pinned ${pinned.tokenizer.sha256}`);
+  if (problems.length) throw Error(`${folder} is not the pinned release: ${problems.join('; ')}`);
+  return {modelPath, tokenizerPath, configText, pins: {model, tokenizerSha256: observed.tokenizer},
+    unpinned: [...(pinned.model ? [] : [`model: {bytes: ${model.bytes}, sha256: '${model.sha256}'}`]), ...(pinned.tokenizer ? [] : [`tokenizer: {sha256: '${observed.tokenizer}'}`])]};
+}
+
 function parseArguments(argv) {
   const options = {download: false};
   for (let i = 0; i < argv.length; i++) {
     const argument = argv[i];
     if (argument === '--download') options.download = true;
-    else if (['--languages', '--gated-cache', '--out', '--token-file'].includes(argument)) {
+    else if (['--languages', '--gated-cache', '--out', '--token-file', '--russian-source', '--stress-dict'].includes(argument)) {
       if (i + 1 >= argv.length) throw Error(`${argument} needs a value`);
       options[argument.slice(2).replace(/-(\w)/g, (_, c) => c.toUpperCase())] = argv[++i];
     } else throw Error(`unknown argument ${argument}`);
@@ -455,15 +651,20 @@ function parseArguments(argv) {
 
 export async function main(argv) {
   const options = parseArguments(argv);
-  if (!options.gatedCache || !options.out) throw Error('usage: node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out <folder> [--token-file <path>] [--download]');
+  const usage = 'usage: node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out <folder> [--token-file <path>] [--download]\n'
+    + '       node packaging/build-pocket-models.mjs --languages ru --russian-source <folder> --out <folder> [--stress-dict <file>] [--download]';
+  if (!options.out) throw Error(usage);
   const languages = (options.languages ?? Object.keys(LANGUAGES).join(',')).split(',').map(value => value.trim()).filter(Boolean);
   languages.forEach(languageInfo);
-  const cacheRoot = resolve(options.gatedCache);
+  const kyutai = languages.filter(lang => !languageInfo(lang).fineTune), russian = languages.filter(lang => languageInfo(lang).fineTune);
+  if (kyutai.length && !options.gatedCache) throw Error(usage);
+  if (russian.length && !options.russianSource) throw Error(usage);
+  const cacheRoot = options.gatedCache ? resolve(options.gatedCache) : null;
   const out = resolve(options.out);
 
   let token = null;
   const missingModels = [];
-  for (const lang of languages) if (!await exists(cachePaths(cacheRoot, lang).model)) missingModels.push(lang);
+  for (const lang of kyutai) if (!await exists(cachePaths(cacheRoot, lang).model)) missingModels.push(lang);
   if (options.download) {
     if (missingModels.length) {
       if (!options.tokenFile) throw Error('--download needs --token-file for the gated models');
@@ -471,11 +672,12 @@ export async function main(argv) {
       if (!token) throw Error('the token file is empty');
     }
     for (const lang of missingModels) await downloadModel(lang, cacheRoot, token);
-    for (const lang of languages) await downloadPublic(lang, cacheRoot);
+    for (const lang of kyutai) await downloadPublic(lang, cacheRoot);
+    if (russian.length) await downloadRussian(resolve(options.russianSource), options.tokenFile ? (await readFile(resolve(options.tokenFile), 'utf8')).trim() : null);
   }
 
   const missing = [];
-  for (const lang of languages) {
+  for (const lang of kyutai) {
     const paths = cachePaths(cacheRoot, lang);
     for (const [label, path] of [['model', paths.model], ['tokenizer', paths.tokenizer], ['configuration', paths.config]]) if (!await exists(path)) missing.push(`${lang} ${label}: ${path}`);
   }
@@ -483,9 +685,15 @@ export async function main(argv) {
 
   const results = [];
   for (const lang of languages) {
-    const paths = cachePaths(cacheRoot, lang);
-    const configText = await readFile(paths.config, 'utf8');
-    results.push(await buildLanguage(lang, {modelPath: paths.model, tokenizerPath: paths.tokenizer, configText, out}));
+    if (languageInfo(lang).fineTune) {
+      const source = await readRussianSource(resolve(options.russianSource));
+      if (source.unpinned.length) console.error(`the Russian weights and tokenizer are not pinned in RUSSIAN_UPSTREAM.pins yet (checked against the repository's checksum list only). Pin them:\n  ${source.unpinned.join('\n  ')}`);
+      results.push(await buildLanguage(lang, {...source, out, stressPath: options.stressDict ? resolve(options.stressDict) : undefined}));
+    } else {
+      const paths = cachePaths(cacheRoot, lang);
+      const configText = await readFile(paths.config, 'utf8');
+      results.push(await buildLanguage(lang, {modelPath: paths.model, tokenizerPath: paths.tokenizer, configText, out}));
+    }
     console.log(JSON.stringify(results.at(-1)));
   }
   return results;

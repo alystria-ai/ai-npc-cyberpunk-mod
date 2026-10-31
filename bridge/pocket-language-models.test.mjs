@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, mkdir, rm, writeFile, utimes} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
-import {PocketLanguageModels, PocketLanguageNotice, POCKET_LANGUAGES, NIGHT_CITY_RESPELLING, loadPocketModel, pocketSpokenText, pocketFolderOfTag} from './pocket-language-models.mjs';
+import {PocketLanguageModels, PocketLanguageNotice, POCKET_LANGUAGES, POCKET_MODEL_FILES, POCKET_TOKENIZERS, NIGHT_CITY_RESPELLING, loadPocketModel, pocketSpokenText, pocketFolderOfTag, pocketModelFiles, pocketTokenizerOf} from './pocket-language-models.mjs';
 import {planTurnVoice, replyVoice} from './multilingual.mjs';
 
 const sha = character => character.repeat(64);
@@ -221,4 +221,78 @@ test('the files are touched only through the injected access, and the stamp chan
   await utimes(resolve(directory, 'pocket-model.json'), new Date(Date.now() + 5000), new Date(Date.now() + 5000));
   const after = await found.look();
   assert.notEqual(before[0].stamp, after[0].stamp);
+}));
+
+// ---- Russian: tokenizer.model (SentencePiece) instead of tokenizer.json, and the stress table as one more file -----------------------------------------
+
+// A Russian model folder with small stand-in files, listed the way packaging/build-pocket-models.mjs lists them.
+async function russianModel(root, {mutate, skip = []} = {}) {
+  const directory = resolve(root, 'multilingual-pocket', 'ru');
+  await mkdir(directory, {recursive: true});
+  const bytes = {'model.safetensors': 64, 'tokenizer.model': 9, 'inference.yaml': 12, 'NOTICE.txt': 5, 'stress-ru.bin': 21};
+  const hashes = {'model.safetensors': sha('a'), 'tokenizer.model': sha('b'), 'inference.yaml': sha('c'), 'NOTICE.txt': sha('d'), 'stress-ru.bin': sha('e')};
+  for (const [name, size] of Object.entries(bytes)) if (!skip.includes(name)) await writeFile(resolve(directory, name), Buffer.alloc(size, 1));
+  const manifest = {version: 1, kind: 'pocket-language-model', language: 'ru', languageTag: 'ru', pocketLanguage: 'russian', built: '2026-10-31', pocketSource: '3.3.0', layers: 6,
+    files: Object.fromEntries(Object.entries(bytes).map(([name, size]) => [name, {bytes: size, sha256: hashes[name]}]))};
+  mutate?.(manifest);
+  await writeFile(resolve(directory, 'pocket-model.json'), JSON.stringify(manifest));
+  return directory;
+}
+
+test('ru is in the list of Pocket languages with its pack folder, tag, name and the files of its model', () => {
+  assert.deepEqual(Object.keys(POCKET_LANGUAGES), ['fr', 'it', 'de', 'es-es', 'pt-br', 'ru']);
+  assert.equal(POCKET_LANGUAGES.ru.tag, 'ru');
+  assert.equal(POCKET_LANGUAGES.ru.name, 'Russian');
+  assert.equal(pocketFolderOfTag('ru'), 'ru');
+  assert.equal(pocketTokenizerOf('ru'), 'tokenizer.model');
+  assert.equal(pocketTokenizerOf('fr'), 'tokenizer.json');
+  assert.deepEqual(POCKET_TOKENIZERS, ['tokenizer.json', 'tokenizer.model']);
+  assert.deepEqual(pocketModelFiles('ru'), ['model.safetensors', 'tokenizer.model', 'inference.yaml', 'NOTICE.txt', 'stress-ru.bin']);
+  assert.deepEqual(pocketModelFiles('fr'), [...POCKET_MODEL_FILES]);
+  assert.deepEqual(POCKET_MODEL_FILES, ['model.safetensors', 'tokenizer.json', 'inference.yaml', 'NOTICE.txt'], 'the default list is unchanged');
+  assert.equal(Object.hasOwn(NIGHT_CITY_RESPELLING, 'ru'), false);
+  assert.equal(pocketSpokenText('ru', 'Night City'), 'Night City', 'the Russian text is not respelled by the bridge (the worker marks the stress)');
+});
+
+test('a Russian model is described with the tokenizer name and the hash of every file the worker checks', async () => fixture(async root => {
+  await russianModel(root);
+  const found = new PocketLanguageModels({roots: [root], packs: packs(root, ['ru'])});
+  const report = await found.scan();
+  assert.deepEqual(report.problems, []);
+  assert.deepEqual(found.model('ru').expected, {sha256: sha('a'), tokenizerName: 'tokenizer.model', tokenizerSha256: sha('b'), configSha256: sha('c'), stressSha256: sha('e')});
+  assert.deepEqual(Object.keys(found.model('ru').files), ['model.safetensors', 'tokenizer.model', 'inference.yaml', 'NOTICE.txt', 'stress-ru.bin']);
+  assert.equal(found.speaks('ru'), true);
+  assert.equal(found.packMissing('ru'), false);
+  assert.equal(found.entry('ru', 'panam-palmer').key, 'panam-palmer');
+  assert.equal(report.models[0].tag, 'ru');
+  assert.equal(report.models[0].usable, true);
+  // A French model beside it keeps its own description.
+  await model(root, 'fr');
+  await found.scan();
+  assert.deepEqual(found.model('fr').expected, {sha256: sha('a'), tokenizerSha256: sha('b'), configSha256: sha('c')});
+}));
+
+test('a Russian model whose manifest or folder lacks the tokenizer.model or the stress table is not used, and the model without its pack is packMissing', async () => fixture(async root => {
+  for (const [label, options, reason] of [
+    ['a tokenizer.json in the manifest instead of tokenizer.model', {mutate: manifest => { manifest.files['tokenizer.json'] = manifest.files['tokenizer.model']; delete manifest.files['tokenizer.model']; }}, /does not describe tokenizer\.model/],
+    ['no stress table in the manifest', {mutate: manifest => { delete manifest.files['stress-ru.bin']; }}, /does not describe stress-ru\.bin/],
+    ['no stress table in the folder', {skip: ['stress-ru.bin']}, /1 of 5 files unusable \(stress-ru\.bin: file missing/],
+    ['no tokenizer.model in the folder', {skip: ['tokenizer.model']}, /1 of 5 files unusable \(tokenizer\.model: file missing/],
+    ['a stress table of another size', {mutate: manifest => { manifest.files['stress-ru.bin'].bytes = 22; }}, /stress-ru\.bin: 21 bytes, expected 22/],
+    ['a table that is too large', {mutate: manifest => { manifest.files['stress-ru.bin'].bytes = 17 * 1024 * 1024; }}, /does not describe stress-ru\.bin/],
+  ]) {
+    await rm(resolve(root, 'multilingual-pocket'), {recursive: true, force: true});
+    const directory = await russianModel(root, options);
+    const result = await loadPocketModel({directory, language: 'ru'});
+    assert.match(result.problem ?? '', reason, label);
+  }
+  await rm(resolve(root, 'multilingual-pocket'), {recursive: true, force: true});
+  await russianModel(root);
+  const found = new PocketLanguageModels({roots: [root], packs: packs(root, [])});
+  await found.scan();
+  assert.equal(found.speaks('ru'), false);
+  assert.equal(found.packMissing('ru'), true, 'the notice for a missing pack is the one of this language');
+  const notice = new PocketLanguageNotice();
+  notice.note('ru');
+  assert.deepEqual(notice.take(), {keyNotice: 'pocket-language-pack', keyNoticeLanguage: 'ru'});
 }));

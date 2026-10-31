@@ -78,6 +78,24 @@ function harness({timers} = {}) {
     close: async () => { const closing = client.close(); child.emit('close', 0); await closing; }};
 }
 
+test('a reply in Russian: the swap carries the tokenizer name and every hash the worker checks, and the text goes to the worker as written', async () => {
+  const h = harness(), texts = [];
+  await h.client.start();
+  const russian = {sha256: hash('1'), tokenizerName: 'tokenizer.model', tokenizerSha256: hash('2'), configSha256: hash('3'), stressSha256: hash('4')};
+  const row = {reference: `runtime/voice-references/multilingual/ru/picked/${french}.wav`, sha256: hash('9'), transcript: 'Привет, давно не виделись.'};
+  const reply = h.client.synthesizeStream(french, 'Ночной город сегодня тихий.', {onPcm: () => {}, pocketLanguage: {tag: 'ru', folder: 'ru', expected: russian, voices: {[french]: row}}});
+  await h.serve(0, {texts});
+  const result = await reply;
+  const swap = h.requests[0];
+  assert.equal(swap.op, 'language');
+  assert.equal(swap.language, 'ru');
+  assert.deepEqual(swap.expected, russian, 'the worker is told the tokenizer file and the table to check');
+  assert.deepEqual(swap.voices, {[french]: row});
+  assert.deepEqual(texts, ['Ночной город сегодня тихий.'], 'the stress marks are added in the worker, not by the bridge');
+  assert.equal(result.language, 'ru');
+  assert.equal(h.client.language, 'ru');
+});
+
 test('a reply in a language: the model is swapped in first, the voice is the pack clip, the text is respelled, and the next reply in it needs no swap', async () => {
   const h = harness(), packets = [], texts = [];
   await h.client.start();

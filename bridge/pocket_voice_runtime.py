@@ -522,21 +522,45 @@ def checked_config(assets, yaml_load=None):
     # The upstream loader resolves YAML paths from CWD. Make a private copy;
     # never mutate downloaded configs/receipts or load another remote asset.
     config = copy.deepcopy(config)
+    # The tokenizer is tokenizer.json (Hugging Face tokenizers, the default) or tokenizer.model (SentencePiece, the Russian model). The upstream
+    # loader picks the backend from the config's `tokenizer` field and the file's suffix, so a SentencePiece file is only taken when the config says so.
+    tokenizer = tokenizer_asset(assets)
+    table = config["flow_lm"].get("lookup_table")
+    if not isinstance(table, dict):
+        raise ValueError("Pocket inference config is incomplete")
+    if tokenizer == "tokenizer.model" and table.get("tokenizer") != "sentencepiece":
+        raise ValueError("Pocket tokenizer.model needs a configuration that says sentencepiece")
     config["weights_path"] = str(assets["model.safetensors"])
     config["weights_path_without_voice_cloning"] = None
     config["flow_lm"]["weights_path"] = None
     config["mimi"]["weights_path"] = None
-    config["flow_lm"]["lookup_table"]["tokenizer_path"] = str(assets["tokenizer.json"])
+    config["flow_lm"]["lookup_table"]["tokenizer_path"] = str(assets[tokenizer])
     return config
 
 
+# The two tokenizer files a Pocket model can ship (name -> upstream backend). Exactly one of them is among a model's assets.
+TOKENIZER_ASSETS = {"tokenizer.json": "tokenizers", "tokenizer.model": "sentencepiece"}
+
+
+def tokenizer_asset(assets):
+    """The name of the tokenizer file among `assets`: tokenizer.json or tokenizer.model."""
+    names = [name for name in TOKENIZER_ASSETS if name in assets]
+    if len(names) != 1:
+        raise ValueError("Pocket needs exactly one tokenizer asset")
+    return names[0]
+
+
 # ---- language models (docs/POCKET_LANGUAGE_MODELS.md) ----------------------------------------------------------------------------
-# A PocketTTS model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json, inference.yaml) the bridge has
+# A PocketTTS model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json or tokenizer.model, inference.yaml) the bridge has
 # checked; the worker checks the files against the hashes the bridge sends before it loads them, and a language's voices are clips of the multilingual pack of
 # the same language (<referenceDirectory>/multilingual/<language>/), named like every other reference.
 LANGUAGE_FOLDER = "multilingual-pocket"
-LANGUAGES = ("fr", "it", "de", "es-es", "pt-br")
+LANGUAGES = ("fr", "it", "de", "es-es", "pt-br", "ru")
+# The assets of a model by default: the hash field of the bridge's `expected` that each file is checked against. A model with a SentencePiece tokenizer names
+# it in `expected["tokenizerName"]` (tokenizer.model, the Russian model) and its hash is still `tokenizerSha256`; a language with extra files has them in
+# LANGUAGE_EXTRA_ASSETS (Russian: the stress table, docs/POCKET_TTS_RUNTIME.md "Russian").
 LANGUAGE_ASSETS = {"model.safetensors": "sha256", "inference.yaml": "configSha256", "tokenizer.json": "tokenizerSha256"}
+LANGUAGE_EXTRA_ASSETS = {"ru": {"stress-ru.bin": "stressSha256"}}
 
 
 def language_valid(value):
@@ -567,18 +591,63 @@ def digest_known_file(path):
 
 def inspect_language_export(paths, language, expected, *, yaml_load=None):
     """Verify one language model before any of it is loaded. Returns the relocated config. `expected` has the three SHA-256 values."""
+    fields = language_asset_fields(language, expected)
+    root = language_directory(paths, language)
+    assets = {name: local_asset(root, name) for name in fields}
+    for name, field in fields.items():
+        if digest_known_file(assets[name]) != expected[field]:
+            raise ValueError("PocketTTS model asset differs from its identity")
+    return checked_config({name: path for name, path in assets.items() if name in ("model.safetensors", "inference.yaml", *TOKENIZER_ASSETS)}, yaml_load)
+
+
+def language_asset_fields(language, expected):
+    """{asset file name: the field of `expected` that holds its SHA-256} for one language model, after checking that every hash is there."""
     if not language_valid(language):
         raise ValueError("Pocket has no model for this language")
-    if not isinstance(expected, dict) or any(not sha(expected.get(field)) for field in LANGUAGE_ASSETS.values()):
+    if not isinstance(expected, dict):
         raise ValueError("Pocket needs hashes for every language model asset")
+    tokenizer = expected.get("tokenizerName", "tokenizer.json")
+    if tokenizer not in TOKENIZER_ASSETS:
+        raise ValueError("Pocket has no such tokenizer asset")
+    fields = {"model.safetensors": "sha256", "inference.yaml": "configSha256", tokenizer: "tokenizerSha256", **LANGUAGE_EXTRA_ASSETS.get(language, {})}
+    if any(not sha(expected.get(field)) for field in fields.values()):
+        raise ValueError("Pocket needs hashes for every language model asset")
+    return fields
+
+
+def language_directory(paths, language):
     root = plain_absolute(str(Path(paths["referenceDirectory"]) / LANGUAGE_FOLDER / language), "language model directory")
     if not root.is_dir() or not root.is_relative_to(paths["referenceDirectory"]):
         raise ValueError("PocketTTS model is missing")
-    assets = {name: local_asset(root, name) for name in LANGUAGE_ASSETS}
-    for name, field in LANGUAGE_ASSETS.items():
-        if digest_known_file(assets[name]) != expected[field]:
-            raise ValueError("PocketTTS model asset differs from its identity")
-    return checked_config(assets, yaml_load)
+    return root
+
+
+# ---- Russian stress marks (bridge/russian_stress.py) ------------------------------------------------------------------------------
+# The Russian model reads a stressed vowel as the vowel and U+0301. Its pack ships stress-ru.bin, a table of plain word -> stressed letter. It is read when the
+# Russian model becomes resident (never at start, never for a player who does not speak Russian) and dropped when another model replaces it.
+LANGUAGE_STRESS = {"ru": "stress-ru.bin"}
+
+
+def load_language_stress(paths, language):
+    """The stress table of a language that has one, read from the folder of its model (the file was checked against its hash by inspect_language_export), or
+    None: for a language without a table, and when the table cannot be read (the line is then spoken with the written "+" marks only; the voice never stops for it)."""
+    name = LANGUAGE_STRESS.get(language)
+    if name is None:
+        return None
+    try:
+        import russian_stress
+        return russian_stress.StressDictionary.load(local_asset(language_directory(paths, language), name))
+    except (OSError, ValueError, ImportError):
+        return None
+
+
+def language_text(language, text, stress=None):
+    """The text the model of `language` is given for a line. Only Russian changes it: written "+" marks become U+0301 and the table adds the marks that are
+    missing (a dictionary pass over the line, about half a millisecond). Every other language gets the line as it is."""
+    if language != "ru":
+        return text
+    import russian_stress
+    return russian_stress.prepare_text(text, stress)
 
 
 def new_language_registry(registry, language, model_sha256):

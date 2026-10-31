@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "format": "AINPCRS1",
+  "source": {
+    "name": "openrussian.org dictionary data",
+    "repository": "https://github.com/Badestrand/russian-dictionary",
+    "commit": "50e210c4803237779cb562bc1abcea529066031c",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "website": "https://en.openrussian.org",
+    "files": {
+      "nouns.csv": "c388f9e6dde51932832be8d7e9afdbe9f0acee72fcf70677f0fe25ea61293c84",
+      "verbs.csv": "8659de6799b949fb35f080b08088fb7d347ed300490954ebb380a31642646e1d",
+      "adjectives.csv": "89ab5d10dcd2f21f6b485de704aef372f32251468e3aa96f18b21e259f26b80a",
+      "others.csv": "9f22a16b17fc9a564298112168b667fced11aafb254ccebf5b7544fc37cdaa92",
+      "LICENSE": "7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297"
+    }
+  },
+  "counts": {
+    "forms": 778369,
+    "words": 536225,
+    "ambiguous": 6405,
+    "entries": 529820,
+    "ambiguousPolicy": "skip"
+  },
+  "payloadSha256": "e1f93352153c3d56e76123c8db921d309f2e7177333928febe6da8a67e124704",
+  "bytes": 1515372,
+  "file": "stress-ru.bin"
+}

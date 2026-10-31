@@ -40,10 +40,10 @@ for (const code of CODES) {
   });
 }
 
-// The Pocket "multilingual pack missing" notices (ids pocket-pack-fr/it/de/es/pt): {language} is the language name in the menu
-// language. Each must fit two lines with every one of the five names, in English and in all fifteen translations.
+// The Pocket "multilingual pack missing" notices (ids pocket-pack-fr/it/de/es/pt/ru): {language} is the language name in the menu
+// language. Each must fit two lines with every one of the six names, in English and in all fifteen translations.
 const POCKET_PACK = '{language} replies show as text: the {language} multilingual pack is missing.';
-const LANGUAGES = ['French', 'Italian', 'German', 'Spanish', 'Portuguese'];
+const LANGUAGES = ['French', 'Italian', 'German', 'Spanish', 'Portuguese', 'Russian'];
 const fillIn = (text, name) => text.replaceAll('{language}', name);
 
 test('the English Pocket pack notice fits two lines with each language name and is what the game shows', () => {

@@ -6514,7 +6514,7 @@ local function keyReplyNotice(reply)
     end
     -- The PocketTTS model for a language is installed, but the multilingual pack it clones from is not: that language's replies show as text. Said once per language per game session.
     if reply.keyNotice == 'pocket-language-pack' then
-        local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
+        local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese'), ru = ui.t('Russian')}
         local language = names[reply.keyNoticeLanguage]
         if language then
             return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} multilingual pack is missing.', {language = language})

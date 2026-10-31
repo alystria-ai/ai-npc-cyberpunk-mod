@@ -229,6 +229,7 @@ install test, the rebuild and Pocket model tools) and `packaging/upload-packs.py
 | Microphone, European (Parakeet TDT 0.6B v3) | `mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip` | `mic/MicPack-European.zip` |
 | Microphone, Asian (SenseVoice Small, 234M) | `mic/MicPack-Asian-SenseVoice-Small-234M.zip` | `mic/MicPack-Asian.zip` |
 | PocketTTS model per language (Pocket TTS 100M) | `multilingual/PocketTTS-Model-100M-<Language>.zip` | `multilingual/PocketTTS-Model-<Language>.zip` |
+| PocketTTS model, Russian (xVibePocketTTS, a Pocket TTS fine-tune, 90M) | `multilingual/PocketTTS-Model-90M-Russian.zip` (`languagePrefixes` of `pocketModels` in the config) | none, new |
 
 The Scripts, Runtime, `Voices-<Language>` (voice packs, no model) and `Runtime-Update` zips keep their names. A build writes `<title>-<version>.zip` with the new title and
 publishes it as `<folder>/<title>.zip`. What did not change:

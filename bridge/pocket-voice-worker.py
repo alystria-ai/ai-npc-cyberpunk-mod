@@ -24,7 +24,7 @@ import time
 from pocket_voice_runtime import (
     MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
     SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, add_language_voices, apply_voices, cpu_environment, inspect_language_export,
-    language_valid, new_language_registry, read_json, spelled_inside, text_valid, usvfs_active, validate_config,
+    language_text, language_valid, load_language_stress, new_language_registry, read_json, spelled_inside, text_valid, usvfs_active, validate_config,
     CarrierTrimmer, TRIM_FADE_MS, fade_out_pcm, frames_of, pcm_bytes, pcm_samples, plan_short_line,
 )
 
@@ -825,7 +825,7 @@ def main():
         # Language models (docs/POCKET_LANGUAGE_MODELS.md). One model is resident at a time: the English student, or the model of one language, swapped
         # in place by the `language` command. The English registry and its prepared voices are kept while a language is active (a prepared state is
         # plain tensors of the English weights, which are loaded again from the same file), so going back costs the model load and nothing else.
-        lang = {"tag": None, "registry": None, "cache": None, "sha256": None}
+        lang = {"tag": None, "registry": None, "cache": None, "sha256": None, "stress": None}
         # The prepared voices (plain tensors, tied to the language model's weights and the clip's hash) of the last languages left, so going back to one does not encode its
         # clips again. Bounded: a few states of the last LANGUAGE_STASH languages, and nothing else of a language survives a swap.
         stash = OrderedDict()
@@ -881,7 +881,8 @@ def main():
                     stash.popitem(last=False)
             model = None
             lang["tag"] = None
-            lang["registry"] = lang["cache"] = lang["sha256"] = None
+            # The Russian stress table (about 4 MB) goes with the Russian model: it is read when that model is resident and nowhere else.
+            lang["registry"] = lang["cache"] = lang["sha256"] = lang["stress"] = None
             gc.collect()
             try:
                 model = load_model(config if target else registry["inference"])
@@ -894,6 +895,7 @@ def main():
                 raise
             if target:
                 lang["tag"], lang["sha256"] = target, request["expected"]["sha256"]
+                lang["stress"] = load_language_stress(registry["paths"], target)
                 lang["registry"] = new_language_registry(registry, target, lang["sha256"])
                 lang_store = PreparedVoiceStore(registry["paths"]["workDirectory"] / "prepared-voices" / f"lang-{target}", lang["sha256"],
                                                 SOURCE_SHA256, save_state, load_state)
@@ -1034,8 +1036,10 @@ def main():
 
                 with redirect_stdout(sys.stderr), torch.no_grad():
                     synthesis_started = True
-                    plan = plan_short_line(text, lang["tag"]) if SHORT_LINE_CARRIER else None
-                    result = stream_request(model, state, text, commands, send, request_id, key, encode_pcm, plan=plan)
+                    # Russian: "+" marks become U+0301 and the stress table adds the missing ones (language_text; any other language is unchanged).
+                    spoken = language_text(lang["tag"], text, lang["stress"])
+                    plan = plan_short_line(spoken, lang["tag"]) if SHORT_LINE_CARRIER else None
+                    result = stream_request(model, state, spoken, commands, send, request_id, key, encode_pcm, plan=plan)
                 commands.finish(request_id)
                 send({"op": "done", "id": request_id, "profile": key,
                       "preparationMs": preparation_ms, "preparationSource": active_cache.last_source,

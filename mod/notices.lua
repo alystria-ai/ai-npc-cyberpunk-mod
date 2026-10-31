@@ -91,6 +91,7 @@ M.catalog = {
     ['pocket-pack-de'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
     ['pocket-pack-es'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
     ['pocket-pack-pt'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
+    ['pocket-pack-ru'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered (no other provider ever takes it over): say so on every attempt, not more than twice a minute
     ['local-thinking'] = {class = PLAYER, repeatS = 30},    -- the player's own model server answered with only thinking, also when asked not to think: turn thinking off there or pick another model
     ['local-context'] = {class = PLAYER, repeatS = 30},     -- the player's own model server has a context too small for the character: raise it there

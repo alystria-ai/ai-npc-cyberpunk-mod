@@ -3572,6 +3572,7 @@
       "Runtime files are old. Get the full install zip.",
       "Runtime incomplete",
       "Runtime not loaded",
+      "Russian",
       "Sample character name",
       "Sampling",
       "Save",
@@ -13143,9 +13144,11 @@
     },
     "Russian": {
       "contexts": [
-        "page.reply-language"
+        "page.reply-language",
+        "ui.localized"
       ],
       "references": [
+        "mod/init.lua:6249",
         "mod/manager-ui.lua:219"
       ]
     },

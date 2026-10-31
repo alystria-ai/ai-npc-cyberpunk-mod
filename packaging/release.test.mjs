@@ -1146,9 +1146,13 @@ test('the model packs carry the model name and parameter count in their file nam
   assert.equal(config.micPacks.packs.asian.title, packTitle(config, 'micpack-asian'));
   assert.equal(pocketModelTitle(config, 'French'), 'PocketTTS-Model-100M-French');
   assert.equal(legacyPocketModelTitle(config, 'French'), 'PocketTTS-Model-French');
+  // The Russian model (a 90M fine-tune) came after the rename: its own prefix and no old name.
+  assert.equal(pocketModelTitle(config, 'Russian'), 'PocketTTS-Model-90M-Russian');
+  assert.equal(legacyPocketModelTitle(config, 'Russian'), null);
   assert.equal(packIdOfName(config, 'Scripts.zip'), null);
   const {packBase} = await import('./build-pocket-models.mjs');
   assert.equal(packBase('pt-br'), 'PocketTTS-Model-100M-Portuguese');
+  assert.equal(packBase('ru'), 'PocketTTS-Model-90M-Russian');
 });
 
 test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution) and SenseVoice (FunASR licence, linked)', async () => {
