@@ -161,19 +161,41 @@ function M.t(source, args)
     end))
 end
 
--- When the shared Convai key's daily turns come back, as "HH:MM" on this computer's clock (the same form the custom provider's reset time
--- uses): the next 00:00 UTC after `now` (default: the real clock, in seconds), because the sign-in backend and bridge/shared-key-guard.mjs
--- count per UTC day. The instant is plain arithmetic on the epoch (no os.time(table), whose broken-down time would be read in the local
--- zone and break on DST days); os.date turns that one instant into local time, so half-hour zones and DST come out right. Called only when
--- a message is shown, never per frame. nil when the clock cannot be read.
+-- A time of day for a sentence ("It resets at 5:30 AM."): English reads a 12-hour clock with AM or PM, every other language the 24-hour "05:30".
+-- `hhmm` is "HH:MM" (what os.date and the bridge's reset times give); anything else comes back unchanged.
+function M.clockText(hhmm)
+    local hour, minute = tostring(hhmm):match('^(%d%d):(%d%d)$')
+    if not hour or resolved ~= 'en' then return hhmm end
+    hour = tonumber(hour)
+    local suffix = hour < 12 and 'AM' or 'PM'
+    hour = hour % 12
+    if hour == 0 then hour = 12 end
+    return hour .. ':' .. minute .. ' ' .. suffix
+end
+
+-- The end of the shared Convai key's day as the sign-in backend last said it (allowance.resetAt, epoch seconds), held for the messages that
+-- say when the turns come back. mod/manager.lua ownKey() hands it over whenever it reads the bridge's status file; nothing else sets it.
+local dailyResetAt
+function M.noteDailyReset(at)
+    if type(at) == 'number' and at == at and at > 0 and at < 32503680000 then dailyResetAt = at else dailyResetAt = nil end
+end
+
+-- When the shared Convai key's daily turns come back, as a time of day on this computer's clock (clockText: "5:30 AM" in English, "05:30" in the
+-- other languages): the backend's own reset instant when it has told us one that is still ahead (and within two days), else the next 00:00 UTC
+-- after `now` (default: the real clock, in seconds), because the sign-in backend and bridge/shared-key-guard.mjs count per UTC day. The instant is
+-- plain arithmetic on the epoch (no os.time(table), whose broken-down time would be read in the local zone and break on DST days); os.date turns
+-- that one instant into local time, so half-hour zones and DST come out right. Called only when a message is shown, never per frame. nil when the
+-- clock cannot be read.
 function M.dailyResetClock(now)
     if now == nil then
         local read, value = pcall(os.time)
         now = read and value or nil
     end
     if type(now) ~= 'number' or now ~= now or now < 0 or now > 32503680000 then return nil end
-    local read, clock = pcall(os.date, '%H:%M', (math.floor(now / 86400) + 1) * 86400)
-    if read and type(clock) == 'string' and clock:match('^%d%d:%d%d$') then return clock end
+    local at = (math.floor(now / 86400) + 1) * 86400
+    if dailyResetAt and dailyResetAt > now and dailyResetAt - now <= 172800 then at = dailyResetAt end
+    local read, clock = pcall(os.date, '%H:%M', at)
+    if read and type(clock) == 'string' and clock:match('^%d%d:%d%d$') then return M.clockText(clock) end
     return nil
 end
 

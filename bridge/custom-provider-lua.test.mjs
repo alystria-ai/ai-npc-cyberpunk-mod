@@ -187,7 +187,7 @@ test('the Google Gemini page (second instance, kind gemini): its own channel, on
   assert(gemini.notice('gemini-voice') == 'Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.')
   assert(#factory.GEMINI_NOTICE_IDS == 9)
   for id, text in pairs(GEMINI_NOTICES) do assert(gemini.notice(id) == text, id .. ': ' .. tostring(gemini.notice(id))) end
-  assert(gemini.notice('gemini-daily', '02:30') == 'Your free Gemini allowance for today is used up. It resets at 02:30. Use Convai or Local AI.')
+  assert(gemini.notice('gemini-daily', '02:30') == 'Your free Gemini allowance for today is used up. It resets at 2:30 AM. Use Convai or Local AI.')
   assert(gemini.notice('gemini-daily', 'soon') == GEMINI_NOTICES['gemini-daily'])
   -- Not the Custom wording: none of the Gemini failures says "custom provider".
   for id, text in pairs(GEMINI_NOTICES) do assert(not text:lower():find('custom', 1, true), id) end
@@ -463,7 +463,7 @@ test('the Test row: testing, ok, and a plain sentence for every failure code wit
   end
   -- A daily limit says when it resets, on the computer's clock ("HH:MM", from the service), when it is given; anything else reads as not given.
   publish(base({test = {id = id, state = 'failed', code = 'daily', status = 429, resetTime = '02:30'}}))
-  assert(first(rowsOf(provider)['custom-test'].help) == 'The free daily limit for this model was reached. It resets at 02:30.', first(rowsOf(provider)['custom-test'].help))
+  assert(first(rowsOf(provider)['custom-test'].help) == 'The free daily limit for this model was reached. It resets at 2:30 AM.', first(rowsOf(provider)['custom-test'].help))
   assert(provider.state().test.resetTime == '02:30')
   for _, bad in ipairs({'soon', '2:30', '02:30:00', '', 7, true, {}}) do
     publish(base({test = {id = id, state = 'failed', code = 'daily', resetTime = bad}}))
@@ -674,7 +674,7 @@ test('the notices: nine ids with the contract’s sentences, the same ones the g
       and provider.noteFor('model') == 'Custom: model unavailable' and provider.noteFor('credits') == 'Custom: out of credits'
       and provider.noteFor('daily') == 'Custom: free daily limit reached')
     -- The daily limit's notice names the reset time when it is given (the service sends "HH:MM"), and says nothing of time otherwise.
-    assert(provider.notice('custom-daily', '02:30') == 'The free daily limit for this model was reached. It resets at 02:30.')
+    assert(provider.notice('custom-daily', '02:30') == 'The free daily limit for this model was reached. It resets at 2:30 AM.')
     for _, bad in ipairs({'', 'soon', '2:30', 7, true, {}}) do assert(provider.notice('custom-daily', bad) == expected_daily, tostring(bad)) end
     for _, other in ipairs({'sometimes', '', 7, true, {}}) do assert(provider.noteFor(other) == nil, tostring(other)) end
     assert(provider.noteFor(nil) == nil)
@@ -738,6 +738,7 @@ test('the reply notices of init.lua: seven failed-turn codes and two one-time no
       assert(notice({keyNotice = code, text = 'Hello'}) == nil, code .. ' as a key notice')
     end
     local gid, gtext = notice({errorCode = 'gemini-daily', errorResetTime = '02:30', error = 'x'})
+    -- (this translator has no clockText, so the bridge's "HH:MM" is shown as it came; with the UI locale it reads "2:30 AM", tested above)
     assert(gid == 'gemini-daily' and gtext == 'Your free Gemini allowance for today is used up. It resets at 02:30. Use Convai or Local AI.', tostring(gtext))
     for _, bad in ipairs({'', 'soon', '2:30', 7, true, {}}) do
       local _, bt = notice({errorCode = 'gemini-daily', errorResetTime = bad, error = 'x'})

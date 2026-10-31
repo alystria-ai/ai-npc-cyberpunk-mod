@@ -449,7 +449,10 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   for _, name in ipairs({'Location', 'Time and weather', 'Company and vehicle', 'Health, heat and fights', 'V’s money', 'V’s gear and clothes',
       'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue', 'Time since last talk', 'Music and TV', 'Other mods’ state'}) do
     local person, phone = assert(inSet('In person', name), 'no in person ' .. name), assert(inSet('Phone calls and texts', name), 'no phone ' .. name)
-    assert(person.type == 'switch' and phone.type == 'switch' and person.state == phone.state, name .. ' starts the same in both sets')
+    -- The phone set has defaults of its own: a caller or texter does not see V, so these are off there (owner, 31 Oct 2026).
+    local phoneOff = {['Location'] = true, ['Company and vehicle'] = true, ['Health, heat and fights'] = true, ['V’s money'] = true, ['V’s gear and clothes'] = true,
+      ['Recent game dialogue'] = true, ['Music and TV'] = true, ['Other mods’ state'] = true}
+    assert(person.type == 'switch' and phone.type == 'switch' and person.state == (name ~= 'Other mods’ state') and phone.state == not phoneOff[name], name .. ' starts as its set default')
   end
   -- A change is applied for real, as one saved transaction.
   ns.interact.toggle(inSet('Phone calls and texts', 'Time and weather')); frames(8); ns.verify()
@@ -462,7 +465,8 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   assert(info.location == false and info.gear == false and info.time == true and info.quest == true)
   assert(saved.dynamicInfo.location == false and saved.dynamicInfo.gear == false and saved.dynamicInfo.money == true, 'saved in settings.json')
   assert(manager.dynamicInfoSet('location', false) == false and manager.dynamicInfoSet('time', false) == true, 'the in-person switches')
-  assert(manager.dynamicInfo('location') == true and convaiDynamicInfo.location == true and convaiDynamicInfo.gear == true, 'the phone set still wants them: the game is still read')
+  assert(manager.dynamicInfo('location') == false and convaiDynamicInfo.location == false and convaiDynamicInfo.gear == false, 'the phone set has them off by default too: the game is not read for them')
+  assert(manager.dynamicInfo('time') == true and convaiDynamicInfo.time == true, 'time is still read: the in-person set wants it')
   assert(ns.find('Location').state == false and ns.find('Time and weather').state == true)
   -- Restore defaults works on this page, and the page does not need Settings to be open.
   ns.interact.restoreDefaults(); frames(8); ns.verify()
@@ -471,6 +475,9 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   assert(ns.find('Location').state == true and ns.find('Other mods’ state').state == false and managerUi.inspect().shown == 'Defaults restored.')
   assert(convaiDynamicInfo.location == true and saved.dynamicInfo.location == true)
   assert(inSet('Phone calls and texts', 'Time and weather').state == true and saved.dynamicInfoPhone.time == true, 'Restore defaults puts the phone set back too')
+  assert(inSet('Phone calls and texts', 'Location').state == false and saved.dynamicInfoPhone.location == false and inSet('In person', 'Location').state == true,
+    'to the phone defaults, not to the in-person ones')
+  assert(inSet('Phone calls and texts', 'Quest and journal').state == true and inSet('Phone calls and texts', 'V’s money').state == false)
   press('Back to settings')
   assert(managerUi.inspect().view == 'settings-conversations')
 `));

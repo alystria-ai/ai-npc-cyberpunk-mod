@@ -210,6 +210,7 @@ export class TokenSource {
     this.#urls = backup ? [url, backup] : [url];
     this.dailyLimit = null; // the per-install daily limit the backend last reported (a whole number in the accepted range), or null
     this.pending = 0; this.lastKind = undefined; this.blocked = null; this.allowance = null; this.minClient = null;
+    this.resetAt = null; // when the backend's day ends (epoch ms): the token response's allowance.resetAt, or a daily refusal's resetAt; null before it said
     this.attempts = 0;
   }
 
@@ -299,7 +300,7 @@ export class TokenSource {
   /** For status displays: never contains a token. */
   snapshot() {
     return {installTail: this.installId.slice(-4), expiresAt: this.#token?.expiresAt ?? null, lastKind: this.lastKind ?? null,
-      blocked: this.blocked ? {...this.blocked} : null, allowance: this.allowance, pendingTurns: this.pending, minClient: this.minClient,
+      blocked: this.blocked ? {...this.blocked} : null, allowance: this.allowance, resetAt: this.resetAt, pendingTurns: this.pending, minClient: this.minClient,
       usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit, lastCause: this.#cause || null,
       backup: this.#urls.length > 1 ? {host: this.#host(1), usingBackup: this.#preferred === 1, lastCause: this.#altCause || null} : null};
   }
@@ -446,7 +447,11 @@ export class TokenSource {
       if (!this.#seen.includes(value)) this.#seen = [...this.#seen, value].slice(-4);
       this.pending = Math.max(0, this.pending - sent);
       this.#failures = 0; this.blocked = null; this.#clockRetried = false;
-      if (data.allowance && typeof data.allowance === 'object') this.allowance = {used: Number(data.allowance.used) || 0, limit: Number(data.allowance.limit) || 0};
+      if (data.allowance && typeof data.allowance === 'object') {
+        this.allowance = {used: Number(data.allowance.used) || 0, limit: Number(data.allowance.limit) || 0};
+        const resetAt = Date.parse(data.allowance.resetAt);
+        this.resetAt = Number.isFinite(resetAt) ? resetAt : null;
+      }
       if (this.#usingFallback) this.log('Sign-in backend answered again: conversations use its token');
       this.#usingFallback = false; this.#announced = '';
       const life = expiresAt - now;
@@ -464,6 +469,7 @@ export class TokenSource {
     if (kind === 'daily') {
       this.pending = Math.max(0, this.pending - sent); // the backend recorded those turns
       const until = Date.parse(data?.resetAt);
+      if (Number.isFinite(until)) this.resetAt = until;
       const resets = Number.isFinite(until) && until > now ? until : (Math.floor(now / 86_400_000) + 1) * 86_400_000;
       this.blocked = {kind: 'daily', until: resets};
       this.#announce(kind, 'Sign-in backend: this installation has used today\'s allowance; no new conversation token until it resets');

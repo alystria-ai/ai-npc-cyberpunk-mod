@@ -94,7 +94,8 @@ for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] 
 -- settings.dynamicInfo (on by default, except 'mods' (Other mods' state), which is off by default; a missing or malformed value takes the default). The bridge reads the same table from runtime/settings.json and drops an
 -- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
 -- There are two sets of the same switches: settings.dynamicInfo for talk in person, settings.dynamicInfoPhone for holocalls and Phone Chat texts
--- (a player who never touched the phone set gets a copy of the in-person set, once, when the settings load). The bridge picks the set by the kind of turn;
+-- (the phone set has defaults of its own, below: a caller or texter does not see V. A player who never touched the phone set gets them once, when the
+-- settings load, see settings.dynamicInfoPhoneDefaults). The bridge picks the set by the kind of turn;
 -- this side reads a kind from the game when EITHER set has it on, because the turn context is read once for both.
 -- Order is the order of the page.
 local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
@@ -104,7 +105,15 @@ local SPEAK_UP_LEVELS = {off = true, rare = true, medium = true, normal = true}
 local dynamicInfoKnown = {}
 for _, kind in ipairs(dynamicInfoKinds) do dynamicInfoKnown[kind] = true end
 -- A kind's value when nothing valid is saved: on, except Other mods' state (reading other mods stays something the player opts into).
-local function dynamicInfoDefault(kind) return kind ~= 'mods' end
+-- The phone set (holocalls and Phone Chat texts, `phone` true) is for a character who only hears or reads V and does not see V: off by default are
+-- what that character could not see, the location, the company and vehicle, health, heat and fights, money, gear, the music and TV around V, the
+-- game dialogue V is in, and other mods' state. On: the hour and weather, V's gender and lifepath (a voice or a name tells), the jobs V has open and the
+-- time since the last talk. Mirrored by bridge/dynamic-info.mjs OFF_BY_DEFAULT_PHONE and the Restore defaults row defaults (mod/manager-ui.lua).
+local dynamicInfoPhoneOff = {location = true, company = true, condition = true, money = true, gear = true, media = true, dialogue = true, mods = true}
+local function dynamicInfoDefault(kind, phone)
+    if phone then return not dynamicInfoPhoneOff[kind] end
+    return kind ~= 'mods'
+end
 -- The switches as a plain table in a global (convaiDynamicInfo, replaced only when the settings load or change): the one place something that
 -- runs every frame (the journal collector in init.lua) can ask without a call.
 local function publishDynamicInfo(from)
@@ -113,8 +122,9 @@ local function publishDynamicInfo(from)
         local value = from.dynamicInfo[kind]
         if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
         local phone = from.dynamicInfoPhone and from.dynamicInfoPhone[kind]
-        -- Read from the game when either set wants it (a phone set that is missing or malformed follows the in-person one).
-        flags[kind] = value or phone == true
+        if type(phone) ~= 'boolean' then phone = dynamicInfoDefault(kind, true) end
+        -- Read from the game when either set wants it (a phone value that is missing or malformed takes the phone default).
+        flags[kind] = value or phone
     end
     convaiDynamicInfo = flags
 end
@@ -431,6 +441,10 @@ function M.ownKey()
     local daily = type(state.daily) == 'table' and state.daily or nil
     local function count(value) return type(value) == 'number' and value == math.floor(value) and value >= 0 and value <= 1000000 end
     if daily and not (count(daily.left) and count(daily.limit) and daily.limit > 0) then daily = nil end
+    -- When the day ends (epoch seconds, from the sign-in backend's allowance.resetAt): held by the UI locale for the messages that say when the
+    -- turns come back. Dropped when the bridge sent none, so a stale one never outlives its status.
+    local resetsAt = daily and type(daily.resetsAt) == 'number' and daily.resetsAt or nil
+    if type(ui.noteDailyReset) == 'function' then ui.noteDailyReset(resetsAt) end
     return {saved = state.saved == true, tail = type(state.tail) == 'string' and state.tail or nil,
         active = state.active == 'player' and 'player' or 'shared', pending = state.pending == true,
         result = type(result) == 'string' and result or nil, memoryOff = state.memory == 'off',
@@ -860,13 +874,25 @@ local function loadSettings()
     for _, kind in ipairs(dynamicInfoKinds) do
         if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = dynamicInfoDefault(kind), true end
     end
-    -- The phone set (holocalls and Phone Chat texts): the same kinds; a kind not saved yet starts as the player's in-person choice, so an update changes nothing.
+    -- The phone set (holocalls and Phone Chat texts): the same kinds, with defaults of their own (dynamicInfoDefault, phone). A kind not saved yet takes
+    -- its phone default. The phone set is new in 0.4.0: an earlier build copied the in-person set into it on the first load. settings.dynamicInfoPhoneDefaults = 1
+    -- marks that the new defaults have been applied once. Until it is there, a phone set that is missing, empty or an exact copy of the in-person set (the
+    -- earlier build's copy: no choice of the player's) is replaced by the defaults; a set that differs in any kind is the player's own and stays.
     if type(settings.dynamicInfoPhone) ~= 'table' then settings.dynamicInfoPhone, settingsNeedSave = {}, true end
     for key in pairs(settings.dynamicInfoPhone) do
         if not dynamicInfoKnown[key] then settings.dynamicInfoPhone[key], settingsNeedSave = nil, true end
     end
+    if settings.dynamicInfoPhoneDefaults ~= 1 then
+        local copy = true
+        for _, kind in ipairs(dynamicInfoKinds) do
+            local saved = settings.dynamicInfoPhone[kind]
+            if type(saved) == 'boolean' and saved ~= settings.dynamicInfo[kind] then copy = false end
+        end
+        if copy then settings.dynamicInfoPhone = {} end
+        settings.dynamicInfoPhoneDefaults, settingsNeedSave = 1, true
+    end
     for _, kind in ipairs(dynamicInfoKinds) do
-        if type(settings.dynamicInfoPhone[kind]) ~= 'boolean' then settings.dynamicInfoPhone[kind], settingsNeedSave = settings.dynamicInfo[kind], true end
+        if type(settings.dynamicInfoPhone[kind]) ~= 'boolean' then settings.dynamicInfoPhone[kind], settingsNeedSave = dynamicInfoDefault(kind, true), true end
     end
     publishDynamicInfo(settings)
     do
@@ -1698,16 +1724,21 @@ end
 -- The kinds of live game info of Settings > Dynamic info, in page order.
 function M.dynamicInfoKinds() return dynamicInfoKinds end
 
--- Whether one kind is on (its default unless the player set it: on, except Other mods' state). A table lookup once the settings are loaded:
--- the turn builders ask it at send time, never per frame.
+-- The default of one kind (phone true: of the phone set), for the page's Restore defaults.
+function M.dynamicInfoDefault(kind, phone) return dynamicInfoDefault(kind, phone == true) end
+
+-- Whether one kind is on (its default unless the player set it: on, except Other mods' state; the phone set has defaults of its own). A table lookup
+-- once the settings are loaded: the turn builders ask it at send time, never per frame.
 function M.dynamicInfoSet(kind, phone)
     loadSettings()
+    if phone then
+        local own = settings.dynamicInfoPhone and settings.dynamicInfoPhone[kind]
+        if type(own) ~= 'boolean' then return dynamicInfoDefault(kind, true) end
+        return own
+    end
     local value = settings.dynamicInfo and settings.dynamicInfo[kind]
     if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
-    if not phone then return value end
-    local own = settings.dynamicInfoPhone and settings.dynamicInfoPhone[kind]
-    if type(own) ~= 'boolean' then return value end
-    return own
+    return value
 end
 
 -- Whether the game should be read for one kind: on in either set (talk in person, or holocalls and texts). This is what every reader of the game asks.

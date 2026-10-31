@@ -119,10 +119,10 @@ local function failureText(kind, fallback)
     elseif kind == 'signin' then
         return ui.t('Convai sign-in is busy right now. Wait a few minutes, then invite again.')
     elseif kind == 'daily' then
-        -- It resets at the next 00:00 UTC, shown on this computer's clock (ui.dailyResetClock), else "tomorrow".
-        local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
-        if at then return ui.t('The Convai daily limit is used up. It resets at {time}. Choose another provider in Settings, or invite again then.', {time = at}) end
-        return ui.t('The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.')
+        -- It resets when the sign-in backend's day ends (00:00 UTC), shown on this computer's clock (ui.dailyResetClock); a clock that cannot be read
+        -- gets the UTC time itself, never the word "tomorrow".
+        local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or ui.clockText('00:00') .. ' UTC'
+        return ui.t('The Convai daily limit is used up. It resets at {time}. Choose another provider in Settings, or invite again then.', {time = at})
     end
     return fallback
 end

@@ -291,7 +291,6 @@ const reviewed = {
     'Conversations are disabled in Companion Manager.', 'Conversation is unavailable for this contact.',
     'This character needs Google Gemini, Local AI or Custom to answer.',
     'Opening chat. Waiting for the conversation service.',
-    'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.',
     'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.',
     'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s limit is reached for now. Try again in a moment.',

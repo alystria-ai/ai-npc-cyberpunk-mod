@@ -243,7 +243,8 @@ export const freshSettings = {
   version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', voiceVolume: 150, voiceVolume150Given: true, vVoiceVolume: 150,
   relationshipModes: {'judy-alvarez': 'auto', 'panam-palmer': 'auto', 'river-ward': 'auto', 'kerry-eurodyne': 'auto', 'meredith-stout': 'auto'},
   dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false},
-  dynamicInfoPhone: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false},
+  // The phone set (holocalls and texts) has defaults of its own: a caller or texter does not see V. dynamicInfoPhoneDefaults marks that they were applied once.
+  dynamicInfoPhone: {location: false, time: true, company: false, condition: false, money: false, gear: false, about: true, quest: true, dialogue: false, lastTalk: true, media: false, mods: false}, dynamicInfoPhoneDefaults: 1,
   immersive: {enabled: false, arrival: 'walk', delay: 0, wait: 5, waypoint: true, texts: true},
   housemates: {enabled: false, chat: true, chatCooldown: 120, chatSize: 2, moveIn: 'ask'},
   developerMode: false, useOwnConvaiKey: false, conversationProvider: 'convai',

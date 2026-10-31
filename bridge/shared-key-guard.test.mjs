@@ -283,13 +283,34 @@ test('the settings status file carries the remaining count only while the shared
   const clock = clockAt(noon), guard = guardWith(clock, {limit: 100});
   const keys = await new ConvaiKeys({sharedKey: FIXTURE, playerKeyPath: 'own', readText: async () => { throw Error('none'); }}).load();
   guard.applies = () => keys.source === 'shared';
-  const control = new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}, daily: guard});
+  const control = new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}, daily: guard, now: clock.now});
   drain(guard, clock, 37);
-  assert.deepEqual(control.status().daily, {limit: 100, left: 63, blocked: false});
+  // resetsAt: when the day ends in epoch seconds (no backend answer yet: the next 00:00 UTC, the instant the guard changes day at)
+  const midnight = (noon + 12 * 3600 * 1000) / 1000;
+  assert.deepEqual(control.status().daily, {limit: 100, left: 63, blocked: false, resetsAt: midnight});
   assert(!JSON.stringify(control.status()).includes(FIXTURE));
   assert.equal(new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}}).status().daily, undefined);
   keys.applied = {source: 'player', key: 'player-fixture-key-1111111111111111'};
   assert.equal(control.status().daily, undefined, 'an own key has no daily count');
+});
+
+test('the status file says when the day ends: the sign-in backend\'s resetAt when it is ahead, else the next 00:00 UTC', async () => {
+  const clock = clockAt(noon), guard = guardWith(clock, {limit: 100});
+  const keys = await new ConvaiKeys({sharedKey: FIXTURE, playerKeyPath: 'own', readText: async () => { throw Error('none'); }}).load();
+  guard.applies = () => keys.source === 'shared';
+  let told = null;
+  const control = new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}, daily: guard, now: clock.now, resetAt: () => told});
+  const midnight = (noon + 12 * 3600 * 1000) / 1000;
+  assert.equal(control.status().daily.resetsAt, midnight, 'the backend has not said: 00:00 UTC');
+  told = noon + 90 * 60000;   // a backend whose day ends at 13:30 UTC
+  assert.equal(control.status().daily.resetsAt, (noon + 90 * 60000) / 1000, 'the backend\'s own instant');
+  told = noon - 1000;         // an answer from an earlier day is not ahead
+  assert.equal(control.status().daily.resetsAt, midnight);
+  told = noon + 3 * DAY;      // nor is one more than two days away
+  assert.equal(control.status().daily.resetsAt, midnight);
+  told = NaN;
+  assert.equal(control.status().daily.resetsAt, midnight);
+  assert.equal(new OwnKeyControl({keys, commandPath: 'cmd', publish: async () => {}, daily: guard, now: clock.now, resetAt: 'junk'}).status().daily.resetsAt, midnight);
 });
 
 // ---------------------------------------------------------------- the limit the sign-in backend sets

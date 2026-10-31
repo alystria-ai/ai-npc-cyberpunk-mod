@@ -405,8 +405,14 @@ m.composer(n,status)
 assert(hint.text=='Limite atteinte. Retour à 05:30.' and hint.visible, hint.text)
 language='ja';generation=2;m.composer(n)
 assert(hint.text=='上限です。05:30に戻ります。' and m.statusSource==status, hint.text)
+-- The time can be a 12-hour one (English: 5:30 AM, 12:00 AM) and carry the zone a clock that could not be read falls back to (UTC), still the same template.
+for _,time in ipairs({'5:30 AM','12:00 AM','11:59 PM','05:30 UTC','5:30 PM UTC'}) do
+  local filled=template:gsub('{time}',time)
+  hint.text=filled;m.composer(n,filled)
+  assert(hint.text=='上限です。'..time..'に戻ります。' and m.statusSource==filled, hint.text)
+end
 -- Only a real clock time fills the template: anything else stays untranslated provider text.
-for _,other in ipairs({template:gsub('{time}','tomorrow'),template:gsub('{time}','5:30 AM'),template:gsub('{time}','05:30')..' Extra.', 'x'..template:gsub('{time}','05:30')}) do
+for _,other in ipairs({template:gsub('{time}','tomorrow'),template:gsub('{time}','soon'),template:gsub('{time}','5:30 XM'),template:gsub('{time}','5:30 AM UTC PT'),template:gsub('{time}','05:30')..' Extra.', 'x'..template:gsub('{time}','05:30')}) do
   hint.text=other;m.composer(n,other)
   assert(hint.text==other and m.statusSource==nil, other)
 end

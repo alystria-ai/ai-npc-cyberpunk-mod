@@ -51,7 +51,6 @@ local statusSources = {
     ['Conversation is unavailable for this contact.'] = true,
     ['This character needs Google Gemini, Local AI or Custom to answer.'] = true,
     ['Opening chat. Waiting for the conversation service.'] = true,
-    ['You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'] = true,
     ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,
     ['Mistral’s limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
@@ -83,21 +82,29 @@ local statusSources = {
     ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = true,
 }
 -- A status that carries a value is a template: the stored text has the value filled in, so it is matched against the template (the
--- value is the reset time "HH:MM" of the Convai daily limit, phone-chat.lua DAILY_LIMIT_STATUS_AT) and translated from the template.
+-- value is the reset time of the Convai daily limit, phone-chat.lua DAILY_LIMIT_STATUS_AT: "05:30"
+-- or "5:30 AM" (ui-locale clockText), with " UTC" or " PT" after it when the clock could not be read) and translated from the template.
 local statusTemplates = {
     {source = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'},
 }
+local TIME_FORMS, TIME_ZONES = {'%d%d:%d%d', '%d%d?:%d%d [AP]M'}, {'', ' UTC', ' PT'}
 for _, entry in ipairs(statusTemplates) do
     local escaped = entry.source:gsub('[%^%$%(%)%%%.%[%]%*%+%-%?]', '%%%0')
-    entry.pattern = '^' .. escaped:gsub('{time}', '(%%d%%d:%%d%%d)') .. '$'
+    local before, after = escaped:match('^(.-){time}(.*)$')
+    entry.patterns = {}
+    for _, form in ipairs(TIME_FORMS) do
+        for _, zone in ipairs(TIME_ZONES) do entry.patterns[#entry.patterns + 1] = '^' .. before .. '(' .. form .. zone .. ')' .. after .. '$' end
+    end
 end
 -- The source key and values of a status message: the message itself for a plain status, the template and its time for a filled-in one, nil for anything else.
 local function statusKey(message)
     if statusSources[message] then return message end
     if type(message) ~= 'string' or #message > 400 then return nil end
     for _, entry in ipairs(statusTemplates) do
-        local time = message:match(entry.pattern)
-        if time then return entry.source, {time = time} end
+        for _, pattern in ipairs(entry.patterns) do
+            local time = message:match(pattern)
+            if time then return entry.source, {time = time} end
+        end
     end
     return nil
 end

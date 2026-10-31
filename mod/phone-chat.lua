@@ -5,17 +5,18 @@ local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names 
 -- Favorites (mod/favorites.lua) are read through its global, so no function here gains an upvalue.
 pcall(dofile, 'favorites.lua')
 local LOCAL_HISTORY = 'phone-local-player:v1'
--- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
-local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'
--- The same with the time it resets (the next 00:00 UTC on this computer's clock, ui-locale dailyResetClock); the status row shows it filled in, and
--- phone-chat-style.lua translates it from this template. DAILY_LIMIT_STATUS stays for a clock that cannot be read.
+-- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice). It says when the turns come
+-- back: the sign-in backend's reset (00:00 UTC) on this computer's clock (ui-locale dailyResetClock, "5:30 AM" in English); a clock that cannot be read gets
+-- the UTC time itself. The status row shows the template filled in, and phone-chat-style.lua translates it from the template.
 local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'
 -- The status row's text for a daily-limit reply, worked out when the reply arrives (never per frame).
 local function dailyLimitStatus()
     local locale = convaiUiLocale
+    -- The backend's reset instant is held by the UI locale whenever the manager reads the bridge's status file: read it once now so the time is current.
+    if M.manager and type(M.manager.ownKey) == 'function' then pcall(M.manager.ownKey) end
     local at = type(locale) == 'table' and type(locale.dailyResetClock) == 'function' and locale.dailyResetClock() or nil
-    if not at then return DAILY_LIMIT_STATUS end
-    return (DAILY_LIMIT_STATUS_AT:gsub('{time}', at))
+    if not at then at = (type(locale) == 'table' and type(locale.clockText) == 'function' and locale.clockText('00:00') or '00:00') .. ' UTC' end
+    return (DAILY_LIMIT_STATUS_AT:gsub('{time}', function() return at end))
 end
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {

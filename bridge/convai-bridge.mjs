@@ -4449,7 +4449,7 @@ async function pollSettings(checkShutdown = true) {
     }
   } finally { settingsPolling = false; }
 }
-const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, commandPath: resolve(runtime, 'own-key-command.json'),
+const ownKeyControl = await new OwnKeyControl({keys, quota, daily: turnGuard, resetAt: () => tokenSource?.resetAt ?? null, commandPath: resolve(runtime, 'own-key-command.json'),
   publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
 quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 // Settings > Convai paid tier (docs/CONVAI_PAID_TIER.md): Convai's plans for this mod, bought with the player's own key (the one above).

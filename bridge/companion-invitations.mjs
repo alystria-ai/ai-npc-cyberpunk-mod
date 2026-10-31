@@ -21,7 +21,7 @@ const ERRORS = Object.freeze({
   capacity: 'The party has no free conversation connection.',
   // Convai's sign-in backend refused or is limiting this installation (bridge/convai-credential.mjs), or its daily allowance is used up.
   signin: 'Convai sign-in is busy right now. Wait a few minutes, then invite again.',
-  daily: 'The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.'
+  daily: 'The Convai daily limit is used up. Choose another provider in Settings, or invite again after it resets.'
 });
 // The game turns a failure into its own wording from this kind (mod/manager-party.lua); the English text above stays the
 // fallback for a game that does not know a kind.

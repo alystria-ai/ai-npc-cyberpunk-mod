@@ -123,6 +123,8 @@ end
 function M.new(options)
     options = options or {}
     local ui = options.ui or plainTranslator()
+    -- A reset time the bridge sends ("HH:MM", this computer's clock) as the player reads a time of day: "5:30 AM" in English (the UI locale decides).
+    local function timeOf(hhmm) return type(ui.clockText) == 'function' and ui.clockText(hhmm) or hhmm end
     local isGemini = options.kind == 'gemini'
     local COMMAND, STATE = isGemini and GEMINI_COMMAND or COMMAND, isGemini and GEMINI_STATE or STATE
     local read = type(options.readJSON) == 'function' and options.readJSON or readJSON
@@ -258,7 +260,7 @@ function M.new(options)
             return ui.t('The endpoint is rate limiting you. Try again in a moment.')
         end
         if code == 'daily' then
-            if test.resetTime then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = test.resetTime}) end
+            if test.resetTime then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = timeOf(test.resetTime)}) end
             return ui.t('The free daily limit for this model was reached. Try again after it resets.')
         end
         if code == 'reasoning' then return ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.') end
@@ -437,7 +439,7 @@ function M.new(options)
         if id == 'custom-limit' then return ui.t('The custom provider is rate limiting you. Try again in a moment.') end
         -- `resetTime` ("HH:MM" on this computer's clock): when the daily limit resets, if the endpoint said.
         if id == 'custom-daily' then
-            if resetTime and tostring(resetTime):match('^%d%d:%d%d$') then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = resetTime}) end
+            if resetTime and tostring(resetTime):match('^%d%d:%d%d$') then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = timeOf(resetTime)}) end
             return ui.t('The free daily limit for this model was reached. Try again after it resets.')
         end
         if id == 'custom-reasoning' then return ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.') end
@@ -448,7 +450,7 @@ function M.new(options)
         if id == 'gemini-voice' then return ui.t('Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.') end
         if id == 'gemini-key' then return ui.t('Google did not accept your Gemini key. Check it in Google AI Studio and add it again.') end
         if id == 'gemini-daily' then
-            if resetTime and tostring(resetTime):match('^%d%d:%d%d$') then return ui.t('Your free Gemini allowance for today is used up. It resets at {time}. Use Convai or Local AI.', {time = resetTime}) end
+            if resetTime and tostring(resetTime):match('^%d%d:%d%d$') then return ui.t('Your free Gemini allowance for today is used up. It resets at {time}. Use Convai or Local AI.', {time = timeOf(resetTime)}) end
             return ui.t('Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.')
         end
         if id == 'gemini-limit' then return ui.t('Google Gemini is rate limiting you. Wait a minute, then try again.') end

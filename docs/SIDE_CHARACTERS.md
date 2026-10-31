@@ -35,7 +35,7 @@ without a flag (doris-soto, marcus-barros, sofia-ramirez, randy-kutcher). The mo
   free-text summary, so the letter is the one reliable group. The groups are worked out the first time the page is built for a list and held.
 * **Paging**: twelve rows a page (`PAGE_SIZE`), the same page control as the other long lists. A page build reads twelve rows, never all 557.
 * Each row is `Invite` or `Add copy (n)` with the same description as the main list, and the party queue, notices and chauffeur status follow.
-* There is no Favorites block here (favorites belong to the main list and the Model browser).
+* **Favorites** work as on the main list (`docs/MANAGER_UI.md`, "Favorites"): once a side character is in the party her row is Add to favorites with Add copy under it, and a Favorites block sits above the list on page 1 (her Invite / Add copy row and Remove from favorites), narrowed by the search and the Starts with group like the list. They are the same favorites as the main list (`runtime/favorites.json`, scope `characters`), so the phone's Chat tab lists them first too. The block is built from the favorite keys and a position index held with the letter groups, never by walking the 557.
 * The MCM host and the search box take the `side` view like `characters` (`mod/mcm-host.lua`).
 
 ## Voice

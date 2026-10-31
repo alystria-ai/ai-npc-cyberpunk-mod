@@ -284,6 +284,22 @@ test('server errors and broken answers count as an unreachable backend, so the e
   }
 });
 
+test('the backend\'s resetAt (the end of its UTC day) is kept from the token response and from a daily refusal, for the game to show on the player\'s clock', async () => {
+  const world = createWorld({CONVAI_AUTH_DAILY_TURN_CAP: '10'});
+  const {tokens, timers} = source(world);
+  assert.equal(tokens.resetAt, null, 'nothing before the backend has answered');
+  await keysWith(tokens);
+  tokens.start(); await flush();
+  const nextMidnight = (Math.floor(world.clock.now / 86_400_000) + 1) * 86_400_000;
+  assert.equal(tokens.resetAt, nextMidnight, 'allowance.resetAt of the token response');
+  assert.equal(tokens.snapshot().resetAt, nextMidnight);
+  for (let turn = 0; turn < 10; turn++) tokens.noteTurn();
+  world.advance(HOUR - 9 * MINUTE);
+  await timers.fire();
+  assert.equal(tokens.snapshot().lastKind, 'daily');
+  assert.equal(tokens.resetAt, nextMidnight, 'the refusal says the same instant');
+});
+
 test('a backend that REFUSES is obeyed: the daily allowance blocks turns with the same notice as the local gate, and never falls back', async () => {
   const world = createWorld({CONVAI_AUTH_DAILY_TURN_CAP: '10'});
   const {tokens, timers, logs} = source(world);

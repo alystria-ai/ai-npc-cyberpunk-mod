@@ -28,7 +28,7 @@ const STATIC_OPTIONS = [
   'Custom (OpenAI-compatible)', 'Google Gemini (free plan)', 'Local AI', 'Mistral', 'Mistral (your key)', 'No model installed', 'Service not running', 'Service starting',
   'Off', 'Ordinary', 'Romantic', 'On', 'Typed lines', 'Typed and spoken lines', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often', 'Pocket · On your PC',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
-  'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
+  'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
   'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
   // Settings > Immersive invitations
   'Walk', 'Car', 'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes', '2 minutes', '5 minutes', '10 minutes',
