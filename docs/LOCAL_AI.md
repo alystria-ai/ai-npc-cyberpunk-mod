@@ -816,7 +816,7 @@ the soft target (the server's `prompt_n` / `prompt_ms` of every answered turn wi
 The head (persona, output rules, Mature or guard layer, world rules) aims at about **8,000 characters, 1,900 tokens** (`COMPACT.targetChars`). Never cut,
 and counted first: the output rules (all nine, word for word), the Mature or guard layer, the player's world rules, a character's own rules of speech and
 remembered facts, and everything after the head (format notes, world block, right-now block, V's words). The persona text gets the room that is left, never
-less than 2,600 characters (`floorChars`), so a Mature layer or long world rules leave less of it. The blocks are taken in this order until the room is
+less than 2,450 characters (`floorChars`), so a Mature layer or long world rules leave less of it. The blocks are taken in this order until the room is
 used, each up to a cap, the last one cut at a line or a sentence: the opening paragraph (who they are, 1,500), the first paragraph of the style (voice and
 speech, 1,100), "who you are not" (archetypes, 1,500), ESTABLISHED RELATIONSHIPS (1,100; includes the line about V), ESTABLISHED BACKGROUND (800), the
 closing style paragraph about group talk and private history (520), KNOWLEDGE AND CURRENT SAVE (700), KNOWLEDGE LIMITS (650), two example lines (240 each),

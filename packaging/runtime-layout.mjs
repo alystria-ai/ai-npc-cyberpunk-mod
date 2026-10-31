@@ -172,6 +172,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/multilingual.mjs',
   'bridge/named-places-data.mjs',
   'bridge/named-places.mjs',
+  'bridge/narration-strip.mjs',
   'bridge/natural-speech-talk.mjs',
   'bridge/natural-speech.mjs',
   'bridge/nearby-warm.mjs',
