@@ -126,6 +126,43 @@ export function memoryRecovery({keys, classify, onBlocked = () => {}, onAdopted 
   };
 }
 
+/** The host's recover(error, config) hook for the shared account's credential from the sign-in backend. When Convai refuses it as rejected
+ * ("Invalid API key" and the other texts classifyFailure calls 'rejected'; the owner rotated the shared key and the token in memory was
+ * minted before), the cached credential is dropped, a new one is fetched once (TokenSource.refreshRejected, rate limited) and the turn is
+ * asked once more with it: the host applies the credential again on every attempt, so the retried config needs no change. No failure is
+ * observed in between, so a retry that works makes no report and no notice. If the backend gives the same credential again, is rate limited,
+ * does not answer, or the retried turn is refused as well, nothing is returned and the failure surfaces as before. Never for the player's own
+ * key (source 'player'), and nothing when no sign-in backend is used. `classify(error)` is classifyFailure from convai-quota.mjs. */
+export function credentialRecovery({keys, classify, log = () => {}}) {
+  const retried = new WeakSet();
+  return async (error, config) => {
+    if (!config || typeof config !== 'object' || keys.source !== 'shared' || !keys.usesBackend || classify(error) !== 'rejected') return undefined;
+    if (retried.has(config)) { keys.backend.freshWasRejected(); return undefined; }
+    const outcome = await keys.backend.refreshRejected().catch(() => 'unavailable');
+    if (outcome !== 'fresh') {
+      try { log(outcome === 'same' ? 'Convai refused the shared key and the sign-in backend gave the same one again'
+        : outcome === 'limited' ? 'Convai refused the shared key; the credential was fetched anew a short while ago, not asking the sign-in backend again yet'
+          : 'Convai refused the shared key and the sign-in backend gave no new one'); } catch { /* a log line never changes a turn */ }
+      return undefined;
+    }
+    try { log('Convai refused the shared key; fetched a new one from the sign-in backend and asking again'); } catch { /* a log line never changes a turn */ }
+    const next = {...config};
+    retried.add(next);
+    return next;
+  };
+}
+
+/** One recover hook out of several: the first that returns a changed config decides. */
+export function chainRecovery(...hooks) {
+  return async (error, config) => {
+    for (const hook of hooks) {
+      const changed = await hook(error, config);
+      if (changed) return changed;
+    }
+    return undefined;
+  };
+}
+
 /** Which credential conversations use. `requested` follows the setting and the saved key; `applied` is what connections use.
  * `sharedKey` is optional: a release has none, and the shared account is then reached only through `backend` (a TokenSource). With
  * neither, a conversation on the shared source fails with a plain notice (noCredentialError); a player's own key works either way. */

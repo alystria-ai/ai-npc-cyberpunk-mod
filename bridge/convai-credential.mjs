@@ -64,6 +64,15 @@ const TURN_RETRY_TIMEOUT_MS = REQUEST_TIMEOUT_MS;
 const TURN_RETRY_MAX_FAILS = 3;
 const HOURLY_BUDGET = 8;
 const TURN_RETRY_KINDS = new Set(['unreachable', 'server']);
+// A turn that Convai refused with "Invalid API key" (or another rejected text, bridge/convai-quota.mjs) on the shared account: the owner
+// rotated the shared key and the token in memory was minted before that (31 Oct 2026, three installs on 0.4.0, 08:15 to 08:25 UTC). The
+// cached credential is dropped and a new one fetched, at most once per REJECTED_REFETCH_MS whatever the answer, so a real outage of the
+// backend or a key that stays refused does not make every failing turn ask the backend again. A turn waits for that fetch at most
+// REJECTED_WAIT_MS (it only happens on a turn that has already failed). A fetch that gave a different credential less than
+// RECENT_FRESH_MS ago also serves the turns that failed in the same moment on the old one, without another request.
+const REJECTED_REFETCH_MS = 5 * MINUTE;
+const REJECTED_WAIT_MS = 8_000;
+const RECENT_FRESH_MS = 30_000;
 // Failures that mean "the backend is not working", where the embedded key may stand in. Everything else is an answer.
 const FALLBACK_KINDS = new Set(['unreachable', 'server', 'unauthorized', 'rejected', 'stale', 'ok']);
 
@@ -196,6 +205,7 @@ export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
   #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
   #failedKind = ''; #failedAt = 0; #cause = ''; #altCause = ''; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
+  #refetchAt = -Infinity; #refetching = null; #freshAt = -Infinity; // the forced fetches after a rejected credential (refreshRejected)
   #urls = []; #preferred = 0; // the backends' token addresses (the second only with a backupUrl) and the index of the one asked first
 
   constructor({url, backupUrl = '', secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
@@ -267,6 +277,40 @@ export class TokenSource {
       this.#inflight.then(() => { this.clearTimer(timer); resolve(!!this.current()); });
     });
   }
+
+  /**
+   * Convai refused the credential in memory as rejected (an invalid key). Drops it and asks the backend once for a new one, then says what came
+   * of it: 'fresh' (a different credential is held now, the turn may be asked again), 'same' (the backend handed out the same one again),
+   * 'limited' (a fetch for this was made less than five minutes ago, or the hour's budget of requests is used), or 'unavailable' (no
+   * credential after the fetch: the backend did not answer in time or refused). Never throws. Concurrent callers share one fetch. Only for
+   * the shared account: the caller (bridge/convai-key.mjs credentialRecovery) never asks for a player's own key.
+   */
+  refreshRejected({waitMs = REJECTED_WAIT_MS} = {}) {
+    if (this.#stopped || !this.#started) return Promise.resolve('unavailable');
+    if (this.#refetching) return this.#refetching;
+    const now = this.now();
+    if (now - this.#freshAt < RECENT_FRESH_MS && this.current()) return Promise.resolve('fresh');
+    this.#attemptTimes = this.#attemptTimes.filter(time => now - time < 60 * MINUTE);
+    if (now - this.#refetchAt < REJECTED_REFETCH_MS || this.#attemptTimes.length >= HOURLY_BUDGET) return Promise.resolve('limited');
+    this.#refetchAt = now;
+    const old = this.#token?.value ?? null;
+    this.#token = null; // the cached credential is dropped: a turn that starts now gets the new one or none, never the refused one
+    this.#refetching = (async () => {
+      const running = this.#attempt(); // joins a fetch already in flight (its answer is compared below like any other)
+      let timer;
+      try {
+        await Promise.race([running, new Promise(resolve => { timer = this.setTimer(resolve, waitMs); timer?.unref?.(); })]);
+      } finally { if (timer !== undefined) this.clearTimer(timer); }
+      const held = this.current();
+      if (!held) return 'unavailable';
+      if (old !== null && held.token === old) return 'same';
+      this.#freshAt = this.now();
+      return 'fresh';
+    })().catch(() => 'unavailable').finally(() => { this.#refetching = null; });
+    return this.#refetching;
+  }
+  /** The turn that was asked again with a fresh credential was refused as well: the fresh credential is no proof of a working key. */
+  freshWasRejected() { this.#freshAt = -Infinity; }
 
   /** Throws the daily-limit failure while the backend says this install's day is used up, so the game shows the same notice as
    * the local gate. Synchronous. */
