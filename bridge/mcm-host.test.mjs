@@ -2020,7 +2020,8 @@ test('MCM: Restore defaults on Key bindings puts the five default keys back (and
 
 test('MCM: without Codeware the Set button says so and nothing waits; without the scripts it says that', () => withScreen(`
   press('Key bindings')
-  -- The fake player has no key methods at all: the mod's scripts did not load.
+  -- The fake player has no key methods at all: the mod's scripts did not load (the fixture's catch-all for the mod's methods is taken away).
+  setmetatable(player, nil)
   mcm.press('kb:set:voice'); frames(4)
   assert(mcm.status() == 'The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.', mcm.status())
   function player:ConvaiKeyBindsReady() return false end

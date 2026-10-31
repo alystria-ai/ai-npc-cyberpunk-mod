@@ -84,7 +84,7 @@ end
 function M.refresh(force, player, open)
     if player == nil then
         player = convaiPlayer()
-        open = player and player:ConvaiPhoneIsOpen()
+        open = player and type(player.ConvaiPhoneIsOpen) == 'function' and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then
         if M.wasOpen and player then M.reportNavigation(player) end
@@ -141,7 +141,7 @@ function M.install(live)
             local result = original(player, worldReady)
             -- Virtual rows can already exist when this Lua adapter is installed
             -- live. Use their current controller; never retain a widget handle.
-            if player and player:ConvaiPhoneIsOpen() then
+            if player and type(player.ConvaiPhoneIsOpen) == 'function' and player:ConvaiPhoneIsOpen() then
                 local ok, err = pcall(M.refresh)
                 if not ok then M.lastError = tostring(err) end
             end

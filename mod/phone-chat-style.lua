@@ -502,7 +502,7 @@ local function childCount(widget) return widget:GetNumChildren() end
 function M.refresh(force, player, open)
     if player == nil then
         player = convaiPlayer()
-        open = player and player:ConvaiPhoneIsOpen()
+        open = player and type(player.ConvaiPhoneIsOpen) == 'function' and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then
         M.wasOpen, M.replyFontAt = false, nil

@@ -883,6 +883,8 @@ return {
     ["This PC cannot look up {host}. Check your internet connection, then restart the game."] = "この PC は {host} を名前解決できません。インターネット接続を確認し、ゲームを再起動してください。",
     ["Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load."] = "r6/logs/redscript_rCURRENT.log を開いてください。記載の MOD がスクリプト停止の原因です。",
     ["This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it."] = "この MOD のスクリプトが読み込まれませんでした。r6/logs/redscript_rCURRENT.log を開いてください。エラーに別の MOD の名前があれば、その MOD が原因です。Codeware、redscript がない、または古い場合や、ゲームのバージョンが {game} 以外の場合も原因になります。",
+    ["Open r6/logs/redscript_rCURRENT.log. Scripts did not compile. Match Scripts and game."] = "r6/logs/redscript_rCURRENT.log を開いてください。コンパイル失敗。ゲームと版を合わせて。",
+    ["This mod’s scripts did not compile completely. Functions it needs that are missing: {count} ({names}). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Also check that the Scripts are the build for game {game} and come from the same download as the Runtime, then restart the game."] = "この MOD のスクリプトは完全にはコンパイルされませんでした。不足している必要な関数：{count} 個（{names}）。r6/logs/redscript_rCURRENT.log を開いてください。エラーに別の MOD の名前があれば、その MOD が原因です。Scripts がゲーム {game} 用のビルドで、Runtime と同じダウンロードのものかも確認し、ゲームを再起動してください。",
     ["Missing: {names}. Install them and restart the game."] = "{names} がありません。インストールして再起動してください。",
     ["Install or update: {names}. Then restart the game."] = "{names} をインストールまたは更新し、再起動してください。",
     ["Codeware is too old. Update it from Nexus Mods, then restart the game."] = "Codeware が古すぎます。Nexus Mods から更新し、ゲームを再起動してください。",

@@ -12,7 +12,7 @@ import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   queueRecord, readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorExcerpt, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
+import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorExcerpt, errorLines, hashInstall, luaErrorsIn, missingScriptMethod, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -727,6 +727,46 @@ test('Lua errors in the mod\'s logs are found from where the last look stopped; 
     assert.deepEqual(luaErrorsIn(['Face graphs: not readable (the face service is not loaded (Codeware or the scripts are missing))']), []);
     assert.equal(luaErrorsIn(["Face graphs: not readable (facial-playback.lua:1819: attempt to index local 'service' (a nil value))"]).length, 1);
   } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('Lua errors that say this mod\'s scripts did not compile are one setup-problem of the kind scripts-not-compiled, under the signature the game\'s own setup check files, not lua-error reports', async () => {
+  // 0.4.0 and 0.2.x installs with redscript missing or a stale compile logged "attempt to call method 'Convai...' (a nil value)" on every update (31 Oct 2026).
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock, {target: null});
+  try {
+    const probe = join(f.runtime, 'probe.log'), modLog = join(f.modRoot, 'AiNpcCyberpunkMod.log');
+    await writeFile(probe, '');
+    await writeFile(modLog, '');
+    await reporter.look({flush: false});
+    await appendFile(probe, ['2026-10-19T10:00:01Z Phone catalog registration failed: companions.lua:128: attempt to call method \'ConvaiPhoneClearContacts\' (a nil value)', ''].join('\n'));
+    await appendFile(modLog, ['[2026-10-19 10:00:02 UTC+02:00] [error] manager.lua:1277: attempt to call method \'ConvaiManagerSetVoice\' (a nil value)',
+      '[2026-10-19 10:00:03 UTC+02:00] [error] manager.lua:1277: attempt to call method \'ConvaiManagerSetVoice\' (a nil value)',
+      '[2026-10-19 10:00:04 UTC+02:00] [error] manager.lua:1280: attempt to call method \'ConvaiManagerSetSubtitles\' (a nil value)',
+      '[2026-10-19 10:00:05 UTC+02:00] [error] manager-ui.lua:1201: bad argument #1 to \'ipairs\' (table expected, got nil)', ''].join('\n'));
+    await reporter.look({flush: false});
+    const queue = await readQueue(f.state, {now: clock.now});
+    assert.deepEqual(queue.map(record => [record.kind, record.message]).sort(), [['lua-error', "bad argument #1 to 'ipairs' (table expected, got nil)"], ['setup-problem', 'scripts-not-compiled']],
+      'an ordinary Lua error is still a lua-error, the missing methods are one setup-problem');
+    const setup = queue.find(record => record.kind === 'setup-problem');
+    assert.equal(setup.frame, 'game-setup');
+    assert.equal(setup.count, 2, 'once per log per look, however many lines it holds');
+    assert.match(setup.detail.method, /^Convai[A-Za-z0-9]+$/);
+    // the game's own event for the same fault (mod/error-reports.lua noteSetup) has the same signature
+    const own = parseGameEvents(JSON.stringify({version: 1, game: {}, events: [{kind: 'setup-problem', code: 'scripts-not-compiled', detail: '2 missing: ConvaiManagerSetVoice,ConvaiPhoneClearContacts',
+      frame: 'game-setup', at: START}]})).events[0];
+    assert.equal(setup.signature, errorSignature({kind: own.kind, message: own.message, frame: own.frame}));
+    // the next look finds nothing new
+    await reporter.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).find(record => record.kind === 'setup-problem').count, 2);
+  } finally { reporter.close(); await f.cleanup(); }
+  // the wording of the two Lua versions, and what is not a missing method of this mod
+  assert.equal(missingScriptMethod("attempt to call method 'ConvaiManagerSetVoice' (a nil value)"), 'ConvaiManagerSetVoice');
+  assert.equal(missingScriptMethod("attempt to call a nil value (method 'ConvaiPhoneClearContacts')"), 'ConvaiPhoneClearContacts');
+  assert.equal(missingScriptMethod("attempt to call field 'ConvaiFaceReady' (a nil value)"), 'ConvaiFaceReady');
+  assert.equal(missingScriptMethod("attempt to call method 'GetPlayer' (a nil value)"), null, 'another mod\'s or the game\'s method is a Lua error');
+  assert.equal(missingScriptMethod("attempt to index local 'player' (a nil value)"), null);
+  assert.equal(missingScriptMethod(undefined), null);
 });
 
 test('a second game folder (another log file) starts from its own end: the first one\'s size is not used as an offset into it', async () => {

@@ -3578,7 +3578,7 @@ function M.slowUpdate(currentPlayer, worldReady)
     -- Setup check (mod/setup-check.lua): one notice at the first load when something critical is wrong (with or without Native
     -- Settings UI), and the Help page's re-check. A few comparisons until something is due.
     if convaiSetupCheck then
-        local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
+        local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil, currentPlayer)
         if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
     end
     -- Automatic error reports (mod/error-reports.lua): the one notice that says they are sent, once, in gameplay. One test once decided.

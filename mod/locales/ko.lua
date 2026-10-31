@@ -883,6 +883,8 @@ return {
     ["This PC cannot look up {host}. Check your internet connection, then restart the game."] = "이 PC에서 {host}를 찾을 수 없습니다. 인터넷 연결을 확인한 후 게임을 다시 시작하세요.",
     ["Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load."] = "r6/logs/redscript_rCURRENT.log를 여세요. 거기 이름이 나온 모드가 스크립트를 막고 있습니다.",
     ["This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it."] = "이 모드의 스크립트가 로드되지 않았습니다. r6/logs/redscript_rCURRENT.log를 여세요. 오류에 다른 모드가 나와 있다면 그 모드가 원인입니다. Codeware, redscript가 없거나 오래된 경우, 또는 게임 버전이 {game}이 아닌 경우에도 발생할 수 있습니다.",
+    ["Open r6/logs/redscript_rCURRENT.log. Scripts did not compile. Match Scripts and game."] = "r6/logs/redscript_rCURRENT.log를 여세요. 스크립트 컴파일 실패. 게임 버전과 맞추세요.",
+    ["This mod’s scripts did not compile completely. Functions it needs that are missing: {count} ({names}). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Also check that the Scripts are the build for game {game} and come from the same download as the Runtime, then restart the game."] = "이 모드의 스크립트가 완전히 컴파일되지 않았습니다. 없는 필수 함수: {count}개 ({names}). r6/logs/redscript_rCURRENT.log를 여세요. 오류에 다른 모드가 나와 있다면 그 모드가 원인입니다. 또한 Scripts가 게임 {game}용 빌드이고 Runtime과 같은 다운로드에서 온 것인지 확인한 뒤 게임을 다시 시작하세요.",
     ["Missing: {names}. Install them and restart the game."] = "없음: {names}. 설치한 후 게임을 다시 시작하세요.",
     ["Install or update: {names}. Then restart the game."] = "설치 또는 업데이트: {names}. 그 후 게임을 다시 시작하세요.",
     ["Codeware is too old. Update it from Nexus Mods, then restart the game."] = "Codeware가 너무 오래되었습니다. Nexus Mods에서 업데이트한 후 게임을 다시 시작하세요.",

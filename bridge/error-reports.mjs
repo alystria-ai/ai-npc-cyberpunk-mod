@@ -448,6 +448,17 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
 const LUA_ERROR = /(?:^|[\s:(\]])([A-Za-z0-9_.-]+\.lua):(\d+): (.+)$/;
 const LUA_WORDS = /attempt to|bad argument|stack overflow|nil value|expected|unexpected|not enough memory|table index|invalid|error/i;
 
+// A call of a redscript method of this mod that is not there: this mod's scripts did not compile (an old compile kept because another mod broke the new one,
+// Scripts older than the Lua, redscript missing). LuaJIT words it "attempt to call method 'ConvaiManagerSetVoice' (a nil value)", Lua 5.3 "attempt to call a nil
+// value (method 'ConvaiManagerSetVoice')". Installs on 0.4.0 and 0.2.x logged it on every update (31 Oct 2026).
+export const SCRIPTS_NOT_COMPILED = 'scripts-not-compiled';
+const MISSING_SCRIPT_METHOD = /attempt to call (?:(?:method|field) '(Convai[A-Za-z0-9]{2,80})' \(a nil value\)|a nil value \((?:method|field) '(Convai[A-Za-z0-9]{2,80})'\))/;
+/** The name of the Convai redscript method a Lua error says is missing, or null when it says something else. */
+export const missingScriptMethod = message => {
+  const match = MISSING_SCRIPT_METHOD.exec(String(message ?? ''));
+  return match ? (match[1] ?? match[2]) : null;
+};
+
 /**
  * Lua errors in some log lines: [{message, frame, context}]. `since` (ms): a line that starts with an ISO stamp older than it is skipped (probe.log
  * lines carry one; the file is cut back at each game load, and what is left of earlier sessions is not this session's).
@@ -627,8 +638,19 @@ export class ErrorReporter {
       } catch { continue; } finally { await handle?.close().catch(() => {}); }
       // A file that got smaller was cut back or replaced (the game cuts probe.log back at each load): only its lines stamped since this service started count.
       const since = size < known ? this.startedAt - 60_000 : 0;
+      let scriptsNoted = false;
       for (const found of luaErrorsIn(text.split(/\r?\n/), {strict: source.strict, since})) {
         if (recorded >= 20) break;
+        // Scripts that did not compile are a setup problem, not a Lua error per call: one setup-problem of the kind scripts-not-compiled, the one signature the game's
+        // own setup check files for it (mod/error-reports.lua noteSetup), counted once per look at the log however many lines it holds.
+        const method = missingScriptMethod(found.message);
+        if (method) {
+          if (scriptsNoted) continue;
+          scriptsNoted = true;
+          if (await recordErrorEvent(this.stateDirectory, {kind: 'setup-problem', message: SCRIPTS_NOT_COMPILED, frame: 'game-setup', source: 'game',
+            detail: {log: source.id, method}}, {now: this.now()})) recorded++;
+          continue;
+        }
         if (await recordErrorEvent(this.stateDirectory, {kind: 'lua-error', message: found.message, frame: found.frame, source: 'game',
           detail: {log: source.id, ...(found.context ? {context: found.context} : {})}}, {now: this.now()})) recorded++;
       }

@@ -887,6 +887,8 @@ return {
     ["This PC cannot look up {host}. Check your internet connection, then restart the game."] = "这台电脑无法解析 {host}。请检查网络连接，然后重新启动游戏。",
     ["Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load."] = "请打开 r6/logs/redscript_rCURRENT.log。其中列出的模组就是脚本未加载的原因。",
     ["This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it."] = "本模组的脚本未加载。请打开 r6/logs/redscript_rCURRENT.log。若错误中提到其他模组，则该模组就是问题所在。缺少或过旧的 Codeware 或 redscript，以及不是 {game} 的游戏版本，也可能导致此问题。",
+    ["Open r6/logs/redscript_rCURRENT.log. Scripts did not compile. Match Scripts and game."] = "请打开 r6/logs/redscript_rCURRENT.log。脚本未能编译。请让脚本与游戏版本一致。",
+    ["This mod’s scripts did not compile completely. Functions it needs that are missing: {count} ({names}). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Also check that the Scripts are the build for game {game} and come from the same download as the Runtime, then restart the game."] = "本模组的脚本未完整编译。缺少所需函数：{count} 个（{names}）。请打开 r6/logs/redscript_rCURRENT.log。若错误中提到其他模组，则该模组就是问题所在。另请确认 Scripts 是适用于游戏 {game} 的版本，并与 Runtime 来自同一次下载，然后重新启动游戏。",
     ["Missing: {names}. Install them and restart the game."] = "缺少：{names}。请安装后重新启动游戏。",
     ["Install or update: {names}. Then restart the game."] = "请安装或更新：{names}。然后重新启动游戏。",
     ["Codeware is too old. Update it from Nexus Mods, then restart the game."] = "Codeware 版本过旧。请从 Nexus Mods 更新，然后重新启动游戏。",

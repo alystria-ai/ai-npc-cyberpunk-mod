@@ -143,7 +143,7 @@ test('redscript phone popup consumes presses, passes plain key-ups, and keeps me
 
 test('the talk box and phone typing log V speed once per opening, with no per-frame work', () => {
   const init = normalize(initLua), chat = normalize(phoneChatLua);
-  assert.match(init, /local speedAtOpen = playerSpeedText\(player\)\s+local moveAtOpen = moveStateText\(player\)\s+if not player:ConvaiOpenComposer\(name\) then/);
+  assert.match(init, /local speedAtOpen = playerSpeedText\(player\)\s+local moveAtOpen = moveStateText\(player\)\s+if type\(player\.ConvaiOpenComposer\) ~= 'function' or not player:ConvaiOpenComposer\(name\) then/);
   assert.match(init, /log\('Composer opened: generation=' \.\. generation \.\. ' actor=' \.\. identity \.\. ' name=' \.\. name\s+\.\. ' speed=' \.\. speedAtOpen \.\. ' moveAxis=' \.\. moveAtOpen/);
   assert.match(init, /phoneChat\.typingOpened = function\(player, contact\)\s+log\('Phone chat typing opened: contact='/);
   // edge-triggered inside the existing 10 Hz phone tick, and only while a chat is open
