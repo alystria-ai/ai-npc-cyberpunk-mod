@@ -11,29 +11,98 @@
 //     (provider.noteLimit, the gemini-daily / gemini-limit / gemini-key notices). A failure of the network (no answer in time, a closed connection) of one request waits for the other.
 //   - One log line per hedge, when it is decided: which request won, or that neither answered.
 //
-// Cost: nothing unless a streamed Gemini request is still silent after 4 s: one timer per request, cleared as soon as the first word comes.
+// Busy answers (owner request, 31 Oct 2026, after a live "Google Gemini is busy" notice on a normal talk turn): an answer that says Google is overloaded (`error.busy`, set by
+// bridge/mistral-client.mjs: HTTP 500 INTERNAL, 503 UNAVAILABLE, a 429 RESOURCE_EXHAUSTED that names no quota, any 5xx whose body says overloaded) is asked again in the same turn, after
+// 1 s and then after 2 s, at most twice, and only while the retry would still start within 8 s of the call's start and leave a turn deadline (`deadlineAt`) its minimum attempt.
+//   - The retries share this wrapper's one-extra-request rule: at most two requests are in flight at a time (the original and the hedge, or a retry and the hedge). A busy answer from
+//     one request while the other is still in flight waits for the other, and the retry is only made once no request is left. The 4 s hedge timer counts from the latest start.
+//   - The request's own retry loop (bridge/mistral-client.mjs streamChat) is told to leave busy answers to this wrapper (`deferBusy`), so a busy turn is 3 requests at most, not 6.
+//   - A first word ends it all: nothing is retried once a reply has begun. A success adds no delay. Quota, key, region and model failures end the call at once, as before.
+//   - One log line per retry. When every retry failed, the busy error is the call's (the route's gemini-server notice).
+//
+// Cost: nothing unless a streamed Gemini request is still silent after 4 s or answers busy: one timer per request, cleared as soon as the first word comes.
 export const HEDGE_AFTER_MS = 4000;
+/** The waits before the first and the second busy retry, and how many retries a call gets at most. */
+export const BUSY_BACKOFF_MS = Object.freeze([1000, 2000]);
+/** A busy retry starts only if it would begin within this long of the call's start (the retries stay inside about 8 s). */
+export const BUSY_WINDOW_MS = 8000;
+/** The least time left before a turn deadline (`deadlineAt`) for a busy retry to be worth starting (the same as bridge/mistral-client.mjs MIN_ATTEMPT_MS). */
+const MIN_RETRY_ROOM_MS = 3000;
 const LOST = Symbol('hedge-lost');
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth'];
 
 /**
  * Wraps `chat(options)` (bridge/mistral-client.mjs streamChat or a wrapper of it) for a route that hedges.
- * `log(line)` gets the one line of a hedge. `setTimer` / `clearTimer` / `now`: for the tests.
+ * `log(line)` gets the one line of a hedge or of a busy retry. `backoffMs` / `windowMs`: the busy retries (one entry per retry, [] for none). `setTimer` / `clearTimer` / `now`: for the tests.
  */
-export function hedged(chat, {afterMs = HEDGE_AFTER_MS, log = () => {}, label = 'Google Gemini', setTimer = setTimeout, clearTimer = clearTimeout, now = () => performance.now()} = {}) {
+export function hedged(chat, {afterMs = HEDGE_AFTER_MS, log = () => {}, label = 'Google Gemini', backoffMs = BUSY_BACKOFF_MS, windowMs = BUSY_WINDOW_MS,
+  setTimer = setTimeout, clearTimer = clearTimeout, now = () => performance.now()} = {}) {
   return function hedgedChat(options = {}) {
     if (typeof options.onDelta !== 'function' || options.signal?.aborted) return chat(options);
     return new Promise((resolve, reject) => {
       const runs = [];
-      let winner = null, done = false, timer = null, began = now();
+      let winner = null, done = false, hedgeTimer = null, retryTimer = null, hedgedYet = false, retries = 0, lastBusy = null, lastFailure = null, onAbort = null;
+      const began = now();
+      const clock = () => (Number.isFinite(options.deadlineAt) && typeof options.now === 'function' ? options.now() : now());
+      const stopTimers = () => {
+        if (hedgeTimer !== null) { clearTimer(hedgeTimer); hedgeTimer = null; }
+        if (retryTimer !== null) { clearTimer(retryTimer); retryTimer = null; }
+      };
       const finish = (fn, value) => {
         if (done) return;
         done = true;
-        if (timer !== null) { clearTimer(timer); timer = null; }
+        stopTimers();
+        if (onAbort) options.signal?.removeEventListener('abort', onAbort);
         for (const run of runs) if (run !== winner) { try { run.controller.abort(LOST); } catch { /* already over */ } }
         fn(value);
       };
       const say = text => { try { log(`${label}: ${text}`); } catch { /* a log line never fails a reply */ } };
-      const ordinal = run => (run.index === 0 ? 'first' : 'second');
+      const ordinal = run => ORDINALS[run.index] ?? `number ${run.index + 1}`;
+      const live = () => runs.filter(run => !run.settled).length;
+      const elapsed = () => ((now() - began) / 1000).toFixed(1);
+      const armHedge = () => {
+        if (hedgeTimer !== null) { clearTimer(hedgeTimer); hedgeTimer = null; }
+        if (hedgedYet || done) return;
+        hedgeTimer = setTimer(() => {
+          hedgeTimer = null;
+          // Only one request is in flight (the latest start) and it is still silent; a request that already failed busy is the retry's business.
+          if (done || winner !== null || hedgedYet || live() !== 1 || retryTimer !== null) return;
+          hedgedYet = true;
+          say(`no first word after ${(afterMs / 1000).toFixed(1)} s, the same request is sent once more and the first to answer wins`);
+          start();
+        }, afterMs);
+        hedgeTimer?.unref?.();
+      };
+      // The call ends with the last failure if Google was busy at any point (a busy answer stays the busy notice), else with the first request's failure.
+      const giveUp = () => finish(reject, lastBusy ? lastFailure : runs[0].error);
+      // Is a busy retry still allowed, and after how long? null: no.
+      const retryWait = () => {
+        if (retries >= backoffMs.length || options.signal?.aborted) return null;
+        const wait = backoffMs[retries];
+        if (now() - began + wait > windowMs) return null;
+        if (Number.isFinite(options.deadlineAt) && options.deadlineAt - clock() - wait < (options.minAttemptMs ?? MIN_RETRY_ROOM_MS)) return null;
+        return wait;
+      };
+      // Called after a request failed with no winner: wait for the other request, or ask again after a busy answer, or end the call.
+      const settle = () => {
+        if (done || live() > 0 || retryTimer !== null) return;
+        const wait = lastBusy && lastBusy === lastFailure ? retryWait() : null;
+        if (wait === null) {
+          if (hedgedYet && !lastBusy) say(`hedged request: neither request answered (${runs.map(item => item.error?.kind ?? 'error').join(', ')})`);
+          giveUp();
+          return;
+        }
+        retries++;
+        const status = lastBusy.status ? ` (HTTP ${lastBusy.status})` : '';
+        say(`busy${status}, asking again in ${(wait / 1000).toFixed(1)} s (retry ${retries} of ${backoffMs.length}, ${elapsed()} s into the turn)`);
+        retryTimer = setTimer(() => {
+          retryTimer = null;
+          if (done) return;
+          if (options.signal?.aborted) { finish(reject, options.signal.reason ?? lastBusy); return; }
+          start();
+          armHedge();
+        }, wait);   // not unref'd: a pending retry is a turn still waiting for its answer (2 s at most, cleared when the call ends)
+      };
       const start = () => {
         const run = {index: runs.length, controller: new AbortController(), settled: false, error: undefined, startedAt: now()};
         runs.push(run);
@@ -42,51 +111,48 @@ export function hedged(chat, {afterMs = HEDGE_AFTER_MS, log = () => {}, label = 
           if (done) return undefined;
           if (winner === null) {
             winner = run;
-            if (timer !== null) { clearTimer(timer); timer = null; }
-            if (runs.length > 1) say(`hedged request: the ${ordinal(run)} request gave the first word at ${((now() - began) / 1000).toFixed(1)} s and won, the other was cancelled`);
+            stopTimers();
+            if (hedgedYet) say(`hedged request: the ${ordinal(run)} request gave the first word at ${elapsed()} s and won, the other was cancelled`);
             for (const other of runs) if (other !== run) { try { other.controller.abort(LOST); } catch { /* already over */ } }
           }
           return winner === run ? options.onDelta(...args) : undefined;
         };
-        Promise.resolve().then(() => chat({...options, signal, onDelta})).then(result => {
+        Promise.resolve().then(() => chat({...options, signal, onDelta, deferBusy: true})).then(result => {
           run.settled = true;
           if (done || (winner !== null && winner !== run)) return;
           // An answer with no streamed word (the reply came whole): it counts as the first answer.
           if (winner === null) {
             winner = run;
-            if (runs.length > 1) say(`hedged request: the ${ordinal(run)} request answered first, at ${((now() - began) / 1000).toFixed(1)} s, the other was cancelled`);
+            if (hedgedYet) say(`hedged request: the ${ordinal(run)} request answered first, at ${elapsed()} s, the other was cancelled`);
           }
           finish(resolve, result);
         }, error => {
           run.settled = true;
-          run.error = error;
+          run.error = error; lastFailure = error;
           if (done || (winner !== null && winner !== run)) return;
-          // The caller stopped the turn: both requests end with it.
+          // The caller stopped the turn: every request ends with it.
           if (options.signal?.aborted) { finish(reject, error); return; }
           // The winner failed after its first word: the failure is the call's.
           if (winner === run) { finish(reject, error); return; }
-          // No winner yet. A failure about the account (key, limit, credits, region, model) is the same for the other request: the call ends with it now.
+          // No winner yet. Google was busy: the other request, if one is in flight, may still answer; if none is left the busy answer is asked again after a short backoff.
+          if (error?.busy === true) { lastBusy = error; settle(); return; }
+          // A failure about the account (key, limit, credits, region, model) is the same for the other request: the call ends with it now.
           if (error?.kind !== 'network') {
-            if (runs.length > 1) say(`hedged request: the ${ordinal(run)} request failed (${error?.kind ?? 'error'}), the call ends with it`);
+            if (hedgedYet) say(`hedged request: the ${ordinal(run)} request failed (${error?.kind ?? 'error'}), the call ends with it`);
             finish(reject, error);
             return;
           }
           // A network failure waits for the other request when there is one.
-          if (runs.every(item => item.settled)) {
-            if (runs.length > 1) say(`hedged request: neither request answered (${runs.map(item => item.error?.kind ?? 'error').join(', ')})`);
-            finish(reject, runs[0].error);
-          }
+          settle();
         });
         return run;
       };
+      if (options.signal) {
+        onAbort = () => { if (!done && live() === 0) finish(reject, options.signal.reason); };
+        options.signal.addEventListener('abort', onAbort, {once: true});
+      }
       start();
-      timer = setTimer(() => {
-        timer = null;
-        if (done || winner !== null || runs.length > 1 || runs[0].settled) return;
-        say(`no first word after ${(afterMs / 1000).toFixed(1)} s, the same request is sent once more and the first to answer wins`);
-        start();
-      }, afterMs);
-      timer?.unref?.();
+      armHedge();
     });
   };
 }

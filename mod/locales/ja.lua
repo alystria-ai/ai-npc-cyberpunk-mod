@@ -1728,7 +1728,7 @@ return {
     ["Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI."] = "本日の無料 Gemini 枠を使い切りました。明日リセット。Convai か Local AI をご利用ください。",
     ["Google Gemini is rate limiting you. Wait a minute, then try again."] = "Google Gemini の利用が制限中です。1分待ってから再試行してください。",
     ["Google Gemini is not available in your region. Use Convai or Local AI."] = "Google Gemini はお住まいの地域で利用できません。Convai か Local AI をご利用ください。",
-    ["Google Gemini is busy or had an error. Wait a minute, then try again."] = "Google Gemini が混雑中かエラーです。1分待ってから再試行してください。",
+    ["Google Gemini is busy right now. Try again in a moment."] = "Google Gemini は今混み合っています。少し待ってから再試行してください。",
     ["Google Gemini could not be reached. Check your internet connection, then try again."] = "Google Gemini に接続できません。インターネットを確認し、再試行してください。",
     ["The Gemini model is not available right now. Try again later or use Local AI."] = "Gemini モデルは現在利用できません。後で再試行するか、Local AI をご利用ください。",
     ["Google Gemini: model unavailable"] = "Google Gemini：モデルが利用できません",

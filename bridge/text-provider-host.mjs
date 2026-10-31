@@ -25,7 +25,7 @@ import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
-import {HEDGE_AFTER_MS, hedged} from './hedged-request.mjs';
+import {BUSY_BACKOFF_MS, HEDGE_AFTER_MS, hedged} from './hedged-request.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs, BUDGET} from './prompt-budget.mjs';
 import {imageReserveTokens} from './local-vision.mjs';
 import {pictureForTurn} from './vision-message.mjs';
@@ -172,11 +172,12 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  *   name        'custom', or 'gemini' for the Google Gemini provider (bridge/gemini-provider.mjs): the same client and the same handling of failures, but its own route name, so the Mature
  *               layer (MATURE_PROVIDERS has no 'gemini': a cloud provider never gets it) and the settings page tell the two apart
  */
-export function customRoute({provider, custom, name = 'custom', chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected, hedgeMs = HEDGE_AFTER_MS} = {}) {
+export function customRoute({provider, custom, name = 'custom', chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected, hedgeMs = HEDGE_AFTER_MS, busyBackoffMs = BUSY_BACKOFF_MS} = {}) {
   // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
   chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
-  // Google Gemini only: a streamed reply with no first word after 4 s is sent once more and the first to answer wins (bridge/hedged-request.mjs). No other provider hedges.
-  if (name === 'gemini') chat = hedged(chat, {afterMs: hedgeMs, log: line => log(`[TextProvider] ${line}`)});
+  // Google Gemini only: a streamed reply with no first word after 4 s is sent once more and the first to answer wins, and a busy answer from Google is asked again after 1 s and 2 s
+  // (bridge/hedged-request.mjs, which shares one extra request between the two). No other provider hedges.
+  if (name === 'gemini') chat = hedged(chat, {afterMs: hedgeMs, backoffMs: busyBackoffMs, log: line => log(`[TextProvider] ${line}`)});
   const adaptations = new Map();
   const adaptation = () => {
     const key = `${custom.origin}|${custom.model}`;
