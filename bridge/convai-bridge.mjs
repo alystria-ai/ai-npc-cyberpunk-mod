@@ -101,6 +101,7 @@ import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterOptions} from './character-options.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
 import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
+import {ConvaiCharacterEdits} from './convai-character-edits.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
@@ -1325,6 +1326,8 @@ const worldRules = await WorldRules.open({dir: stateDirectory, log: message => c
 // The text providers' personas carry the player's rules and then the content packs' (a view of the same store); the editor and Convai below read the store itself.
 const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions,
   worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
+// The same edits for a Convai turn (bridge/convai-character-edits.mjs): one context block per edited character, built when the edit changes and kept, so a turn is a map lookup.
+const convaiCharacterEdits = new ConvaiCharacterEdits({overrides: characterOverrides, personas: personaBook});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
@@ -1929,6 +1932,9 @@ const conversationBlocks = input => {
     // (contextPartsOf): those carry the rules in the persona.
     // The content packs' world rules (API 1.1) follow the player's, kept to a size (bridge/addon-content.mjs convaiWorldRulesText); the pack's switch in the game's settings removes them.
     ...convaiWorldRulesBlocks(addonContent.convaiWorldRulesText(worldRules.get()), mistral.active),
+    // The player's edits of this character (bio, speaking style, rules, examples, memories) as who it is now, after the world rules so the character's own words win over the world's
+    // (bridge/convai-character-edits.mjs). Convai's characters cannot be updated on the Gamer plan, so the edits travel with the turn; none for an unedited character, none while a text provider answers.
+    ...convaiCharacterEdits.blocks(input.profileKey, mistral.active),
     // The one-sentence first-person reminder goes after the voice blocks, which pull a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
     // The Natural speech offer changes from turn to turn (it is dice and a place), so it is volatile; the Expressive emotion
     // notes are the same every turn for a given setting.

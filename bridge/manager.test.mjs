@@ -6939,7 +6939,7 @@ test('Home offers the Character editor as the fifth row, then Key bindings, abov
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
-    assert(open.description:find('Google Gemini, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
+    assert(open.description:find('With Convai, your changes are sent as notes with each reply', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
     -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end

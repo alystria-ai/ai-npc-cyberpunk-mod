@@ -50,6 +50,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/continuous-face-file.mjs',
   'bridge/convai-audio-rates.mjs',
   'bridge/convai-bridge.mjs',
+  'bridge/convai-character-edits.mjs',
   'bridge/convai-continuous-speech.mjs',
   'bridge/convai-credential.mjs',
   'bridge/convai-data-audio.mjs',

@@ -1392,7 +1392,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -2640,7 +2640,7 @@ local function schema()
             if tab[1] == 'editor' then
                 if editor then
                     nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
-                        'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.',
+                        'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with every conversation option. With Convai, your changes are sent as notes with each reply. Changes apply from the next reply.',
                         function() return editor.request() end)
                 end
             else
