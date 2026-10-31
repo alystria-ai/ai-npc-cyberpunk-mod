@@ -89,8 +89,7 @@
       "choices": [
         {"id": "walked", "on": "event:together:walk:done", "next": "snatch"},
         {"id": "wandered", "on": "event:together:walk:broken", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "snatch",
@@ -111,8 +110,7 @@
       "choices": [
         {"id": "caught", "on": "event:runner:run:caught", "next": "steps"},
         {"id": "lost", "on": "event:runner:run:lost", "next": "redraw"}
-      ],
-      "timeout": {"gameHours": 1, "next": "redraw"}
+      ]
     },
     {
       "id": "steps",
@@ -137,8 +135,7 @@
         {"id": "paid", "on": "event:pay:bun:paid", "next": "caught-fed"},
         {"id": "scold", "on": "event:gap:g2:scold", "next": "caught"},
         {"id": "walk", "on": "event:gap:g2:walk", "next": "caught"}
-      ],
-      "timeout": {"gameHours": 1, "next": "caught"}
+      ]
     },
     {
       "id": "redraw",
@@ -154,8 +151,7 @@
       "choices": [
         {"id": "redrawn", "on": "event:together:redraw:done", "next": "lost"},
         {"id": "gone", "on": "event:together:redraw:broken", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     }
   ],
   "endings": {

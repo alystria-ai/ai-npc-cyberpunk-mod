@@ -71,8 +71,7 @@
       "choices": [
         {"id": "named", "on": "tag", "kind": "honest", "means": "V names the faker and says how he questioned the other two.", "next": "done"},
         {"id": "paid", "on": "event:pay:treat:paid", "next": "paid"}
-      ],
-      "timeout": {"gameHours": 2, "next": "done"}
+      ]
     }
   ],
   "endings": {

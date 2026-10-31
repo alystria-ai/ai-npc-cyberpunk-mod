@@ -68,8 +68,7 @@
       "choices": [
         {"id": "right", "on": "event:gap:g1:nicest", "next": "right"},
         {"id": "wrong", "on": "event:gap:g1:other", "next": "wrong"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -80,9 +79,6 @@
     "wrong": {
       "memory": "You named the wrong witness at the Santo Domingo diner, and River gave you a lesson about trusting the nicest one.",
       "bond": 2
-    },
-    "stood-up": {
-      "memory": "You never came to the Santo Domingo diner, and River questioned the four witnesses alone."
     }
   }
 }

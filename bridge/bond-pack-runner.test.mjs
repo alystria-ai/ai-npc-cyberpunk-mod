@@ -194,7 +194,7 @@ test('Panam: the ask carries the Eddies story; V\'s loan moves her to repay, the
   assert.equal(noteOf(runner, turn('panam-palmer', t0 + 7 * DAY, base)), '');
 });
 
-test('Panam: V offers to help, or refuses, in words; the stage is not answered on the turn that brought it up; the timer sends it to "alone"', () => {
+test('Panam: V offers to help, or refuses, in words; the stage is not answered on the turn that brought it up; no time limit moves it', () => {
   const t0 = 50 * DAY, base = {journalHistory: journal(PANAM_DONE)};
   const begin = runner => { const start = turn('panam-palmer', t0, base); runner.forTurn(start, {level: 6}); runner.afterTurn(start, 'I will go with you, sure'); };
   // The words on the very turn that started it answer nothing.
@@ -210,19 +210,25 @@ test('Panam: V offers to help, or refuses, in words; the stage is not answered o
   const silent = make().runner; begin(silent);
   const turn4 = turn('panam-palmer', t0 + 600, base); silent.forTurn(turn4, {level: 6}); silent.afterTurn(turn4, 'hmm');
   assert.equal(silent.entries.get('panam-truck-ransom').trail.at(-1).stage, 'ask');
-  // 48 game hours later with no answer: the timer, checked when the next turn's context is built.
-  const late = turn('panam-palmer', t0 + 49 * HOUR, base);
-  silent.forTurn(late, {level: 6});
-  assert.equal(silent.entries.get('panam-truck-ransom').trail.at(-1).stage, 'alone');
+  // No time limit (owner decision 1 Nov 2026): two game days, then thirty, with no answer, and the stage is still open.
+  for (const days of [2, 30]) {
+    const late = turn('panam-palmer', t0 + days * DAY, base);
+    silent.forTurn(late, {level: 6});
+    assert.equal(silent.entries.get('panam-truck-ransom').trail.at(-1).stage, 'ask', `still open after ${days} game days`);
+    assert.equal(silent.entries.get('panam-truck-ransom').status, 'active');
+  }
 });
 
-test('a closing beat is shown once, then the next turn ends the pack; the meeting outcome of an appointment moves a stage that waits on it', () => {
+test('a closing beat is shown once, then the next turn ends the pack; a meeting she waited for in vain moves nothing, one V keeps moves the stage', () => {
   const awards = [];
   const {runner} = make({bonds: {award: (...args) => { awards.push(args); }, publish() {}}});
   const t0 = 60 * DAY, base = {journalHistory: journal(JUDY_DONE)};
   const start = turn('judy-alvarez', t0, base); runner.forTurn(start, {level: 6}); runner.afterTurn(start, 'hi');
-  // Meetings count only while Story packs is on (a turn said so).
-  assert.equal(runner.noteMeeting('judy-alvarez', 'stood-up', t0 + HOUR), 'stood-up');
+  // Meetings count only while Story packs is on (a turn said so). A meeting she waited for in vain is no ending: the quest has no time limit and stays open.
+  assert.equal(runner.noteMeeting('judy-alvarez', 'stood-up', t0 + HOUR), null);
+  assert.equal(runner.entries.get('judy-dinner-dress').trail.at(-1).stage, 'invite');
+  // V says no in words: the rain-check ending is shown once and then closes.
+  const no = turn('judy-alvarez', t0 + HOUR + 60, base); runner.forTurn(no, {level: 6}); runner.afterTurn(no, 'sorry, I cannot make it');
   assert.equal(runner.entries.get('judy-dinner-dress').trail.at(-1).stage, 'rain-check');
   const shown = turn('judy-alvarez', t0 + 2 * HOUR, base);
   assert.match(runner.forTurn(shown, {level: 6}).note, /You missed a hell of a night|could not make it to see the dress/);

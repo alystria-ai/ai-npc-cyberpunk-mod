@@ -33,8 +33,7 @@
         {"id": "paid", "on": "eddies:loanFromV", "next": "repay"},
         {"id": "help", "on": "tag", "kind": "yes", "means": "V offers to go to the junkyard with you and take the truck back", "next": "recover"},
         {"id": "refuse", "on": "tag", "kind": "no", "means": "V says no, or tells you to wait for the clan or handle it yourself", "next": "alone"}
-      ],
-      "timeout": {"gameHours": 48, "next": "alone"}
+      ]
     },
     {
       "id": "recover",
@@ -43,12 +42,10 @@
       "know": "V offered to take the truck back with you. The junkyard near Rocky Ridge has a handful of scavs and one gate, you have watched it. You want to go at night, quietly first, loud if you must.",
       "wants": "V to meet you near the junkyard, armed, at the place V marks on the map.",
       "say": {"en": "Mark the spot near the junkyard and meet me there tonight. Bring something loud, just in case."},
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "back"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "alone"}
-      ],
-      "timeout": {"gameHours": 24, "next": "alone"}
+        {"id": "met", "on": "meet:met", "next": "back"}
+      ]
     },
     {
       "id": "repay",
@@ -59,8 +56,7 @@
       "say": {"en": "Truck's back. Every eddie you lent me, you'll get back. That's a promise."},
       "effects": [{"kind": "vehicleReturned"}],
       "repay": {"part": 2000},
-      "choices": [{"id": "settled", "on": "eddies:repayToV", "next": "repaid"}],
-      "timeout": {"gameHours": 168, "next": "repaid"}
+      "choices": [{"id": "settled", "on": "eddies:repayToV", "next": "repaid"}]
     },
     {
       "id": "alone",

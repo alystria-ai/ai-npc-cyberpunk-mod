@@ -102,8 +102,7 @@
       "choices": [
         {"id": "done", "on": "event:together:gym:done", "next": "clinic"},
         {"id": "broken", "on": "event:together:gym:broken", "next": "clinic"}
-      ],
-      "timeout": {"gameHours": 1, "next": "clinic"}
+      ]
     },
     {
       "id": "clinic",
@@ -127,8 +126,7 @@
         {"id": "calm", "on": "event:gap:g2:calm", "next": "pit"},
         {"id": "worry", "on": "event:gap:g2:worry", "next": "pit"},
         {"id": "skip", "on": "tag", "means": "V says Jackie should skip the pit tonight and stay at the gym", "kind": "honest", "next": "lift-only"}
-      ],
-      "timeout": {"gameHours": 1, "next": "pit"}
+      ]
     },
     {
       "id": "pit",
@@ -153,8 +151,7 @@
         {"id": "lost", "on": "event:bout:fight:a-down", "next": "lose-bark"},
         {"id": "stopped", "on": "event:bout:fight:stopped", "next": "lose-bark"},
         {"id": "towel", "on": "tag", "means": "V throws in the towel and stops the bout", "kind": "no", "next": "towel-bark"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lose-bark"}
+      ]
     },
     {
       "id": "win-bark",
@@ -174,8 +171,7 @@
       "choices": [
         {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "won"},
         {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "won"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "won"}
+      ]
     },
     {
       "id": "lose-bark",
@@ -195,8 +191,7 @@
       "choices": [
         {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "lost"},
         {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "lost"}
+      ]
     },
     {
       "id": "towel-bark",
@@ -216,8 +211,7 @@
       "choices": [
         {"id": "honest", "on": "event:line:JW4.close.01:done", "next": "towel"},
         {"id": "joke", "on": "event:line:JW4.close.02:done", "next": "towel"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "towel"}
+      ]
     }
   ],
   "endings": {

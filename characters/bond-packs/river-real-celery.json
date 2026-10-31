@@ -80,8 +80,7 @@
         {"when": "stage:enter", "text": "RW1.open.01"},
         {"when": "place:diner:arrived", "say": "RW1.open.02"}
       ],
-      "choices": [{"id": "came", "on": "event:place:diner:arrived", "next": "leads"}],
-      "timeout": {"gameHours": 3, "next": "no-case"}
+      "choices": [{"id": "came", "on": "event:place:diner:arrived", "next": "leads"}]
     },
     {
       "id": "leads",
@@ -91,7 +90,7 @@
       "know": "You and V are working the three leads, one after another. Your rule is never to ask what they know, only what they saw. You keep a notebook on your knee and write down the small details.",
       "wants": "V to ask good questions and keep the leads honest.",
       "do": [
-        {"p": "ride", "to": "greenhouse", "checkpoints": ["santo-domingo", "badlands-edge"], "limitMinutes": 30}
+        {"p": "ride", "to": "greenhouse", "checkpoints": ["santo-domingo", "badlands-edge"]}
       ],
       "script": [
         {"when": "stage:enter", "say": "RW1.open.03"},
@@ -102,11 +101,9 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "grower"},
-        {"id": "timed-out", "on": "event:ride:timeout", "next": "store-bought"},
         {"id": "failed-heat", "on": "event:ride:failed-heat", "next": "store-bought"},
         {"id": "abandoned", "on": "event:ride:abandoned", "next": "store-bought"}
-      ],
-      "timeout": {"gameHours": 3, "next": "store-bought"}
+      ]
     },
     {
       "id": "grower",
@@ -135,8 +132,7 @@
         {"id": "paid", "on": "event:pay:basket:paid", "next": "table"},
         {"id": "broke", "on": "event:pay:basket:broke", "next": "table"},
         {"id": "declined", "on": "event:pay:basket:declined", "next": "store-bought"}
-      ],
-      "timeout": {"gameHours": 2, "next": "store-bought"}
+      ]
     },
     {
       "id": "grower-quiet",
@@ -157,8 +153,7 @@
         {"id": "paid", "on": "event:pay:basket:paid", "next": "table-quiet"},
         {"id": "broke", "on": "event:pay:basket:broke", "next": "table-quiet"},
         {"id": "declined", "on": "event:pay:basket:declined", "next": "store-bought"}
-      ],
-      "timeout": {"gameHours": 2, "next": "store-bought"}
+      ]
     },
     {
       "id": "table",
@@ -168,8 +163,7 @@
       "know": "You have the basket of real celery and tomatoes. The case is closed, and you know what you are cooking on Sunday.",
       "wants": "V to walk away from the greenhouse with you.",
       "do": [{"p": "place", "at": "greenhouse"}],
-      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found"}],
-      "timeout": {"gameHours": 1, "next": "found"}
+      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found"}]
     },
     {
       "id": "table-quiet",
@@ -179,8 +173,7 @@
       "know": "You have the basket of real celery and tomatoes, and the scavs left without a fight. The case is closed.",
       "wants": "V to walk away from the greenhouse with you.",
       "do": [{"p": "place", "at": "greenhouse"}],
-      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found-quiet"}],
-      "timeout": {"gameHours": 1, "next": "found-quiet"}
+      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found-quiet"}]
     }
   ],
   "endings": {
@@ -206,11 +199,6 @@
       "memory": "You could not find real celery in time and made do with store-bought, and River was quietly gracious about it.",
       "bond": 25,
       "script": [{"when": "ending:store-bought", "say": "RW1.close.02"}]
-    },
-    "no-case": {
-      "memory": "You stood River up at the Heywood diner, and he went to find the stall alone.",
-      "bond": -5,
-      "script": [{"when": "ending:no-case", "text": "RW1.close.03"}]
     }
   }
 }

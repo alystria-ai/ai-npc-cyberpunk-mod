@@ -62,7 +62,7 @@ test('the pilot pack passes the validator, has a label on every stage and its po
   assert.equal(Object.values(pilot.lines).filter(line => line.text.includes(';')).length, 0);
 });
 
-test('it starts on a private turn with the bring-up note, and the first stage is in the play file with its places, lines and timeout', async () => {
+test('it starts on a private turn with the bring-up note, and the first stage is in the play file with its places and lines, and no timeout', async () => {
   const {runner, current, link, played} = make();
   const t0 = 30 * DAY;
   const input = turn(t0);
@@ -76,7 +76,7 @@ test('it starts on a private turn with the bring-up note, and the first stage is
   assert.equal(quest.pack, 'panam-sunset-coffee'); assert.equal(quest.stage, 'invite'); assert.equal(quest.serial, 1); assert.equal(quest.since, t0);
   assert.deepEqual(Object.keys(quest.places), ['sunset']);
   assert.deepEqual(quest.do.map(spec => spec.p), ['pin', 'place', 'cast']);
-  assert.equal(quest.timeoutAt, t0 + 6 * HOUR, 'the pack says 3 game hours, the first stage runs at least 6 (bridge/quest-start.mjs)');
+  assert.equal(quest.timeoutAt, undefined, 'a quest has no time limit: the play file carries no timeout');
   assert.equal(quest.lines['P1.invite.01'].text.startsWith('Motel coffee'), true);
   assert.equal(quest.lines['P1.walk.01'].emotion, 'happy');
   assert.deepEqual(quest.script.map(row => row.when), ['stage:enter', 'place:sunset:arrived']);
@@ -165,7 +165,7 @@ test('the light way and the quiet way both end in the plain sunrise, and the tim
   assert.equal(quiet.current().stage, 'last-sip');
 });
 
-test('V walks off or never comes: the left and cold-coffee endings, the second one by the stage timeout the game reports', async () => {
+test('V walks off: the left ending, and V who never comes leaves the quest open (no cold-coffee ending, no time limit)', async () => {
   const t0 = 30 * DAY;
   const left = make();
   left.start();
@@ -175,17 +175,14 @@ test('V walks off or never comes: the left and cold-coffee endings, the second o
   assert.deepEqual(left.runner.playState().closing[0].script, [{when: 'ending:left', say: 'P1.left.01'}]);
   assert.deepEqual(left.awards, [['panam-palmer', 15]]);
 
-  const cold = make();
-  cold.start();
-  cold.runner.entries.get('panam-sunset-coffee').accepted = true;   // V said yes to the coffee: only then does cold coffee cost bond points
-  const quest = cold.current();
-  assert.equal(quest.timeoutAt, t0 + 6 * HOUR);
-  await cold.game('stage:timeout', quest.timeoutAt - 60);
-  assert.equal(cold.current().stage, 'invite', 'not yet');
-  await cold.game('stage:timeout', quest.timeoutAt + 5);
-  assert.equal(cold.runner.playState().closing[0].ending, 'cold-coffee');
-  assert.deepEqual(cold.awards, [['panam-palmer', -5]]);
-  assert.equal(cold.runner.playState().closing[0].lines['P1.invite.02'].text, 'Drank both coffees. You owe me.');
+  const never = make();
+  never.start();
+  assert.equal(never.current().timeoutAt, undefined);
+  await never.game('stage:timeout', t0 + 30 * DAY);
+  assert.equal(never.current().stage, 'invite', 'a month later the coffee is still waiting');
+  assert.deepEqual(never.runner.playState().closing, []);
+  assert.deepEqual(never.awards, [], 'no penalty for time');
+  assert.equal('cold-coffee' in pilot.endings, false, 'the cold-coffee ending went with the timeout that led to it');
 });
 
 test('the state follows the save: a load of an earlier clock rewinds the quest and drops its gap and history', async () => {

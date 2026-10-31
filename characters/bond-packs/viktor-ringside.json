@@ -77,8 +77,7 @@
         {"when": "stage:enter", "text": "V1.open.01"},
         {"when": "place:gym:arrived", "say": "V1.open.02"}
       ],
-      "choices": [{"id": "came", "on": "event:place:gym:arrived", "next": "card"}],
-      "timeout": {"gameHours": 4, "next": "empty-seat"}
+      "choices": [{"id": "came", "on": "event:place:gym:arrived", "next": "card"}]
     },
     {
       "id": "card",
@@ -116,8 +115,7 @@
       "choices": [
         {"id": "watched", "on": "event:together:card:done", "next": "bag"},
         {"id": "wandered", "on": "event:together:card:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 2, "next": "left"}
+      ]
     },
     {
       "id": "bag",
@@ -138,8 +136,7 @@
       "choices": [
         {"id": "freeze", "on": "event:gap:g2:freeze", "next": "stayed"},
         {"id": "tough", "on": "event:gap:g2:tough", "next": "stayed"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stayed"}
+      ]
     }
   ],
   "endings": {
@@ -155,11 +152,6 @@
     "left": {
       "memory": "V came to the fights but did not stay for the last bout.",
       "bond": 15
-    },
-    "empty-seat": {
-      "memory": "You kept a seat free and V never sat in it.",
-      "bond": -5,
-      "script": [{"when": "ending:empty-seat", "text": "V1.close.03"}]
     }
   }
 }

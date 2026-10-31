@@ -57,8 +57,7 @@
       "choices": [
         {"id": "right", "on": "tag", "means": "V names the bad cut correctly", "kind": "yes", "next": "right"},
         {"id": "wrong", "on": "tag", "means": "V names the wrong cut or none at all", "kind": "no", "next": "wrong"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -69,10 +68,6 @@
     "wrong": {
       "memory": "You guessed the wrong cut in a commercial BD with Judy in a Kabuki booth, and she gave you a long lecture about it.",
       "bond": 3
-    },
-    "left": {
-      "memory": "You left Judy alone in a Kabuki braindance booth before the commercial BD was over.",
-      "bond": 0
     }
   },
   "hangout": {

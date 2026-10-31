@@ -44,7 +44,7 @@
       "wants": "V to drive slowly and win.",
       "do": [
         {"p": "place", "at": "start"},
-        {"p": "race", "id": "race", "from": "start", "to": "finish", "vehicle": "Jackie's bike", "reversed": true, "stillSeconds": 5, "limitMinutes": 20, "heat": false}
+        {"p": "race", "id": "race", "from": "start", "to": "finish", "vehicle": "Jackie's bike", "reversed": true, "stillSeconds": 5, "heat": false}
       ],
       "script": [
         {"when": "stage:enter", "gap": "g1"}
@@ -53,8 +53,7 @@
         {"id": "won", "on": "event:race:race:won", "next": "win"},
         {"id": "lost", "on": "event:race:race:lost", "next": "finish"},
         {"id": "stopped", "on": "event:race:race:stopped", "next": "finish"}
-      ],
-      "timeout": {"gameHours": 1, "next": "finish"}
+      ]
     }
   ],
   "endings": {

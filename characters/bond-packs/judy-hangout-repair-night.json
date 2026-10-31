@@ -56,8 +56,7 @@
       "choices": [
         {"id": "repaired", "on": "event:together:repair:done", "next": "repaired"},
         {"id": "left", "on": "event:together:repair:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     }
   ],
   "endings": {

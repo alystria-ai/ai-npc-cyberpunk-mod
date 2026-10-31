@@ -55,8 +55,7 @@
       "choices": [
         {"id": "played", "on": "event:together:race:done", "next": "played"},
         {"id": "left", "on": "event:together:race:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     }
   ],
   "endings": {

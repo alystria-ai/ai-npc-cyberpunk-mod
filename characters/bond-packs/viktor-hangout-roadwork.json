@@ -61,12 +61,10 @@
       "script": [{"when": "place:c2:arrived", "gap": "g1"}],
       "choices": [
         {"id": "sprint", "on": "event:place:finish:arrived", "next": "sprint"}
-      ],
-      "timeout": {"gameHours": 2, "next": "loop"}
+      ]
     }
   ],
   "endings": {
-    "sprint": {"memory": "You sprinted the last stretch of the courtyard loop with Viktor and reached the final checkpoint with him.", "bond": 8},
-    "loop": {"memory": "You finished the courtyard loop with Viktor, and he did not wait for you at the end.", "bond": 4}
+    "sprint": {"memory": "You sprinted the last stretch of the courtyard loop with Viktor and reached the final checkpoint with him.", "bond": 8}
   }
 }

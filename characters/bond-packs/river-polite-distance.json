@@ -103,8 +103,7 @@
       "choices": [
         {"id": "arrived", "on": "event:place:watson:arrived", "next": "tail"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no-ride"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no-ride"}
+      ]
     },
     {
       "id": "tail",
@@ -114,7 +113,7 @@
       "know": "A dark sedan is following V's car at a distance of about 60 metres. The route runs through Japantown, Charter Hill, a tunnel and the Heywood underpass, and police heat ruins the plan.",
       "wants": "V to lose the sedan by distance and keep the heat down.",
       "do": [
-        {"p": "ride", "to": "carpark", "checkpoints": ["japantown-loop", "charter-hill", "tunnel", "heywood-underpass"], "limitMinutes": 30, "heat": true},
+        {"p": "ride", "to": "carpark", "checkpoints": ["japantown-loop", "charter-hill", "tunnel", "heywood-underpass"], "heat": true},
         {"p": "tail", "id": "car", "at": "watson", "gap": 60, "vehicle": "dark sedan", "noticeMetres": 20, "lostMetres": 200},
         {"p": "timer", "id": "steady", "seconds": 20}
       ],
@@ -132,11 +131,9 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "wait"},
-        {"id": "timed-out", "on": "event:ride:timeout", "next": "wait"},
         {"id": "hot", "on": "event:ride:failed-heat", "next": "hot"},
         {"id": "abandoned", "on": "event:ride:abandoned", "next": "no-ride"}
-      ],
-      "timeout": {"gameHours": 2, "next": "lost-only"}
+      ]
     },
     {
       "id": "wait",
@@ -162,8 +159,7 @@
         {"id": "ran", "on": "event:npc:driver-react:leave", "next": "lost-only"},
         {"id": "drew", "on": "event:npc:driver-react:attack", "next": "fight"},
         {"id": "police", "on": "event:npc:driver-react:call-police", "next": "hot"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost-only"}
+      ]
     },
     {
       "id": "name",
@@ -177,8 +173,7 @@
         {"when": "stage:enter", "say": "RW4.s4.01"},
         {"when": "line:RW4.s4.01:done", "say": "RW4.s4.02"}
       ],
-      "choices": [{"id": "done", "on": "event:timer:talk-done", "next": "named"}],
-      "timeout": {"gameHours": 1, "next": "named"}
+      "choices": [{"id": "done", "on": "event:timer:talk-done", "next": "named"}]
     }
   ],
   "endings": {

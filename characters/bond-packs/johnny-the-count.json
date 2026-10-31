@@ -81,8 +81,7 @@
       "choices": [
         {"id": "yes", "on": "event:gap:g1:yes", "next": "walk"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 4, "next": "no"}
+      ]
     },
     {
       "id": "walk",
@@ -110,8 +109,7 @@
       "choices": [
         {"id": "arrived", "on": "event:place:shrine:arrived", "next": "elder"},
         {"id": "walked-away", "on": "event:together:walk:broken", "next": "walked-away"}
-      ],
-      "timeout": {"gameHours": 3, "next": "walked-away"}
+      ]
     },
     {
       "id": "elder",
@@ -131,8 +129,7 @@
       ],
       "choices": [
         {"id": "leave", "on": "event:npc:elder-react:leave", "next": "count"}
-      ],
-      "timeout": {"gameHours": 2, "next": "count"}
+      ]
     },
     {
       "id": "count",
@@ -150,8 +147,7 @@
         {"id": "with", "on": "event:gap:g2:with", "next": "count-with"},
         {"id": "sit", "on": "event:gap:g2:sit", "next": "count-sit"},
         {"id": "silence", "on": "event:gap:g2:silence", "next": "silence"}
-      ],
-      "timeout": {"gameHours": 6, "next": "silence"}
+      ]
     }
   ],
   "endings": {

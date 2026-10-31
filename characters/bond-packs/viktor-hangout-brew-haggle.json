@@ -47,8 +47,7 @@
         {"id": "declined", "on": "event:pay:haggle:declined", "next": "no-deal"},
         {"id": "short", "on": "event:pay:haggle:short", "next": "no-deal"},
         {"id": "broke", "on": "event:pay:haggle:broke", "next": "no-deal"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no-deal"}
+      ]
     }
   ],
   "endings": {

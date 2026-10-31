@@ -76,8 +76,7 @@
         {"p": "place", "at": "roundabout"},
         {"p": "call-in", "id": "alarm-ring", "call": "alarm", "ringSeconds": 20, "text": true}
       ],
-      "choices": [{"id": "moving", "on": "event:place:roundabout:arrived", "next": "chase"}],
-      "timeout": {"gameHours": 0.5, "next": "lost"}
+      "choices": [{"id": "moving", "on": "event:place:roundabout:arrived", "next": "chase"}]
     },
     {
       "id": "chase",
@@ -101,8 +100,7 @@
       "choices": [
         {"id": "stopped", "on": "event:runner:courier:stopped", "next": "burn"},
         {"id": "lost", "on": "event:runner:courier:lost", "next": "buyer"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     },
     {
       "id": "buyer",
@@ -121,8 +119,7 @@
       "choices": [
         {"id": "down", "on": "event:squad:buyers:down", "next": "recovered"},
         {"id": "fled", "on": "event:squad:buyers:fled", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     },
     {
       "id": "burn",
@@ -140,8 +137,7 @@
       "choices": [
         {"id": "keep", "on": "tag", "means": "V says Judy should finish the edit and lock the testimonies away", "kind": "yes", "next": "caught-keep"},
         {"id": "burn", "on": "tag", "means": "V says Judy should burn the chips and tell the women herself", "kind": "no", "next": "caught-burn"}
-      ],
-      "timeout": {"gameHours": 2, "next": "caught-keep"}
+      ]
     }
   ],
   "endings": {

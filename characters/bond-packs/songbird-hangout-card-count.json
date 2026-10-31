@@ -54,7 +54,7 @@
       "objective": "Describe the card hands to Songbird at Heavy Hearts",
       "know": "V is at the card table in Heavy Hearts with a dealer and two other players. You count the hands from what V tells you.",
       "wants": "V's eyes on the other player's hands, and V's honest read of the table.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "spot"},
         {"p": "place", "at": "spot"},
@@ -66,12 +66,10 @@
         {"when": "line:SBH2.ask.01:done", "gap": "g1"}
       ],
       "choices": [
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
         {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
         {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
         {"id": "no", "on": "event:gap:g1:no", "next": "left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -85,9 +83,6 @@
     },
     "left": {
       "memory": "You played a few hands at Heavy Hearts with Songbird counting from your words and left before the night ended."
-    },
-    "stood-up": {
-      "memory": "You never sat down at the card table in Heavy Hearts, and Songbird counted the hands without you."
     }
   }
 }

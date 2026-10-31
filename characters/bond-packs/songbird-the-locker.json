@@ -79,8 +79,7 @@
         {"id": "doubt", "on": "event:gap:g1:no", "next": "approach"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
-      ],
-      "timeout": {"gameHours": 2, "next": "no"}
+      ]
     },
     {
       "id": "approach",
@@ -104,8 +103,7 @@
       "choices": [
         {"id": "quiet", "on": "event:unseen:sneak:reached", "next": "locker"},
         {"id": "noisy", "on": "event:unseen:sneak:spotted", "next": "noisy"}
-      ],
-      "timeout": {"gameHours": 2, "next": "empty-handed"}
+      ]
     },
     {
       "id": "locker",
@@ -116,8 +114,7 @@
       "wants": "V to open the locker and take what is in it.",
       "do": [{"p": "remote"}, {"p": "place", "at": "locker", "dwell": 6}],
       "script": [{"when": "place:locker:arrived", "say": "S2.bark.locker.a"}],
-      "choices": [{"id": "taken", "on": "event:line:S2.bark.locker.a:done", "next": "listen"}],
-      "timeout": {"gameHours": 2, "next": "empty-handed"}
+      "choices": [{"id": "taken", "on": "event:line:S2.bark.locker.a:done", "next": "listen"}]
     },
     {
       "id": "listen",
@@ -131,8 +128,7 @@
         {"when": "stage:enter", "say": "S2.listen.01"},
         {"when": "line:S2.listen.01:done", "gap": "g2"}
       ],
-      "choices": [{"id": "read", "on": "event:gap:g2:read", "next": "quiet"}],
-      "timeout": {"gameHours": 2, "next": "quiet"}
+      "choices": [{"id": "read", "on": "event:gap:g2:read", "next": "quiet"}]
     }
   ],
   "endings": {
@@ -146,11 +142,6 @@
       "memory": "You went up a Dogtown roof for Songbird's locker, got into a fight on the way, and she apologised for her old intel.",
       "bond": 40,
       "script": [{"when": "ending:noisy", "say": "S2.close.02"}]
-    },
-    "empty-handed": {
-      "memory": "You turned back before the locker, and Songbird said it was the right call.",
-      "bond": 15,
-      "script": [{"when": "ending:empty-handed", "text": "S2.close.03"}]
     },
     "no": {
       "memory": "You did not go up the roof for Songbird's locker, and she did not call for a while.",

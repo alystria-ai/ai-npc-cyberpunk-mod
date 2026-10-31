@@ -84,3 +84,34 @@ export function intentKind(text, offered) {
   // "yes" to a stage that offers only an opinion, or an opinion to a yes/no stage, is not an answer to it.
   return null;
 }
+
+// Giving a quest up, in V's own words (owner decision 1 Nov 2026: a quest has no time limit, so V closes it by doing it, or by saying it is off). Stricter than a plain "no": a
+// stage's own `no` answer is read first, and this only reads a line that says the whole thing is off. It is a screen over plain, explicit phrases and never a judge.
+const ABANDON = {
+  words: String.raw`(?:i )?(?:abandon|drop|cancel|scrap|call off) (?:it|this|that|the (?:quest|job|whole thing|plan|dinner|deal))|call it off|forget (?:it|this|that|the (?:quest|job|whole thing))|`
+    + String.raw`never ?mind (?:about )?(?:it|this|that|the (?:quest|job|whole thing))|i give up|i'?m (?:not (?:doing|going to do) (?:this|it|that)|no longer interested|out of this)|count me out|`
+    + String.raw`i'?m (?:dropping|leaving) (?:it|this)|let'?s (?:drop|forget) (?:it|this)|`
+    + String.raw`vergiss es|lassen wir das|ich lass das|ich gebe auf|ich bin raus|vergiss das|`
+    + String.raw`laisse tomber|oublie (?:[çc]a|tout)|j'abandonne|annule (?:tout|[çc]a)|on laisse tomber|`
+    + String.raw`olv[ií]dalo|d[eé]jalo|lo dejo|me rindo|cancela(?:lo| esto)|d[eé]jalo estar|`
+    + String.raw`lascia (?:perdere|stare)|rinuncio|annulla (?:tutto|questo)|lasciamo perdere|`
+    + String.raw`esquece|deixa pra l[aá]|desisto|cancela (?:isso|tudo)|`
+    + String.raw`zapomnij o tym|odpu[sś][cć]|rezygnuj[eę]|anuluj to|`
+    + String.raw`забудь|забей|я сдаюсь|отказываюсь|отмена задания|`
+    + String.raw`облиш|здаюся|скасуй це|забудь про це|`
+    + String.raw`bo[sş]ver|vazge[cç]tim|bunu b[ıi]rak|iptal et|`
+    + String.raw`zapome[nň] na to|nech to b[yý]t|vzd[aá]v[aá]m se|zru[sš] to|`
+    + String.raw`felejtsd el|hagyd (?:az eg[eé]szet|[eé]ppen)|feladom|t[oö]r[oö]ld az eg[eé]szet|`,
+  spaceless: 'やめる|やめた|やめておく|あきらめる|諦める|キャンセル|もういい|忘れて|그만할게|포기할게|포기|취소할게|잊어버려|算了|放弃|不做了|取消吧|别管了|不干了'
+};
+const ABANDON_RE = {
+  words: new RegExp(`${B}(?:${ABANDON.words.replace(/\|$/, '')})(?![\\p{L}\\p{N}])`, 'iu'),
+  spaceless: new RegExp(`(?:${ABANDON.spaceless})`, 'u')
+};
+
+/** Whether V's line says the quest is off: an explicit phrase ("forget it", "I give up", "cancel the quest", "vergiss es"), nothing vague. False for an empty line or a recording placeholder. */
+export function screenAbandon(text) {
+  const value = normal(text).trim();
+  if (!value || value === MIC_PLACEHOLDER || value.length > 400) return false;
+  return ABANDON_RE.words.test(value) || ABANDON_RE.spaceless.test(value);
+}

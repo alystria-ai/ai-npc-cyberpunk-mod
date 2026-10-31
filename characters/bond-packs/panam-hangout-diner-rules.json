@@ -49,7 +49,7 @@
       "objective": "Guess what Panam ordered at the diner counter",
       "know": "V is at the roadside diner. Panam has ordered for both of you, and V must guess what she ordered from her description.",
       "wants": "V to guess the order, once.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "diner"},
         {"p": "place", "at": "diner"},
@@ -61,23 +61,14 @@
         {"when": "place:counter:arrived", "gap": "g1"}
       ],
       "choices": [
-        {"id": "ate", "on": "event:gap:g1:resume", "next": "ate"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+        {"id": "ate", "on": "event:gap:g1:resume", "next": "ate"}
+      ]
     }
   ],
   "endings": {
     "ate": {
       "memory": "You ate at the diner with Panam and guessed what she ordered, or came close enough that she let it count.",
       "bond": 12
-    },
-    "left": {
-      "memory": "You left the diner before Panam finished ordering for you.",
-      "bond": 6
-    },
-    "stood-up": {
-      "memory": "You never came to the diner, and Panam ate both meals herself."
     }
   }
 }

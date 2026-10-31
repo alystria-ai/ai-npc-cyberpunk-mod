@@ -106,8 +106,7 @@
       ],
       "choices": [
         {"id": "there", "on": "event:place:camp:arrived", "next": "drive"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no-call"}
+      ]
     },
     {
       "id": "drive",
@@ -147,8 +146,7 @@
       "choices": [
         {"id": "arrived", "on": "event:place:overlook:arrived", "next": "view"},
         {"id": "city", "on": "event:line:P6.drive.10:done", "next": "short"}
-      ],
-      "timeout": {"gameHours": 4, "next": "short"}
+      ]
     },
     {
       "id": "view",
@@ -169,8 +167,7 @@
       ],
       "choices": [
         {"id": "held", "on": "event:gap:g3:resume", "next": "keepsake"}
-      ],
-      "timeout": {"gameHours": 3, "next": "keepsake"}
+      ]
     },
     {
       "id": "keepsake",
@@ -188,8 +185,7 @@
       ],
       "choices": [
         {"id": "family", "on": "event:line:P6.keep.04:done", "next": "dawn"}
-      ],
-      "timeout": {"gameHours": 2, "next": "dawn"}
+      ]
     }
   ],
   "endings": {
@@ -205,10 +201,6 @@
       "memory": "You took Panam for a drive with no destination, and it ended sooner than she hoped.",
       "bond": 50,
       "script": [{"when": "ending:short", "say": "P6.end.02"}]
-    },
-    "no-call": {
-      "memory": "You never came to get Panam that night.",
-      "bond": 0
     }
   }
 }

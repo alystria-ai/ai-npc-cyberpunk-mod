@@ -72,17 +72,13 @@
       ],
       "choices": [
         {"id": "appraised", "on": "event:place:wreck-5:arrived", "next": "appraised"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
     "appraised": {
       "memory": "You got through River's quiz at the scrapyard south of the city, and he owes you the coffee.",
       "bond": 8
-    },
-    "stood-up": {
-      "memory": "You never came to the scrapyard south of the city, and River appraised the wrecks alone."
     }
   }
 }

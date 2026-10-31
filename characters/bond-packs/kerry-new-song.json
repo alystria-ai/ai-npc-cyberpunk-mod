@@ -29,13 +29,12 @@
       "wants": "V to come over and listen to it, at your villa or wherever V is.",
       "say": {"en": "Wrote something. New, not Samurai. Don't make it weird. Come over and listen?"},
       "text": {"when": "start", "line": {"en": "Wrote a thing. First new thing in years. You're hearing it first, don't make it weird."}},
-      "meet": {"where": "here", "inGameHours": 1},
+      "meet": {"where": "here"},
       "choices": [
         {"id": "listen", "on": "tag", "kind": "yes", "means": "V says they want to hear it or will come over", "next": "listen"},
         {"id": "met", "on": "meet:met", "next": "listen"},
         {"id": "not-now", "on": "tag", "kind": "no", "means": "V says not now", "next": "later"}
-      ],
-      "timeout": {"gameHours": 24, "next": "later"}
+      ]
     },
     {
       "id": "listen",
@@ -47,8 +46,7 @@
       "choices": [
         {"id": "honest", "on": "tag", "kind": "honest", "means": "V gives an honest opinion, praise with substance or real criticism", "next": "rework"},
         {"id": "nice", "on": "tag", "kind": "flatter", "means": "V is only polite or vague about it", "next": "doubt"}
-      ],
-      "timeout": {"gameHours": 6, "next": "doubt"}
+      ]
     },
     {
       "id": "rework",

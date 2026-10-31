@@ -175,20 +175,10 @@
           "means": "V names none of them, or says any of them could be it",
           "kind": "no",
           "next": "unsure"
-        },
-        {
-          "id": "stood",
-          "on": "meet:stood-up",
-          "next": "stood-up"
         }
       ],
       "meet": {
-        "where": "waypoint",
-        "inGameHours": 3
-      },
-      "timeout": {
-        "gameHours": 0.1,
-        "next": "unsure"
+        "where": "waypoint"
       }
     }
   ],
@@ -204,9 +194,6 @@
     "unsure": {
       "memory": "You sat on the terrace and watched, and named nobody.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "V did not come to the Charter Hill terrace, and Rogue drank her coffee alone."
     }
   }
 }

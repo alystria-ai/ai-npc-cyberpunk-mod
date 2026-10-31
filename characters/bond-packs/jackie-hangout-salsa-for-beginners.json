@@ -56,8 +56,7 @@
       "choices": [
         {"id": "stayed", "on": "event:together:lesson:done", "next": "stayed"},
         {"id": "left", "on": "event:together:lesson:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     }
   ],
   "endings": {

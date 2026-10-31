@@ -60,8 +60,7 @@
       "choices": [
         {"id": "shouted", "on": "event:gap:g1:shout", "next": "shouted"},
         {"id": "quiet", "on": "event:gap:g1:quiet", "next": "quiet"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -72,10 +71,6 @@
     "quiet": {
       "memory": "You stood on the old pier at Pacifica with Kerry and said nothing into the echo.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You never came to the old pier at Pacifica, and Kerry shouted at the water alone.",
-      "bond": 0
     }
   }
 }

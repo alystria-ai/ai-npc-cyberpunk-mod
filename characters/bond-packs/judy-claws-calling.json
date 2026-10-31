@@ -88,8 +88,7 @@
         {"p": "place", "at": "front"},
         {"p": "call-in", "id": "claws-ring", "call": "claws-call", "ringSeconds": 30, "text": true}
       ],
-      "choices": [{"id": "came", "on": "event:place:front:arrived", "next": "hold"}],
-      "timeout": {"gameHours": 1, "next": "late-end"}
+      "choices": [{"id": "came", "on": "event:place:front:arrived", "next": "hold"}]
     },
     {
       "id": "hold",
@@ -117,8 +116,7 @@
       "choices": [
         {"id": "held", "on": "event:squad:claws:down", "next": "after"},
         {"id": "wrecked", "on": "event:squad:claws:fled", "next": "wrecked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "wrecked"}
+      ]
     },
     {
       "id": "after",
@@ -139,8 +137,7 @@
         {"when": "line:J4.after.03:done", "gap": "g2"},
         {"when": "gap:g2:resume", "say": "J4.after.04"}
       ],
-      "choices": [{"id": "walked", "on": "event:together:walk-front:done", "next": "held"}],
-      "timeout": {"gameHours": 1, "next": "held"}
+      "choices": [{"id": "walked", "on": "event:together:walk-front:done", "next": "held"}]
     }
   ],
   "endings": {
@@ -154,11 +151,6 @@
       "memory": "The Claws wrecked the front of Lizzie's even with you there. Nobody died, and Judy holds on to that.",
       "bond": 40,
       "script": [{"when": "ending:wrecked", "say": "J4.end.02"}]
-    },
-    "late-end": {
-      "memory": "The Claws hit Lizzie's while you were not there. Judy is fine, and she says so too often.",
-      "bond": -15,
-      "script": [{"when": "ending:late-end", "say": "J4.end.03"}]
     }
   }
 }

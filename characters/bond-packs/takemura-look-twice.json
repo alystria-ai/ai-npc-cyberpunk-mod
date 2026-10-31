@@ -81,8 +81,7 @@
         {"when": "line:T2.open.03:done", "say": "T2.open.04"},
         {"when": "line:T2.open.04:done", "gap": "g1"}
       ],
-      "choices": [{"id": "answered", "on": "event:gap:g1:resume", "next": "watch"}],
-      "timeout": {"gameHours": 1, "next": "walked"}
+      "choices": [{"id": "answered", "on": "event:gap:g1:resume", "next": "watch"}]
     },
     {
       "id": "watch",
@@ -99,8 +98,7 @@
       "choices": [
         {"id": "watched", "on": "event:together:watch:done", "next": "turn"},
         {"id": "wandered", "on": "event:together:watch:broken", "next": "walked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walked"}
+      ]
     },
     {
       "id": "turn",
@@ -121,8 +119,7 @@
       "choices": [
         {"id": "turned", "on": "event:together:turn:done", "next": "quiz"},
         {"id": "left", "on": "event:together:turn:broken", "next": "walked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walked"}
+      ]
     },
     {
       "id": "quiz",
@@ -139,8 +136,7 @@
       "choices": [
         {"id": "right", "on": "event:gap:g2:right", "next": "watcher"},
         {"id": "wrong", "on": "event:gap:g2:wrong", "next": "adequate"}
-      ],
-      "timeout": {"gameHours": 1, "next": "blind"}
+      ]
     },
     {
       "id": "watcher",
@@ -160,8 +156,7 @@
       "choices": [
         {"id": "left", "on": "event:npc:look:leave", "next": "sharp"},
         {"id": "cowered", "on": "event:npc:look:cower", "next": "sharp"}
-      ],
-      "timeout": {"gameHours": 1, "next": "sharp"}
+      ]
     }
   ],
   "endings": {
@@ -175,11 +170,6 @@
       "memory": "You got part of Takemura's exercise right in a Japantown square, and he told you to return when you can look twice.",
       "bond": 45,
       "script": [{"when": "ending:adequate", "say": "T2.close.02"}]
-    },
-    "blind": {
-      "memory": "You could not say who had been watching you, and Takemura called it a beginning.",
-      "bond": 30,
-      "script": [{"when": "ending:blind", "say": "T2.close.03"}]
     },
     "walked": {
       "memory": "You left Takemura's lesson before the exercise was over.",

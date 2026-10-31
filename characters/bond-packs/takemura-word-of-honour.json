@@ -117,8 +117,7 @@
         {"id": "no", "on": "event:gap:g1:no", "next": "declined"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "hung-up"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "teashop",
@@ -138,8 +137,7 @@
         {"when": "place:teashop:arrived", "say": "T4.s2.01"},
         {"when": "line:T4.s2.01:done", "say": "T4.s2.03"}
       ],
-      "choices": [{"id": "walk", "on": "event:line:T4.s2.03:done", "next": "walk"}],
-      "timeout": {"gameHours": 1, "next": "walk"}
+      "choices": [{"id": "walk", "on": "event:line:T4.s2.03:done", "next": "walk"}]
     },
     {
       "id": "walk",
@@ -176,8 +174,7 @@
         {"id": "arrived", "on": "event:place:leg2:arrived", "next": "pier"},
         {"id": "fought", "on": "event:squad:patrol:down", "next": "pier-fight"},
         {"id": "pushed", "on": "event:gap:g2:push", "next": "lost-him"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost-him"}
+      ]
     },
     {
       "id": "pier",
@@ -200,8 +197,7 @@
         {"id": "paid", "on": "event:pay:fare:paid", "next": "after"},
         {"id": "obeyed", "on": "event:npc:react:obey", "next": "after"},
         {"id": "brawl", "on": "event:npc:react:brawl", "next": "pier-fight"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost-him"}
+      ]
     },
     {
       "id": "pier-fight",
@@ -211,8 +207,7 @@
       "know": "The captain has been dealt with, and the clerk is boarding the boat with a patrol somewhere behind you.",
       "wants": "V to get the clerk onto the boat.",
       "do": [{"p": "place", "at": "pier"}],
-      "choices": [{"id": "boarded", "on": "event:place:pier:arrived", "next": "delivered-fight"}],
-      "timeout": {"gameHours": 0.5, "next": "delivered-fight"}
+      "choices": [{"id": "boarded", "on": "event:place:pier:arrived", "next": "delivered-fight"}]
     },
     {
       "id": "after",
@@ -227,8 +222,7 @@
         {"when": "line:T4.s4.05:done", "say": "T4.s4.06"},
         {"when": "line:T4.s4.06:done", "gap": "g3"}
       ],
-      "choices": [{"id": "answered", "on": "event:gap:g3:resume", "next": "delivered"}],
-      "timeout": {"gameHours": 1, "next": "delivered"}
+      "choices": [{"id": "answered", "on": "event:gap:g3:resume", "next": "delivered"}]
     }
   ],
   "endings": {

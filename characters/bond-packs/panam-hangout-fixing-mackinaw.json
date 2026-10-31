@@ -51,7 +51,7 @@
       "objective": "Hand Panam the parts she calls for at the Jackson Plains garage",
       "know": "V is at the Jackson Plains garage. Panam is under the Mackinaw on the creeper and calls for parts by name.",
       "wants": "V to bring her the parts she calls for.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "garage"},
         {"p": "place", "at": "garage"},
@@ -64,23 +64,14 @@
         {"when": "stage:enter", "gap": "g1"}
       ],
       "choices": [
-        {"id": "fixed", "on": "event:place:crate-c:arrived", "next": "fixed"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 6, "next": "left"}
+        {"id": "fixed", "on": "event:place:crate-c:arrived", "next": "fixed"}
+      ]
     }
   ],
   "endings": {
     "fixed": {
       "memory": "You handed Panam the parts for the Mackinaw until the noise was gone.",
       "bond": 12
-    },
-    "left": {
-      "memory": "You came to the Jackson Plains garage and left before Panam got the Mackinaw quiet.",
-      "bond": 6
-    },
-    "stood-up": {
-      "memory": "You never showed up at the Jackson Plains garage, and Panam finished the truck alone."
     }
   }
 }

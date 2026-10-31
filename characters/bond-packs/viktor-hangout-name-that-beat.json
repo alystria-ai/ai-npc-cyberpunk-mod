@@ -53,8 +53,7 @@
         {"p": "timer", "id": "songs2", "seconds": 600}
       ],
       "script": [{"when": "timer:songs", "gap": "g1"}],
-      "choices": [{"id": "done", "on": "event:timer:songs2", "next": "done"}],
-      "timeout": {"gameHours": 1, "next": "done"}
+      "choices": [{"id": "done", "on": "event:timer:songs2", "next": "done"}]
     }
   ],
   "endings": {

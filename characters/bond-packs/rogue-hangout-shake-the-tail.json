@@ -165,20 +165,10 @@
           "id": "obey",
           "on": "event:npc:intern-react:obey",
           "next": "coffee"
-        },
-        {
-          "id": "stood",
-          "on": "meet:stood-up",
-          "next": "stood-up"
         }
       ],
       "meet": {
-        "where": "waypoint",
-        "inGameHours": 3
-      },
-      "timeout": {
-        "gameHours": 0.17,
-        "next": "tailed"
+        "where": "waypoint"
       }
     }
   ],
@@ -190,13 +180,6 @@
     "coffee": {
       "memory": "The young man with the drone gave up and left, and Rogue bought him a coffee and told him to stop following people.",
       "bond": 9
-    },
-    "tailed": {
-      "memory": "He was still behind you when the ten minutes ran out, and Rogue said he was not worth losing.",
-      "bond": 6
-    },
-    "stood-up": {
-      "memory": "V did not come to meet Rogue in City Center Downtown, and she walked the streets alone."
     }
   }
 }

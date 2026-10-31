@@ -71,8 +71,7 @@
       "choices": [
         {"id": "in", "on": "event:gap:g1:in", "next": "poll-watson"},
         {"id": "no", "on": "event:gap:g1:no", "next": "not-asked"}
-      ],
-      "timeout": {"gameHours": 6, "next": "not-asked"}
+      ]
     },
     {
       "id": "poll-watson",
@@ -88,8 +87,7 @@
       "script": [
         {"when": "place:watson:arrived", "say": "SH1.bark.answer.a", "bark": true}
       ],
-      "choices": [{"id": "watson", "on": "event:place:watson:arrived", "next": "poll-city"}],
-      "timeout": {"gameHours": 24, "next": "quit"}
+      "choices": [{"id": "watson", "on": "event:place:watson:arrived", "next": "poll-city"}]
     },
     {
       "id": "poll-city",
@@ -105,8 +103,7 @@
       "script": [
         {"when": "place:city-center:arrived", "say": "SH1.bark.answer.b", "bark": true}
       ],
-      "choices": [{"id": "city", "on": "event:place:city-center:arrived", "next": "poll-westbrook"}],
-      "timeout": {"gameHours": 24, "next": "quit"}
+      "choices": [{"id": "city", "on": "event:place:city-center:arrived", "next": "poll-westbrook"}]
     },
     {
       "id": "poll-westbrook",
@@ -119,8 +116,7 @@
         {"p": "pin", "at": "westbrook"},
         {"p": "place", "at": "westbrook", "dwell": 60}
       ],
-      "choices": [{"id": "westbrook", "on": "event:place:westbrook:arrived", "next": "tally"}],
-      "timeout": {"gameHours": 24, "next": "quit"}
+      "choices": [{"id": "westbrook", "on": "event:place:westbrook:arrived", "next": "tally"}]
     },
     {
       "id": "tally",
@@ -136,8 +132,7 @@
       "choices": [
         {"id": "fair", "on": "tag", "means": "V says which answer was closest to the truth", "kind": "yes", "next": "close-fair"},
         {"id": "harsh", "on": "tag", "means": "V says all three answers were wrong in the same way", "kind": "no", "next": "close"}
-      ],
-      "timeout": {"gameHours": 6, "next": "close"}
+      ]
     },
     {
       "id": "close",
@@ -149,8 +144,7 @@
       "do": [
         {"p": "place", "at": "wall"}
       ],
-      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall"}],
-      "timeout": {"gameHours": 6, "next": "wall"}
+      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall"}]
     },
     {
       "id": "close-fair",
@@ -162,8 +156,7 @@
       "do": [
         {"p": "place", "at": "wall"}
       ],
-      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall-fair"}],
-      "timeout": {"gameHours": 6, "next": "wall-fair"}
+      "choices": [{"id": "wall", "on": "event:place:wall:arrived", "next": "wall-fair"}]
     }
   ],
   "endings": {
@@ -186,10 +179,6 @@
         {"when": "ending:wall-fair", "say": "SH1.close.01"},
         {"when": "ending:wall-fair", "say": "SH1.close.02"}
       ]
-    },
-    "quit": {
-      "memory": "You gave up on Johnny's poll before the three answers came in.",
-      "bond": 10
     },
     "not-asked": {
       "memory": "You said no to Johnny's bet, and he called you a coward.",

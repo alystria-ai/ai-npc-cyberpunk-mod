@@ -39,7 +39,7 @@
       "objective": "Climb the old billboard to Panam and the beers",
       "know": "Panam is already on top of the old billboard with two beers, out of V's sight. The climb is the puzzle, and she heckles V's route from above.",
       "wants": "V to get up to the top before the three minutes run out.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "billboard-base"},
         {"p": "place", "at": "billboard-base"},
@@ -49,10 +49,8 @@
       ],
       "choices": [
         {"id": "fast", "on": "event:place:billboard-top:arrived", "next": "reached-fast"},
-        {"id": "slow", "on": "event:timer:climb", "next": "reached-slow"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 4, "next": "reached-slow"}
+        {"id": "slow", "on": "event:timer:climb", "next": "reached-slow"}
+      ]
     }
   ],
   "endings": {
@@ -63,9 +61,6 @@
     "reached-slow": {
       "memory": "You got up the billboard to Panam slower than she liked, and she made you drink the warm one.",
       "bond": 10
-    },
-    "stood-up": {
-      "memory": "You never came to the billboard, and Panam drank both beers alone."
     }
   }
 }

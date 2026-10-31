@@ -58,8 +58,7 @@
       "choices": [
         {"id": "all", "on": "event:gap:g1:defends", "next": "all"},
         {"id": "some", "on": "event:gap:g1:shrug", "next": "some"}
-      ],
-      "timeout": {"gameHours": 2, "next": "some"}
+      ]
     }
   ],
   "endings": {

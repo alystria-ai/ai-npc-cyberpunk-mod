@@ -74,8 +74,7 @@
       "choices": [
         {"id": "in", "on": "event:gap:g1:in", "next": "crowd"},
         {"id": "no", "on": "event:gap:g1:no", "next": "crowd"}
-      ],
-      "timeout": {"gameHours": 1, "next": "crowd"}
+      ]
     },
     {
       "id": "crowd",
@@ -105,8 +104,7 @@
       "choices": [
         {"id": "stall", "on": "event:place:stall:arrived", "next": "stall"},
         {"id": "seen", "on": "event:npc:guard:call-police", "next": "seen"}
-      ],
-      "timeout": {"gameHours": 1, "next": "retreat"}
+      ]
     },
     {
       "id": "stall",
@@ -126,8 +124,7 @@
         {"id": "real", "on": "event:gap:g2:real", "next": "kid"},
         {"id": "light", "on": "event:gap:g2:light", "next": "kid"},
         {"id": "gone", "on": "event:together:stall-sit:broken", "next": "retreat"}
-      ],
-      "timeout": {"gameHours": 1, "next": "kid"}
+      ]
     },
     {
       "id": "kid",
@@ -141,8 +138,7 @@
       ],
       "choices": [
         {"id": "seen-kid", "on": "event:cast:kid:arrived", "next": "unmasked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "unmasked"}
+      ]
     }
   ],
   "endings": {

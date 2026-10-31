@@ -107,8 +107,7 @@
         {"id": "in", "on": "event:gap:g1:in", "next": "brief"},
         {"id": "loud", "on": "event:gap:g1:loud", "next": "brief"},
         {"id": "no", "on": "event:gap:g1:no", "next": "nobody"}
-      ],
-      "timeout": {"gameHours": 4, "next": "nobody"}
+      ]
     },
     {
       "id": "brief",
@@ -129,8 +128,7 @@
       ],
       "choices": [
         {"id": "ready", "on": "event:gap:g2:resume", "next": "approach"}
-      ],
-      "timeout": {"gameHours": 2, "next": "approach"}
+      ]
     },
     {
       "id": "approach",
@@ -148,8 +146,7 @@
       ],
       "choices": [
         {"id": "climb", "on": "event:line:P4.approach.01:done", "next": "plant"}
-      ],
-      "timeout": {"gameHours": 2, "next": "plant"}
+      ]
     },
     {
       "id": "plant",
@@ -177,8 +174,7 @@
       "choices": [
         {"id": "planted", "on": "event:place:hut:arrived", "next": "exfil-planted"},
         {"id": "burned", "on": "event:unseen:stealth:spotted", "next": "exfil-burned"}
-      ],
-      "timeout": {"gameHours": 1, "next": "nobody"}
+      ]
     },
     {
       "id": "exfil-planted",
@@ -199,8 +195,7 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "planted"}
-      ],
-      "timeout": {"gameHours": 1, "next": "planted"}
+      ]
     },
     {
       "id": "exfil-burned",
@@ -218,8 +213,7 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "burned"}
-      ],
-      "timeout": {"gameHours": 1, "next": "burned"}
+      ]
     }
   ],
   "endings": {

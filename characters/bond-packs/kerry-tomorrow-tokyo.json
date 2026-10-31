@@ -96,8 +96,7 @@
       "choices": [
         {"id": "yes", "on": "event:gap:g1:yes", "next": "deck"},
         {"id": "no", "on": "event:gap:g1:no", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 3, "next": "stood-up"}
+      ]
     },
     {
       "id": "deck",
@@ -120,8 +119,7 @@
       "choices": [
         {"id": "done", "on": "event:together:deck-sit:done", "next": "call"},
         {"id": "gone", "on": "event:together:deck-sit:broken", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "call",
@@ -143,8 +141,7 @@
         {"id": "done", "on": "event:apart:ring:done", "next": "after"},
         {"id": "near", "on": "event:apart:ring:near", "next": "eavesdrop"},
         {"id": "broken", "on": "event:apart:ring:broken", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "after",
@@ -168,8 +165,7 @@
       "choices": [
         {"id": "answer", "on": "event:gap:g3:answer", "next": "water"},
         {"id": "silent", "on": "event:gap:g3:silent", "next": "water"}
-      ],
-      "timeout": {"gameHours": 2, "next": "water"}
+      ]
     },
     {
       "id": "water",
@@ -187,7 +183,9 @@
         {"when": "stage:enter", "say": "K5.stage.water.01"},
         {"when": "line:K5.stage.water.01:done", "say": "K5.stage.water.03"}
       ],
-      "timeout": {"gameHours": 1, "next": "after-call"}
+      "choices": [
+        {"id": "done", "on": "event:line:K5.stage.water.03:done", "next": "after-call"}
+      ]
     }
   ],
   "endings": {

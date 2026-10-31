@@ -49,12 +49,11 @@
       "objective": "Keep silent on the promenade bench with Takemura",
       "know": "You are on a promenade bench in Wellsprings with Takemura. You are keeping a silence, and a street performer is trying to make you both laugh.",
       "wants": "V to keep the silence and not speak first.",
-      "meet": {"where": "waypoint", "inGameHours": 2},
+      "meet": {"where": "waypoint"},
       "do": [{"p": "place", "at": "spot"}],
       "script": [{"when": "place:spot:arrived", "gap": "g1"}],
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "done"},
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+        {"id": "met", "on": "meet:met", "next": "done"}
       ]
     }
   ],
@@ -62,9 +61,6 @@
     "done": {
       "memory": "You and Takemura sat on a Wellsprings bench for ten minutes without a word, and he did not move while a street performer tried to make him laugh.",
       "bond": 8
-    },
-    "stood-up": {
-      "memory": "You did not come to the promenade, and Takemura sat on the bench in silence until he gave up."
     }
   }
 }

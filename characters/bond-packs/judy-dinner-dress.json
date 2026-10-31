@@ -29,14 +29,12 @@
       "wants": "V to come by and tell you honestly what they think of the dress. Not flattery: you can always tell.",
       "say": {"en": "Got a dinner thing with the girls and a dress I've never worn. Come by and tell me if I look ridiculous? Honestly, I mean."},
       "text": {"when": "start", "line": {"en": "Weird ask. Dinner party, a dress I never wore, and I need someone honest. Come by in a couple hours?"}},
-      "meet": {"where": "here", "inGameHours": 2},
+      "meet": {"where": "here"},
       "choices": [
         {"id": "yes", "on": "tag", "kind": "yes", "means": "V says they will come by to see the dress", "next": "dress"},
         {"id": "cant", "on": "tag", "kind": "no", "means": "V says they cannot make it", "next": "rain-check"},
-        {"id": "met", "on": "meet:met", "next": "dress"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "rain-check"}
-      ],
-      "timeout": {"gameHours": 24, "next": "rain-check"}
+        {"id": "met", "on": "meet:met", "next": "dress"}
+      ]
     },
     {
       "id": "dress",
@@ -49,8 +47,7 @@
       "choices": [
         {"id": "honest", "on": "tag", "kind": "honest", "means": "V gives an honest opinion of the dress, kind, critical or teasing", "next": "dinner"},
         {"id": "flatter", "on": "tag", "kind": "flatter", "means": "V only flatters you without really looking", "next": "dinner"}
-      ],
-      "timeout": {"gameHours": 6, "next": "dinner"}
+      ]
     },
     {
       "id": "dinner",
@@ -59,13 +56,11 @@
       "know": "The dress is decided. The dinner at Lizzie's is in about an hour. Going alone means a table of Mox asking questions, going with V would make it easier, though you would never say it like that.",
       "wants": "V to come to the dinner with you, as your plus-one or as moral support.",
       "say": {"en": "Dinner's in an hour. You could... come. As moral support. Or whatever."},
-      "meet": {"where": "here", "inGameHours": 1},
+      "meet": {"where": "here"},
       "choices": [
         {"id": "comes", "on": "meet:met", "next": "together"},
-        {"id": "declines", "on": "tag", "kind": "no", "means": "V says they will not come to the dinner", "next": "dress-only"},
-        {"id": "no-show", "on": "meet:stood-up", "next": "dress-only"}
-      ],
-      "timeout": {"gameHours": 8, "next": "dress-only"}
+        {"id": "declines", "on": "tag", "kind": "no", "means": "V says they will not come to the dinner", "next": "dress-only"}
+      ]
     },
     {
       "id": "rain-check",

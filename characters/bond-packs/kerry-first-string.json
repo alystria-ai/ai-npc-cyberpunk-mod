@@ -98,8 +98,7 @@
       "choices": [
         {"id": "in", "on": "event:gap:g1:in", "next": "leads"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no"}
+      ]
     },
     {
       "id": "leads",
@@ -114,8 +113,7 @@
       "choices": [
         {"id": "hopeful", "on": "event:gap:g2:hopeful", "next": "underpass"},
         {"id": "anxious", "on": "event:gap:g2:anxious", "next": "underpass"}
-      ],
-      "timeout": {"gameHours": 6, "next": "not-found"}
+      ]
     },
     {
       "id": "underpass",
@@ -141,8 +139,7 @@
         {"id": "buy", "on": "event:gap:g3:buy", "next": "purchase"},
         {"id": "tell", "on": "event:gap:g3:tell", "next": "walk-told"},
         {"id": "quiet", "on": "event:gap:g3:quiet", "next": "walk-quiet"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walk-quiet"}
+      ]
     },
     {
       "id": "purchase",
@@ -165,8 +162,7 @@
         {"id": "declined", "on": "event:pay:busker-buy:declined", "next": "walk-quiet"},
         {"id": "short", "on": "event:pay:busker-buy:short", "next": "walk-quiet"},
         {"id": "broke", "on": "event:pay:busker-buy:broke", "next": "walk-quiet"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walk-quiet"}
+      ]
     },
     {
       "id": "walk-quiet",
@@ -184,8 +180,7 @@
       "choices": [
         {"id": "warm", "on": "event:gap:g4:warm", "next": "quiet"},
         {"id": "blunt", "on": "event:gap:g4:blunt", "next": "quiet"}
-      ],
-      "timeout": {"gameHours": 2, "next": "quiet"}
+      ]
     },
     {
       "id": "walk-told",
@@ -197,7 +192,9 @@
         {"when": "stage:enter", "say": "K6.close.03"},
         {"when": "line:K6.close.03:done", "say": "K6.stage.walk.01"}
       ],
-      "timeout": {"gameHours": 1, "next": "told"}
+      "choices": [
+        {"id": "done", "on": "event:line:K6.stage.walk.01:done", "next": "told"}
+      ]
     },
     {
       "id": "walk-bought",
@@ -208,7 +205,9 @@
       "script": [
         {"when": "stage:enter", "say": "K6.stage.walk.01"}
       ],
-      "timeout": {"gameHours": 1, "next": "bought"}
+      "choices": [
+        {"id": "done", "on": "event:line:K6.stage.walk.01:done", "next": "bought"}
+      ]
     }
   ],
   "endings": {
@@ -227,11 +226,6 @@
       "memory": "You paid a busker in a Watson underpass for Kerry's first guitar, and Kerry gave it straight back.",
       "bond": 90,
       "script": [{"when": "ending:bought", "text": "K6.close.06", "image": "first-string-case"}]
-    },
-    "not-found": {
-      "memory": "You never found Kerry's first guitar. He said it was fine and that he needed to know.",
-      "bond": 45,
-      "script": [{"when": "ending:not-found", "text": "K6.close.07"}]
     },
     "no": {
       "memory": "You said no to Kerry's search for his first guitar, and he said he understood.",

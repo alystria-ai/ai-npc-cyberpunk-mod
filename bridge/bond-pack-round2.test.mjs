@@ -336,7 +336,8 @@ function giftPack() {
   const pack = panamHangout();
   pack.id = 'test-gifts'; delete pack.kind; delete pack.hangout;
   pack.stages = [{id: 'gifts', type: 'play', know: 'You are with V.', label: 'Gifts', do: [{p: 'gift', id: 'present', dir: 'receive', tier: 'rare'}, {p: 'gift', id: 'thanks', dir: 'give'}],
-    choices: [{id: 'done', on: 'event:gift:present:given', next: 'fun'}], timeout: {gameHours: 48, next: 'late'}}];
+    choices: [{id: 'done', on: 'event:gift:present:given', next: 'fun'}]}];
+  delete pack.endings.late;
   return pack;
 }
 
@@ -396,7 +397,8 @@ test('paying a cast member: the armed stage tells the cast member what is asked;
   const pack = panamHangout();
   pack.id = 'test-toll'; delete pack.kind; delete pack.hangout;
   pack.stages = [{id: 'toll', type: 'play', know: 'A guard blocks the way.', label: 'Toll', do: [{p: 'cast', id: 'guard', who: 'a guard'}, {p: 'pay', id: 'toll', to: 'guard', amount: 100, min: 60, reason: 'toll'}],
-    choices: [{id: 'paid', on: 'event:pay:toll:paid', next: 'fun'}], timeout: {gameHours: 3, next: 'late'}}];
+    choices: [{id: 'paid', on: 'event:pay:toll:paid', next: 'fun'}]}];
+  delete pack.endings.late;
   assert.deepEqual(validatePack(pack, {characters: roster}).errors, []);
   const { runner, say } = make([pack]);
   say('panam-palmer', T0).finish();
@@ -427,7 +429,8 @@ test('the play file carries the calls a stage names with their lines, and the st
   pack.gaps = {g1: {asks: 'Are you okay?', know: 'She worries.', situation: 'nervous', resumeAfterSeconds: 60}};
   pack.calls = {c1: {caller: 'self', picture: 'live', text: 'C.text', onHangUp: 'call:ring:hung-up', steps: [{say: 'C.1'}, {gap: 'g1'}, {say: 'C.2'}, {hangup: true}]}};
   pack.stages = [{id: 'ring', type: 'play', know: 'You call V.', label: 'Ring', do: [{p: 'call-in', id: 'ring', call: 'c1'}], music: [{source: 'radio:Pacific Dreams', start: 'stage:enter', volume: 0.4}],
-    sfx: [{source: 'game:ui_menu_hover', at: 'v', start: 'call:ring:answered'}], situation: 'nervous', choices: [{id: 'done', on: 'event:call:ring:done', next: 'fun'}], timeout: {gameHours: 2, next: 'late'}}];
+    sfx: [{source: 'game:ui_menu_hover', at: 'v', start: 'call:ring:answered'}], situation: 'nervous', choices: [{id: 'done', on: 'event:call:ring:done', next: 'fun'}]}];
+  delete pack.endings.late;
   assert.deepEqual(validatePack(pack, {characters: roster}).errors, []);
   const { runner, say } = make([pack]);
   // A pack that opens with a call starts on a holocall with her apart from V, not in person (bridge/quest-start.mjs).

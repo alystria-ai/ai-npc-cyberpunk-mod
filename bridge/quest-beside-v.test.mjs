@@ -54,13 +54,14 @@ test('a pack that starts on a phone turn while she stands beside V carries the b
 
 test('the meeting a stage hopes for is "go together from here" beside V, and "meet you at" away from V', () => {
   const pack = JSON.parse(JSON.stringify(pilot));
-  pack.stages[0].meet = {where: 'waypoint', inGameHours: 6};
+  pack.stages[0].meet = {where: 'waypoint'};
   const near = runnerOf([pack]).forTurn(turn(30 * DAY, true), {level: 3, romance: 'partner', near: true});
-  assert.match(near.note, /You would like to go to the spot V marks on the map together with V, within about 6 game hours\. V is beside you/);
+  assert.match(near.note, /You would like to go to the spot V marks on the map together with V, whenever V can\. V is beside you/);
+  assert.doesNotMatch(near.note, /game hours/, 'no deadline in the words');
   assert.doesNotMatch(near.note, /meet you at the spot/);
   const away = runnerOf([pack]).forTurn(turn(30 * DAY, false), {level: 3, romance: 'partner', near: false});
-  assert.match(away.note, /You would like V to meet you at the spot V marks on the map/);
-  pack.stages[0].meet = {where: 'here', inGameHours: 2};
+  assert.match(away.note, /You would like V to meet you at the spot V marks on the map, whenever V can, there is no rush/);
+  pack.stages[0].meet = {where: 'here'};
   assert.match(runnerOf([pack]).forTurn(turn(30 * DAY, true), {level: 3, romance: 'partner', near: true}).note, /You would like to go somewhere together with V/);
 });
 

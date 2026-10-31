@@ -100,8 +100,7 @@
         {"id": "no", "on": "event:gap:g1:no", "next": "no"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
-      ],
-      "timeout": {"gameHours": 2, "next": "no"}
+      ]
     },
     {
       "id": "drive",
@@ -112,7 +111,7 @@
       "wants": "V to pass each landmark and reach the overlook.",
       "do": [
         {"p": "remote"},
-        {"p": "ride", "to": "overlook", "checkpoints": ["billboard", "tunnel", "gas", "ramp"], "limitMinutes": 30, "heat": false}
+        {"p": "ride", "to": "overlook", "checkpoints": ["billboard", "tunnel", "gas", "ramp"], "heat": false}
       ],
       "script": [
         {"when": "ride:checkpoint:billboard", "say": "S4.d.01"},
@@ -125,8 +124,7 @@
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "overlook"},
         {"id": "abandoned", "on": "event:ride:abandoned", "next": "no"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     },
     {
       "id": "overlook",
@@ -150,8 +148,7 @@
       "choices": [
         {"id": "seen", "on": "event:gap:g3:described", "next": "found"},
         {"id": "waited", "on": "event:gap:g3:resume", "next": "found"}
-      ],
-      "timeout": {"gameHours": 1, "next": "found"}
+      ]
     }
   ],
   "endings": {
@@ -160,11 +157,6 @@
       "history": "She calls it the overlook.",
       "bond": 60,
       "script": [{"when": "ending:found", "say": "S4.close.01"}]
-    },
-    "lost": {
-      "memory": "You ran out of time before the overlook, and Songbird said she remembered a different city.",
-      "bond": 30,
-      "script": [{"when": "ending:lost", "say": "S4.close.03"}]
     },
     "no": {
       "memory": "You did not go looking for Songbird's old place, and she said another day.",

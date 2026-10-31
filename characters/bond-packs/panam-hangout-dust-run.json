@@ -39,19 +39,16 @@
       "objective": "Race Panam across the dry lakebed to the finish line",
       "know": "V and Panam line up side by side on the dry lakebed. Panam is on her bike and has her own idea of a head start.",
       "wants": "V to beat Panam to the finish line.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "start"},
         {"p": "place", "at": "start"},
-        {"p": "race", "id": "run", "from": "start", "to": "finish", "vehicle": "bike", "limitMinutes": 4, "stillSeconds": 20}
+        {"p": "race", "id": "run", "from": "start", "to": "finish", "vehicle": "bike", "stillSeconds": 20}
       ],
       "choices": [
         {"id": "won", "on": "event:race:run:won", "next": "won"},
-        {"id": "lost", "on": "event:race:run:lost", "next": "lost"},
-        {"id": "late", "on": "event:race:run:timeout", "next": "left"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+        {"id": "lost", "on": "event:race:run:lost", "next": "lost"}
+      ]
     }
   ],
   "endings": {
@@ -62,13 +59,6 @@
     "lost": {
       "memory": "Panam beat you across the lakebed and has not let you forget the head start.",
       "bond": 11
-    },
-    "left": {
-      "memory": "You left the lakebed before the race was finished.",
-      "bond": 6
-    },
-    "stood-up": {
-      "memory": "You never came to the lakebed, and Panam ran the course alone."
     }
   }
 }

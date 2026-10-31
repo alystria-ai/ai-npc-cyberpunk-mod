@@ -54,8 +54,7 @@
       "choices": [
         {"id": "talk", "on": "event:gap:g1:talk", "next": "talk"},
         {"id": "fight", "on": "event:gap:g1:fight", "next": "fight"}
-      ],
-      "timeout": {"gameHours": 2, "next": "fight"}
+      ]
     }
   ],
   "endings": {

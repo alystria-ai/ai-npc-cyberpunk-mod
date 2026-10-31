@@ -68,8 +68,7 @@
       "choices": [
         {"id": "all-down", "on": "event:squad:targets:down", "next": "all-down"},
         {"id": "time-up", "on": "event:timer:round-two", "next": "some-down"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -80,9 +79,6 @@
     "some-down": {
       "memory": "You knocked down some of the cans in the dry gulch, and River kept score with a bad loser's grin.",
       "bond": 4
-    },
-    "stood-up": {
-      "memory": "You never came to the dry gulch, and River shot the cans alone."
     }
   }
 }

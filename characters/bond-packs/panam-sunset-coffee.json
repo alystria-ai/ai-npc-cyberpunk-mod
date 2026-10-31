@@ -64,8 +64,7 @@
         {"when": "stage:enter", "text": "P1.invite.01"},
         {"when": "place:sunset:arrived", "say": "P1.walk.01"}
       ],
-      "choices": [{"id": "came", "on": "event:place:sunset:arrived", "next": "walk"}],
-      "timeout": {"gameHours": 3, "next": "cold-coffee"}
+      "choices": [{"id": "came", "on": "event:place:sunset:arrived", "next": "walk"}]
     },
     {
       "id": "walk",
@@ -86,8 +85,7 @@
       "choices": [
         {"id": "walked", "on": "event:together:tour:done", "next": "sit"},
         {"id": "wandered", "on": "event:together:tour:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 4, "next": "left"}
+      ]
     },
     {
       "id": "sit",
@@ -110,8 +108,7 @@
         {"id": "light", "on": "event:gap:g1:light", "next": "last-sip"},
         {"id": "quiet", "on": "event:together:sunrise:done", "next": "last-sip"},
         {"id": "gone", "on": "event:together:sunrise:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 2, "next": "left"}
+      ]
     },
     {
       "id": "last-sip",
@@ -120,8 +117,7 @@
       "objective": "Finish the coffee with Panam",
       "know": "The sun is up and the coffee is finished. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
       "do": [{"p": "place", "at": "sunset"}],
-      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise"}],
-      "timeout": {"gameHours": 2, "next": "sunrise"}
+      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise"}]
     },
     {
       "id": "last-sip-warm",
@@ -130,8 +126,7 @@
       "objective": "Finish the coffee with Panam",
       "know": "The sun is up and the coffee is finished. V told you something real about V's own life and you answered with something small about growing up on the road. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
       "do": [{"p": "place", "at": "sunset"}],
-      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise-shared"}],
-      "timeout": {"gameHours": 2, "next": "sunrise-shared"}
+      "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise-shared"}]
     }
   ],
   "endings": {
@@ -151,11 +146,6 @@
       "memory": "V came out to the Sunset for coffee but did not stay long.",
       "bond": 15,
       "script": [{"when": "ending:left", "say": "P1.left.01"}]
-    },
-    "cold-coffee": {
-      "memory": "You asked V out for coffee at the Sunset and they never came. You will tease V about it once.",
-      "bond": -5,
-      "script": [{"when": "ending:cold-coffee", "text": "P1.invite.02"}]
     }
   }
 }

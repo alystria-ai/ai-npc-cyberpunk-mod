@@ -80,8 +80,7 @@
         {"when": "stage:enter", "text": "T1.open.01"},
         {"when": "place:market:arrived", "say": "T1.open.02"}
       ],
-      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "choose"}],
-      "timeout": {"gameHours": 3, "next": "no-meal"}
+      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "choose"}]
     },
     {
       "id": "choose",
@@ -105,8 +104,7 @@
         {"id": "ramen", "on": "event:place:counter-ramen:arrived", "next": "tasting"},
         {"id": "yakitori", "on": "event:place:counter-yakitori:arrived", "next": "tasting"},
         {"id": "sushi", "on": "event:place:counter-sushi:arrived", "next": "tasting"}
-      ],
-      "timeout": {"gameHours": 0.25, "next": "tasting"}
+      ]
     },
     {
       "id": "tasting",
@@ -128,8 +126,7 @@
       "choices": [
         {"id": "thrown", "on": "event:npc:react:leave", "next": "thrown-out"},
         {"id": "meal-done", "on": "event:together:meal:done", "next": "last-bowl"}
-      ],
-      "timeout": {"gameHours": 2, "next": "last-bowl"}
+      ]
     },
     {
       "id": "last-bowl",
@@ -145,8 +142,7 @@
       "choices": [
         {"id": "eaten", "on": "event:together:bowl:done", "next": "honest-bowl"},
         {"id": "left", "on": "event:together:bowl:broken", "next": "honest-bowl"}
-      ],
-      "timeout": {"gameHours": 1, "next": "honest-bowl"}
+      ]
     }
   ],
   "endings": {
@@ -160,11 +156,6 @@
       "memory": "The cook threw you out after the second rating. Takemura apologised to him in the street, bowing more deeply than he has ever bowed to the corporation.",
       "bond": 25,
       "script": [{"when": "ending:thrown-out", "say": "T1.close.02"}]
-    },
-    "no-meal": {
-      "memory": "You never came to choose a meal with Takemura, and he wrote the city off a little further.",
-      "bond": -5,
-      "script": [{"when": "ending:no-meal", "text": "T1.close.03"}]
     }
   }
 }

@@ -85,8 +85,7 @@
         {"id": "in", "on": "event:gap:g1:in", "next": "distract"},
         {"id": "door", "on": "event:gap:g1:door", "next": "distract"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no"}
+      ]
     },
     {
       "id": "distract",
@@ -101,8 +100,7 @@
         {"p": "cast", "id": "super", "who": "extra", "at": "lobby"},
         {"p": "remote"}
       ],
-      "choices": [{"id": "climbed", "on": "event:place:fire-escape:arrived", "next": "search-list"}],
-      "timeout": {"gameHours": 1, "next": "no"}
+      "choices": [{"id": "climbed", "on": "event:place:fire-escape:arrived", "next": "search-list"}]
     },
     {
       "id": "search-list",
@@ -131,8 +129,7 @@
         {"id": "list", "on": "event:place:list-wall:arrived", "next": "search-drawer"},
         {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "spotted"},
         {"id": "patience", "on": "event:timer:patience", "next": "spotted"}
-      ],
-      "timeout": {"gameHours": 1, "next": "spotted"}
+      ]
     },
     {
       "id": "search-drawer",
@@ -153,8 +150,7 @@
       "choices": [
         {"id": "calendar", "on": "event:place:calendar:arrived", "next": "out-all"},
         {"id": "window", "on": "event:place:window:arrived", "next": "out-two"}
-      ],
-      "timeout": {"gameHours": 1, "next": "out-two"}
+      ]
     },
     {
       "id": "out-all",
@@ -168,8 +164,7 @@
         {"when": "stage:enter", "say": "RW3.out.01"},
         {"when": "line:RW3.out.01:done", "gap": "g2"}
       ],
-      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "all-three"}],
-      "timeout": {"gameHours": 1, "next": "all-three"}
+      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "all-three"}]
     },
     {
       "id": "out-two",
@@ -183,8 +178,7 @@
         {"when": "stage:enter", "say": "RW3.out.01"},
         {"when": "line:RW3.out.01:done", "gap": "g2"}
       ],
-      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "two-clues"}],
-      "timeout": {"gameHours": 1, "next": "two-clues"}
+      "choices": [{"id": "back", "on": "event:place:street:arrived", "next": "two-clues"}]
     }
   ],
   "endings": {

@@ -102,8 +102,7 @@
       "choices": [
         {"id": "yes", "on": "event:gap:g1:yes", "next": "pickup"},
         {"id": "no", "on": "event:gap:g1:no", "next": "she-went"}
-      ],
-      "timeout": {"gameHours": 24, "next": "she-went"}
+      ]
     },
     {
       "id": "pickup",
@@ -123,8 +122,7 @@
       ],
       "choices": [
         {"id": "in", "on": "event:line:P5.pickup.02:done", "next": "run"}
-      ],
-      "timeout": {"gameHours": 4, "next": "she-went"}
+      ]
     },
     {
       "id": "run",
@@ -138,7 +136,7 @@
         {"p": "place", "at": "canyon"},
         {"p": "place", "at": "salt"},
         {"p": "place", "at": "camp"},
-        {"p": "convoy", "id": "col", "route": ["border", "canyon-short", "canyon", "camp"], "reroute": ["canyon-short", "salt", "camp"], "cars": 2, "lead": "self", "holdLegs": [1], "limitMinutes": 60, "fallback": true},
+        {"p": "convoy", "id": "col", "route": ["border", "canyon-short", "canyon", "camp"], "reroute": ["canyon-short", "salt", "camp"], "cars": 2, "lead": "self", "holdLegs": [1], "fallback": true},
         {"p": "squad", "id": "raffen", "at": "canyon", "faction": "raffen", "count": 4, "hostile": false, "alertAfterSeconds": 20},
         {"p": "timer", "id": "silence", "seconds": 420, "clock": "game"}
       ],
@@ -162,8 +160,7 @@
       "choices": [
         {"id": "arrived", "on": "event:convoy:col:arrived", "next": "camp"},
         {"id": "lost", "on": "event:convoy:col:lost-one", "next": "camp-lost"}
-      ],
-      "timeout": {"gameHours": 3, "next": "camp-lost"}
+      ]
     },
     {
       "id": "camp",
@@ -184,8 +181,7 @@
       ],
       "choices": [
         {"id": "home", "on": "event:gap:g3:resume", "next": "delivered"}
-      ],
-      "timeout": {"gameHours": 3, "next": "delivered"}
+      ]
     },
     {
       "id": "camp-lost",
@@ -200,7 +196,9 @@
       "script": [
         {"when": "stage:enter", "say": "P5.camp.02"}
       ],
-      "timeout": {"gameHours": 1, "next": "lost-one"}
+      "choices": [
+        {"id": "done", "on": "event:line:P5.camp.02:done", "next": "lost-one"}
+      ]
     }
   ],
   "endings": {

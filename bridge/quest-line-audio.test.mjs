@@ -36,11 +36,11 @@ test('a line counts as prepared when its audio file is in the pack folder, when 
   } finally { rmSync(folder, {recursive: true, force: true}); }
 });
 
-test('the shipped packs: every spoken line is defined, and the report counts them (Judy\'s J4.end.03 is one of them)', () => {
+test('the shipped packs: every spoken line is defined, and the report counts them (Judy\'s J4.end.02 is one of them)', () => {
   const results = loadPacks(fileURLToPath(new URL('../characters/bond-packs/', import.meta.url))).map(item => checkPack(item, {}));
   assert.equal(results.length >= 114, true);
   assert.deepEqual(results.filter(row => row.undefinedLines.length).map(row => row.pack), [], 'no pack says a line it does not have');
   const judy = results.find(row => row.pack === 'judy-claws-calling');
-  assert.ok(judy.spoken.includes('J4.end.03') && judy.spoken.includes('J4.call.01'));
+  assert.ok(judy.spoken.includes('J4.end.02') && judy.spoken.includes('J4.call.01'));
   assert.match(report(results), /^Spoken lines in \d+ packs: \d+\./);
 });

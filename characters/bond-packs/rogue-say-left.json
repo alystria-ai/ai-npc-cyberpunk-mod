@@ -95,8 +95,7 @@
         {"when": "line:R4.open.02:done", "say": "R4.open.03"},
         {"when": "line:R4.open.03:done", "gap": "g1"}
       ],
-      "choices": [{"id": "drive", "on": "event:gap:g1:resume", "next": "route"}],
-      "timeout": {"gameHours": 1, "next": "short"}
+      "choices": [{"id": "drive", "on": "event:gap:g1:resume", "next": "route"}]
     },
     {
       "id": "route",
@@ -107,7 +106,7 @@
       "wants": "V to follow the directions to the water, quietly.",
       "do": [
         {"p": "place", "at": "rail"},
-        {"p": "ride", "to": "rail", "checkpoints": ["cp-1", "cp-2", "cp-3", "cp-4", "cp-5"], "limitMinutes": 25, "heat": true, "hidden": true}
+        {"p": "ride", "to": "rail", "checkpoints": ["cp-1", "cp-2", "cp-3", "cp-4", "cp-5"], "heat": true, "hidden": true}
       ],
       "script": [
         {"when": "ride:checkpoint:cp-1", "say": "R4.stage.route.01"},
@@ -118,8 +117,7 @@
         {"when": "ride:checkpoint:cp-4", "say": "R4.stage.route.04"},
         {"when": "ride:checkpoint:cp-5", "say": "R4.stage.route.05"}
       ],
-      "choices": [{"id": "water", "on": "event:place:rail:arrived", "next": "rail-stop"}],
-      "timeout": {"gameHours": 1, "next": "short"}
+      "choices": [{"id": "water", "on": "event:place:rail:arrived", "next": "rail-stop"}]
     },
     {
       "id": "rail-stop",
@@ -141,8 +139,7 @@
         {"when": "check:weather:clear", "text": "R4.stage.rail.04", "image": "say-left-water"},
         {"when": "line:R4.stage.rail.02:done", "gap": "g3"}
       ],
-      "choices": [{"id": "rail-done", "on": "event:gap:g3:resume", "next": "chauffeur-home"}],
-      "timeout": {"gameHours": 1, "next": "chauffeur-home"}
+      "choices": [{"id": "rail-done", "on": "event:gap:g3:resume", "next": "chauffeur-home"}]
     },
     {
       "id": "chauffeur-home",
@@ -152,7 +149,9 @@
       "know": "You take the wheel and drive V home. You will not explain the drive, and you are glad it was quiet.",
       "wants": "V to ride home without a word about the drive.",
       "script": [{"when": "stage:enter", "say": "R4.close.01"}],
-      "timeout": {"gameHours": 1, "next": "drive-back"}
+      "choices": [
+        {"id": "done", "on": "event:line:R4.close.01:done", "next": "drive-back"}
+      ]
     }
   ],
   "endings": {
@@ -163,11 +162,6 @@
       "script": [
         {"when": "ending:drive-back", "say": "R4.close.02"}
       ]
-    },
-    "short": {
-      "memory": "You pulled out of Rogue's drive early, and she let you go with a dry word.",
-      "bond": 25,
-      "script": [{"when": "ending:short", "say": "R4.close.03"}]
     }
   }
 }
