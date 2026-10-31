@@ -36,10 +36,10 @@ export const OTHER_CHROMIUM_BROWSERS = Object.freeze([
 ]);
 
 // The player's own way out when a browser is installed where nothing looks: a plain text file with the path of its program, in the
-// plugin folder beside launcher.ini (the Runtime's start script reads it, see readBrowserOverride). Never shipped, never removed by an update.
+// plugin folder red4ext/plugins/AiNpcCyberpunkMod (no launcher.ini is needed, none is shipped; the Runtime's start script reads it, see readBrowserOverride). Never shipped, never removed by an update.
 export const BROWSER_OVERRIDE_FILE = 'browser.txt';
 
-export const NO_BROWSER_MESSAGE = `No browser to run the conversation page: install a Chromium browser such as Microsoft Edge (free from microsoft.com/edge), Google Chrome, Brave or Opera, or write the path of the one you have in ${BROWSER_OVERRIDE_FILE} next to launcher.ini.`;
+export const NO_BROWSER_MESSAGE = `No browser to run the conversation page: install a Chromium browser such as Microsoft Edge (free from microsoft.com/edge), Google Chrome, Brave or Opera, or write the path of the one you have in ${BROWSER_OVERRIDE_FILE} in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed).`;
 
 // The program names of the Chromium browsers the lookups below accept when they read the Windows registry (the default browser, the
 // browsers registered as Start menu clients): a name here is a browser Playwright can drive. Firefox is never one of them.

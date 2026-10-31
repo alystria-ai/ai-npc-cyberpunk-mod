@@ -152,7 +152,7 @@ Typed lines are voiced by default (Settings > Voice AI and microphone > V's voic
 Press your manager key (stand up first if V is sitting), or Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry? Install or update Mod Configuration Menu or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
-Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Browser installed somewhere unusual? Make a file named [b]browser.txt[/b] next to launcher.ini (red4ext\plugins\AiNpcCyberpunkMod) with the path to its exe on one line.
+Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Browser installed somewhere unusual? Make a file named [b]browser.txt[/b] in red4ext\plugins\AiNpcCyberpunkMod in the game folder (no launcher.ini is needed) with the path to its exe on one line.
 
 [b]Settings says "No model installed" for Local AI.[/b]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself. With only a Mature pack, turn on Mature content in Settings > AI provider.

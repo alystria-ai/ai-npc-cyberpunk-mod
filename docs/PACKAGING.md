@@ -348,7 +348,7 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
    command) and the Start menu browser clients (`HKCU`/`HKLM` `SOFTWARE\Clients\StartMenuInternet\*\shell\open\command`), each accepted only
    when its program is a known Chromium one, once per start and only until one is found. Firefox cannot be used: Playwright
    drives only its own patched Firefox. A developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead, and so does the
-   player's `browser.txt`: a plain text file in `red4ext\plugins\AiNpcCyberpunkMod\` beside `launcher.ini` (never shipped; `PROTECTED` in
+   player's `browser.txt`: a plain text file in `red4ext\plugins\AiNpcCyberpunkMod\` in the game folder (no `launcher.ini` is needed, none is shipped; the file itself is never shipped; `PROTECTED` in
    `apply-removals.mjs`, so an update never removes it) holding one line, the full path of a Chromium program or of its folder (an
    optional `BrowserPath=` before it, quotes, and `;` or `#` comment lines are accepted). `start-service.mjs` reads it, checks the file
    is there and sets `CYBERPUNK_CONVAI_BROWSER` from it (a variable already set wins); a file that names nothing usable is one log line

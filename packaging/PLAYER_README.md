@@ -189,7 +189,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Microphone packs** for European and Asian languages with Local AI and Custom endpoints.
 - **15 more characters** with their own voices, and a new voice reference for Viktor.
 - **Either manager host**: Mod Configuration Menu 0.10.5 or newer, or Native Settings UI. One is enough. If V is sitting, the manager shortcut tells you to stand up first.
-- **Browsers and PowerShell**: Brave and other Chromium browsers are found outside their usual folders too, and you can name yours in browser.txt next to launcher.ini. PowerShell is not needed.
+- **Browsers and PowerShell**: Brave and other Chromium browsers are found outside their usual folders too, and you can name yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed). PowerShell is not needed.
 - **Pocket on Vortex**: Pocket voices (and V's voice) start on Vortex installs again. When a voice cannot start, Settings > Privacy and help > Help and support says so.
 - **Local AI**: a crashed model server is restarted and the reply asked again; small-context servers of your own shorten the character description to fit; faster repeat turns.
 - **Clearer messages**: a partly extracted Runtime, missing Audioware or TweakXL each say what to do, and the CET console shows each problem once.

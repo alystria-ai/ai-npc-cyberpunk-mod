@@ -1385,7 +1385,7 @@
     "The conversation service is not running. Restart the game to start it again.": "The conversation service is not running. Restart the game to start it again.",
     "The conversation service is not running. Restart the game.": "The conversation service is not running. Restart the game.",
     "The conversation service is starting. Try again in a few seconds.": "The conversation service is starting. Try again in a few seconds.",
-    "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.": "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.",
+    "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.": "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.",
     "The conversation service needs your Convai API key. Add it, then restart the game.": "The conversation service needs your Convai API key. Add it, then restart the game.",
     "The conversation service restarted. Please try again.": "The conversation service restarted. Please try again.",
     "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.": "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.",
@@ -3700,7 +3700,7 @@
       "The conversation service is not running. Restart the game to start it again.",
       "The conversation service is not running. Restart the game.",
       "The conversation service is starting. Try again in a few seconds.",
-      "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.",
+      "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.",
       "The conversation service needs your Convai API key. Add it, then restart the game.",
       "The conversation service restarted. Please try again.",
       "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.",
@@ -15236,7 +15236,7 @@
         "mod/service-status.lua:190"
       ]
     },
-    "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.": {
+    "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.": {
       "contexts": [
         "ui.localized"
       ],

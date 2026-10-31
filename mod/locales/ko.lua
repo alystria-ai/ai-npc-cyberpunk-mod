@@ -370,7 +370,7 @@ return {
     ["The conversation service is starting. Try again in a few seconds."] = "대화 서비스를 시작하는 중입니다. 몇 초 후에 다시 시도하세요.",
     ["The conversation service restarted. Please try again."] = "대화 서비스가 다시 시작되었습니다. 다시 시도하세요.",
     ["The conversation service needs your Convai API key. Add it, then restart the game."] = "대화 서비스에 Convai API 키가 필요합니다. 키를 추가한 후 게임을 다시 시작하세요.",
-    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game."] = "대화 서비스에는 Microsoft Edge, Google Chrome, Brave, Opera 같은 Chromium 기반 브라우저가 필요합니다. 하나를 설치하거나, 본인 브라우저의 경로를 launcher.ini 옆의 browser.txt 파일에 적은 후 게임을 다시 시작하세요.",
+    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game."] = "대화 서비스에는 Microsoft Edge, Google Chrome, Brave, Opera 같은 Chromium 기반 브라우저가 필요합니다. 하나를 설치하거나, 본인 브라우저의 경로를 게임의 red4ext/plugins/AiNpcCyberpunkMod 폴더에 있는 browser.txt 파일(launcher.ini는 필요 없습니다)에 적은 후 게임을 다시 시작하세요.",
     ["The browser for the conversation page would not start. Try again, or use another Chromium browser."] = "대화 페이지용 브라우저를 시작할 수 없습니다. 다시 시도하거나 다른 Chromium 기반 브라우저를 사용하세요.",
     ["Needs a browser"] = "브라우저 필요",
     ["Service not running"] = "서비스 실행 중 아님",

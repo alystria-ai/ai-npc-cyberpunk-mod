@@ -374,7 +374,7 @@ return {
     ["The conversation service is starting. Try again in a few seconds."] = "对话服务正在启动，请几秒后重试。",
     ["The conversation service restarted. Please try again."] = "对话服务已重新启动，请重试。",
     ["The conversation service needs your Convai API key. Add it, then restart the game."] = "对话服务需要你的 Convai API 密钥。请添加密钥，然后重新启动游戏。",
-    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game."] = "对话服务需要基于 Chromium 的浏览器，例如 Microsoft Edge、Google Chrome、Brave 或 Opera。请安装其中一个，或将你的浏览器路径写入 launcher.ini 旁边的 browser.txt 文件，然后重新启动游戏。",
+    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game."] = "对话服务需要基于 Chromium 的浏览器，例如 Microsoft Edge、Google Chrome、Brave 或 Opera。请安装其中一个，或将你的浏览器路径写入 游戏 red4ext/plugins/AiNpcCyberpunkMod 文件夹中的 browser.txt 文件（不需要 launcher.ini），然后重新启动游戏。",
     ["The browser for the conversation page would not start. Try again, or use another Chromium browser."] = "对话页面的浏览器无法启动。请重试，或使用其他基于 Chromium 的浏览器。",
     ["Needs a browser"] = "需要浏览器",
     ["Service not running"] = "服务未运行",

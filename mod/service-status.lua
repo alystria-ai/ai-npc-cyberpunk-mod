@@ -190,7 +190,7 @@ function M.message(kind, detail)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end
     if kind == 'setup' then return ui.t('The conversation service needs your Convai API key. Add it, then restart the game.') end
-    if kind == 'browser' then return ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.') end
+    if kind == 'browser' then return ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.') end
     if kind == 'failed' then
         local text = ui.t('The conversation service could not start. Restart the game, or see Help in Settings.')
         if type(detail) == 'string' and detail ~= '' then text = text .. ' (' .. detail .. ')' end

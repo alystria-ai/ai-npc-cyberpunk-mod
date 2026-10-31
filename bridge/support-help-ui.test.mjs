@@ -252,7 +252,7 @@ test('the page sentences, the module and the catalogue agree, and every one is i
 });
 
 test('a service that never started for want of a browser says so on the Local AI model row and on Help (Settings has no status line), and a plain stop does not', () => run(`${helpFixture()}
-  local sentence = 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.'
+  local sentence = 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game.'
   jsonFile('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
   assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   -- Settings has no status line (the Voice status row was removed 2026-10-20); the Local AI model row must not claim "No model installed"

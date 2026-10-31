@@ -226,7 +226,7 @@ test('readBrowserOverride reads browser.txt from the first plugin folder that ha
   disk['C:\\Game\\plugin\\browser.txt'] = Buffer.alloc(9000, 65);
   assert.match(readBrowserOverride(['C:\\Game\\plugin'], {read, stat}).problem, /too long/);
   assert.equal(readBrowserOverride([null, '', undefined], {read, stat}), null);
-  assert.match(NO_BROWSER_MESSAGE, /browser\.txt next to launcher\.ini/);
+  assert.match(NO_BROWSER_MESSAGE, /red4ext\/plugins\/AiNpcCyberpunkMod folder of the game \(no launcher\.ini is needed\)/);
 });
 
 test('the registry App Paths entry finds Edge or Chrome installed outside the usual folders', async () => {

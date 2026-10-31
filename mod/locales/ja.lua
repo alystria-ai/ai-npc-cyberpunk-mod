@@ -370,7 +370,7 @@ return {
     ["The conversation service is starting. Try again in a few seconds."] = "会話サービスを起動しています。数秒後にもう一度お試しください。",
     ["The conversation service restarted. Please try again."] = "会話サービスが再起動しました。もう一度お試しください。",
     ["The conversation service needs your Convai API key. Add it, then restart the game."] = "会話サービスにはConvai APIキーが必要です。キーを追加してから、ゲームを再起動してください。",
-    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game."] = "会話サービスには、Microsoft Edge、Google Chrome、Brave、OperaなどのChromium系ブラウザが必要です。どれかをインストールするか、launcher.ini の隣にある browser.txt ファイルにお使いのブラウザのパスを書いてから、ゲームを再起動してください。",
+    ["The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file in the red4ext/plugins/AiNpcCyberpunkMod folder of the game (no launcher.ini is needed), then restart the game."] = "会話サービスには、Microsoft Edge、Google Chrome、Brave、OperaなどのChromium系ブラウザが必要です。どれかをインストールするか、ゲームの red4ext/plugins/AiNpcCyberpunkMod フォルダにある browser.txt ファイル（launcher.ini は不要です）にお使いのブラウザのパスを書いてから、ゲームを再起動してください。",
     ["The browser for the conversation page would not start. Try again, or use another Chromium browser."] = "会話ページ用のブラウザを起動できませんでした。もう一度試すか、別の Chromium 系ブラウザをお使いください。",
     ["Needs a browser"] = "ブラウザが必要",
     ["Service not running"] = "サービス未実行",
