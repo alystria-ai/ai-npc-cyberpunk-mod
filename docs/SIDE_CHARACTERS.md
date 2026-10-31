@@ -40,7 +40,7 @@ without a flag (doris-soto, marcus-barros, sofia-ramirez, randy-kutcher). The mo
 
 ## Voice
 
-The fallback archetype voice of `characters/cast-sweep-voices.json`. A separate job replaces them with clips built from the game files.
+40 of the 575 side characters speak with a voice of their own: one game line each (`clip` in `characters/cast-sweep-voices.json`), rebuilt on the player's PC from the game files (`docs/VOICE_EXTRACTION.md`). 27 were found by a name at the start of the voice file name, 13 more by a voice tag that is proven to be the person's (`link`, rule and rejections in `docs/CAST_SWEEP.md`, "Own voices by voice tag"): Dorian, Driss "Scorpion" Meriana, Emmerick Bronson, Fredrik Persson, Gottfrid Persson, Mark Muratovich, Matilda K. Rose, Michael Maldonado, Reverend Colver, Roh Chi-Won, Roxanne Sumner, Taylor Gibbs and Tom Caldera. The other 535 speak with their fallback archetype voice, because the game voices them with voice models that ordinary people share and no file is theirs alone.
 
 ## Convai
 

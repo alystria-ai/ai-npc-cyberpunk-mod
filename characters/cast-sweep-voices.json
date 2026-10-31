@@ -527,7 +527,17 @@
     },
     "dorian": {
       "fallback": "npc-street-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "dorian_sq029",
+        "id": "2015585995354943488",
+        "seconds": 8.27
+      },
+      "link": {
+        "tag": "dorian",
+        "how": [
+          "display+group"
+        ]
+      }
     },
     "doris-soto": {
       "fallback": "npc-street-resident-female",
@@ -559,7 +569,18 @@
     },
     "driss-scorpion-meriana": {
       "fallback": "npc-aldecaldos-male",
-      "clip": null
+      "clip": {
+        "stem": "scorpion_q103",
+        "id": "1662052791447318528",
+        "seconds": 6.13
+      },
+      "link": {
+        "tag": "scorpion",
+        "how": [
+          "record",
+          "scene"
+        ]
+      }
     },
     "dustbunny": {
       "fallback": "npc-trauma-team-male",
@@ -627,7 +648,18 @@
     },
     "emmerick-bronson": {
       "fallback": "npc-nightlife-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "emmerick_q203",
+        "id": "2008329785979826176",
+        "seconds": 7.01
+      },
+      "link": {
+        "tag": "emmerick",
+        "how": [
+          "record",
+          "voiceTag"
+        ]
+      }
     },
     "emon-fujikura": {
       "fallback": "npc-tyger-claws-male",
@@ -715,7 +747,17 @@
     },
     "fredrik-persson": {
       "fallback": "npc-maelstrom-male",
-      "clip": null
+      "clip": {
+        "stem": "fredrik_sts_wat_nid_04",
+        "id": "1663385085255454720",
+        "seconds": 6.17
+      },
+      "link": {
+        "tag": "fredrik",
+        "how": [
+          "record"
+        ]
+      }
     },
     "fujo": {
       "fallback": "npc-worker-resident-female",
@@ -779,7 +821,17 @@
     },
     "gottfrid-persson": {
       "fallback": "npc-maelstrom-male",
-      "clip": null
+      "clip": {
+        "stem": "gottfrid_sts_wat_nid_04",
+        "id": "1105033313634537472",
+        "seconds": 7.46
+      },
+      "link": {
+        "tag": "gottfrid",
+        "how": [
+          "record"
+        ]
+      }
     },
     "grace": {
       "fallback": "npc-street-resident-female",
@@ -1467,7 +1519,17 @@
     },
     "mark-muratovich": {
       "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "mark_muratovitch_q113_01_hanako_biographer_interview",
+        "id": "1795416586786160640",
+        "seconds": 7.46
+      },
+      "link": {
+        "tag": "mark_muratovitch",
+        "how": [
+          "record"
+        ]
+      }
     },
     "markus-ayers": {
       "fallback": "npc-street-resident-male",
@@ -1511,7 +1573,19 @@
     },
     "matilda-k-rose": {
       "fallback": "npc-animals-female",
-      "clip": null
+      "clip": {
+        "stem": "sasquatch_q110",
+        "id": "1714078800858648576",
+        "seconds": 5.79
+      },
+      "link": {
+        "tag": "sasquatch",
+        "how": [
+          "display+group",
+          "scene",
+          "voiceTag"
+        ]
+      }
     },
     "matt-dupont": {
       "fallback": "npc-weapons-dealer-male",
@@ -1559,7 +1633,18 @@
     },
     "michael-maldonado": {
       "fallback": "npc-street-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "micheal_maldonado_sts_ep1_06",
+        "id": "3295516168035848192",
+        "seconds": 5.93
+      },
+      "link": {
+        "tag": "micheal_maldonado",
+        "how": [
+          "name",
+          "scene"
+        ]
+      }
     },
     "michael-marcinkowsky": {
       "fallback": "npc-wraiths-male",
@@ -1851,7 +1936,19 @@
     },
     "reverend-colver": {
       "fallback": "npc-corpo-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "reverend_colver_q001_01_arasaka_chip_debate",
+        "id": "1795291585353334784",
+        "seconds": 8.71
+      },
+      "link": {
+        "tag": "reverend_colver",
+        "how": [
+          "display+group",
+          "name",
+          "record"
+        ]
+      }
     },
     "rhino": {
       "fallback": "npc-animals-female",
@@ -1899,7 +1996,17 @@
     },
     "roh-chi-won": {
       "fallback": "npc-worker-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "roh_chi_won_sts_wat_lch_03",
+        "id": "1651939794143821844",
+        "seconds": 7.32
+      },
+      "link": {
+        "tag": "roh_chi_won",
+        "how": [
+          "name"
+        ]
+      }
     },
     "ronald-typhoon-malone": {
       "fallback": "npc-scavengers-male",
@@ -1935,7 +2042,19 @@
     },
     "roxanne-sumner": {
       "fallback": "npc-joytoy-female",
-      "clip": null
+      "clip": {
+        "stem": "roxanne_sq026",
+        "id": "1885061647285575680",
+        "seconds": 5.2
+      },
+      "link": {
+        "tag": "roxanne",
+        "how": [
+          "record",
+          "scene",
+          "voiceTag"
+        ]
+      }
     },
     "ruby": {
       "fallback": "npc-nightlife-resident-female",
@@ -2187,7 +2306,17 @@
     },
     "taylor-gibbs": {
       "fallback": "npc-dogtown-resident-male",
-      "clip": null
+      "clip": {
+        "stem": "taylor_q302",
+        "id": "3050479575802159104",
+        "seconds": 6.1
+      },
+      "link": {
+        "tag": "taylor",
+        "how": [
+          "display+group"
+        ]
+      }
     },
     "ted-fox": {
       "fallback": "npc-corpo-resident-male",
@@ -2243,7 +2372,18 @@
     },
     "tom-caldera": {
       "fallback": "npc-joytoy-male",
-      "clip": null
+      "clip": {
+        "stem": "tom_q105",
+        "id": "1631560931662848000",
+        "seconds": 6.23
+      },
+      "link": {
+        "tag": "tom",
+        "how": [
+          "scene",
+          "voiceTag"
+        ]
+      }
     },
     "tomiko-sawaya": {
       "fallback": "npc-tyger-claws-female",

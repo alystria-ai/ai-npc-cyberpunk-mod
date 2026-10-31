@@ -17,8 +17,8 @@ const own = Object.keys(sweep).filter(key => sweep[key].clip).sort();
 const manifest = readManifest(text('characters/voice-clips-manifest.json'));
 const KINDS = {pocket: 'pocket-voices.autobest.json', 'omni-short': 'local-voices.autobest-short.json', 'omni-long': 'local-voices.autobest-long.json'};
 
-test('27 cast sweep characters have a line of their own, and every one is complete in the manifest', () => {
-  assert.equal(own.length, 27);
+test('40 cast sweep characters have a line of their own (27 by the full name in the file stem, 13 by a proven voice tag), and every one is complete in the manifest', () => {
+  assert.equal(own.length, 40);
   for (const key of own) {
     assert(manifest[key], `${key} in the manifest`);
     assert.equal(manifest[key]['omni-short'].sha256, manifest[key]['omni-long'].sha256, `${key}: one clip serves the three kinds`);
@@ -26,14 +26,31 @@ test('27 cast sweep characters have a line of their own, and every one is comple
   }
 });
 
-test('the release plan lists the 27 as prepared local voices', () => {
+test('the release plan lists the 40 as prepared local voices', () => {
   const plan = json('packaging/release-plan.json');
   for (const key of own) assert(plan.voice.localProfiles.includes(key), `${key} in voice.localProfiles`);
   assert.equal(plan.voice.registry.preparedLocalProfiles, plan.voice.localProfiles.length);
   assert.deepEqual([...plan.voice.localProfiles], [...plan.voice.localProfiles].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)), 'the list stays sorted');
 });
 
-test('the upload list holds the three paths of each of the 27', () => {
+test('the 13 characters found by a voice tag name the tag, and no tag or line serves two people', () => {
+  const linked = own.filter(key => sweep[key].link);
+  assert.equal(linked.length, 13);
+  const tags = new Set(), lines = new Set();
+  for (const key of own) {
+    const {clip, link} = sweep[key];
+    assert(!lines.has(clip.id), `${key}: the line is used by another character`);
+    lines.add(clip.id);
+    if (!link) continue;
+    assert(!tags.has(link.tag), `${key}: the tag ${link.tag} belongs to another character`);
+    tags.add(link.tag);
+    assert(clip.stem === link.tag || clip.stem.startsWith(`${link.tag}_`), `${key}: the stem of the line starts with the tag`);
+    assert(link.how.length > 0 && link.how.every(how => ['voiceTag', 'name', 'record', 'record-unique', 'display+group', 'scene'].includes(how)), `${key}: evidence kinds`);
+    assert(!/^(civ|gang|ncpd|sec|merc|ad|crowd|v)_/.test(link.tag), `${key}: a generic voice model is never a person's tag`);
+  }
+});
+
+test('the upload list holds the three paths of each of the 40', () => {
   const rows = new Map(json('packaging/voice-clips-upload-list.json').rows.map(row => [row.path, row]));
   for (const key of own) {
     for (const kind of Object.keys(KINDS)) {
