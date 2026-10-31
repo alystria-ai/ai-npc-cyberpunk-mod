@@ -40,7 +40,7 @@ Script classes declared by the mod: all `Convai…` (`ConvaiFaceService`, `Conva
 `ConvaiServiceContainer`, `ConvaiHasCodeware`, `ConvaiHasCodewareUi`, `ConvaiHasCodewareTextInput`. Files with a `module` line use `module CyberpunkConvai`.
 `Face.reds`, `FaceFeature.reds`, `GameVariant.reds` and `Speech.reds` have none (global module); their names are `Convai…` as well.
 
-Wrapped game methods (64). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with three kinds of exception listed
+Wrapped game methods (63). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with three kinds of exception listed
 below the table: calls skipped only while the mod's own AI chat page is open, calls skipped only for a row of the mod's own quests in the journal screen, and
 `NewHudPhoneGameController.SelectOtherTab`, which never runs it.
 
@@ -49,7 +49,6 @@ below the table: calls skipped only while the mod's own AI chat page is open, ca
 AIMoveToCommandHandler.UpdateCommand
 DialerContactDataView.SortItem
 GameObject.PlayVoiceOver
-GenericMessageNotification.OnHandlePressInput
 JournalEntryListItemController.OnDataChanged
 MessengerDialogViewController.OnDelayedJournalUpdate
 MessengerDialogViewController.OnJournalUpdate
@@ -127,7 +126,6 @@ drops a request that names neither a quest nor an objective (only the mod's rows
 the track key itself only while one of the mod's quests is open in the details panel. `UpdateTrackerData`, `BuildQuestList`, `OnTrackedMappinSpawned` and
 `OnQuestListItemSelected` always run the original first. A quest-log or HUD-tracker mod that wraps or replaces these keeps working for the game's quests; one
 that replaces `UpdateTrackerData` or `BuildQuestList` and reads its own data hides the mod's quests from the tracker or the list.
-`GenericMessageNotification.OnHandlePressInput` (`Composer.reds`, only when Codeware's UI part is installed, like Codeware's own wrapper of it) runs `wrappedMethod` first and then acts only for the mod's own talk box: a click outside its dialog closes it with the game's own `Close(Cancel)` and keeps the typed words (docs/TEXT_BOX.md). Any other notification, and any click inside the dialog, is left as it was.
 
 Elsewhere: `GameObject.PlayVoiceOver` (declared with the game's own `-> DelayID`, so other mods' wrappers stacked on it compile) returns an empty `DelayID` early for four ambient contexts (`greeting`, `fear_foll`, `stlh_curious_grunt`, `bump`) within 15 m of V
 while a mod conversation is open. `AIMoveToCommandHandler.UpdateCommand` runs for every walking NPC each AI tick: one type test and one Bool read.
