@@ -3705,7 +3705,7 @@ local function beginTextNow(groupMode, waited, talkJohnny)
         generation = generation + 1
         local speedAtOpen = playerSpeedText(player)
         local moveAtOpen = moveStateText(player)
-        if not player:ConvaiOpenComposer(name) then
+        if type(player.ConvaiOpenComposer) ~= 'function' or not player:ConvaiOpenComposer(name) then
             convaiComposerRefused(player)
             return
         end
@@ -6962,7 +6962,7 @@ function convaiKeyBindsModule()
             elseif action == 'johnny_text' then beginText(false, true) else openManager() end
         end,
         -- The phone's chat box: V types there with the game's controls still live. The text box and the menus are refused by the actions themselves.
-        typing = function(who) return who:ConvaiPhoneChatTyping() end,
+        typing = function(who) return type(who.ConvaiPhoneChatTyping) == 'function' and who:ConvaiPhoneChatTyping() end,
         observe = function(fn) Observe('PlayerPuppet', 'ConvaiKeyBindNotify', function(this) fn(this) end) end,
         boundKey = function(id)
             if type(IsBound) ~= 'function' then return nil, false end

@@ -123,7 +123,11 @@ function M.noteSetup(problems, checks)
     for _, id in ipairs(type(problems) == 'table' and problems or {}) do
         local check = checks[id]
         if type(check) == 'table' and check.state == 'problem' then
-            wrote = M.record('setup-problem', id .. ' ' .. (plain(check.code, 40) or 'problem'), plain(check.detail, 120), 'game-setup') or wrote
+            -- Scripts that compiled only in part (setup-check.lua probeScripts) are one kind of report, scripts-not-compiled, whichever method is missing;
+            -- bridge/error-reports.mjs files the same kind when it finds the Lua errors of such an install in the CET log, so both count under one signature.
+            local code = id .. ' ' .. (plain(check.code, 40) or 'problem')
+            if id == 'redscript' and check.code == 'incomplete' then code = 'scripts-not-compiled' end
+            wrote = M.record('setup-problem', code, plain(check.detail, 120), 'game-setup') or wrote
         end
     end
     -- No problem to record: the facts alone, so a later report of this session carries the versions.

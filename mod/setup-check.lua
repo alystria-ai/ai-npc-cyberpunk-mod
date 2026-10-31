@@ -15,6 +15,12 @@ local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- too deep, the browser, Local AI and why it is down, whether the chosen provider's server can be reached, the graphics card and a
 -- mod manager.
 --
+-- Scripts that compiled only in part (an old cached compile kept because another mod broke the new one, Scripts older than the Lua): the
+-- redscript methods this mod's Lua calls on V are listed in SCRIPT_METHODS and looked up ONCE per game session (probeScripts, about eighty
+-- table reads, a few microseconds: never per frame). A method that is not there makes the redscript row a Problem with the code 'incomplete',
+-- one setup-problem report of the kind scripts-not-compiled (not a Lua error per call), and sets convaiScriptsMissing (the groups that lack
+-- a method) for the modules that would otherwise raise on every update: they test that global (one read) and stand down.
+--
 -- Cost: run() opens five small files and asks CET whether a few classes exist, a few milliseconds. It runs once FIRST_DELAY_S after
 -- the first world is ready and once each time the Help page opens, never per frame. tick() is called from manager-ui.lua's quarter-second
 -- slow update: a few comparisons, plus one small read a second for at most FOLLOW_S while a request waits for the service.
@@ -84,11 +90,38 @@ local function buildConsole(check)
     return head .. 'The Scripts are the build for game ' .. scripts .. ' but the Runtime is the build for game ' .. runtime
         .. ', and the game version matches neither. Extract the full install zip (AI-Companions-LLM) made for the same game as yours, then restart the game.'
 end
+local function incompleteConsole(build, check)
+    return 'AI NPC Cyberpunk Mod: this mod\'s scripts did not compile completely (' .. tostring(check and check.count or '?') .. ' functions the Lua needs are missing: '
+        .. tostring(check and check.names or '?') .. '). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. '
+        .. 'Also check that the Scripts are the build for game ' .. build.game .. ' and come from the same download as the Runtime, then restart the game.'
+end
 local COMPILER_CONSOLE = 'AI NPC Cyberpunk Mod: redscript is missing. Install it from Nexus Mods, then restart the game.'
 local OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Codeware is too old (it lacks the text input this mod needs). '
     .. 'Update Codeware from Nexus Mods, then restart the game.'
 -- The words ConvaiRequirements answers with (r6/scripts/CyberpunkConvai/Requirements.reds).
 local TEXT_INPUT, UI = 'codeware-textinput', 'codeware-ui'
+
+-- The redscript methods of PlayerPuppet that this mod's Lua calls (the shipped modules; the developer probes are left out), by the group of
+-- features that stand down when one is missing. ConvaiRequirements is not listed: the scripts of 0.2.1 and older lack it and are told
+-- apart by readRequirements. bridge/scripts-not-compiled.test.mjs keeps this list in step with r6/scripts and with the calls in mod/.
+local SCRIPT_METHODS = {
+    {'manager', 'ConvaiManagerSetVoice ConvaiManagerSetSubtitles ConvaiManagerSetEnabled ConvaiManagerVoice ConvaiManagerSubtitles ConvaiManagerIsOpen '
+        .. 'ConvaiManagerTakeRequest ConvaiManagerSetDetail ConvaiManagerClearRows ConvaiManagerAddRow ConvaiManagerSetPage ConvaiManagerSetTab '
+        .. 'ConvaiManagerSetFeedback ConvaiManagerSetSearch ConvaiManagerSetPartyStatus ConvaiManagerRefresh ConvaiCloseManager'},
+    {'phone', 'ConvaiPhoneIsOpen ConvaiPhoneClearContacts ConvaiPhoneRegisterContact ConvaiPhoneTakeRequest ConvaiPhoneFeedback ConvaiPhoneNavigationStats'},
+    {'chat', 'ConvaiPhoneChatContact ConvaiPhoneChatTick ConvaiPhoneChatTyping ConvaiPhoneChatDraft ConvaiPhoneChatTakeSubmission ConvaiPhoneChatPresent '
+        .. 'ConvaiPhoneChatClearContacts ConvaiPhoneChatRegisterContact ConvaiPhoneChatClearFavorites ConvaiPhoneChatAddFavorite '
+        .. 'ConvaiPhoneChatTakeFavoriteRequest ConvaiPhoneChatClearParty ConvaiPhoneChatAddParty ConvaiPhoneChatTakeTrace '
+        .. 'ConvaiPhoneChatSearchSeq ConvaiPhoneChatSearchQuery ConvaiPhoneChatSearchJournal ConvaiPhoneChatSearchResult'},
+    {'composer', 'ConvaiComposerOpen ConvaiOpenComposer ConvaiTakeDraft ConvaiDraftText ConvaiClearDraft ConvaiForgetComposer ConvaiComposerClosedInfo '
+        .. 'ConvaiFrameFlags ConvaiMoveHeld ConvaiMoveForget ConvaiOpenSearchBox ConvaiSearchBoxState ConvaiTakeSearchText ConvaiForgetSearchBox'},
+    {'holocall', 'ConvaiHolocallBegin ConvaiHolocallConnect ConvaiHolocallEnd ConvaiHolocallHasBacking ConvaiHolocallTakeEvent ConvaiHolocallTakeRequest'},
+    {'keys', 'ConvaiKeyBindTake ConvaiKeyBindCaptureTake ConvaiKeyBindCaptureHeard ConvaiKeyBindsActive ConvaiKeyBindsCapture ConvaiKeyBindsConfigure '
+        .. 'ConvaiKeyBindsObservable ConvaiKeyBindsReady'},
+    {'engagement', 'ConvaiBeginFocus ConvaiEndFocus ConvaiBarkHold ConvaiBarkRelease'},
+    {'quests', 'ConvaiQuestLogSet ConvaiQuestLogRemove ConvaiQuestLogClear ConvaiQuestLogStatus'},
+}
+local MAX_NAMED = 4   -- how many missing methods the Help row and the report name
 
 local loadedAt = os.time()
 local game                -- the last game-side result: {checks = {id -> check}, at}
@@ -97,6 +130,7 @@ local pending             -- {id, untilAt, nextAt} while the Help page waits for
 local refreshDue = false
 local firstDue, firstAsked, firstDone = nil, false, false
 local counter, content = 0, ''
+local scriptsProbe        -- {missing = {method names, in list order}, groups = {group = true}} once looked up (probeScripts), nil before
 local requirementSet      -- what ConvaiRequirements answered: a set of words, false when it did not answer, nil before it was asked
 local silent              -- a running service gave no answer to the setup request and has none from this session: it has no setup check
                           -- (a Runtime older than these Scripts); cleared when an answer of this session is read
@@ -255,6 +289,30 @@ local function readRequirements(player)
     return set
 end
 
+-- Looks up every method of SCRIPT_METHODS on V once and keeps the answer for the session (the scripts cannot change before the next game start).
+-- Returns {missing, groups}, or nil while there is no player to ask. convaiScriptsMissing is the set of groups that lack a method, nil when none does
+-- (and while nothing was looked up): the one global the guards in other modules read.
+function M.probeScripts(player)
+    if scriptsProbe then return scriptsProbe end
+    player = player or try(function() return convaiPlayer() end)
+    if not player then return nil end
+    local missing, groups, total = {}, {}, 0
+    for _, row in ipairs(SCRIPT_METHODS) do
+        for name in row[2]:gmatch('%S+') do
+            total = total + 1
+            local ok, present = pcall(function() return type(player[name]) == 'function' end)
+            if not ok or present ~= true then missing[#missing + 1] = name; groups[row[1]] = true end
+        end
+    end
+    -- none: the player had no script method at all (the scripts were not there when it was looked up); run() looks again once if they are found later
+    scriptsProbe = {missing = missing, groups = groups, none = #missing == total}
+    convaiScriptsMissing = #missing > 0 and groups or nil
+    return scriptsProbe
+end
+
+-- The methods the Lua needs that this game's scripts lack (empty when they are all there), or nil when that is not known yet.
+function M.scriptsMissing() return scriptsProbe and scriptsProbe.missing or nil end
+
 -- Each probe is read-only and pcall-wrapped: a framework that is absent leaves its class (and its static Version()) undefined.
 local function frameworks()
     local found = {}
@@ -273,6 +331,12 @@ local function frameworks()
         else
             found.redscript = try(function() return type(player:ConvaiPhoneIsOpen()) == 'boolean' end) == true
         end
+    end
+    if found.redscript == true then
+        local probe = M.probeScripts(player)
+        -- Looked up while the scripts were not there, and they are: the lookup is made again (once: the new answer is not 'none').
+        if probe and probe.none then scriptsProbe = nil; probe = M.probeScripts(player) end
+        found.missingMethods = probe and #probe.missing > 0 and probe.missing or nil
     end
     found.native = try(function() return type(convaiNative) == 'table' and convaiNative.present == true end) == true
     -- Mod Configuration Menu (CET mod "ModConfigurationMenuAPI"), the default host of the Companion Manager: version 0.10.5 or newer,
@@ -411,7 +475,15 @@ function M.run(now)
         return {state = 'problem', code = 'missing'}
     end
     checks.codeware = framework('codeware', found.codeware, found.codewareVersion)
-    if scripts == true then checks.redscript = {state = 'ok', code = 'loaded'}
+    if scripts == true and found.missingMethods then
+        -- Some of the scripts are there and some are not: an old compile the game kept because another mod broke the new one, or Scripts older than
+        -- the Lua. The count and the first names are the detail of the report (names of this mod's own methods, never a path or a player's text).
+        local list = found.missingMethods
+        local shown = {}
+        for index = 1, math.min(#list, MAX_NAMED) do shown[index] = list[index] end
+        checks.redscript = {state = 'problem', code = 'incomplete', count = #list, names = table.concat(shown, ', '),
+            detail = #list .. ' missing: ' .. table.concat(shown, ',') .. (#list > #shown and ',...' or '')}
+    elseif scripts == true then checks.redscript = {state = 'ok', code = 'loaded'}
     elseif scripts == false then
         -- Scripts that did not load. When the service saw that the compiler's file is not there (bridge/setup-check.mjs, 'compiler') there is no
         -- compile log to read: redscript itself is missing.
@@ -621,6 +693,10 @@ local function gameLine(id, check)
     end
     if id == 'redscript' and check.code == 'no-compiler' then
         return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
+    end
+    if id == 'redscript' and check.code == 'incomplete' then
+        return line(id, label, 'problem', ui.t('This mod’s scripts did not compile completely. Functions it needs that are missing: {count} ({names}). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Also check that the Scripts are the build for game {game} and come from the same download as the Runtime, then restart the game.',
+            {count = check.count or '?', names = check.names or '?', game = buildOf().game}))
     end
     if id == 'redscript' then
         return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.', {game = buildOf().game}))
@@ -937,6 +1013,7 @@ local function shortText(id, names, old, values)
     if id == 'build-both' then return ui.t('This mod is for game {other}, yours is {game}. Get the full install zip for {game}.', values) end
     if id == 'build-differ' then return ui.t('Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings.', values) end
     if id == 'redscript' then return ui.t('Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.') end
+    if id == 'scripts-incomplete' then return ui.t('Open r6/logs/redscript_rCURRENT.log. Scripts did not compile. Match Scripts and game.') end
     if id == 'requirements' then
         if old then return ui.t('Install or update: {names}. Then restart the game.', {names = names}) end
         return ui.t('Missing: {names}. Install them and restart the game.', {names = names})
@@ -1009,7 +1086,9 @@ local function firstLoad()
     for _, id in ipairs(problems) do
         local check = game.checks[id]
         if id == 'build' then say(buildConsole(check))
-        elseif id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or scriptsConsole(buildOf()))
+        elseif id == 'redscript' then
+            say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or check and check.code == 'incomplete' and incompleteConsole(buildOf(), check)
+                or scriptsConsole(buildOf()))
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or nsuiConsole(buildOf()))
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
         elseif id == 'python' then
@@ -1042,6 +1121,8 @@ local function firstLoad()
         if check.code == 'both-wrong' then return shortText('build-both', nil, nil, {game = running, other = scripts}) end
         return shortText('build-differ', nil, nil, {scripts = scripts, runtime = runtime})
     end
+    -- Some of the scripts did not compile (an old compile kept, Scripts older than the Lua): the log to open and the Scripts to match.
+    if first == 'redscript' and game.checks.redscript.code == 'incomplete' then return shortText('scripts-incomplete') end
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
     if first == 'nsui' and game.checks.nsui.code == 'mcm-old' then return shortText('mcm-old') end
@@ -1065,6 +1146,7 @@ function M.requirement(word, player)
         player = player or try(function() return convaiPlayer() end)
         if not player then return nil end
         requirementSet = readRequirements(player)
+        M.probeScripts(player)
     end
     if requirementSet == false then return nil end
     return requirementSet[word] == true
@@ -1093,9 +1175,11 @@ local held   -- the first-load notice, computed when due and kept until gameplay
 local readySince   -- when gameplay last became visible (os.time), nil while a menu, a pause or a loading screen is up
 
 -- Call from manager-ui.lua's slow update (every quarter second, with or without Native Settings UI). inSession: V is in a loaded game
--- (the caller's player). Returns the first-load notice once, in gameplay, else nil.
-function M.tick(worldReady, inSession)
+-- (the caller's player, passed as `player` too). Returns the first-load notice once, in gameplay, else nil.
+function M.tick(worldReady, inSession, player)
     local now = os.time()
+    -- The scripts' methods are looked up once, as soon as V exists (with the caller's player when it has one): one boolean test per tick once it is done.
+    if inSession and not scriptsProbe then M.probeScripts(player) end
     if refreshDue then
         refreshDue = false
         M.run(now)
@@ -1145,6 +1229,12 @@ function M.reportLines()
             out[#out + 1] = string.format('%s: %s %s%s%s', id, tostring(check.state), tostring(check.code),
                 check.version and (' ' .. check.version) or '', check.detail and (' (' .. check.detail .. ')') or '')
         end
+    end
+    -- Scripts that compiled in part: the first missing methods (names of this mod's own functions).
+    if scriptsProbe and #scriptsProbe.missing > 0 then
+        local shown = {}
+        for index = 1, math.min(#scriptsProbe.missing, 8) do shown[index] = scriptsProbe.missing[index] end
+        out[#out + 1] = 'scripts missing ' .. #scriptsProbe.missing .. ' functions: ' .. table.concat(shown, ' ')
     end
     -- What the scripts were compiled with (Requirements.reds): the words, or none of them.
     if type(requirementSet) == 'table' then

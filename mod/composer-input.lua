@@ -345,7 +345,7 @@ end
 -- The words left unsent by the last box (Composer.reds m_convaiDraft), shown in the box that just opened. Once per draft.
 function M.putDraft(input)
     local player = convaiPlayer()
-    local text = player and player:ConvaiTakeDraft()
+    local text = player and type(player.ConvaiTakeDraft) == 'function' and player:ConvaiTakeDraft()
     if type(text) == 'string' and text ~= '' then
         input:SetText(text)
         M.restored = #text

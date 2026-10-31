@@ -140,7 +140,7 @@ import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet, MIC_PLACEHOLDE
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow, vVoiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, chainRecovery, credentialRecovery, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
@@ -1071,9 +1071,14 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, limit: con
     const kind = quota.observe(error);
     if (kind === 'speaker') void adoptOrBlockMemory(); // a path that cannot retry (a voice turn): its next turn uses the account's memory user
     else if (kind === 'memory' && keys.unblockMemory()) void ownKeyControl.publishStatus().catch(() => {});
+    // A path that cannot retry (a voice turn) met a shared credential Convai refused: its next turn gets a fresh one (rate limited; never for a player's own key).
+    else if (kind === 'rejected' && keys.source === 'shared' && keys.usesBackend) void keys.backend.refreshRejected().catch(() => {});
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
-  recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
+  // A shared credential Convai refused (the owner rotated the key) is fetched anew once and the turn asked once more; then the memory-user recovery of a player's key.
+  recover: chainRecovery(
+    credentialRecovery({keys, classify: classifyFailure, log: line => console.error('[CyberpunkConvai] ' + line)}),
+    memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()}))});
 const phoneRealtime = new RealtimeHost({browserPriority: turnPriority, transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {

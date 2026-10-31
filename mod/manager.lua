@@ -2379,8 +2379,9 @@ local function action(player, request)
     elseif request == 'toggle:voice' or request == 'toggle:subtitles' then
         local key = request:sub(8)
         local nextValue = not settings[key]
-        if key == 'voice' then player:ConvaiManagerSetVoice(nextValue)
-        else player:ConvaiManagerSetSubtitles(nextValue) end
+        -- pcall: the scripts may lack the method (they compiled in part), and the setting is saved either way
+        if key == 'voice' then pcall(function() player:ConvaiManagerSetVoice(nextValue) end)
+        else pcall(function() player:ConvaiManagerSetSubtitles(nextValue) end) end
         settings[key] = nextValue
         savedFeedback((key == 'voice' and 'Voice playback' or 'Subtitles') .. (nextValue and ' on.' or ' off.'))
     elseif request:sub(1, 7) == 'assign:' then

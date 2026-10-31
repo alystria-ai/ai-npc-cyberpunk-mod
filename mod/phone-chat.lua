@@ -806,6 +806,9 @@ function M.takeSearch(player)
 end
 
 function M.update(player, delta, phoneOpen)
+    -- Scripts that compiled in part and lack the chat methods (setup-check.lua probeScripts): every call below would raise on every tick. One global read.
+    local gone = convaiScriptsMissing
+    if gone and gone.chat then return end
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     -- A reply due: the native plugin's revision of phone-chat-output.json is checked every 30 ms (one number, no disk access)

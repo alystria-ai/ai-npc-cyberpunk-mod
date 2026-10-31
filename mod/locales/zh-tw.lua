@@ -886,6 +886,8 @@ return {
     ["This PC cannot look up {host}. Check your internet connection, then restart the game."] = "這台電腦無法查詢 {host}。請檢查網路連線，然後重新啟動遊戲。",
     ["Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load."] = "請開啟 r6/logs/redscript_rCURRENT.log。其中列出的模組就是腳本未載入的原因。",
     ["This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it."] = "本模組的腳本未載入。請開啟 r6/logs/redscript_rCURRENT.log。若錯誤中提到其他模組，則該模組就是問題所在。缺少或過舊的 Codeware 或 redscript，以及不是 {game} 的遊戲版本，也可能導致此問題。",
+    ["Open r6/logs/redscript_rCURRENT.log. Scripts did not compile. Match Scripts and game."] = "請開啟 r6/logs/redscript_rCURRENT.log。腳本未能編譯。請讓腳本與遊戲版本一致。",
+    ["This mod’s scripts did not compile completely. Functions it needs that are missing: {count} ({names}). Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Also check that the Scripts are the build for game {game} and come from the same download as the Runtime, then restart the game."] = "本模組的腳本未完整編譯。缺少所需函式：{count} 個（{names}）。請開啟 r6/logs/redscript_rCURRENT.log。若錯誤中提到其他模組，則該模組就是問題所在。另請確認 Scripts 是適用於遊戲 {game} 的版本，並與 Runtime 來自同一次下載，然後重新啟動遊戲。",
     ["Missing: {names}. Install them and restart the game."] = "缺少：{names}。請安裝後重新啟動遊戲。",
     ["Install or update: {names}. Then restart the game."] = "請安裝或更新：{names}。然後重新啟動遊戲。",
     ["Codeware is too old. Update it from Nexus Mods, then restart the game."] = "Codeware 版本過舊。請從 Nexus Mods 更新，然後重新啟動遊戲。",
