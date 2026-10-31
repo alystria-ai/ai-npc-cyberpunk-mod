@@ -76,7 +76,7 @@ test('it starts on a private turn with the bring-up note, and the first stage is
   assert.equal(quest.pack, 'panam-sunset-coffee'); assert.equal(quest.stage, 'invite'); assert.equal(quest.serial, 1); assert.equal(quest.since, t0);
   assert.deepEqual(Object.keys(quest.places), ['sunset']);
   assert.deepEqual(quest.do.map(spec => spec.p), ['pin', 'place', 'cast']);
-  assert.equal(quest.timeoutAt, t0 + 3 * HOUR);
+  assert.equal(quest.timeoutAt, t0 + 6 * HOUR, 'the pack says 3 game hours, the first stage runs at least 6 (bridge/quest-start.mjs)');
   assert.equal(quest.lines['P1.invite.01'].text.startsWith('Motel coffee'), true);
   assert.equal(quest.lines['P1.walk.01'].emotion, 'happy');
   assert.deepEqual(quest.script.map(row => row.when), ['stage:enter', 'place:sunset:arrived']);
@@ -177,8 +177,9 @@ test('V walks off or never comes: the left and cold-coffee endings, the second o
 
   const cold = make();
   cold.start();
+  cold.runner.entries.get('panam-sunset-coffee').accepted = true;   // V said yes to the coffee: only then does cold coffee cost bond points
   const quest = cold.current();
-  assert.equal(quest.timeoutAt, t0 + 3 * HOUR);
+  assert.equal(quest.timeoutAt, t0 + 6 * HOUR);
   await cold.game('stage:timeout', quest.timeoutAt - 60);
   assert.equal(cold.current().stage, 'invite', 'not yet');
   await cold.game('stage:timeout', quest.timeoutAt + 5);

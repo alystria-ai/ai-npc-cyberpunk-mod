@@ -31,7 +31,7 @@
     }
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Word of Takemura's hideout has leaked to the freelancers who still hope the old bounty on a traitor pays. He calls you on a live holocall from a dim room, says he will not move, and asks whether you will stand with him."
   },

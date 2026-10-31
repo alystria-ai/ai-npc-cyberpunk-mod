@@ -457,6 +457,20 @@ function M.new(options)
         end
     end
 
+    -- The stage's own timeout (game seconds, from the pack): the bridge checks timers only when a turn or an event reaches it, so the game says when it has run out.
+    -- The bridge gives no timeoutAt while the stage's call has not been shown (its clock has not started), and sends it in a later play file once it has: the timer is
+    -- armed then, and again if the moment changes. A stage with no timeoutAt has no timer.
+    local function armTimeout(c)
+        if c.timeoutTimer and c.ctx then c.ctx:cancel(c.timeoutTimer) end
+        c.timeoutTimer = nil
+        if not c.timeoutAt or not c.ctx then return end
+        local now = gameTime()
+        if not now then return end
+        local wait = math.max(0, c.timeoutAt - now)
+        c.timeoutTimer = c.ctx:after(wait, function() P.emit(c, 'stage:timeout') end)
+        log('stage ' .. c.pack .. ':' .. c.stage .. ' timeout clock runs, ' .. string.format('%.1f', wait / 3600) .. ' game hours left')
+    end
+
     local function startQuest(c)
         capturedPlaces(c)
         c.fired = {}
@@ -470,11 +484,7 @@ function M.new(options)
         armStage(c)
         -- The stage's music and sound effects (a hook of the primitive registry that mod/quest-audio.lua fills, nothing without it).
         if prims and type(prims.stageStart) == 'function' then pcall(prims.stageStart, c.ctx, c) end
-        -- The stage's own timeout (game seconds, from the pack): the bridge checks timers only when a turn or an event reaches it, so the game says when it has run out.
-        if c.timeoutAt then
-            local now = gameTime()
-            if now then c.ctx:after(math.max(0, c.timeoutAt - now), function() P.emit(c, 'stage:timeout') end) end
-        end
+        armTimeout(c)
         P.emit(c, 'stage:enter')
     end
 
@@ -527,6 +537,10 @@ function M.new(options)
             if not (cur and cur.serial == c.serial and cur.stage == c.stage) then
                 if cur then endQuest(cur) end
                 startQuest(c)
+            elseif cur.timeoutAt ~= c.timeoutAt then
+                -- The same stage, a new moment for its timeout (its call was shown, so the clock started): the timer follows.
+                cur.timeoutAt = c.timeoutAt
+                armTimeout(cur)
             end
         end
         local gone = {}

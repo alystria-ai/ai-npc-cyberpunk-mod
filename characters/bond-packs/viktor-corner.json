@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Viktor wants to step into the ring himself for three rounds at the old Grand Prix hall, to show a young fighter why his guard drops. Bring it up, briefly and in your own way, that he needs a corner man on Thursday night and that he wants a yes that is not a favour."
   },

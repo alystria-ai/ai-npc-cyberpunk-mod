@@ -422,7 +422,7 @@ test('paying a cast member: the armed stage tells the cast member what is asked;
 
 test('the play file carries the calls a stage names with their lines, and the stage\'s music, sound effects and situation (the gap\'s too)', () => {
   const pack = panamHangout();
-  pack.id = 'test-calls'; delete pack.kind; delete pack.hangout;
+  pack.id = 'test-calls'; delete pack.kind; delete pack.hangout; pack.start = {...pack.start, channels: ['holocall']};
   pack.lines = {'C.1': {text: 'Hey. Can you talk?', channel: 'holocall', emotion: 'neutral'}, 'C.2': {text: 'I will text you later.', channel: 'holocall'}, 'C.text': {text: 'Call me.', channel: 'own'}, 'X.unused': {text: 'Not in this stage.'}};
   pack.gaps = {g1: {asks: 'Are you okay?', know: 'She worries.', situation: 'nervous', resumeAfterSeconds: 60}};
   pack.calls = {c1: {caller: 'self', picture: 'live', text: 'C.text', onHangUp: 'call:ring:hung-up', steps: [{say: 'C.1'}, {gap: 'g1'}, {say: 'C.2'}, {hangup: true}]}};
@@ -430,7 +430,8 @@ test('the play file carries the calls a stage names with their lines, and the st
     sfx: [{source: 'game:ui_menu_hover', at: 'v', start: 'call:ring:answered'}], situation: 'nervous', choices: [{id: 'done', on: 'event:call:ring:done', next: 'fun'}], timeout: {gameHours: 2, next: 'late'}}];
   assert.deepEqual(validatePack(pack, {characters: roster}).errors, []);
   const { runner, say } = make([pack]);
-  say('panam-palmer', T0).finish();
+  // A pack that opens with a call starts on a holocall with her apart from V, not in person (bridge/quest-start.mjs).
+  say('panam-palmer', T0, {holocall: {version: 1, contact: 'panam-palmer', mode: 'audio'}}, {copy: null}).finish();
   const quest = runner.playState().quests[0];
   assert.deepEqual(quest.calls.c1, {caller: 'self', picture: 'live', text: 'C.text', onHangUp: 'call:ring:hung-up', steps: pack.calls.c1.steps});
   assert.deepEqual(Object.keys(quest.lines).sort(), ['C.1', 'C.2', 'C.text']);

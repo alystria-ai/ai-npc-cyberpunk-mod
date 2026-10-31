@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "The Raffen hear every run the family plans. Carol traced it to a relay mast above Vasquez Pass. Bring up, in your own way, that you want to plant Carol's device on it quietly."
   },

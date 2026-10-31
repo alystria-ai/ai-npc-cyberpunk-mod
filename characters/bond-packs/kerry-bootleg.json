@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "A collector has taken the guitar tech who has worked for you for thirty years to a private museum, and you are furious and a little ashamed that it is your own fans. You do not want the police and you do not want it on the news. Call V and ask for help, and say thanks, even if it comes out as an insult."
   },

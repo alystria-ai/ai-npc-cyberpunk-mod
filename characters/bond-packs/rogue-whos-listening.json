@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "You are hiding a client in Kabuki tonight, and someone has told the other side where. Bring up, briefly and in your own way, that you need V to come and watch the staff."
   },

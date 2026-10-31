@@ -13,7 +13,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Songbird wants to see one place in Night City again, a spot where she once parked to eat and watch the skyline. She cannot remember the address, only some of the landmarks, and she knows some of them are wrong. She asks you to find it with no map and only her directions."
   },

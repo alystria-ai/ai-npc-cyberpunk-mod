@@ -103,13 +103,21 @@ test('an ending files the quest as succeeded or failed with its closing sentence
   assert.equal(row.objective, 'Finish the coffee with Panam', 'the last objective played');
   assert.equal(row.place, undefined);
 
+  // V took the coffee up (said yes) and never came: the stage timeout the game reports ends it as cold coffee, a failure that costs bond points.
   const cold = make();
   cold.start(t0);
+  cold.runner.entries.get('panam-sunset-coffee').accepted = true;
   const quest = cold.runner.playState().quests[0];
   await cold.game('stage:timeout', quest.timeoutAt + 5);
   [row] = cold.journal();
   assert.equal(row.state, 'failed', 'cold coffee costs bond points: a failure');
   assert.deepEqual(cold.awards, [['panam-palmer', -5]]);
+  // V never took it up: the same timeout lapses it, with no bond change and no row in the journal.
+  const lapse = make();
+  lapse.start(t0);
+  await lapse.game('stage:timeout', lapse.runner.playState().quests[0].timeoutAt + 5);
+  assert.deepEqual(lapse.awards, [], 'no penalty for a quest V never took up');
+  assert.deepEqual(lapse.journal(), [], 'and it leaves the journal');
 
   const entry = state => ({status: 'done', trail: [{stage: 'invite', at: 1}, {stage: state.stage, at: 2, ending: true, ...(state.choice ? {choice: state.choice} : {})}]});
   assert.equal(outcomeOf(pilot, entry({stage: 'left'})), 'succeeded');

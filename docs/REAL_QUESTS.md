@@ -162,6 +162,38 @@ it does when it opens. No timer, no tick, no new file. A turn gains nothing: the
 Tests: `bridge/quest-journal.test.mjs`, `bridge/quest-journal-lua.test.mjs`, and updates to `bridge/quest-wiring-lua.test.mjs` and
 `bridge/quest-round2-wiring.test.mjs`.
 
+## 5b. Fair starts (31 Oct 2026, branch `fix/quest-start-1031`)
+
+The owner's live test of 31 Oct on game 2.5: Judy (invited, in V's party, following V, bond level 7, romance partner) was typed to in person and `judy-claws-calling` started on `own`.
+Its first stage pins and places the front of Lizzie's and has a call-in. The call-in rings only at a calm moment (`convaiQuestLineBusy`: a talk is not calm), so it never rang. The
+stage clock (1 game hour, about 8 real minutes) ran from the start anyway and the pack ended `late-end` with bond -15 for a quest V never saw. V saw no holocall, tracker or
+journal entry (a main job held the tracker, and nobody opens the journal for a quest they do not know of) and Judy stopped following V. The rules, in `bridge/quest-start.mjs`
+and the runner (`bridge/bond-pack-runner.mjs`), for every pack:
+
+* **A call opening starts only with her apart from V.** A pack whose first stage has a call-in starts on a Phone Chat or a holocall, never in person, never with her beside V and
+  never with her in V's party (`startAllowed`). It waits (Developer mode logs why, once a game day). Of the 20 shipped call openings, 19 listed `own` in `start.channels` and no longer do (Jackie's come-home was holocall only).
+  The opening is not adapted to in person: nobody can ring a person who stands next to V.
+* **A party member is never moved.** The `cast` primitive (mod/quest-prims.lua) makes a second body at the spot through the party queue's appointment form, which takes a
+  character who already follows V out of the party. A cast of a character who is in V's party is skipped (at the stage start and before every try) and logged: she goes where
+  V goes and stands at the place when V arrives with her. The `post` primitive already refused a party member. Of the shipped packs 47 cast her at their first place and are
+  protected by this without data changes. Only V dismissing her, or a pack that asks V first, changes her follow state.
+* **The start is shown before the clock runs.** A stage with a call-in has no timeout clock until the game reports `call:<id>:ringing`, `:answered`, `:missed` or `:texted`
+  (`unshown` and `shownAt` on the trail step). The play file carries no `timeoutAt` until then, and `mod/quest-play.lua` arms the game's own timer when the moment arrives in a
+  later play file. A start on a holocall is shown by the call itself. A call that is never shown lapses after 24 game hours.
+* **The pack's hours are a minimum.** A first stage and a stage that sends V somewhere (a place arrival, a meeting, a call) run at least 6 game hours (`START_FLOOR_HOURS`),
+  plus the travel allowance of a phone start. A fight or a scene beat keeps its own hours. Distance is not measured: a longer drive across the city than 6 game hours is not
+  covered.
+* **A penalty needs acceptance.** `accepted` is set when V answers the call, says yes after the bring-up, picks a talk tag, arranges a meeting or does anything that moves the
+  pack on. A timeout of an unaccepted pack that would end with bond points lost lapses the pack instead: no bond change, no quiet days, no failed quest in the journal, not
+  offered again for a game day.
+* **Seen.** The journal entry is made when the play file with the new row is applied (Developer log `[QuestJournal] <pack> started: journal entry made, tracker ..., map pin ...`),
+  the tracker line is taken when no main job holds it, the pin when the place has a position. New: an on-screen notice `quest-started` names the pack and its first objective
+  (`New story quest: <title>. <objective> (Journal, Quests)`), once per start and never at a session start or a load.
+* **Developer logs.** Bridge: `pack=<id> started on <channel>`, `[dev] ... start: ...` (channel, beside V, in the party), `presented`, `stage ...: the timeout clock started at ... and ends at
+  ...` or `waits for its call to be shown`, `accepted: ...`, `lapsed, no bond change (<reason>)`, `ended <ending> bond N`. Game: `cast ...: placing <character> at ... (her copy now: ...)`,
+  `cast ...: ... is in V's party, so she is not placed`, `stage ...: timeout clock runs, N game hours left`.
+* **Prepared line audio.** `scripts/Check-QuestLineAudio.mjs` lists the spoken lines with no prepared audio; the list for this repository is docs/QUEST_LINE_AUDIO.md.
+
 ## 6. Live check list (owner)
 
 Close the game first. Install the branch's files over the 2.5 game as in docs/QUEST_PRIMITIVES.md section 7, plus `mod/quest-journal.lua` (CET mod folder),
@@ -201,6 +233,11 @@ Character bonds, Story packs and Immersive invitations, and Developer mode for t
     talk turn is the same.
 12. For a pack whose places already have positions (one of the 14 in section 2), check the pin shows without any capture: Viktor's "Roadwork" hangout pins
     the courtyard loop around Megabuilding H10.
+
+13. Fair starts (31 Oct 2026 fix, section 5b). With Judy invited and following V, type to her in person for five minutes with Story packs on: nothing starts, Developer mode logs
+    `judy-claws-calling waits: it opens with a call ...`. Dismiss her (or text her from far away) and talk by Phone Chat: the pack can start, the notice
+    `New story quest: The Claws Come Calling ...` shows, the journal has the entry, and the log says `not presented yet: its call has to ring first`. Do not answer the call: wait
+    more than 6 game hours and check Judy's bond did not drop and the log says `lapsed, no bond change`. Answer a call, wait out the time, and check the pack's own ending applies.
 
 If something is wrong, send: a screenshot of the tracker, the Journal and the map, `runtime/quest-play.json`, the `[QuestJournal]` and `Quest play` lines of the
 CET log (`...\mods\AiNpcCyberpunkMod\AiNpcCyberpunkMod.log`), the `quest status` output, and `r6/logs/redscript_rCURRENT.log` if the game said the scripts

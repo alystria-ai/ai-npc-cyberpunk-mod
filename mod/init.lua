@@ -7363,7 +7363,14 @@ do
             local journal = nil
             local journalLoaded, journalModule = pcall(dofile, 'quest-journal.lua')
             if journalLoaded and type(journalModule) == 'table' and type(journalModule.new) == 'function' then
-                local journalBuilt, made = pcall(journalModule.new, {world = journalModule.gameWorld(function() return convaiPlayer() end), log = log})
+                local journalBuilt, made = pcall(journalModule.new, {world = journalModule.gameWorld(function() return convaiPlayer() end), log = log,
+                    -- A started quest says so on screen (the title and the first objective, from the pack as written).
+                    notice = function(row)
+                        local player = convaiPlayer()
+                        if not player then return end
+                        local objective = type(row.objective) == 'string' and row.objective ~= '' and (' ' .. row.objective) or ''
+                        convaiNotices.send(player, 'quest-started', 'New story quest: ' .. tostring(row.title) .. '.' .. objective .. ' (Journal, Quests)')
+                    end})
                 if journalBuilt then journal = made else convaiLogOnce('quest-journal', 'The quest journal is unavailable: ' .. tostring(made)) end
             else convaiLogOnce('quest-journal', 'The quest journal is unavailable: ' .. tostring(journalModule)) end
             convaiQuestJournal = journal

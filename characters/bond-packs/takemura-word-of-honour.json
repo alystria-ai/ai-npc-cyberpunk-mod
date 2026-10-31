@@ -32,7 +32,7 @@
     }
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.5,
     "bringUp": "Takemura gave his word to a clerk who wants to leave the city, and he cannot move a frightened man through three districts and still watch the rear. He calls you on a formal holocall, asks you to be his second, and waits for your answer before he says anything else."
   },

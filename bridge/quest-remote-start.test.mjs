@@ -161,13 +161,13 @@ test('V refusing on the call ends it as the pack says, an unclear answer leaves 
 test('the stage clock does not punish V for the way to her: the timeout comes later by the travel allowance, and still comes', () => {
   const {runner} = make();
   talk(runner, turn('holocall', T0));
-  // The stage's own timeout is 2 game hours (chicken). Three hours later V is still on the way.
+  // The stage's own timeout is 2 game hours, raised to the 6 of a first stage (chicken), and the way to her adds 6. Three hours later V is still on the way.
   talk(runner, turn('holocall', T0 + 3 * HOUR, 'on my way'));
   assert.equal(stageOf(runner).stage, 'dare', 'not timed out after 3 hours');
-  talk(runner, turn('holocall', T0 + 7 * HOUR, 'still on my way'));
-  assert.equal(stageOf(runner).stage, 'dare', 'not timed out after 7 hours (2 + 6 are 8)');
-  assert.equal(current(runner).timeoutAt, T0 + 8 * HOUR, 'the game is told the same moment');
-  talk(runner, turn('holocall', T0 + 8 * HOUR + 60, 'hello?'));
+  talk(runner, turn('holocall', T0 + 11 * HOUR, 'still on my way'));
+  assert.equal(stageOf(runner).stage, 'dare', 'not timed out after 11 hours (6 + 6 are 12)');
+  assert.equal(current(runner).timeoutAt, T0 + 12 * HOUR, 'the game is told the same moment');
+  talk(runner, turn('holocall', T0 + 12 * HOUR + 60, 'hello?'));
   assert.equal(runner.entries.get('panam-driving-school').trail.at(-1).stage, 'chicken');
 });
 
@@ -218,7 +218,7 @@ test('the play file: the stage the pack wrote plus the means of getting her to V
   assert.deepEqual(dare.do[0], {p: 'pin', at: 'meet'}, 'the pack\'s own pin is not doubled');
   assert.equal(dare.do[1].ifAbsent, true);
   assert.equal(dare.places.meet.name, 'the camp at Rocky Ridge where the trucks are parked');
-  assert.equal(dare.timeoutAt, T0 + 8 * HOUR);
+  assert.equal(dare.timeoutAt, T0 + 12 * HOUR);
   talk(runner, turn('holocall', T0 + 60, 'sure, you\'re on'));
   const run = current(runner);
   assert.equal(run.stage, 'run');

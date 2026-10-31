@@ -13,7 +13,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "It is a Thursday where Songbird is, and it has been a bad week for her. You are not on a job. She does not want a mission, a plan or a swap of secrets. She asks you, as if it were an embarrassing favour, to walk down a street that sounds like one she knew and tell her what is on it."
   },
