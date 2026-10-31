@@ -297,6 +297,17 @@ export function errorLines(lines) {
   });
 }
 
+// The excerpt of a redscript log that is longer than its share: the last lines (the failure and the mods it names), but the first few errors in this mod's own scripts are kept in front
+// of them when the tail would push them out. 0.4.0 report 4fdccb3f (one install): the six lines of Mod Configuration Menu filled the share and "caused by" named CyberpunkConvai too,
+// with none of its own errors left to read.
+const OWN_SCRIPTS = /[\\/]scripts[\\/]CyberpunkConvai[\\/]/i;
+export function errorExcerpt(lines, size) {
+  const all = errorLines(lines);
+  if (all.length <= size) return all;
+  const own = all.slice(0, all.length - size).filter(line => OWN_SCRIPTS.test(line)).slice(0, Math.min(3, size - 1));
+  return own.length ? [...own, ...all.slice(all.length - (size - own.length))] : all.slice(-size);
+}
+
 const needleOf = message => String(message ?? '').replace(/^\w*Error: /, '').replace(/[^\x20-\x7e]/g, ' ').trim().slice(0, 48);
 
 async function collectLogs({paths, record, clean}) {
@@ -308,7 +319,7 @@ async function collectLogs({paths, record, clean}) {
     const tail = await tailFile(path, {maxBytes: 1024 * 1024, maxLines: 4000});
     if (!tail?.lines.length) continue;
     let lines = tail.lines;
-    if (source.errors) lines = errorLines(lines).slice(-source.lines);
+    if (source.errors) lines = errorExcerpt(lines, source.lines);
     else if (source.cet) lines = cetLines(lines).slice(-source.lines);
     else {
       let at = -1;

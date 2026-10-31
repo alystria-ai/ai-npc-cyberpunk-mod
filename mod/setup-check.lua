@@ -422,8 +422,12 @@ function M.run(now)
     -- could not load without it) and scripts that were compiled against Codeware. When none answers it is not loaded, also when this
     -- mod's scripts did not load: this mod's native plugin does not depend on the script compile, and a game without RED4ext cannot
     -- compile Codeware's scripts, so RED4ext is then the cause to name, not a mod the redscript log lists.
+    -- Scripts that did not compile cannot answer for anything, but the conversation service of this session proves it: this mod's launcher is a RED4ext plugin of its own (AiNpcCyberpunkCode), so a service it started that
+    -- answers means RED4ext loaded, also when the native plugin did not bind and the scripts did not compile (0.4.0 reports bbbc0ad4 and 4fdccb3f of one install: the compile broke in
+    -- Mod Configuration Menu and the Help page said "RED4ext is not loaded. Install it" to a player whose launcher had started the service).
     local red4ext = found.native or found.codeware
         or (words ~= nil and words.codeware == true) or (scripts == true and words == nil)
+        or (scripts == false and (checks.service.code == 'running' or checks.service.code == 'starting'))
     if red4ext then checks.red4ext = {state = 'ok', code = 'loaded'}
     else checks.red4ext = {state = 'problem', code = 'missing'} end
     -- The manager's host: Mod Configuration Menu 0.10.5 or newer first, otherwise Native Settings UI. An older Mod Configuration Menu

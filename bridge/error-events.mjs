@@ -602,6 +602,10 @@ export class ErrorEvents {
       // The same for a browser that would not start: the failure was reported already (install 0d0750, 30 Oct 2026: signatures 144971a2 and 5acea2ab were filed in the same second, the fallback was 'silent' and not text).
       // Only while the silence still carries a browser failure: a voice that is silent for another reason once the browser runs is reported.
       if (browser && this.#browserFailureReported) return;
+      // Remote OmniVoice is the chosen voice (Settings > Voices > Custom voices): a server of the player's own network that cannot be reached or does not answer is their network, not a bug of the mod,
+      // and no failure of it files a report (bridge/voice-selection.mjs); the reply is written and the server is asked again. Without this the silence of an unreachable server was reported as
+      // "never played" (0.4.0 report 966a31e3: 32 retries, one install). A hidden browser that would not start is still reported: that is on this PC.
+      if (data?.remote === true && !browser) return;
       this.record({kind: 'voice-failed', message: browser ? 'voice never played this session: the hidden browser would not start' : 'voice never played this session',
         frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
         voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: browser ? 'browser-failed' : 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,

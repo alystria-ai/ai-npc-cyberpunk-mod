@@ -1561,6 +1561,8 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
 // Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.
 const voiceSilence = new VoiceSilenceWatch({onSilent: data => errorEvents.voiceSilent(data), wanted: () => !localVoice.closed && !localVoice.silent,
   context: () => ({engine: localVoice.provider, requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: localVoice.resolvedProvider,
+    // OmniVoice is the chosen voice and it is rendered by a server of the player's network (the setting `remoteOmni`): its silence is not reported (bridge/error-events.mjs voiceSilent).
+    remote: localVoice.remoteWanted === true && localVoice.requestedProvider === 'omni',
     // The hidden browser that plays every voice could not start in this run: that is why nothing was heard, with what the browser said.
     browser: lastBrowserStartFailure()})});
 let metricsWriting = Promise.resolve(), metricsNext = null;

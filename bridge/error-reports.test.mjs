@@ -12,7 +12,7 @@ import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   queueRecord, readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
+import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorExcerpt, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -347,6 +347,23 @@ test('the redscript excerpt keeps the mod names under "caused by mods listed bel
     '  - Some Other Mod', '  - Another Mod', '', '[INFO] done', 'plain line'];
   assert.deepEqual(errorLines(log), log.slice(1, 6));
   assert.deepEqual(errorLines(['plain', 'This error has been caused by mods listed below:']), ['This error has been caused by mods listed below:']);
+});
+
+test('a redscript log longer than its share keeps the first errors of this mod\'s own scripts in front of the tail (0.4.0 report 4fdccb3f: the tail was all Mod Configuration Menu while "caused by" named this mod too)', () => {
+  const folder = 'C:\\Games\\Cyberpunk 2077\\r6\\scripts\\';
+  const err = (mod, file, line) => `[ERROR - Sat, 31 Oct 2026 04:25:36 +0200] [UNRESOLVED_METHOD] At ${folder}${mod}\\${file}.reds:${line}:5:`;
+  const log = [err('CyberpunkConvai', 'PhoneChatSearch', 40), err('CyberpunkConvai', 'Manager', 12),
+    ...Array.from({length: 12}, (_, index) => err('ModConfigurationMenu\\UI', 'Panel' + index, index + 1)),
+    '[ERROR - Sat, 31 Oct 2026 04:25:46 +0200] REDScript compilation has failed.', 'This error has been caused by mods listed below:', '- ModConfigurationMenu', '- CyberpunkConvai'];
+  const kept = errorExcerpt(log, 10);
+  assert.equal(kept.length, 10);
+  assert.ok(kept[0].includes('PhoneChatSearch') && kept[1].includes('Manager'), 'the own errors come first');
+  assert.deepEqual(kept.slice(-4), log.slice(-4), 'the failure and the names stay at the end');
+  // Nothing of this mod's own in the part that is cut: the plain tail, as before.
+  const others = log.filter(line => !line.includes('CyberpunkConvai\\'));
+  assert.deepEqual(errorExcerpt(others, 10), errorLines(others).slice(-10));
+  // A log that fits is returned whole.
+  assert.deepEqual(errorExcerpt(log.slice(-6), 10), errorLines(log.slice(-6)));
 });
 
 test('the error-report cleaner hides account names in any path (two-letter ones too), emails and user:pass@host', () => {

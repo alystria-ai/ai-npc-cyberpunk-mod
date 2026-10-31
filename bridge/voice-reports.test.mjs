@@ -187,6 +187,35 @@ test('"the voice never played" is not reported when the voice fell back to text 
   } finally { await f.cleanup(); }
 });
 
+// 0.4.0 report 966a31e3 (one install, 32 retries): Remote OmniVoice is on and the server of the player's network cannot be reached, so every reply was written and "the voice never played" was filed.
+// A failure of the remote server files no report (bridge/voice-selection.mjs), so neither does its silence. A hidden browser that would not start is on this PC and is still reported.
+test('"the voice never played" is not reported while Remote OmniVoice is the chosen voice, unless the hidden browser would not start', async () => {
+  const remote = {engine: 'text', requested: 'omni', active: 'text', fellBackTo: 'text', turns: 3, silentTurns: 3, playedTurns: 0, lastStage: 'published', reasons: ['none', 'local-voice-unavailable'], remote: true};
+  let f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent(remote);
+    await new Promise(done => setTimeout(done, 60));
+    assert.deepEqual(await readQueue(f.state, {now: START}), []);
+  } finally { await f.cleanup(); }
+  // The same silence on this PC's own OmniVoice (the flag is false or absent) is reported as before.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent({...remote, remote: false});
+    await untilQueued(f, 1);
+    assert.deepEqual((await readQueue(f.state, {now: START})).map(record => record.frame), ['voice-silence']);
+  } finally { await f.cleanup(); }
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent({...remote, browser: {message: 'Microsoft Edge was found but would not start: exit code 21', diagnostic: []}});
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.voice.cause, 'browser-failed');
+  } finally { await f.cleanup(); }
+});
+
 test('"the voice never played" in a run whose hidden browser would not start says that, with the browser\'s own lines (install 0d0750, 27 Oct 2026)', async () => {
   const f = await folders();
   try {
