@@ -123,7 +123,7 @@ import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILE
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
 import {Bonds, BondStore} from './bonds.mjs';
 import {BondPacks} from './bond-pack-runner.mjs';
-import {configureStoryPacksGate, storyPacksAvailable} from './story-packs-gate.mjs';
+import {configureStoryPacksGate, storyPacksAvailable, storyPacksFast} from './story-packs-gate.mjs';
 import {QuestLink} from './quest-link.mjs';
 import {createFactsReader} from './quest-facts.mjs';
 import {syncAllowlist} from './gift-tables.mjs';
@@ -1400,7 +1400,7 @@ configureStoryPacksGate({runtime});
 const storyPacksOn = storyPacksAvailable();
 const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)),
   ...(storyPacksOn ? {path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json')} : {packs: [], reach: null, path: null, effectsPath: null}),
-  bonds, log: line => console.error('[BondPacks] ' + line),
+  bonds, log: line => console.error('[BondPacks] ' + line), fast: storyPacksOn && storyPacksFast(),
   // Developer mode: a pack that does not start says why (once per pack per game day).
   explain: () => replyCapture.enabled,
   // The quest facts the game reports (runtime/quest-facts.json, bridge/quest-facts.mjs): looked at only when a gate asks, and then at most every few seconds.
