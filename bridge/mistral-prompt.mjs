@@ -17,7 +17,10 @@
 //               in the Convai context (Convai ignores the order); a prefix cache does not.
 //   history  the last few exchanges of this conversation (user / assistant)
 //   user     the volatile notes of this turn (follow-up policy, Natural speech offer, game dialogue, battle and loot, language,
-//            first-person reminder), what the memory store retrieved for V's words, then `V says: ...` and the closing reminder
+//            first-person reminder), what the memory store retrieved for V's words, the background chosen for V's words (`contextParts.retrieved`: the
+//            character's topic views and the quest, journal and world facts that bear on the line, bridge/talk-retrieval.mjs; nothing for small talk), then
+//            `V says: ...` and the closing reminder. The retrieved block is last of the changing text on purpose: everything before it in the prompt stays
+//            identical from turn to turn (the persona without its topic section, the rules, the stable world), so a prefix cache keeps reading it.
 // Without `contextParts` (older callers, tests) the old layout is used: persona, summary and rules in the system message, and the
 // whole live context (the string Convai gets) in the last user message.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
@@ -30,6 +33,7 @@ import {trimSparing} from './player-text.mjs';
 import {BASE_PROFILE, renderRules, renderExamples, renderIntro, renderClosing, limitsWith} from './prompt-profiles.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {headLine, tailLine, staleTest, FRESH_MAX_CHARS} from './fresh-facts.mjs';
+import {splitTopicMaterial} from './topic-material.mjs';
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
@@ -39,6 +43,7 @@ export const LIMITS = Object.freeze({
   now: 900,              // layout v2: the right-now block (matches MAX_CHARS in turn-context.mjs, so the block is never clipped)
   volatile: 6000,        // layout v2: this turn's volatile notes in the last user message
   remembered: 1200,      // layout v2: retrieved memories for this turn (about 300 tokens)
+  retrieved: 3200,       // layout v2: the background chosen for V's words (topic views, quest and world facts, bridge/talk-retrieval.mjs) with the rules for reading it
   summary: 1400,         // what the character remembers of V from older talks
   turns: 11,             // exchanges of conversation history sent with a request: all the memory holds (8 to 11, MEMORY_LIMITS.turns + slide in bridge/mistral-memory.mjs)
   userLine: 400,         // each history line from V
@@ -95,9 +100,12 @@ export class PersonaBook {
    * `custom` (bridge/custom-characters.mjs, optional): the characters the player made; their persona is theirs alone and a roster key never reaches it.
    * `worldRules` (bridge/world-rules.mjs, optional): the player's rules for the whole world; every persona carries them as `worldRules` (a text, absent when empty).
    */
-  constructor(rows = [], {overrides = null, custom = null, worldRules = null, options = null, lean = false} = {}) {
+  constructor(rows = [], {overrides = null, custom = null, worldRules = null, options = null, lean = false, topics = false} = {}) {
     // `lean`: the shipped text without the reviewer notes and the paragraphs that repeat the output rules (leanBackstory, leanStyle). The bridge sets it; a test of the machinery sees the roster text as it is.
     this.lean = lean === true;
+    // `topics`: the PUBLIC INTRINSIC TOPIC MATERIAL leaves the persona (its claims are retrieved per turn instead, bridge/talk-retrieval.mjs). The editor's shipped text (defaults) keeps it.
+    this.topics = topics === true;
+    this.topicCache = new Map();
     this.overrides = overrides;
     this.custom = custom;
     this.worldRules = worldRules;
@@ -123,10 +131,36 @@ export class PersonaBook {
     if (!this.rows.has(profileKey)) { const own = this.custom?.persona(profileKey); if (own) return own; }
     const shipped = this.defaults(profileKey, fallbackName);
     if (!shipped.known) return shipped;
-    const own = this.overrides?.get(profileKey) ?? null, persona = applyOverride(shipped, own);
+    const own = this.overrides?.get(profileKey) ?? null;
+    let persona = applyOverride(shipped, own);
+    // The topic section is cut from the shipped text only: a bio the player wrote or changed is theirs and is sent as written.
+    const topic = this.topics && own?.bio === undefined ? this.#topicOf(profileKey, shipped.backstory) : null;
+    if (topic) persona = {...persona, backstory: topic.core};
     // When the player last changed the text (a reset counts): the exchanges from before are not shown to the model, see buildMessages.
     const at = this.overrides?.editedAt?.(profileKey) ?? 0;
     return at > 0 ? {...persona, editedAt: at} : persona;
+  }
+  #topicOf(profileKey, backstory) {
+    const cached = this.topicCache.get(profileKey);
+    if (cached && cached.from === backstory) return cached.split;
+    const split = splitTopicMaterial(backstory);
+    this.topicCache.set(profileKey, {from: backstory, split});
+    return split;
+  }
+  /**
+   * The character's topic material as {preface, items: [{text}]}, or null: nothing to retrieve (no such section, the feature off here, a character the player made, or a bio the
+   * player changed, which is sent whole). `raw`: the roster's own text (what Convai's provisioned character carries) instead of the lean text of the text providers.
+   */
+  topicMaterial(profileKey, {raw = false} = {}) {
+    const row = this.rows.get(profileKey);
+    if (!row) return null;
+    if (!raw) {
+      if (!this.topics || this.overrides?.get(profileKey)?.bio !== undefined) return null;
+      const split = this.#topicOf(profileKey, this.defaults(profileKey).backstory);
+      return split ? {preface: split.preface, items: split.items} : null;
+    }
+    const split = splitTopicMaterial(String(row.backstory ?? '').replace(MARKER, '').trim());
+    return split ? {preface: split.preface, items: split.items} : null;
   }
   /** The shipped profile alone (what "reset" goes back to): {name, backstory, style, samples} for a profile key; a generic person when the key is unknown. */
   defaults(profileKey, fallbackName) {
@@ -295,6 +329,17 @@ export function knowledgeApart(blocks, world) {
   return {stable: joinBlocks(blocks.filter(block => block?.key !== 'knowledge').map(block => block?.text)), knowledge};
 }
 
+/**
+ * The context parts of a turn with the retrieval result laid over them (bridge/talk-retrieval.mjs): each world block the result replaced keeps its framing (`result.frames`, the same
+ * text on every turn) and the chosen units go in `retrieved`, which buildMessages puts late in the last message. Parts that do not list their world blocks (older callers) are returned as they are, and then the full blocks stay.
+ */
+export function withRetrievedParts(parts, result) {
+  if (!parts || typeof parts !== 'object' || !result || !Array.isArray(parts.worldBlocks)) return parts;
+  const dropped = new Set(result.dropped ?? []), frames = result.frames ?? {};
+  const worldBlocks = parts.worldBlocks.map(block => (dropped.has(block?.key) ? {...block, text: frames[block.key] ?? ''} : block)).filter(block => block?.text);
+  return {...parts, worldBlocks, world: joinBlocks(worldBlocks.map(block => block?.text)), retrieved: result.text ?? ''};
+}
+
 /** A context longer than the cap keeps its head and its tail (the voice and first-person notes are last). */
 export function capContext(context, limit = LIMITS.context) {
   const text = String(context ?? '').trim();
@@ -362,6 +407,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     used += line.length; facts.push(`- ${line}`);
   }
   const volatile = capContext(contextParts.volatile, limits.volatile);
+  const retrieved = reaction ? '' : capContext(contextParts.retrieved, limits.retrieved);
   // Where she is and what she is doing, said again right before V's words (it is also the first sentence of the right-now block in the
   // system message): a small model otherwise answers "what are you up to?" from the persona (the basement, the shop) and not from the game.
   const here = reaction ? '' : withoutPlace(HERE.exec(String(contextParts.now ?? ''))?.[0] ?? '');
@@ -379,6 +425,8 @@ export function buildMessages({persona, memory, history = [], context, contextPa
           : 'That is all you are doing; never claim to be anywhere else. Never announce that you are here or beside V, or that V is here.'}]` : '',
     volatile && !notesAfter ? `[${profile.labels.thisTurn}]\n${volatile}` : '',
     facts.length ? `[${profile.labels.things}]\n${facts.join('\n')}` : '',
+    // The background chosen for V's words (bridge/talk-retrieval.mjs): after the memories, the last changing text before V's line, so everything above stays the same between turns.
+    retrieved,
     ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, tail, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
   // For the bridge log: where the fresh facts went (names only) and what was left out because the game read the opposite.
   Object.defineProperty(messages, FRESH_NOTE, {enumerable: false, value: {codes: reaction ? '' : contextParts.freshCodes || '', asked: !reaction && contextParts.freshAsked === true,

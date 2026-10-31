@@ -1031,3 +1031,51 @@ test('warmFor starts the embedder only for a character that has memories stored 
   embedder.ok = false;
   assert.equal(store.warmFor('judy-alvarez'), false, 'an unavailable embedder is not started');
 });
+
+// ---- One embedding of V's words per turn, shared with the topic retrieval (bridge/talk-retrieval.mjs)
+
+test('queryVector: two askers of the same line share one embedding, and a later turn of the same line reuses it', async () => {
+  const files = {}, embedder = fakeEmbedder();
+  seedFile(files, 'judy-alvarez', [{id: 'whiskey', text: 'V likes whiskey'}], {embedder});
+  const {store} = await setup({files, embedder});
+  const [a, b] = await Promise.all([store.queryVector('V likes whiskey'), store.queryVector('V likes whiskey')]);
+  assert.ok(a instanceof Float32Array);
+  assert.equal(a, b, 'the very same vector');
+  assert.equal(embedder.calls.length, 1);
+  // The memory search of the same line, as the text host asks it, finds it in the cache: still one embed call.
+  const hits = await store.retrieve({profileKey: 'judy-alvarez', query: 'V likes whiskey'});
+  assert.ok(hits.some(hit => hit.id === 'whiskey'));
+  assert.equal(embedder.calls.length, 1, 'the memory search used the topic retrieval\'s vector');
+  // A different line is a different request.
+  await store.queryVector('what about the weather');
+  assert.equal(embedder.calls.length, 2);
+});
+
+test('queryVector: a cold or unavailable embedder answers null without embedding or starting anything', async () => {
+  const embedder = Object.assign(fakeEmbedder(), {ready() { return false; }});
+  const {store} = await setup({embedder});
+  assert.equal(await store.queryVector('anything at all'), null);
+  assert.equal(embedder.calls.length, 0);
+  embedder.ok = false;
+  assert.equal(await store.queryVector('anything at all'), null);
+  assert.equal(await store.queryVector('   '), null);
+});
+
+test('queryVector: it never waits past its timeout, and the request is ended when the last asker has given up', async () => {
+  let release, aborted = 0;
+  const embedder = fakeEmbedder();
+  embedder.embed = async (_texts, {signal} = {}) => new Promise((resolve, reject) => {
+    release = resolve;
+    signal?.addEventListener('abort', () => { aborted++; reject(Error('aborted')); }, {once: true});
+  });
+  const {store, clock} = await setup({embedder});
+  const first = store.queryVector('a slow line', {timeoutMs: 120}), second = store.queryVector('a slow line', {timeoutMs: 400});
+  await settle();
+  await clock.advance(130);
+  assert.equal(await first, null, 'the shorter wait gave up');
+  assert.equal(aborted, 0, 'the other asker still waits for the request');
+  await clock.advance(300);
+  assert.equal(await second, null);
+  assert.equal(aborted, 1, 'the last asker ended it');
+  assert.equal(typeof release, 'function');
+});

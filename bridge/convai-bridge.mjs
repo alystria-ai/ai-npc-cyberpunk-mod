@@ -38,6 +38,8 @@ import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor} from './quest-context.mjs';
+import {retrievalSources, attachRetrieval} from './quest-context.mjs';
+import {TalkRetrieval, Corpus} from './talk-retrieval.mjs';
 import {dynamicOn, dynamicOff} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
@@ -133,7 +135,7 @@ import {RomanceBond} from './romance-bond.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
-import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
+import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet, MIC_PLACEHOLDER} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow, vVoiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
@@ -1354,8 +1356,32 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
 // The text providers' personas carry the player's rules and then the content packs' (a view of the same store); the editor and Convai below read the store itself.
-const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions,
+// Retrieval for a turn's background (bridge/talk-retrieval.mjs, docs/NATURAL_TALK_RESEARCH_2026-10-30.md section 15): the character's topic views and the quest, journal and world
+// facts reach the prompt as the few units that bear on V's words, not as whole blocks on every turn. CYBERPUNK_CONVAI_TALK_RETRIEVAL=off puts the whole blocks back (a comparison, or a fault).
+const talkRetrievalOn = String(process.env.CYBERPUNK_CONVAI_TALK_RETRIEVAL ?? '').trim().toLowerCase() !== 'off';
+const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions, topics: talkRetrievalOn,
   worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
+// One embedder for the memory search and for this: V's words are embedded once per turn (MemoryStore.queryVector), the units' vectors are made ahead and kept in <state>/talk-vectors.json.
+// The roster's topic text is the corpus the rarity of a word is judged by. Convai's provisioned characters carry the roster's own text, so they get the roster's wording of the items.
+const talkRetrieval = new TalkRetrieval({embedder: localEmbedder, queryVector: (text, options) => mistralMemory.queryVector(text, options),
+  topicFor: key => personaBook.topicMaterial(key, {raw: !mistral.active}),
+  corpus: new Corpus(roster.flatMap(row => personaBook.topicMaterial(row.key, {raw: true})?.items.map(item => item.text.split('\n')[0]) ?? [])),
+  vectorsPath: resolve(stateDirectory, 'talk-vectors.json'), read: file => readFile(file, 'utf8'), write: (file, text) => atomic(file, text),
+  quiet: () => Date.now() - lastFightingAt > 30000,
+  log: message => console.error('[Retrieval] ' + message)});
+// The units' vectors for every character are made once, in the background, when a text provider answers and the machine is quiet; a talk with a character makes hers at once.
+let talkFillScheduled = false;
+function scheduleTalkFill() {
+  if (talkFillScheduled || stopped || !talkRetrievalOn || !mistral.active || !localEmbedder.available()) return;
+  talkFillScheduled = true;
+  const timer = setTimeout(() => {
+    const keys = roster.filter(row => personaBook.topicMaterial(row.key)?.items.length).map(row => row.key);
+    void talkRetrieval.fillAll(keys, {gate: memoryQuiet, stop: () => stopped || !mistral.active})
+      .then(made => { if (made) console.error(`[Retrieval] made the vectors of ${made} topic items in the background`); })
+      .catch(() => {}).finally(() => { if (!mistral.active) talkFillScheduled = false; });   // done once; started again only when it was cut short by a change of provider
+  }, 45_000);
+  timer.unref?.();
+}
 // The same edits for a Convai turn (bridge/convai-character-edits.mjs): one context block per edited character, built when the edit changes and kept, so a turn is a map lookup.
 const convaiCharacterEdits = new ConvaiCharacterEdits({overrides: characterOverrides, personas: personaBook});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
@@ -1990,8 +2016,25 @@ const contextPartsOf = blocks => {
 const textProviderContext = input => {
   noteTurn(input);
   const blocks = conversationBlocks(input);
-  return {context: joinedContext(blocks), ...(mistral.active ? {contextParts: contextPartsOf(blocks)} : {})};
+  return {context: joinedContext(blocks), ...(mistral.active ? {contextParts: contextPartsOf(blocks), ...retrievalFor(input)} : {})};
 };
+// What the text host needs to choose the turn's background once V's words are known (a typed line now, a transcript later: bridge/text-provider-host.mjs). Cheap until it is called:
+// the sources are read from the turn's knowledge only then.
+const retrievalFor = input => talkRetrievalOn && input && !isAmbientProfile(input.profileKey)
+  ? {retrieval: {run: ({text, reaction, signal}) => talkRetrieval.prepare({profileKey: input.profileKey, requestId: input.requestId, text, reaction}, {sources: retrievalSources(input), signal})}}
+  : {};
+// A typed Convai turn (Convai has the persona on its own side, so only the context shrinks): the same choice, made before the context is built and attached to the turn's input.
+// A spoken turn has no words yet when its context is built, so it keeps the whole blocks.
+function startConvaiRetrieval(input, signal) {
+  if (!talkRetrievalOn || mistral.active || !input || input.reaction || input.event || isAmbientProfile(input.profileKey) || input.source === 'microphone'
+    || !String(input.text ?? '').trim() || String(input.text).trim() === MIC_PLACEHOLDER) return Promise.resolve();
+  return talkRetrieval.prepare({profileKey: input.profileKey, requestId: input.requestId, text: input.text, reaction: false}, {sources: retrievalSources(input), signal})
+    .then(result => {
+      attachRetrieval(input, result);
+      markStage('retrieved');
+      console.error(`[Retrieval] Convai profile=${input.profileKey} ${result.reason ? `none (${result.reason})` : `${result.detail ?? ''} via=${result.via}`} chars=${result.text.length} ms=${result.ms}`);
+    }, error => { if (!signal?.aborted) console.error(`[Retrieval] failed (${String(error?.message ?? error).slice(0, 80)}); the whole context is used`); });
+}
 const boundaryFor = input => ({entity: input?.entity,
   worldToken: input?.worldKnowledge?.worldToken || worldSession?.token,
   generation: input?.worldKnowledge?.generation || worldSession?.generation});
@@ -2099,7 +2142,11 @@ function warmTalkTargets(profileKeys, {persona = true} = {}) {
   let personaDone = false;
   // A private talk starts: the memory embedder is started now (only when this character has memories stored, a text route answers and the embedder is not running), so the first line
   // does not meet it cold. It exits by itself 300 s after its last use.
-  if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
+  if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') {
+    mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
+    // The same embedder serves the topic views: it is started for this talk, and her topic vectors are made (or read from the disk cache) while V is still typing.
+    if (talkRetrievalOn) { talkRetrieval.warmFor(profileKeys[0]); scheduleTalkFill(); }
+  }
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
     void wantVoiceClips(key, 'talk');
@@ -3669,6 +3716,8 @@ async function runInput(request, prepared, clock) {
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
     // A turn the admission refuses ends here without a reply: its reason goes to the log, or the turn would vanish without a trace.
     if (!knowledgeTurn.sendAllowed) console.error(`[Turn] ${profile.key} was not sent: ${knowledgeTurn.memoryReason ?? 'unavailable'}`);
+    // Beside the memory admission below (which waits on files and the network): the Convai turn's background is chosen from V's words while it runs.
+    const retrieving = startConvaiRetrieval(input, controller.signal);
     if (!await current()) return;
     // No speculative user turn may enter identified character memory.
     if (knowledgeTurn.remoteConfig?.endUserId) { prepared?.cancel(); prepared = undefined; }
@@ -3696,6 +3745,7 @@ async function runInput(request, prepared, clock) {
     // stale and skip the connection hand-over (the group look-ahead tests caught it).
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
+    await retrieving;
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
     const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
     // The speaker being heard already holds this round's group connections.
@@ -4671,6 +4721,7 @@ async function shutdown() {
   await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
+  await talkRetrieval.flush().catch(() => {});
   await lastTalk.flush().catch(() => {});
   await bondStore.flush().catch(() => {});
   await bondPacks.flush().catch(() => {});

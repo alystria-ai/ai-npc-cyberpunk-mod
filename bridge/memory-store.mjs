@@ -39,6 +39,7 @@ const EMBED_BATCH = 8;
 const EMBED_GAP_MS = 500;
 // The records the player edited that every private or phone turn carries (retrieve): how many, and the most characters.
 const PINNED = Object.freeze({k: 3, chars: 600});
+const QUERY_KEEP_MS = 60_000;     // a query vector is reused for this long (queryVector)
 const DUPLICATE = 0.90;           // cosine at or above which a new fact updates an existing record
 const RECENCY_MS = 30 * 24 * 3600 * 1000;
 
@@ -141,6 +142,7 @@ export class MemoryStore {
     this.saving = Promise.resolve(); this.saveTimer = null;
     this.workTimer = null; this.workDue = Infinity; this.running = null;
     this.serial = 0;
+    this.queryCache = new Map(); this.queryPending = new Map();   // queryVector: the last lines embedded, and the ones still being embedded
   }
 
   // ---------------------------------------------------------------- loading and migration
@@ -435,7 +437,7 @@ export class MemoryStore {
     // A bare greeting or thanks cannot bear on a memory: no embed call, no scan.
     if (isPureSmallTalk(text)) return [];
     const generation = this.generation;
-    const vec = await this.#embedQuery(text, timeoutMs, signal);
+    const vec = await this.queryVector(text, {timeoutMs, signal});
     if (!vec || vec.length !== embedder.dim || generation !== this.generation || this.rows.get(profileKey) !== row || signal?.aborted) return [];
     const {matrix, recs, dim} = row.index, at = this.now(), scored = [];
     if (dim !== vec.length) return [];
@@ -467,20 +469,46 @@ export class MemoryStore {
     }
     return out;
   }
-  async #embedQuery(text, timeoutMs, signal) {
-    const control = new AbortController();
+  /**
+   * The embedding of one line of V's words, or null when the embedder is not running, does not answer within `timeoutMs` or the turn is cancelled. One turn embeds V's words once: the
+   * memory search above and the topic retrieval (bridge/talk-retrieval.mjs) both ask for the same line, and the second asker gets the first one's vector (or its request, still under
+   * way). A vector is kept for a minute (the last eight lines), so a turn that is built twice does not embed twice. Nothing is started here: a cold embedder answers null.
+   */
+  async queryVector(query, {timeoutMs = 400, signal} = {}) {
+    const text = clean(query, 500);
+    if (!text || signal?.aborted || !this.embedder || !this.#available() || !this.#ready()) return null;
+    const hit = this.queryCache.get(text);
+    if (hit && this.now() - hit.at < QUERY_KEEP_MS) return hit.vec;
+    let pending = this.queryPending.get(text);
+    if (!pending) {
+      const control = new AbortController();
+      const work = (async () => (await this.embedder.embed([text], {signal: control.signal}))?.[0] ?? null)();
+      pending = {work, control, waiters: 0};
+      this.queryPending.set(text, pending);
+      work.then(vec => {
+        if (vec) { this.queryCache.set(text, {vec, at: this.now()}); while (this.queryCache.size > 8) this.queryCache.delete(this.queryCache.keys().next().value); }
+      }, () => {}).finally(() => { if (this.queryPending.get(text) === pending) this.queryPending.delete(text); });
+    }
+    pending.waiters++;
+    try {
+      const vec = await this.#embedQuery(pending, timeoutMs, signal);
+      return vec;
+    } finally {
+      pending.waiters--;
+      // The last asker to give up ends the request (a late vector is discarded, and a stuck server is not left with a queue of them).
+      if (pending.waiters === 0 && this.queryPending.get(text) === pending) { this.queryPending.delete(text); pending.control.abort(); }
+    }
+  }
+  async #embedQuery(pending, timeoutMs, signal) {
     let timer, onAbort;
     const expired = new Promise(resolve => {
       timer = this.setTimer(() => resolve(null), timeoutMs);
       timer?.unref?.();
       if (signal) { onAbort = () => resolve(null); signal.addEventListener('abort', onAbort, {once: true}); }
     });
-    const work = (async () => (await this.embedder.embed([text], {signal: control.signal}))?.[0] ?? null)();
-    work.catch(() => {});
+    pending.work.catch(() => {});
     try {
-      const vec = await Promise.race([work, expired]);
-      if (!vec) control.abort();
-      return vec ?? null;
+      return (await Promise.race([pending.work, expired])) ?? null;
     } catch { return null; }
     finally { this.clearTimer(timer); if (onAbort) signal.removeEventListener('abort', onAbort); }
   }

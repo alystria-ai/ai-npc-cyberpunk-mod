@@ -597,3 +597,14 @@ test('budgetedChat: a request that carried a picture (imageTokens) teaches neith
   await assert.rejects(reserved(BUDGET.reserveTokens + 3500)({messages: prompt(), provider: 'local'}), error => error instanceof PromptTooLarge);
   assert.equal(sent.length, 1, 'the second request was refused before it was sent');
 });
+
+test('the background chosen for V\'s words is cut before the persona, the rules and the world are touched, and only whole (never half of a JSON)', async () => {
+  const args = turn({blocks: [{key: undefined, text: 'RELATIONSHIP: V and Judy are friends.'}]});
+  args.contextParts = {...args.contextParts, retrieved: `WHAT COMES TO MIND\nWorld knowledge: {"facts":[{"text":"${'x'.repeat(2400)}"}]}`};
+  const whole = buildMessages(args);
+  const tight = await fitMessages({args, budget: {contextTokens: Math.ceil(chars(whole) / 3.6) - 600}});
+  assert.ok(tight.trimmed.includes('retrieved'), tight.trimmed.join(', '));
+  assert.ok(!tight.messages.at(-1).content.includes('WHAT COMES TO MIND'), 'dropped whole, not cut in the middle of the JSON');
+  assert.ok(tight.messages[0].content.includes('OUTPUT RULES'));
+  assert.ok(!tight.trimmed.includes('samples'), 'the persona was not touched');
+});
