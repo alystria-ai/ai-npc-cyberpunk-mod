@@ -17,7 +17,8 @@ import {lostServer, deviceLost, invalidBatch, survivingLoss} from './local-serve
 import {TextProviderHost, localRoute, isLocalUnavailable} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
-import {PersonaBook} from './mistral-prompt.mjs';
+import {PersonaBook, buildMessages} from './mistral-prompt.mjs';
+import {budgetedChat, TokenMeter} from './prompt-budget.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
 const DEVICES = 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 11229 MiB free)\n';
@@ -82,6 +83,62 @@ test('the server answers (null from recover): the original failure stands; backg
   assert.equal(recovers, 1);
   const plain = {ensure: async () => ({})};
   assert.equal(survivingLoss(chat, {server: plain}), chat, 'a supervisor without recover (a stand-in) leaves the request alone');
+});
+
+test('a request that still carries the address of a replaced server is sent to the live one (the supervisor answers /health, so recover() has nothing to restart)', async () => {
+  const live = {endpoint: 'http://127.0.0.1:2/v1/chat/completions', apiKey: 'newkey'};
+  const sent = [];
+  const chat = async options => {
+    sent.push(options.endpoint);
+    if (options.endpoint.includes(':1/')) throw failure('could not be reached (ECONNREFUSED)');
+    return {text: 'answered'};
+  };
+  const logs = [];
+  const server = {recover: async () => null, ensure: async () => live};
+  const result = await survivingLoss(chat, {server, log: line => logs.push(line)})({endpoint: 'http://127.0.0.1:1/v1/chat/completions', apiKey: 'oldkey', ...timed()});
+  assert.equal(result.text, 'answered');
+  assert.deepEqual(sent, ['http://127.0.0.1:1/v1/chat/completions', live.endpoint]);
+  // The same address back (a server the player runs, or one that really is up and refused for another reason): the original failure stands, nothing is sent twice.
+  const same = {recover: async () => null, ensure: async () => ({endpoint: 'http://127.0.0.1:1/v1/chat/completions', apiKey: 'oldkey'})};
+  sent.length = 0;
+  await assert.rejects(survivingLoss(chat, {server: same})({endpoint: 'http://127.0.0.1:1/v1/chat/completions', apiKey: 'oldkey', ...timed()}), /ECONNREFUSED/);
+  assert.equal(sent.length, 1);
+  // A supervisor whose ensure() fails or never answers a handle changes nothing.
+  const broken = {recover: async () => null, ensure: async () => { throw new Error('no'); }};
+  await assert.rejects(survivingLoss(chat, {server: broken})({endpoint: 'http://127.0.0.1:1/v1/chat/completions', ...timed()}), /ECONNREFUSED/);
+});
+
+test('report 73655cf3: a prompt cut and sent again after a restart goes to the new server, not to the dead address of the first try', async () => {
+  // The model came back from a crash with a smaller context (part of it on the processor, 8k instead of 16k). The long prompt of the turn is refused there (overflow), bridge/prompt-budget.mjs
+  // cuts it and sends it again with the options of the FIRST try, which carry the dead address.
+  const people = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')), ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
+  const judy = new PersonaBook(people).persona('judy-alvarez');
+  const jobs = Array.from({length: 400}, (_, index) => `- job ${index}: a plain fact about the world that the character may know of and say.`).join('\n');
+  const blocks = [{key: 'jobs', text: 'AVAILABLE JOBS\n' + jobs}];
+  const args = {persona: judy, memory: '', history: [], contextParts: {now: 'You are with V in person.', notes: '', world: blocks[0].text, worldBlocks: blocks, volatile: ''},
+    remembered: [], text: 'What are you up to?', reaction: false};
+  const dead = 'http://127.0.0.1:1/v1/chat/completions', live = {endpoint: 'http://127.0.0.1:2/v1/chat/completions', apiKey: 'newkey'};
+  const limit = 5000;
+  const calls = [];
+  const chat = async options => {
+    const size = options.messages.reduce((sum, message) => sum + message.content.length, 0);
+    calls.push({endpoint: options.endpoint, size});
+    if (options.endpoint === dead) throw failure('could not be reached (ECONNREFUSED)');
+    const tokens = Math.ceil(size / 4.2);
+    if (tokens > limit) throw Object.assign(new MistralError('request', 'exceeds the available context size', {provider: 'local'}), {overflow: {promptTokens: tokens, contextTokens: limit}});
+    return {text: 'answered', usage: {prompt_tokens: tokens}};
+  };
+  let restarted = false;
+  const server = {
+    // The first call: the old server is gone and the new one is started. Every later call: the new server answers /health.
+    recover: async () => { if (restarted) return null; restarted = true; return live; },
+    ensure: async () => live,
+  };
+  const fitted = budgetedChat(survivingLoss(chat, {server}), {budget: async () => ({contextTokens: 16384, meter: new TokenMeter({charsPerToken: 4.2}), server: false, learnable: true})});
+  const result = await fitted({messages: buildMessages(args), endpoint: dead, apiKey: 'oldkey', provider: 'local', ...timed()});
+  assert.equal(result.text, 'answered');
+  assert.equal(calls.at(-1).endpoint, live.endpoint, JSON.stringify(calls));
+  assert.ok(calls.at(-1).size < calls[0].size, 'the prompt that went through is the cut one');
 });
 
 test('a server that is not ready in the time that is left ends the turn with its own explanation; one that cannot start again passes its reason on', async () => {

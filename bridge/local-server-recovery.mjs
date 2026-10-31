@@ -39,6 +39,15 @@ function stillRestarting(waitedMs) {
     trace: {headersMs: null, eventMs: null, firstTokenMs: null, events: 0, pieces: 0, reasoning: 0, progress: null, timings: null, finishReason: null, elapsedMs: Math.round(waitedMs)}});
 }
 
+/** The address and key the supervisor holds now when they are not the ones this request carries (a request whose address is stale), else null. A running server answers at once; never throws. */
+async function liveAddress(server, options, signal) {
+  if (typeof server?.ensure !== 'function') return null;
+  try {
+    const live = await server.ensure({signal});
+    return typeof live?.endpoint === 'string' && live.endpoint !== options?.endpoint ? live : null;
+  } catch { return null; }
+}
+
 export function survivingLoss(chat, {server, log = () => {}} = {}) {
   if (typeof server?.recover !== 'function') return chat;
   return async function chatThroughRestart(options) {
@@ -58,7 +67,11 @@ export function survivingLoss(chat, {server, log = () => {}} = {}) {
         if (bounded.aborted) { log('The local AI: the model server stopped working during the turn and was not ready again in time'); throw stillRestarting(clock() - began); }
         throw failure;
       }
-      if (!handle) throw error;   // the server answers: the failure was something else
+      // The server answers. Either the failure was something else, or this request still carried the address of a server that was replaced meanwhile: bridge/prompt-budget.mjs sends a
+      // prompt that was fitted again with the options of its FIRST try, so after a restart (a model that came back with a smaller context refuses the long prompt, the prompt is cut and
+      // sent again) the second try knocks on a dead port, the health check of the live server passes, and the turn failed with ECONNREFUSED although the model was up (report 73655cf3, 0.4.0).
+      if (!handle) handle = await liveAddress(server, options, bounded);
+      if (!handle) throw error;
       log('The local AI: the model server stopped working during the turn and was started again; asking once more');
       try { return await chat({...options, endpoint: handle.endpoint, apiKey: handle.apiKey}); } catch (again) {
         // The device was lost again on the new server: the second loss steps the model down now, not at the next turn's failure. This turn fails with its own explanation.
