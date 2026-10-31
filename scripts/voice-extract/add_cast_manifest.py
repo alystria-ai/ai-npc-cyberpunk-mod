@@ -2,7 +2,8 @@
 
     python scripts/voice-extract/add_cast_manifest.py --cast m_cast.json [--check]
 
-`m_cast.json` is the output of `recover_manifest.py --cast-sweep` (every cast sweep character that has a `clip` in characters/cast-sweep-voices.json).  A character that is
+`m_cast.json` is the output of `recover_manifest.py --cast-sweep` (every cast sweep character that has a `clip` in characters/cast-sweep-voices.json), or of
+`recover_manifest.py --keys model-...` for the archetype style voices of generic voice models (scripts/cast-sweep/build_model_voices.py, keys `model-<model>`).  A character that is
 already in the manifest must come out the same (the script stops otherwise), a new one must be exact (largest difference 0).  The file keeps its layout: one voice
 per line, sorted by key, the same text merge_manifest.py writes.  --check writes nothing and fails when the manifest would change.
 """
@@ -36,8 +37,8 @@ def main() -> int:
     voices = manifest["voices"]
     added = []
     for key in sorted(cast):
-        if not sweep.get(key, {}).get("clip"):
-            print(f"PROBLEM {key}: has no clip in cast-sweep-voices.json")
+        if not sweep.get(key, {}).get("clip") and not key.startswith("model-"):
+            print(f"PROBLEM {key}: has no clip in cast-sweep-voices.json and is not a model voice")
             return 1
         if key in voices:
             if voices[key] != cast[key]:

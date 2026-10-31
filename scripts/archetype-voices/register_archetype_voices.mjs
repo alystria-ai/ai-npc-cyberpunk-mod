@@ -16,6 +16,7 @@
 // loaders (createVoiceProfileRegistry / validatePocketConfig, plus validate_config of resident-voice-worker.py and pocket_voice_runtime.py
 // through scripts/reference-picker/validate-config.py).  A failed check restores the backups.  startupProfiles are never touched.
 import {spawnSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {basename, dirname, resolve} from 'node:path';
@@ -54,7 +55,10 @@ for (let level = 2; level <= 4; level++) for (const base of baseKeys) {
   const key = `${base}-v${level}`;
   if (manifest.voices[base].status === 'ready' && manifest.voices[key]?.status === 'ready') variants.push(key);
 }
-const archetypes = [...baseKeys, ...variants];
+// voice models that side characters use and no archetype covers (scripts/cast-sweep/build_model_voices.py): `model-<model>` keys, registered when ready in the manifest
+const modelFile = resolve(project, 'characters/model-voices.json');
+const modelKeys = existsSync(modelFile) ? Object.keys(JSON.parse((await readFile(modelFile, 'utf8')).replace(/^﻿/, '')).voices ?? {}).filter(key => manifest.voices[key]?.status === 'ready') : [];
+const archetypes = [...baseKeys, ...variants, ...modelKeys];
 for (const key of replaceKeys) if (!archetypes.includes(key)) throw Error(`--replace ${key}: not a registrable key`);
 
 // engine of a config file: which reference it takes

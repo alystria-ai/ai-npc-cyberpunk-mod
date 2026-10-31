@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "voices": {
+    "model-civ-cbz-f-01-enus-30": {
+      "voiceset": "civ_cbz_f_01_enus_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-cbz-m-02-enus-30": {
+      "voiceset": "civ_cbz_m_02_enus_30",
+      "gender": "MALE"
+    },
+    "model-civ-depr-f-01-enus-30": {
+      "voiceset": "civ_depr_f_01_enus_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-high-f-12-mex-30": {
+      "voiceset": "civ_high_f_12_mex_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-high-m-01-enus-25": {
+      "voiceset": "civ_high_m_01_enus_25",
+      "gender": "MALE"
+    },
+    "model-civ-high-m-18-jap-25": {
+      "voiceset": "civ_high_m_18_jap_25",
+      "gender": "MALE"
+    },
+    "model-civ-high-m-20-jap-40": {
+      "voiceset": "civ_high_m_20_jap_40",
+      "gender": "MALE"
+    },
+    "model-civ-high-m-23-jap-40": {
+      "voiceset": "civ_high_m_23_jap_40",
+      "gender": "MALE"
+    },
+    "model-civ-high-m-24-nat-30": {
+      "voiceset": "civ_high_m_24_nat_30",
+      "gender": "MALE"
+    },
+    "model-civ-high-m-28-bra-40": {
+      "voiceset": "civ_high_m_28_bra_40",
+      "gender": "MALE"
+    },
+    "model-civ-low-f-100-jap-40": {
+      "voiceset": "civ_low_f_100_jap_40",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-107-bra-25": {
+      "voiceset": "civ_low_f_107_bra_25",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-124-arb-50": {
+      "voiceset": "civ_low_f_124_arb_50",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-51-afam-40": {
+      "voiceset": "civ_low_f_51_afam_40",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-67-mex-50": {
+      "voiceset": "civ_low_f_67_mex_50",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-91-chn-20": {
+      "voiceset": "civ_low_f_91_chn_20",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-f-99-jap-30": {
+      "voiceset": "civ_low_f_99_jap_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-low-m-02-enus-20": {
+      "voiceset": "civ_low_m_02_enus_20",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-08-enus-20": {
+      "voiceset": "civ_low_m_08_enus_20",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-103-nat-30": {
+      "voiceset": "civ_low_m_103_nat_30",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-11-enus-40": {
+      "voiceset": "civ_low_m_11_enus_40",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-127-enus-10": {
+      "voiceset": "civ_low_m_127_enus_10",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-15-enus-25": {
+      "voiceset": "civ_low_m_15_enus_25",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-20-enus-20": {
+      "voiceset": "civ_low_m_20_enus_20",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-27-enus-25": {
+      "voiceset": "civ_low_m_27_enus_25",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-32-enus-20": {
+      "voiceset": "civ_low_m_32_enus_20",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-34-enus-30": {
+      "voiceset": "civ_low_m_34_enus_30",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-85-chn-50": {
+      "voiceset": "civ_low_m_85_chn_50",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-90-chn-50": {
+      "voiceset": "civ_low_m_90_chn_50",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-91-chn-20": {
+      "voiceset": "civ_low_m_91_chn_20",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-93-chn-30": {
+      "voiceset": "civ_low_m_93_chn_30",
+      "gender": "MALE"
+    },
+    "model-civ-low-m-97-chn-30": {
+      "voiceset": "civ_low_m_97_chn_30",
+      "gender": "MALE"
+    },
+    "model-civ-mid-f-32-enus-30": {
+      "voiceset": "civ_mid_f_32_enus_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-mid-m-08-enus-20": {
+      "voiceset": "civ_mid_m_08_enus_20",
+      "gender": "MALE"
+    },
+    "model-civ-mid-m-32-enus-30": {
+      "voiceset": "civ_mid_m_32_enus_30",
+      "gender": "MALE"
+    },
+    "model-civ-mid-m-71-car-25": {
+      "voiceset": "civ_mid_m_71_car_25",
+      "gender": "MALE"
+    },
+    "model-civ-mid-m-72-car-30": {
+      "voiceset": "civ_mid_m_72_car_30",
+      "gender": "MALE"
+    },
+    "model-civ-mid-m-73-car-40": {
+      "voiceset": "civ_mid_m_73_car_40",
+      "gender": "MALE"
+    },
+    "model-civ-prst-f-01-enus-30": {
+      "voiceset": "civ_prst_f_01_enus_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-prst-f-04-chn-30": {
+      "voiceset": "civ_prst_f_04_chn_30",
+      "gender": "FEMALE"
+    },
+    "model-civ-prst-m-01-enus-30": {
+      "voiceset": "civ_prst_m_01_enus_30",
+      "gender": "MALE"
+    },
+    "model-gang-mls-f-05-enus-30": {
+      "voiceset": "gang_mls_f_05_enus_30",
+      "gender": "FEMALE"
+    },
+    "model-gang-scv-m-01-rus-25": {
+      "voiceset": "gang_scv_m_01_rus_25",
+      "gender": "MALE"
+    },
+    "model-gang-val-m-04-mex-40": {
+      "voiceset": "gang_val_m_04_mex_40",
+      "gender": "MALE"
+    },
+    "model-gang-val-m-10-mex-20": {
+      "voiceset": "gang_val_m_10_mex_20",
+      "gender": "MALE"
+    },
+    "model-gang-val-m-15-mex-30": {
+      "voiceset": "gang_val_m_15_mex_30",
+      "gender": "MALE"
+    },
+    "model-ncpd-high-m-02-mex-40": {
+      "voiceset": "ncpd_high_m_02_mex_40",
+      "gender": "MALE"
+    }
+  }
+}

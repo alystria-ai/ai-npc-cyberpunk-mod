@@ -139,6 +139,20 @@ The first 27 side characters were found by a name that starts the file stem. `sc
 
 The same idea for the ten multilingual packs. Each pack clip (3015 in all) is made again on the player's PC from the dub archive `lang_<xx>_voice.archive` (base game and Phantom Liberty), else fetched one file at a time from Hugging Face (`voice-clips/<lang>/<kind>/<key>.wav`), and only for the character that is speaking. The recipe differs from the English one (the lines stay float after the resampler, there is no 16-bit file between, the gain is a plain linear factor), so it has its own manifest per language (`characters/voice-language-clips/<lang>.json`), its own entry point in the same builder (`voice_clip_build.py build-language`) and its own service (`bridge/language-clips.mjs`). It shares the one-build-at-a-time queue with the English clips (`SerialQueue` in `bridge/voice-clips.mjs`). All 3015 clips rebuild sample for sample with the Runtime's Python (3.12.10, scipy 1.18.1). The recovery, the proof, the bridge behaviour and the upload list are in `docs/VOICE_LANGUAGE_PACKS.md`, "Clips on demand".
 
+## Side characters on their game's voice model (`feat/side-voice-models`, 31 Oct 2026)
+
+Five more side characters have an own clip (45 in all: Cassius Ryder, Katherine McCannon, Milt Nauman, Susanna Quinn, Theo Price), made as above and wired the same way (manifest, rows by `merge_rows.mjs` with a backup, words, `voice.localProfiles` 171). `prove.py` on the 5: game 2.5 two runs 30 of 30 clips byte for byte, game 2.31 15 of 15.
+
+137 side characters speak with the archetype voice of the generic voice model the game's scenes give them (`docs/CAST_SWEEP.md`, "Voice models"). 64 of the 112 models already were an archetype voice. The other 48 got a `model-<model>` voice from `scripts/cast-sweep/build_model_voices.py` (the archetype builder's code and rules, for exactly that model), 47 built and one with too few clean clips. They are archetype style voices in every respect:
+
+| Part | What was done |
+|---|---|
+| Files | `runtime/voice-references/archetypes/<engine>/model-<model>.wav` and its manifest (git-ignored), the receipt in `characters/archetype-voices.json` (`modelVoice: true`), the list `characters/model-voices.json` |
+| Live configurations | `scripts/archetype-voices/register_archetype_voices.mjs` adds the keys that are ready in `characters/model-voices.json` to the five voice files (backup `runtime/backups/archetype-voices-<stamp>`). The Python loaders reject a `runtime` junction ("Linked local assets"), so run them by the main checkout's paths. All five load, Node and Python |
+| Manifest | `recover_manifest.py --keys <model keys>`: 141 of 141 clips sample for sample (`add_cast_manifest.py` takes keys that start with `model-`). 407 voices and 1221 clips in the manifest |
+| Words and upload list | `write_words.mjs` (404 characters), `upload_list.py` 1212 files and 765.6 MB. The new rows carry `"toUpload": true`: 39 (13 characters, first branch) plus 15 (5 characters) plus 141 (47 model voices) = 195 files, about 116 MB. Nothing was uploaded |
+| Packaging | nothing to change: `packaging/lib/voice-clips-left-out.mjs` leaves out every clip the manifest can rebuild, so the Runtime and the OmniVoice pack do not carry the new model voices |
+
 ## Risks
 
 - **Scipy and torch in the Runtime.** The `poly` and `torch` recipes need scipy or torch in the Runtime's Python. Both are in every Runtime since the first release builder, and the file check now asks for `scipy`, `scipy/signal` and `torch/nn`, so a broken Runtime is reported (the character then keeps a stand-in voice or downloads). Without torch the numpy port is used and a few samples differ by one step.

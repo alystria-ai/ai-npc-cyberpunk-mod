@@ -3118,9 +3118,798 @@
         "pocket": 19.56
       },
       "variantOf": "npc-joytoy-female"
+    },
+    "model-civ-cbz-f-01-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_cbz_f_01_enus_30",
+      "clips": [
+        "3285342156877017088",
+        "3236135282545774592",
+        "3304408987612913664",
+        "3237672714206167040"
+      ],
+      "seconds": {
+        "omniShort": 9.95,
+        "omniLong": 17.14,
+        "pocket": 19.71
+      },
+      "modelVoice": true
+    },
+    "model-civ-cbz-m-02-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_cbz_m_02_enus_30",
+      "clips": [
+        "3265285282258411520",
+        "3236122082601324544",
+        "3346378804386271232",
+        "3304561698916442112"
+      ],
+      "seconds": {
+        "omniShort": 9.28,
+        "omniLong": 15.77,
+        "pocket": 19.99
+      },
+      "modelVoice": true
+    },
+    "model-civ-depr-f-01-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_depr_f_01_enus_30",
+      "clips": [
+        "1955937413632139268",
+        "1955937413749579780",
+        "1950289395620376576",
+        "1950302163635400704",
+        "1955937413481144324"
+      ],
+      "seconds": {
+        "omniShort": 5.89,
+        "omniLong": 15.74,
+        "pocket": 19.58
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-f-12-mex-30": {
+      "status": "ready",
+      "voiceset": "civ_high_f_12_mex_30",
+      "clips": [
+        "1853337966151036928",
+        "1867787562729512960",
+        "1853338688292745216",
+        "1853325216238628876",
+        "1932970634292547584"
+      ],
+      "seconds": {
+        "omniShort": 9.65,
+        "omniLong": 17.53,
+        "pocket": 18.64
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-01-enus-25": {
+      "status": "ready",
+      "voiceset": "civ_high_m_01_enus_25",
+      "clips": [
+        "2159203169977987072",
+        "2172410311112114176",
+        "2191310089297956864",
+        "1983882708231462912",
+        "1770819268665954304"
+      ],
+      "seconds": {
+        "omniShort": 4.83,
+        "omniLong": 17.53,
+        "pocket": 19.84
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-18-jap-25": {
+      "status": "ready",
+      "voiceset": "civ_high_m_18_jap_25",
+      "clips": [
+        "1979123493376462848",
+        "1783754062892388352",
+        "1979457517763481600",
+        "1832784395361705984"
+      ],
+      "seconds": {
+        "omniShort": 9.35,
+        "omniLong": 15.34,
+        "pocket": 18.02
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-20-jap-40": {
+      "status": "ready",
+      "voiceset": "civ_high_m_20_jap_40",
+      "clips": [
+        "1883485569292750848",
+        "2013008087126712320",
+        "1989726816378916864",
+        "1989721367122382848",
+        "1985082197290295296"
+      ],
+      "seconds": {
+        "omniShort": 5.17,
+        "omniLong": 15.49,
+        "pocket": 19.41
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-23-jap-40": {
+      "status": "ready",
+      "voiceset": "civ_high_m_23_jap_40",
+      "clips": [
+        "1753400441477414912",
+        "1914104975178416128",
+        "1969234548204838912",
+        "1969235431072276480",
+        "1837192778481537024"
+      ],
+      "seconds": {
+        "omniShort": 9.75,
+        "omniLong": 17.53,
+        "pocket": 18.42
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-24-nat-30": {
+      "status": "ready",
+      "voiceset": "civ_high_m_24_nat_30",
+      "clips": [
+        "1963484598612246528",
+        "1948841681351647232",
+        "1966558290883887104",
+        "1963486999079534592",
+        "2005552715007365120"
+      ],
+      "seconds": {
+        "omniShort": 9.88,
+        "omniLong": 17.85,
+        "pocket": 19.93
+      },
+      "modelVoice": true
+    },
+    "model-civ-high-m-28-bra-40": {
+      "status": "ready",
+      "voiceset": "civ_high_m_28_bra_40",
+      "clips": [
+        "1615428082410631168",
+        "1843133783890333696",
+        "1784825707712270336",
+        "1978233637943218176",
+        "1841525616517451776"
+      ],
+      "seconds": {
+        "omniShort": 9.91,
+        "omniLong": 17.23,
+        "pocket": 19.62
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-100-jap-40": {
+      "status": "ready",
+      "voiceset": "civ_low_f_100_jap_40",
+      "clips": [
+        "1883814452001128460",
+        "1883814451934019596",
+        "1448661890558087168",
+        "1895089942167003152",
+        "1741517039359856640"
+      ],
+      "seconds": {
+        "omniShort": 10.0,
+        "omniLong": 17.31,
+        "pocket": 19.89
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-107-bra-25": {
+      "status": "ready",
+      "voiceset": "civ_low_f_107_bra_25",
+      "clips": [
+        "1622887855700676608",
+        "1622917028947267584",
+        "1134577818274340864",
+        "1622914950199873536",
+        "1410807266953109504"
+      ],
+      "seconds": {
+        "omniShort": 9.7,
+        "omniLong": 17.45,
+        "pocket": 19.87
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-124-arb-50": {
+      "status": "ready",
+      "voiceset": "civ_low_f_124_arb_50",
+      "clips": [
+        "1561961856397893632",
+        "1831857908367253504",
+        "1969192364701425664",
+        "1969181460584767488",
+        "1812402544857079808"
+      ],
+      "seconds": {
+        "omniShort": 9.91,
+        "omniLong": 15.52,
+        "pocket": 19.84
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-51-afam-40": {
+      "status": "ready",
+      "voiceset": "civ_low_f_51_afam_40",
+      "clips": [
+        "1715627135091658752",
+        "1913920196442234880",
+        "1913918723251675136",
+        "1925630543689138176"
+      ],
+      "seconds": {
+        "omniShort": 8.75,
+        "omniLong": 16.87,
+        "pocket": 19.43
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-67-mex-50": {
+      "status": "ready",
+      "voiceset": "civ_low_f_67_mex_50",
+      "clips": [
+        "1978231624760729600",
+        "1978228658263728128"
+      ],
+      "seconds": {
+        "omniShort": 7.99,
+        "omniLong": 7.99,
+        "pocket": 7.99
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-91-chn-20": {
+      "status": "ready",
+      "voiceset": "civ_low_f_91_chn_20",
+      "clips": [
+        "3235934073511727104",
+        "3235911364828450816",
+        "3324599611558285312",
+        "1969222671027388416"
+      ],
+      "seconds": {
+        "omniShort": 9.58,
+        "omniLong": 17.76,
+        "pocket": 19.61
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-f-99-jap-30": {
+      "status": "ready",
+      "voiceset": "civ_low_f_99_jap_30",
+      "clips": [
+        "3206999311103991808",
+        "1937218533157785600",
+        "3265156165088485376",
+        "3235913135160283136"
+      ],
+      "seconds": {
+        "omniShort": 9.46,
+        "omniLong": 17.0,
+        "pocket": 19.5
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-02-enus-20": {
+      "status": "ready",
+      "voiceset": "civ_low_m_02_enus_20",
+      "clips": [
+        "1802533093037957120",
+        "1489607475503783936",
+        "1979382140768854016",
+        "1318634017909657600",
+        "1193912124003819520",
+        "1996656477035257856"
+      ],
+      "seconds": {
+        "omniShort": 4.35,
+        "omniLong": 16.37,
+        "pocket": 19.96
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-08-enus-20": {
+      "status": "ready",
+      "voiceset": "civ_low_m_08_enus_20",
+      "clips": [
+        "1821110340851318784",
+        "1792353471359361024",
+        "1804453344677945344",
+        "1978195128139718656",
+        "1821230634999988224",
+        "1978199633610743808"
+      ],
+      "seconds": {
+        "omniShort": 4.88,
+        "omniLong": 17.89,
+        "pocket": 19.19
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-103-nat-30": {
+      "status": "ready",
+      "voiceset": "civ_low_m_103_nat_30",
+      "clips": [
+        "1983935871221862400",
+        "1983901485948571680",
+        "1983940628988661760",
+        "1983922350144720896"
+      ],
+      "seconds": {
+        "omniShort": 4.87,
+        "omniLong": 17.47,
+        "pocket": 19.81
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-11-enus-40": {
+      "status": "ready",
+      "voiceset": "civ_low_m_11_enus_40",
+      "clips": [
+        "1841696676909924352",
+        "1837181622453780480",
+        "1895403137036697600",
+        "1895403562372677632"
+      ],
+      "seconds": {
+        "omniShort": 4.65,
+        "omniLong": 17.97,
+        "pocket": 17.97
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-127-enus-10": {
+      "status": "ready",
+      "voiceset": "civ_low_m_127_enus_10",
+      "clips": [
+        "3327343200662708224",
+        "3327343709616332800",
+        "3227593378993614848",
+        "3227593932675297280",
+        "3334736034236043264"
+      ],
+      "seconds": {
+        "omniShort": 8.99,
+        "omniLong": 16.95,
+        "pocket": 19.4
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-15-enus-25": {
+      "status": "ready",
+      "voiceset": "civ_low_m_15_enus_25",
+      "clips": [
+        "1969093745722507264",
+        "1963288585217024000",
+        "1832717649556660224",
+        "1969085772907716608",
+        "1985070003643260928"
+      ],
+      "seconds": {
+        "omniShort": 9.74,
+        "omniLong": 17.79,
+        "pocket": 19.8
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-20-enus-20": {
+      "status": "ready",
+      "voiceset": "civ_low_m_20_enus_20",
+      "clips": [
+        "1611272234306805760",
+        "1923021812782579712",
+        "1825571712379727872",
+        "1801126946713354240",
+        "1633207580667633664"
+      ],
+      "seconds": {
+        "omniShort": 9.88,
+        "omniLong": 17.09,
+        "pocket": 18.13
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-27-enus-25": {
+      "status": "ready",
+      "voiceset": "civ_low_m_27_enus_25",
+      "clips": [
+        "3253552568663973888",
+        "3091214525441990656",
+        "3334964640514150400",
+        "1802386465924702208",
+        "3265086109323272192"
+      ],
+      "seconds": {
+        "omniShort": 5.14,
+        "omniLong": 15.94,
+        "pocket": 19.89
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-32-enus-20": {
+      "status": "ready",
+      "voiceset": "civ_low_m_32_enus_20",
+      "clips": [
+        "1963245999186755584",
+        "3313001514166632448",
+        "1963242833007329280",
+        "1806886643167780864"
+      ],
+      "seconds": {
+        "omniShort": 9.83,
+        "omniLong": 16.16,
+        "pocket": 19.82
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-34-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_low_m_34_enus_30",
+      "clips": [
+        "3347856216595800064",
+        "3253536594606858240",
+        "3266471692651233280",
+        "3395586071624761344",
+        "1967803834118230016",
+        "3236025624782950400"
+      ],
+      "seconds": {
+        "omniShort": 9.86,
+        "omniLong": 15.97,
+        "pocket": 18.19
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-85-chn-50": {
+      "status": "ready",
+      "voiceset": "civ_low_m_85_chn_50",
+      "clips": [
+        "1908245099050319876",
+        "1908245098412785668",
+        "1908245099016765440",
+        "1908421416921174016",
+        "1908245098228236312"
+      ],
+      "seconds": {
+        "omniShort": 9.21,
+        "omniLong": 16.63,
+        "pocket": 19.54
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-90-chn-50": {
+      "status": "ready",
+      "voiceset": "civ_low_m_90_chn_50",
+      "clips": [
+        "1974870483631656960",
+        "1874916067655524352",
+        "1835747583204126720"
+      ],
+      "seconds": {
+        "omniShort": 7.43,
+        "omniLong": 12.25,
+        "pocket": 12.25
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-91-chn-20": {
+      "status": "ready",
+      "voiceset": "civ_low_m_91_chn_20",
+      "clips": [
+        "1686860143638450176",
+        "1506731591921405952",
+        "1885089914279051272",
+        "1756144517339561984"
+      ],
+      "seconds": {
+        "omniShort": 5.16,
+        "omniLong": 17.72,
+        "pocket": 19.99
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-93-chn-30": {
+      "status": "ready",
+      "voiceset": "civ_low_m_93_chn_30",
+      "clips": [
+        "1864993113659654144",
+        "1802481504742924288",
+        "1834210597751472128",
+        "1824450156980584448"
+      ],
+      "seconds": {
+        "omniShort": 6.76,
+        "omniLong": 15.88,
+        "pocket": 19.98
+      },
+      "modelVoice": true
+    },
+    "model-civ-low-m-97-chn-30": {
+      "status": "ready",
+      "voiceset": "civ_low_m_97_chn_30",
+      "clips": [
+        "1979375811547156480",
+        "1802375889282523136",
+        "1969068652010446848",
+        "1968987687498063872",
+        "1968998964689674240",
+        "1969212977860091904"
+      ],
+      "seconds": {
+        "omniShort": 7.64,
+        "omniLong": 16.19,
+        "pocket": 16.19
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-f-32-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_mid_f_32_enus_30",
+      "clips": [
+        "1732750727705858048",
+        "1954508195903873028",
+        "1985079828347396096",
+        "1732750095842349056",
+        "1193906156750651392"
+      ],
+      "seconds": {
+        "omniShort": 9.24,
+        "omniLong": 17.18,
+        "pocket": 19.42
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-m-08-enus-20": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_08_enus_20",
+      "clips": [
+        "1948732611243925508",
+        "3292651262226186240",
+        "3292627496645410816",
+        "3235935665854074880",
+        "3265158832011517952"
+      ],
+      "seconds": {
+        "omniShort": 9.91,
+        "omniLong": 17.84,
+        "pocket": 19.16
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-m-32-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_32_enus_30",
+      "clips": [
+        "1958919112586469376",
+        "1692563268675686400",
+        "1885160209371250688",
+        "1719959820356407296",
+        "1948833554149007364"
+      ],
+      "seconds": {
+        "omniShort": 4.08,
+        "omniLong": 17.72,
+        "pocket": 19.75
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-m-71-car-25": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_71_car_25",
+      "clips": [
+        "1917002910322675712",
+        "1949000115178561540",
+        "1949000115363110912",
+        "1917090058329673728",
+        "1949002374146809856"
+      ],
+      "seconds": {
+        "omniShort": 9.64,
+        "omniLong": 17.51,
+        "pocket": 18.87
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-m-72-car-30": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_72_car_30",
+      "clips": [
+        "1966387211162861568",
+        "1964763488591826944",
+        "1963337465011617792",
+        "1949004104515313668",
+        "1964754894949470208",
+        "1963338610526371840"
+      ],
+      "seconds": {
+        "omniShort": 9.76,
+        "omniLong": 17.81,
+        "pocket": 19.96
+      },
+      "modelVoice": true
+    },
+    "model-civ-mid-m-73-car-40": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_73_car_40",
+      "clips": [
+        "1886619346781941760",
+        "1983751244334026752",
+        "1949008190002290692",
+        "1949008189918404612",
+        "1963303642265067520",
+        "1949010054806626304"
+      ],
+      "seconds": {
+        "omniShort": 9.99,
+        "omniLong": 16.12,
+        "pocket": 18.77
+      },
+      "modelVoice": true
+    },
+    "model-civ-prst-f-01-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_prst_f_01_enus_30",
+      "clips": [
+        "1487994350681862144",
+        "1968981339095654400",
+        "1487994351269064704",
+        "1918769928991989760"
+      ],
+      "seconds": {
+        "omniShort": 9.89,
+        "omniLong": 17.99,
+        "pocket": 17.99
+      },
+      "modelVoice": true
+    },
+    "model-civ-prst-f-04-chn-30": {
+      "status": "ready",
+      "voiceset": "civ_prst_f_04_chn_30",
+      "clips": [
+        "1487994351185178624",
+        "1788556215744946176",
+        "1487994351168401420",
+        "1955906768570720260",
+        "1487994351151624212"
+      ],
+      "seconds": {
+        "omniShort": 9.53,
+        "omniLong": 17.33,
+        "pocket": 19.53
+      },
+      "modelVoice": true
+    },
+    "model-civ-prst-m-01-enus-30": {
+      "status": "ready",
+      "voiceset": "civ_prst_m_01_enus_30",
+      "clips": [
+        "2218943345937715200",
+        "2172254697216000000",
+        "1969136400467714048",
+        "1690865776519454720",
+        "2159541901230907392"
+      ],
+      "seconds": {
+        "omniShort": 4.45,
+        "omniLong": 17.75,
+        "pocket": 19.69
+      },
+      "modelVoice": true
+    },
+    "model-gang-mls-f-05-enus-30": {
+      "status": "ready",
+      "voiceset": "gang_mls_f_05_enus_30",
+      "clips": [
+        "1823994333949976580",
+        "1791261574943170564",
+        "2276534862604312576",
+        "2276534862587535376",
+        "1823994334486847488",
+        "1823994333798981632"
+      ],
+      "seconds": {
+        "omniShort": 8.46,
+        "omniLong": 17.76,
+        "pocket": 18.99
+      },
+      "modelVoice": true
+    },
+    "model-gang-scv-m-01-rus-25": {
+      "status": "ready",
+      "voiceset": "gang_scv_m_01_rus_25",
+      "clips": [
+        "1702437783843069952",
+        "1702455157388435456",
+        "1702457365622382592",
+        "1702479774563917824"
+      ],
+      "seconds": {
+        "omniShort": 7.12,
+        "omniLong": 17.37,
+        "pocket": 17.37
+      },
+      "modelVoice": true
+    },
+    "model-gang-val-m-04-mex-40": {
+      "status": "ready",
+      "voiceset": "gang_val_m_04_mex_40",
+      "clips": [
+        "1805467572735959044",
+        "1805467572417191940",
+        "1925611773321932800",
+        "2015474987630211072",
+        "1751595035550650368",
+        "1977791506210136064"
+      ],
+      "seconds": {
+        "omniShort": 3.86,
+        "omniLong": 16.84,
+        "pocket": 19.88
+      },
+      "modelVoice": true
+    },
+    "model-gang-val-m-10-mex-20": {
+      "status": "ready",
+      "voiceset": "gang_val_m_10_mex_20",
+      "clips": [
+        "1948851528801263616",
+        "1952105932492972032",
+        "1705376539183325184",
+        "1948805820752666624",
+        "1705380980229840904"
+      ],
+      "seconds": {
+        "omniShort": 9.09,
+        "omniLong": 16.78,
+        "pocket": 19.91
+      },
+      "modelVoice": true
+    },
+    "model-gang-val-m-15-mex-30": {
+      "status": "ready",
+      "voiceset": "gang_val_m_15_mex_30",
+      "clips": [
+        "1925629612183384064",
+        "1805554176607510532",
+        "1833099984978436096",
+        "1863143395848671236",
+        "2200123636463718400"
+      ],
+      "seconds": {
+        "omniShort": 9.91,
+        "omniLong": 17.88,
+        "pocket": 19.32
+      },
+      "modelVoice": true
+    },
+    "model-ncpd-high-m-02-mex-40": {
+      "status": "ready",
+      "voiceset": "ncpd_high_m_02_mex_40",
+      "clips": [
+        "1895206434161541120",
+        "1895150929896521728",
+        "1896860616002093056",
+        "1905575970232582144",
+        "1966138517725364224"
+      ],
+      "seconds": {
+        "omniShort": 6.83,
+        "omniLong": 15.04,
+        "pocket": 19.1
+      },
+      "modelVoice": true
     }
   },
-  "updatedAt": "2026-10-22T10:19:07Z",
+  "updatedAt": "2026-10-31T05:48:24Z",
   "shortfalls": {
     "npc-maxtac-female": {
       "wanted": 2,
