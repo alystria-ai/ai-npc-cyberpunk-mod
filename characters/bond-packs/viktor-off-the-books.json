@@ -105,8 +105,7 @@
         {"id": "refused", "on": "tag", "kind": "no", "means": "V refuses to go in as a patient, and Viktor ends the call.", "next": "no"},
         {"id": "heard", "on": "event:call:ring:done", "next": "brief"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
-      ],
-      "timeout": {"gameHours": 2, "next": "no"}
+      ]
     },
     {
       "id": "brief",
@@ -128,8 +127,7 @@
       ],
       "choices": [
         {"id": "answered", "on": "tag", "kind": "honest", "means": "V gives a real detail to hang the lie on.", "next": "chair"}
-      ],
-      "timeout": {"gameHours": 1, "next": "chair"}
+      ]
     },
     {
       "id": "chair",
@@ -161,8 +159,7 @@
         {"id": "brawl", "on": "event:npc:react:attack", "next": "turn"},
         {"id": "drawn", "on": "event:check:gear:drawn", "next": "blown"},
         {"id": "read", "on": "event:check:label:read", "next": "close"}
-      ],
-      "timeout": {"gameHours": 2, "next": "turn"}
+      ]
     },
     {
       "id": "turn",
@@ -185,8 +182,7 @@
         {"id": "talked", "on": "event:npc:papers:leave", "next": "close"},
         {"id": "attacked", "on": "event:npc:papers:attack", "next": "brawl"},
         {"id": "turned", "on": "event:squad:guards:hostile", "next": "brawl"}
-      ],
-      "timeout": {"gameHours": 1, "next": "close"}
+      ]
     },
     {
       "id": "close",
@@ -209,8 +205,7 @@
         {"id": "cowered", "on": "event:npc:close:cower", "next": "quiet-close"},
         {"id": "bribed", "on": "event:npc:close:obey", "next": "box"},
         {"id": "fought", "on": "event:npc:close:attack", "next": "brawl"}
-      ],
-      "timeout": {"gameHours": 1, "next": "quiet-close"}
+      ]
     }
   ],
   "endings": {

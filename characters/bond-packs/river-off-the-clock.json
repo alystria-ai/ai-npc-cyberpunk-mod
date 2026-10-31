@@ -127,8 +127,7 @@
         {"when": "line:RW6.open.03:done", "say": "RW6.open.04"},
         {"when": "line:RW6.open.04:done", "gap": "g1"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:meet:arrived", "next": "roadside-a"}],
-      "timeout": {"gameHours": 1, "next": "stood-up"}
+      "choices": [{"id": "arrived", "on": "event:place:meet:arrived", "next": "roadside-a"}]
     },
     {
       "id": "roadside-a",
@@ -138,7 +137,7 @@
       "know": "V is driving toward the water tower with no phone for River. The first temptation is a motorist at the roadside with a smoking car.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
-        {"p": "ride", "to": "roadside", "limitMinutes": 30},
+        {"p": "ride", "to": "roadside"},
         {"p": "cast", "id": "motorist", "who": "extra", "at": "roadside"}
       ],
       "script": [
@@ -149,8 +148,7 @@
       "choices": [
         {"id": "hold", "on": "event:gap:temp1:hold", "next": "street-a"},
         {"id": "let", "on": "event:gap:temp1:let", "next": "street-b"}
-      ],
-      "timeout": {"gameHours": 1, "next": "street-a"}
+      ]
     },
     {
       "id": "street-a",
@@ -160,7 +158,7 @@
       "know": "You stayed in the seat past the smoking car. The next temptation is a man on the street whom you recognize from a wanted list.",
       "wants": "V to keep driving and hold River in the seat again.",
       "do": [
-        {"p": "ride", "to": "street", "limitMinutes": 30},
+        {"p": "ride", "to": "street"},
         {"p": "cast", "id": "wanted", "who": "extra", "at": "street"}
       ],
       "script": [
@@ -172,8 +170,7 @@
       "choices": [
         {"id": "hold", "on": "event:gap:temp2:hold", "next": "stop-a"},
         {"id": "let", "on": "event:gap:temp2:let", "next": "stop-b"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stop-a"}
+      ]
     },
     {
       "id": "street-b",
@@ -183,7 +180,7 @@
       "know": "You went after the smoking car for two minutes and came back. The next temptation is a man on the street whom you recognize from a wanted list.",
       "wants": "V to keep driving and hold River in the seat this time.",
       "do": [
-        {"p": "ride", "to": "street", "limitMinutes": 30},
+        {"p": "ride", "to": "street"},
         {"p": "cast", "id": "wanted", "who": "extra", "at": "street"}
       ],
       "script": [
@@ -195,8 +192,7 @@
       "choices": [
         {"id": "hold", "on": "event:gap:temp2:hold", "next": "stop-b"},
         {"id": "let", "on": "event:gap:temp2:let", "next": "stop-b"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stop-b"}
+      ]
     },
     {
       "id": "stop-a",
@@ -206,7 +202,7 @@
       "know": "You stayed in the seat through two temptations. The last one is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
-        {"p": "ride", "to": "stop", "limitMinutes": 30},
+        {"p": "ride", "to": "stop"},
         {"p": "cast", "id": "officer", "who": "extra", "at": "stop"}
       ],
       "script": [
@@ -217,8 +213,7 @@
       "choices": [
         {"id": "hold", "on": "event:gap:temp3:hold", "next": "ridge-whole"},
         {"id": "let", "on": "event:gap:temp3:let", "next": "ridge-slip"}
-      ],
-      "timeout": {"gameHours": 1, "next": "ridge-whole"}
+      ]
     },
     {
       "id": "stop-b",
@@ -228,7 +223,7 @@
       "know": "You went off the clock twice already. The last temptation is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
-        {"p": "ride", "to": "stop", "limitMinutes": 30},
+        {"p": "ride", "to": "stop"},
         {"p": "cast", "id": "officer", "who": "extra", "at": "stop"}
       ],
       "script": [
@@ -239,8 +234,7 @@
       "choices": [
         {"id": "hold", "on": "event:gap:temp3:hold", "next": "ridge-slip"},
         {"id": "let", "on": "event:gap:temp3:let", "next": "ridge-slip"}
-      ],
-      "timeout": {"gameHours": 1, "next": "ridge-slip"}
+      ]
     },
     {
       "id": "ridge-whole",
@@ -250,7 +244,7 @@
       "know": "You have reached the water tower near Joss's place. You are cooking jambalaya on a camp stove, and V is sitting with you.",
       "wants": "V to sit with you through the meal.",
       "do": [
-        {"p": "ride", "to": "tower", "limitMinutes": 30},
+        {"p": "ride", "to": "tower"},
         {"p": "place", "at": "tower"},
         {"p": "seat"},
         {"p": "together", "id": "tower", "minutes": 25, "seated": true, "at": "tower"},
@@ -268,8 +262,7 @@
         {"when": "line:RW6.s4.05:done", "say": "RW6.s4.06"},
         {"when": "line:RW6.s4.06:done", "gap": "g3"}
       ],
-      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "whole-day"}],
-      "timeout": {"gameHours": 1, "next": "whole-day"}
+      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "whole-day"}]
     },
     {
       "id": "ridge-slip",
@@ -279,7 +272,7 @@
       "know": "You have reached the water tower near Joss's place. You slipped off the clock on the drive, and you are cooking jambalaya on a camp stove with V.",
       "wants": "V to sit with you through the meal.",
       "do": [
-        {"p": "ride", "to": "tower", "limitMinutes": 30},
+        {"p": "ride", "to": "tower"},
         {"p": "place", "at": "tower"},
         {"p": "seat"},
         {"p": "together", "id": "tower", "minutes": 25, "seated": true, "at": "tower"},
@@ -297,8 +290,7 @@
         {"when": "line:RW6.s4.05:done", "say": "RW6.s4.06"},
         {"when": "line:RW6.s4.06:done", "gap": "g3"}
       ],
-      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "slipped"}],
-      "timeout": {"gameHours": 1, "next": "slipped"}
+      "choices": [{"id": "meal", "on": "event:together:tower:done", "next": "slipped"}]
     }
   ],
   "endings": {
@@ -320,11 +312,6 @@
         {"when": "ending:slipped", "text": "RW6.s5.01", "image": "off-the-clock-card"},
         {"when": "ending:slipped", "text": "RW6.s5.02"}
       ]
-    },
-    "stood-up": {
-      "memory": "You did not come for River's day off, and he went to the water tower alone.",
-      "bond": -5,
-      "script": [{"when": "ending:stood-up", "text": "RW6.close.04"}]
     }
   }
 }

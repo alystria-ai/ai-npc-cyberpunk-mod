@@ -123,20 +123,10 @@
           "id": "cower",
           "on": "event:npc:maitre-react:cower",
           "next": "failed"
-        },
-        {
-          "id": "stood",
-          "on": "meet:stood-up",
-          "next": "stood-up"
         }
       ],
       "meet": {
-        "where": "waypoint",
-        "inGameHours": 3
-      },
-      "timeout": {
-        "gameHours": 1,
-        "next": "failed"
+        "where": "waypoint"
       }
     }
   ],
@@ -152,9 +142,6 @@
     "failed": {
       "memory": "The maitre d' would not give you a table, and Rogue lifted one eyebrow.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "V did not come to the restaurant, and Rogue ate alone at seven."
     }
   }
 }

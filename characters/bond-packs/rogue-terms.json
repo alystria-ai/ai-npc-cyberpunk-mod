@@ -80,8 +80,7 @@
         {"id": "take", "on": "event:gap:g1:take", "next": "errand"},
         {"id": "push", "on": "event:gap:g1:push", "next": "errand"},
         {"id": "free", "on": "event:gap:g1:free", "next": "errand"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "errand",
@@ -106,8 +105,7 @@
         {"id": "honest", "on": "event:gap:g2:honest", "next": "report"},
         {"id": "brushed", "on": "event:gap:g2:brush", "next": "report-cold"},
         {"id": "quiet", "on": "event:gap:g2:resume", "next": "report-cold"}
-      ],
-      "timeout": {"gameHours": 1, "next": "torn"}
+      ]
     }
   ],
   "endings": {
@@ -128,10 +126,6 @@
     "torn": {
       "memory": "You carried a sealed note from Rogue to Kabuki, and the old solo would not take it.",
       "bond": 25
-    },
-    "stood-up": {
-      "memory": "You did not take Rogue's job, and she did not wait for you at the booth.",
-      "bond": -5
     }
   }
 }

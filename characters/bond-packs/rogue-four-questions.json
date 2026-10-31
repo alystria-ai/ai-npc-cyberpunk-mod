@@ -84,8 +84,7 @@
         {"id": "in", "on": "event:gap:g1:in", "next": "recon"},
         {"id": "car", "on": "event:gap:g1:car", "next": "car"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 2, "next": "no"}
+      ]
     },
     {
       "id": "recon",
@@ -106,8 +105,7 @@
         {"when": "line:R3.stage.recon.02:done", "say": "R3.stage.recon.03"},
         {"when": "cast:acc:arrived", "say": "R3.acc.01"}
       ],
-      "choices": [{"id": "route", "on": "event:line:R3.stage.recon.03:done", "next": "extract"}],
-      "timeout": {"gameHours": 1, "next": "extract"}
+      "choices": [{"id": "route", "on": "event:line:R3.stage.recon.03:done", "next": "extract"}]
     },
     {
       "id": "extract",
@@ -128,8 +126,7 @@
         {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "door-loud"},
         {"id": "clean", "on": "event:escortee:acc:arrived", "next": "door-clean"},
         {"id": "lost", "on": "event:escortee:acc:lost", "next": "lost-client"}
-      ],
-      "timeout": {"gameHours": 2, "next": "lost-client"}
+      ]
     },
     {
       "id": "door-clean",
@@ -147,8 +144,7 @@
       "choices": [
         {"id": "honest", "on": "event:gap:g2:honest", "next": "clean"},
         {"id": "joke", "on": "event:gap:g2:joke", "next": "clean"}
-      ],
-      "timeout": {"gameHours": 1, "next": "clean"}
+      ]
     },
     {
       "id": "door-loud",
@@ -170,8 +166,7 @@
         {"id": "honest", "on": "event:gap:g2:honest", "next": "loud"},
         {"id": "joke", "on": "event:gap:g2:joke", "next": "loud"},
         {"id": "lost", "on": "event:escortee:acc:lost", "next": "lost-client"}
-      ],
-      "timeout": {"gameHours": 1, "next": "loud"}
+      ]
     }
   ],
   "endings": {

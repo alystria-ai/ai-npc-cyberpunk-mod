@@ -81,8 +81,7 @@
         {"id": "named", "on": "event:gap:g1:named", "next": "street"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "cut-short"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "missed-call"}
-      ],
-      "timeout": {"gameHours": 2, "next": "missed-call"}
+      ]
     },
     {
       "id": "street",
@@ -96,8 +95,7 @@
         {"when": "place:stoop:arrived", "say": "S1.bark.stoop.a"},
         {"when": "line:S1.bark.stoop.a:done", "say": "S1.bark.stoop.b"}
       ],
-      "choices": [{"id": "on-the-stoop", "on": "event:line:S1.bark.stoop.b:done", "next": "funk"}],
-      "timeout": {"gameHours": 2, "next": "cut-short"}
+      "choices": [{"id": "on-the-stoop", "on": "event:line:S1.bark.stoop.b:done", "next": "funk"}]
     },
     {
       "id": "funk",
@@ -111,8 +109,7 @@
         {"when": "check:funk:song", "say": "S1.bark.song.a"},
         {"when": "line:S1.bark.song.a:done", "say": "S1.bark.song.b"}
       ],
-      "choices": [{"id": "sang", "on": "event:line:S1.bark.song.b:done", "next": "sit"}],
-      "timeout": {"gameHours": 1, "next": "sit"}
+      "choices": [{"id": "sang", "on": "event:line:S1.bark.song.b:done", "next": "sit"}]
     },
     {
       "id": "sit",
@@ -126,8 +123,7 @@
         {"when": "stage:enter", "say": "S1.sit.01"},
         {"when": "line:S1.sit.01:done", "gap": "g2"}
       ],
-      "choices": [{"id": "left", "on": "event:place:stoop:left", "next": "thursday"}],
-      "timeout": {"gameHours": 2, "next": "thursday"}
+      "choices": [{"id": "left", "on": "event:place:stoop:left", "next": "thursday"}]
     }
   ],
   "endings": {

@@ -123,8 +123,7 @@
       ],
       "choices": [
         {"id": "came", "on": "event:place:hall:arrived", "next": "wraps"}
-      ],
-      "timeout": {"gameHours": 24, "next": "no-corner"}
+      ]
     },
     {
       "id": "wraps",
@@ -151,8 +150,7 @@
       "choices": [
         {"id": "done", "on": "event:together:wraps:done", "next": "rounds"},
         {"id": "broken", "on": "event:together:wraps:broken", "next": "walked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walked"}
+      ]
     },
     {
       "id": "rounds",
@@ -181,8 +179,7 @@
         {"id": "towel", "on": "tag", "kind": "no", "means": "V throws in the towel between rounds two and three.", "next": "after-towel"},
         {"id": "ended", "on": "event:bout:fight:ended", "next": "after"},
         {"id": "left", "on": "event:post:corner:lost", "next": "walked"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walked"}
+      ]
     },
     {
       "id": "after",
@@ -206,8 +203,7 @@
       "choices": [
         {"id": "named", "on": "tag", "kind": "honest", "means": "V names someone who would stand in the corner.", "next": "stood"},
         {"id": "nobody", "on": "tag", "kind": "no", "means": "V says nobody would.", "next": "stood"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stood"}
+      ]
     },
     {
       "id": "after-towel",
@@ -224,8 +220,7 @@
       "script": [{"when": "stage:enter", "say": "V6.end.02"}],
       "choices": [
         {"id": "done", "on": "event:timer:fin", "next": "towel"}
-      ],
-      "timeout": {"gameHours": 1, "next": "towel"}
+      ]
     }
   ],
   "endings": {
@@ -247,11 +242,6 @@
       "memory": "You left his corner in the middle of the fight, and he went looking for someone else.",
       "bond": 20,
       "script": [{"when": "ending:walked", "say": "V6.close.03"}]
-    },
-    "no-corner": {
-      "memory": "You never made it to the hall on Thursday, and he fought the kid in his head.",
-      "bond": -10,
-      "script": [{"when": "ending:no-corner", "text": "V6.close.04"}]
     }
   }
 }

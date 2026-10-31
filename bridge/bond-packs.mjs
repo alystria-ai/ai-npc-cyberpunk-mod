@@ -14,7 +14,7 @@ export const PACK_FORMAT = 1;
 /** Format 2 adds places, lines, gaps, images, the play stage type with `do` and `script`, event choices and an ending's history (bridge/quest-format.mjs, docs/QUEST_PRIMITIVES.md). */
 export const PACK_FORMATS = Object.freeze([1, 2]);
 export const PACK_LIMITS = Object.freeze({stages: 8, choices: 4, effects: 4, know: 600, wants: 300, bringUp: 400, memory: 300, line: 240,
-  title: 80, summary: 200, description: 300, label: 80, objective: 80, alt: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
+  title: 80, summary: 200, description: 300, label: 80, objective: 80, alt: 200, paths: 24, bondReward: 150});
 export const CHANNELS = Object.freeze(['own', 'phone', 'holocall']);
 export const RELATIONSHIPS = Object.freeze(['any', 'partner', 'not-partner']);
 export const EFFECTS = Object.freeze(['vehicleBlocked', 'vehicleReturned', 'outfit', 'giveItem', 'takeItem']);
@@ -175,9 +175,9 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
     }
     if (stage.meet !== undefined) {
       const meet = stage.meet;
-      if (!plain(meet) || !MEET_PLACES.includes(meet.where) || !(Number.isFinite(meet.inGameHours) && meet.inGameHours >= 0 && meet.inGameHours <= 48)) {
-        fail(`${where}: meet needs where (${MEET_PLACES.join(', ')}) and inGameHours from 0 to 48`);
-      }
+      // No time limits (owner decision 1 Nov 2026): a meeting has a place and no deadline. An old pack's `inGameHours` is read and ignored.
+      if (!plain(meet) || !MEET_PLACES.includes(meet.where)) fail(`${where}: meet needs where (${MEET_PLACES.join(', ')})`);
+      else if (meet.inGameHours !== undefined) warnings.push(`${where}: meet.inGameHours is ignored (a quest has no time limit)`);
     }
     if (stage.effects !== undefined) {
       if (!Array.isArray(stage.effects) || stage.effects.length > PACK_LIMITS.effects) fail(`${where}: effects must be a list of up to ${PACK_LIMITS.effects}`);
@@ -209,14 +209,11 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
         }
       }
     }
-    if (stage.timeout !== undefined) {
-      if (!plain(stage.timeout) || !(Number.isFinite(stage.timeout.gameHours) && stage.timeout.gameHours > 0 && stage.timeout.gameHours <= PACK_LIMITS.gameHours)) {
-        fail(`${where}: timeout.gameHours must be above 0 and at most ${PACK_LIMITS.gameHours}`);
-      }
-      next.push(stage.timeout?.next);
-    }
+    // No time limits (owner decision 1 Nov 2026): a quest stays open until V does it, V says no, or V abandons it. A `timeout` in a pack is read and ignored, and does
+    // not count as a way out of the stage.
+    if (stage.timeout !== undefined) warnings.push(`${where}: timeout is ignored (a quest has no time limit)`);
     if (stage.next !== undefined) next.push(stage.next);
-    if (next.length === 0) fail(`${where}: a stage must lead somewhere (choices, a timeout or next)`);
+    if (next.length === 0) fail(`${where}: a stage must lead somewhere (choices or next)`);
     for (const id of next) if (typeof id !== 'string' || (!stageIds.has(id) && !endingIds.has(id))) fail(`${where}: next ${JSON.stringify(id)} is neither a stage nor an ending`);
     targets.set(stage.id, next.filter(id => typeof id === 'string'));
   }
@@ -376,10 +373,10 @@ export function packGate(pack, {level = 0, journalHistory = null, romance = null
  * A closed gate in words, for the Developer-mode log ("q307_before_tomorrow still active"). `gate` is packGate's {open: false, why, path?}; `level` and `channel` are the
  * turn's. The wording names a quest by the last part of its path only.
  */
-export function explainGate(gate, pack, {level = 0, channel = 'story', romance = null} = {}) {
+export function explainGate(gate, pack, {level = 0, channel = 'story', romance = null, busyWhy = null} = {}) {
   const name = typeof gate?.path === 'string' ? gate.path.slice(gate.path.lastIndexOf('/') + 1) : 'a quest';
   switch (gate?.why) {
-    case 'busy': return 'the game is busy (a scene, a choice, a fight or a call)';
+    case 'busy': return `the game is busy (${busyWhy ?? 'a scene, a choice, a fight or a call'})`;
     case 'channel': return `${channel} does not start it (it starts on ${(pack?.start?.channels ?? []).join(', ') || 'no channel'})`;
     case 'bond': return `bond level ${level} is under ${pack?.requires?.bond}`;
     case 'eddies-off': return 'Eddies with characters is off';

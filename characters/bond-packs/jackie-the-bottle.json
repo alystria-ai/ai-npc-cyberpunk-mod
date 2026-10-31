@@ -105,8 +105,7 @@
         {"id": "came", "on": "event:place:shop:arrived", "next": "shop"},
         {"id": "yes", "on": "event:gap:g1:yes", "next": "shop"},
         {"id": "short", "on": "event:gap:g1:short", "next": "shop"}
-      ],
-      "timeout": {"gameHours": 3, "next": "stood-up"}
+      ]
     },
     {
       "id": "shop",
@@ -128,8 +127,7 @@
       "choices": [
         {"id": "unease", "on": "event:gap:g2:unease", "next": "call"},
         {"id": "fine", "on": "event:gap:g2:fine", "next": "call"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "call"}
+      ]
     },
     {
       "id": "call",
@@ -152,8 +150,7 @@
       "choices": [
         {"id": "stay", "on": "tag", "means": "V stays close and waits while Jackie talks to his mother", "kind": "yes", "next": "roof"},
         {"id": "step-away", "on": "tag", "means": "V steps away to give Jackie room for his call", "kind": "honest", "next": "roof"}
-      ],
-      "timeout": {"gameHours": 1, "next": "roof"}
+      ]
     },
     {
       "id": "roof",
@@ -184,8 +181,7 @@
       "choices": [
         {"id": "promise", "on": "event:line:JW6.close.01:done", "next": "walk-promise"},
         {"id": "maybe", "on": "event:line:JW6.close.02:done", "next": "walk-maybe"}
-      ],
-      "timeout": {"gameHours": 2, "next": "roof-skipped"}
+      ]
     },
     {
       "id": "walk-promise",
@@ -203,8 +199,7 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:place:corner:arrived", "next": "home-promise"}
-      ],
-      "timeout": {"gameHours": 1, "next": "home-promise"}
+      ]
     },
     {
       "id": "walk-maybe",
@@ -222,8 +217,7 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:place:corner:arrived", "next": "home-maybe"}
-      ],
-      "timeout": {"gameHours": 1, "next": "home-maybe"}
+      ]
     }
   ],
   "endings": {
@@ -236,14 +230,6 @@
       "memory": "The night before The Heist you sat on a roof in Little China with Jackie. He asked you to promise to drink the bottle with him, and you said maybe, and he said he would hold you to it anyway.",
       "bond": 80,
       "script": [{"when": "ending:home-maybe", "say": "JW6.close.03"}]
-    },
-    "roof-skipped": {
-      "memory": "Jackie asked you up to a roof in Little China the night before The Heist, and you never sat with him to talk about the bottle.",
-      "bond": 40
-    },
-    "stood-up": {
-      "memory": "Jackie waited at Misty's shop in Little China the night before The Heist, and you never came.",
-      "bond": -5
     },
     "unfinished": {
       "memory": "Jackie asked you to a roof in Little China, and you were going to sit with him, and then you had to go.",

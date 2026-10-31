@@ -75,8 +75,7 @@
       "choices": [
         {"id": "learn", "on": "event:gap:g1:learn", "next": "approach"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no"}
+      ]
     },
     {
       "id": "approach",
@@ -92,8 +91,7 @@
       "script": [
         {"when": "stage:enter", "say": "SH3.stage.approach.01"}
       ],
-      "choices": [{"id": "arrived", "on": "event:ride:arrived", "next": "rules"}],
-      "timeout": {"gameHours": 6, "next": "no"}
+      "choices": [{"id": "arrived", "on": "event:ride:arrived", "next": "rules"}]
     },
     {
       "id": "rules",
@@ -118,8 +116,7 @@
         {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "walk-loud"},
         {"id": "clean", "on": "event:squad:scavs:down", "next": "walk-clean"},
         {"id": "fled", "on": "event:place:depot:left", "next": "fled"}
-      ],
-      "timeout": {"gameHours": 2, "next": "walk-loud"}
+      ]
     },
     {
       "id": "walk-clean",
@@ -143,8 +140,7 @@
         {"id": "deflect", "on": "event:gap:g2:deflect", "next": "clean"},
         {"id": "walked", "on": "event:together:walkback:done", "next": "clean"},
         {"id": "left", "on": "event:together:walkback:broken", "next": "clean"}
-      ],
-      "timeout": {"gameHours": 2, "next": "clean"}
+      ]
     },
     {
       "id": "walk-loud",
@@ -168,8 +164,7 @@
         {"id": "deflect", "on": "event:gap:g2:deflect", "next": "loud"},
         {"id": "walked", "on": "event:together:walkback:done", "next": "loud"},
         {"id": "left", "on": "event:together:walkback:broken", "next": "loud"}
-      ],
-      "timeout": {"gameHours": 2, "next": "loud"}
+      ]
     }
   ],
   "endings": {

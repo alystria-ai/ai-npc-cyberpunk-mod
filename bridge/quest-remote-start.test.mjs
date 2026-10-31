@@ -1,12 +1,12 @@
 // A pack that begins on the phone or a holocall (docs/QUEST_PRIMITIVES.md section 11, bridge/quest-rendezvous.mjs and bridge/bond-pack-runner.mjs): the stages that need her
-// in person, what she is told about meeting V, V's answer on the same remote channel read against the stage's talk gap, the travel allowance on the stage clock, the
+// in person, what she is told about meeting V, V's answer on the same remote channel read against the stage's talk gap, no clock for the way to her, the
 // means of getting her to V in the play file, and the packs this touches. Offline: the real packs, the real runner, no game.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {BondPacks} from './bond-pack-runner.mjs';
 import {shippedPacks, validatePack} from './bond-packs.mjs';
-import {inPerson, rendezvousSpecs, travelGrace, TRAVEL_GRACE_HOURS} from './quest-rendezvous.mjs';
+import {inPerson, rendezvousSpecs} from './quest-rendezvous.mjs';
 import {intentKind} from './bond-intent.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 
@@ -93,7 +93,7 @@ test('a stage that casts her itself: the note names the place without offering t
   assert(start.start, 'the pack starts');
   assert.match(start.note, /Tell V to come to the marina pier where Kerry's boat is moored\./);
   assert.doesNotMatch(start.note, /offer to come over|Ask V this/);
-  assert.equal(runner.entries.get('kerry-tomorrow-tokyo').trail[0].grace, TRAVEL_GRACE_HOURS * HOUR, 'the clock is stretched all the same');
+  assert.equal(runner.entries.get('kerry-tomorrow-tokyo').trail[0].remote, true, 'she is far away, so the means of getting her to V are added');
   // V's yes on the call is not read against the gap: the game opens it once he is at the pier.
   const reply = {...turn('holocall', T0 + 60, 'yes, i will be there at dusk', {profileKey: 'kerry-eurodyne', journalHistory: input.journalHistory}), requestId: 'k2'};
   talk(runner, reply, {level: 9});
@@ -127,7 +127,7 @@ test('begun on a holocall: the bring-up asks the question and tells V where to m
   assert.match(start.note, /Tell V to come to the camp at Rocky Ridge where the trucks are parked, or offer to come over to where V is instead/);
   assert.match(start.note, /Ask V this, in your own words, before anything else: "What's it going to be, a bet or are you scared\?"/);
   assert(lines.some(line => /started on holocall \(stage dare\)/.test(line)));
-  assert.equal(stageOf(runner).grace, TRAVEL_GRACE_HOURS * HOUR, 'the first stage was entered remotely');
+  assert.equal(stageOf(runner).remote, true, 'the first stage was entered remotely');
   // The next turn: she knows she asked, and V takes the bet. The pack moves to the ride without anybody having said the opening lines in the game.
   const second = turn('holocall', T0 + 120, 'you\'re on. 500 eddies says i beat your time on the kids\' route');
   const note = runner.forTurn(second, {level: 6}).note;
@@ -138,7 +138,7 @@ test('begun on a holocall: the bring-up asks the question and tells V where to m
   assert.equal(stageOf(runner).choice, 'bet');
   assert(lines.some(line => /gap g1 tag bet/.test(line)), lines.join('\n'));
   assert(lines.some(line => /stage=run via bet/.test(line)));
-  assert.equal(stageOf(runner).grace, TRAVEL_GRACE_HOURS * HOUR, 'she still has to be got to V for the ride');
+  assert.equal(stageOf(runner).remote, true, 'she still has to be got to V for the ride');
   // The ride note keeps telling V to come to the camp and asks nothing (no gap on this stage).
   const ride = runner.forTurn(turn('holocall', T0 + 240), {level: 6}).note;
   assert.match(ride, /Tell V to come to the camp/);
@@ -158,24 +158,22 @@ test('V refusing on the call ends it as the pack says, an unclear answer leaves 
   assert.equal(runner.entries.get('panam-driving-school').trail.at(-1).stage, 'chicken');
 });
 
-test('the stage clock does not punish V for the way to her: the timeout comes later by the travel allowance, and still comes', () => {
+test('no clock punishes V for the way to her: the stage waits for as long as V takes', () => {
   const {runner} = make();
   talk(runner, turn('holocall', T0));
-  // The stage's own timeout is 2 game hours, raised to the 6 of a first stage (chicken), and the way to her adds 6. Three hours later V is still on the way.
-  talk(runner, turn('holocall', T0 + 3 * HOUR, 'on my way'));
-  assert.equal(stageOf(runner).stage, 'dare', 'not timed out after 3 hours');
-  talk(runner, turn('holocall', T0 + 11 * HOUR, 'still on my way'));
-  assert.equal(stageOf(runner).stage, 'dare', 'not timed out after 11 hours (6 + 6 are 12)');
-  assert.equal(current(runner).timeoutAt, T0 + 12 * HOUR, 'the game is told the same moment');
-  talk(runner, turn('holocall', T0 + 12 * HOUR + 60, 'hello?'));
-  assert.equal(runner.entries.get('panam-driving-school').trail.at(-1).stage, 'chicken');
+  assert.equal(current(runner).timeoutAt, undefined, 'the game is told no timeout');
+  for (const hours of [3, 11, 13, 24 * 20]) {
+    talk(runner, turn('holocall', T0 + hours * HOUR, 'still on my way'));
+    assert.equal(stageOf(runner).stage, 'dare', `still open after ${hours} game hours`);
+  }
+  assert.equal(runner.entries.get('panam-driving-school').status, 'active');
 });
 
 test('begun in person nothing changes: no meeting talk, no question in the note, no allowance, and V\'s words are not read against a gap the game has not opened', () => {
   const {runner} = make();
   const start = talk(runner, turn('own', T0));
   assert.doesNotMatch(start.note, /only with V|Tell V to come|Ask V this/);
-  assert.equal(stageOf(runner).grace, undefined);
+  assert.equal(stageOf(runner).remote, undefined);
   assert.deepEqual(current(runner).do.map(spec => spec.p), ['pin'], 'a stage entered in person gets nothing added to its primitives');
   talk(runner, turn('own', T0 + 60, 'you\'re on'));
   assert.equal(stageOf(runner).stage, 'dare', 'the game opens the gap after her lines, then the bridge reads it');
@@ -183,7 +181,7 @@ test('begun in person nothing changes: no meeting talk, no question in the note,
   runner.noteEvent({pack: 'panam-driving-school', serial: 1, name: 'gap:g1:open', at: T0 + 70});
   talk(runner, turn('own', T0 + 90, 'you\'re on'));
   assert.equal(stageOf(runner).stage, 'run');
-  assert.equal(stageOf(runner).grace, undefined, 'entered by a word in person');
+  assert.equal(stageOf(runner).remote, undefined, 'entered by a word in person');
 });
 
 test('she is beside V while V writes: the near note stands and nothing about meeting is added', () => {
@@ -191,7 +189,7 @@ test('she is beside V while V writes: the near note stands and nothing about mee
   const start = talk(runner, turn('phone', T0), {level: 6, near: true});
   assert.doesNotMatch(start.note, /Tell V to come|Ask V this|only with V/);
   assert.match(start.note, /right beside you/);
-  assert.equal(stageOf(runner).grace, undefined);
+  assert.equal(stageOf(runner).remote, undefined);
   talk(runner, turn('phone', T0 + 60, 'you\'re on'), {level: 6, near: true});
   assert.equal(stageOf(runner).stage, 'dare', 'near: the game plays the stage, the bridge does not read it from here');
 });
@@ -210,7 +208,7 @@ test('with Immersive invitations off she does not offer to come over, and with n
   assert.match(talk(only.runner, turn('holocall', T0)).note, /Offer to come over to where V is, and let V arrange it in V's own words\./);
 });
 
-test('the play file: the stage the pack wrote plus the means of getting her to V, the allowance in the timeout, and it survives a restart of the bridge', async () => {
+test('the play file: the stage the pack wrote plus the means of getting her to V, no timeout, and it survives a restart of the bridge', async () => {
   const {runner, files} = make();
   talk(runner, turn('holocall', T0));
   const dare = current(runner);
@@ -218,25 +216,24 @@ test('the play file: the stage the pack wrote plus the means of getting her to V
   assert.deepEqual(dare.do[0], {p: 'pin', at: 'meet'}, 'the pack\'s own pin is not doubled');
   assert.equal(dare.do[1].ifAbsent, true);
   assert.equal(dare.places.meet.name, 'the camp at Rocky Ridge where the trucks are parked');
-  assert.equal(dare.timeoutAt, T0 + 12 * HOUR);
+  assert.equal(dare.timeoutAt, undefined);
   talk(runner, turn('holocall', T0 + 60, 'sure, you\'re on'));
   const run = current(runner);
   assert.equal(run.stage, 'run');
   assert.deepEqual(run.do.map(spec => spec.p), ['ride', 'pin', 'cast', 'party']);
   assert.deepEqual(Object.keys(run.places).sort(), ['bridge', 'meet', 'ramp', 'riverbed', 'sunset', 'turbines']);
-  assert.equal(run.timeoutAt, T0 + 60 + 8 * HOUR);
+  assert.equal(run.timeoutAt, undefined);
   await runner.flush();
   const again = make({read: async file => files.get(file)}).runner;
   await again.load();
-  assert.equal(again.entries.get('panam-driving-school').trail.at(-1).grace, TRAVEL_GRACE_HOURS * HOUR);
-  assert.equal(again.playState().quests[0].timeoutAt, T0 + 60 + 8 * HOUR);
+  assert.equal(again.entries.get('panam-driving-school').trail.at(-1).stage, 'run');
+  assert.equal(again.playState().quests[0].timeoutAt, undefined);
   // Her hands: a stage entered in person is not stretched, and an earlier clock rewinds past the allowance too.
   const rewound = make().runner;
   talk(rewound, turn('holocall', T0));
   talk(rewound, turn('holocall', T0 + 60, 'sure, you\'re on'));
   rewound.rewind(T0 - 100);
   assert.equal(rewound.entries.get('panam-driving-school').trail.at(-1).stage, 'dare');
-  assert.equal(rewound.entries.get('panam-driving-school').trail.at(-1).grace, TRAVEL_GRACE_HOURS * HOUR);
 });
 
 test('a hangout with its place swapped keeps the allowance place right: the rendezvous place goes through the same swap', () => {
@@ -246,7 +243,7 @@ test('a hangout with its place swapped keeps the allowance place right: the rend
     if (!found.needs || !found.place || found.placed) continue;
     const {runner} = make({packs: [pack]});
     for (const variation of pack.hangout.variations) {
-      const entry = {status: 'active', trail: [{stage: stage.id, at: T0, grace: TRAVEL_GRACE_HOURS * HOUR}], presented: true, beat: null, variation: variation.id};
+      const entry = {status: 'active', trail: [{stage: stage.id, at: T0, remote: true}], presented: true, beat: null, variation: variation.id};
       runner.entries.set(pack.id, entry);
       const quest = runner.playState().quests.find(item => item.pack === pack.id);
       const cast = quest.do.find(spec => spec.id === 'rendezvous');

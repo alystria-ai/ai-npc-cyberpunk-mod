@@ -6,7 +6,7 @@
 // is simply not in the block, and the game removes its entry: no ghost entry can outlive the state it came from.
 //
 // A row: {pack, kind, character, title, description, objective, state: 'active' | 'succeeded' | 'failed', serial, since, endedAt?, place?: {id, name, radius,
-//   district?, x?, y?, z?}}. `since` is the game clock of the stage (or the ending), so the game drops a row stamped later than the loaded save, as it does for
+//   district?, x?, y?, z?, anchor?, fallback?}}. `since` is the game clock of the stage (or the ending), so the game drops a row stamped later than the loaded save, as it does for
 // a quest stage. The finished quests kept are the newest FINISHED_KEEP, by the game clock of their ending.
 import {placesOf} from './quest-format.mjs';
 import {placesWithPositions} from './named-places.mjs';
@@ -74,6 +74,80 @@ export function resolvePlace(pack, key, {named = placesWithPositions()} = {}) {
 }
 
 /**
+ * Every started quest has a map pin from the start (owner decision 1 Nov 2026: the Judy quest showed no marker because it names no place of its own). The pin goes, in this order:
+ *   stage     the place the stage sends V to, when it has a position
+ *   earlier   else the last place an earlier stage of the quest had, so the pin stays where V last had a reason to go and moves only when a stage names a new place
+ *   first     else the quest's first place, by the order of its places
+ *   named     else the first named place of Night City the quest's own words point at (a dinner "at Lizzie's"), checked in the stage's words before the rest
+ *   landmark  else a place the character is known for (LANDMARKS), then the Afterlife
+ * A place in the first three steps that has a name but no position yet may still be measured in the game (the probe's capture), so it keeps its own id and the game
+ * takes the capture first and the fallback after. `anchor` says which step gave the position. The game side may also use the character's own position when she is
+ * about, but the bridge never guesses it: it does not know where she is.
+ */
+export const LANDMARKS = Object.freeze({
+  'judy-alvarez': ['judys-apartment', 'lizzies-bar'],
+  'jackie-welles': ['el-coyote-cojo'],
+  'rogue-amendiares': ['afterlife'],
+  'johnny-silverhand': ['afterlife'],
+  'viktor-vektor': ['victors-clinic', 'afterlife'],
+});
+export const DEFAULT_LANDMARK = 'afterlife';
+
+const positioned = place => place && finite(place.x) && finite(place.y) && finite(place.z);
+const named = (list, id) => list.find(place => place.id === id) ?? null;
+const spot = (place, anchor) => ({id: place.id, name: clip(place.phrase ?? place.name ?? place.id, LIMITS.place), radius: finite(place.radius) ? place.radius : 25,
+  x: place.x, y: place.y, z: place.z, named: place.id, anchor});
+
+/** The first named place of Night City the given texts point at, in order, that has a position, or null. */
+export function namedPlaceInText(texts, list = placesWithPositions()) {
+  for (const text of texts) {
+    if (typeof text !== 'string' || !text) continue;
+    for (const [id, words] of NAMED_PLACE_WORDS) {
+      if (!words.test(text)) continue;
+      const found = named(list, id);
+      if (positioned(found)) return found;
+    }
+  }
+  return null;
+}
+
+/** The place the pin falls back to when the stage has no usable one: its first place, the words of the quest, the character's landmark, the default landmark. Always a position while the list has one. */
+export function fallbackPlace(pack, stage, list = placesWithPositions()) {
+  for (const [key, place] of Object.entries(pack?.places ?? {})) {
+    const resolved = resolvePlace(pack, key, {named: list});
+    if (positioned(resolved)) return {...resolved, anchor: 'first'};
+  }
+  const texts = [stage?.objective, stage?.label, stage?.know, pack?.title, pack?.description, pack?.summary, ...(pack?.stages ?? []).flatMap(item => [item.objective, item.know, item.label])];
+  const word = namedPlaceInText(texts, list);
+  if (word) return spot(word, 'named');
+  for (const id of [...(LANDMARKS[pack?.character] ?? []), DEFAULT_LANDMARK]) {
+    const found = named(list, id);
+    if (positioned(found)) return spot(found, 'landmark');
+  }
+  return null;
+}
+
+/**
+ * The pin of an active quest: see the chain above. `stages`: the stages played so far, newest first, each with its `do` (the places they sent V to).
+ * Returns the place as the game gets it, or null only when the position list is empty.
+ */
+export function pinPlace(pack, stage, doList, earlier, {named: list = placesWithPositions()} = {}) {
+  const own = resolvePlace(pack, stagePlaceKey(doList), {named: list});
+  const back = () => {
+    for (const before of earlier) {
+      const place = resolvePlace(pack, stagePlaceKey(before), {named: list});
+      if (positioned(place)) return {...place, anchor: 'earlier'};
+    }
+    return null;
+  };
+  if (positioned(own)) return {...own, anchor: 'stage'};
+  // The stage names a place with no position yet: the game may have measured it, so it stays the place and the fallback rides along.
+  const spare = back() ?? fallbackPlace(pack, stage, list);
+  if (own) return {...own, anchor: 'stage', ...(spare ? {fallback: {x: spare.x, y: spare.y, z: spare.z, id: spare.id, name: spare.name, anchor: spare.anchor}} : {})};
+  return spare ?? null;
+}
+
+/**
  * How the journal files an ended pack: 'succeeded', 'failed', or 'abandoned' (not shown at all: the story finished it first, or the ending is unknown).
  * An ending's own `outcome` decides. Without it, an ending that costs bond points or the stand-up of a meeting is a failure.
  */
@@ -103,7 +177,9 @@ export function journalBlock({packs, entries, stageOf = (pack, entry) => pack.st
     if (entry.status === 'active') {
       const stage = stageOf(pack, entry);
       if (!stage) continue;
-      const place = resolvePlace(pack, stagePlaceKey(doFor(pack, entry, stage)), {named});
+      // Stages played before this one, newest first, for a stage that names no place of its own: the pin stays where the last place was.
+      const earlier = entry.trail.slice(0, -1).reverse().map(step => stageOf(pack, {...entry, trail: [step]})).filter(Boolean).map(before => doFor(pack, entry, before));
+      const place = pinPlace(pack, stage, doFor(pack, entry, stage), earlier, {named});
       active.push({...base, objective: clip(stage.objective ?? stage.label ?? pack.title, LIMITS.objective), state: 'active',
         since: Number.isSafeInteger(last.at) ? last.at : null, ...(place ? {place} : {})});
       continue;

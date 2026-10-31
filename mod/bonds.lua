@@ -28,7 +28,7 @@ local WATCH_SECONDS, POLL_SECONDS, GRACE_SECONDS, MAX_FILE, EFFECTS_MAX = 30, 1,
 local VIEW_SECONDS, RESTORE_SECONDS, MAX_DONE, SLACK = 5, 600, 60, 120
 local COPIES = {party = true, visitor = true, housemate = true}
 
--- options: enabled() -> bool; storyPacks() -> bool; reach() -> bool (Characters text first on: the block carries reach = true); invitations() -> bool (Immersive invitations on); eddies() -> bool (Eddies with characters on); busy() -> bool (a scene, dialogue choice, combat,
+-- options: enabled() -> bool; storyPacks() -> bool; reach() -> bool (Characters text first on: the block carries reach = true); invitations() -> bool (Immersive invitations on); eddies() -> bool (Eddies with characters on); busy(phone) -> bool, why (a scene, dialogue choice, combat,
 -- game call or vehicle chase); ownCopy(entity, profileKey) -> 'party' | 'visitor' | 'housemate' | nil; clock() -> seconds (os.clock);
 -- gameTime() -> V's game clock in seconds or nil; read(path) -> text | nil; write(path, text) -> bool; encode / decode (json); player() -> V;
 -- give(player, record, quantity), remove(player, record, quantity), quantity(player, record) (the game's transaction calls by default);
@@ -332,7 +332,13 @@ function M.new(options)
         if flag(options.invitations) then block.invitations = true end
         if flag(options.eddies) then block.eddies = true end
         if flag(options.reach) then block.reach = true end   -- Characters text first is on (bridge/bonds.mjs parseBonds reads it; the bridge also needs packs)
-        if flag(options.busy) then block.busy = true end
+        -- Not now (a scene, a dialogue choice, a fight or a call of the game's own). A Phone Chat message asks with phone = true, because the open phone holds the scene tier
+        -- above gameplay's. busyWhy says what was seen, for the bridge's Developer log.
+        local askedOk, busy, why = call(options.busy, context.phone == true)
+        if askedOk and busy == true then
+            block.busy = true
+            if type(why) == 'string' and why ~= '' then block.busyWhy = why:sub(1, 60) end
+        end
         -- The save's word on this character: one fact read, at the turn (never per frame).
         local state = P.romanceOf(context.profileKey)
         if state then block.romance = state end

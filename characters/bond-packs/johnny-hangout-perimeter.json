@@ -59,8 +59,7 @@
       "choices": [
         {"id": "perfect", "on": "event:place:mailbox:arrived", "next": "perfect"},
         {"id": "walk-of-shame", "on": "event:timer:walk", "next": "walk-of-shame"}
-      ],
-      "timeout": {"gameHours": 0.14, "next": "walk-of-shame"}
+      ]
     }
   ],
   "endings": {

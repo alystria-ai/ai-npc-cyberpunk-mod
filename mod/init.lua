@@ -7437,12 +7437,23 @@ do
                 eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,
                 -- Not now (docs/RELATIONSHIPS_AND_QUESTS.md section 8, item 4): a scene, a dialogue choice, a fight or a call of the game's own. Read once,
                 -- when a turn is built, from the battle sample the 0.5 s observer already holds: no new polling.
-                busy = function()
+                -- Returns whether, and why (the Developer log of the bridge names it). A Phone Chat message is typed from the open phone, which holds the scene tier above
+                -- gameplay's (docs/HOLOCALL.md, A scene reading is not trusted at once), so for a message (phone = true) the tier is not a reason: a real scene is still a
+                -- dialogue, a choice hub, a game call or a fight. Live 1 Nov 2026: three texts to Judy started nothing because every one went out marked busy.
+                busy = function(phone)
                     local sample = battleSample
-                    if type(sample) == 'table' and (sample.combat or sample.dialogue or sample.choices or sample.call
-                        or (sample.tier ~= nil and sample.tier ~= 1)) then return true end
+                    if type(sample) == 'table' then
+                        local why = nil
+                        if sample.combat then why = 'combat'
+                        elseif sample.dialogue then why = 'a dialogue'
+                        elseif sample.choices then why = 'dialogue choices'
+                        elseif sample.call then why = 'a game call'
+                        elseif phone ~= true and sample.tier ~= nil and sample.tier ~= 1 then why = 'scene tier ' .. tostring(sample.tier) end
+                        if why then return true, why end
+                    end
                     local ok, fighting = pcall(function() return battles.fighting and battles.fighting() end)
-                    return ok and fighting == true
+                    if ok and fighting == true then return true, 'a fight' end
+                    return false
                 end,
                 -- V's game clock stamps the effects of a pack stage; one of a later clock belongs to a save that was loaded away from.
                 gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,

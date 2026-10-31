@@ -107,8 +107,7 @@
         {"p": "place", "at": "gate"}
       ],
       "script": [{"when": "stage:enter", "text": "T6.open.01"}],
-      "choices": [{"id": "arrived", "on": "event:place:gate:arrived", "next": "path"}],
-      "timeout": {"gameHours": 3, "next": "no-witness"}
+      "choices": [{"id": "arrived", "on": "event:place:gate:arrived", "next": "path"}]
     },
     {
       "id": "path",
@@ -137,8 +136,7 @@
       "choices": [
         {"id": "walked", "on": "event:together:walk:done", "next": "rites"},
         {"id": "wandered", "on": "event:together:walk:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     },
     {
       "id": "rites",
@@ -164,8 +162,7 @@
         {"id": "name", "on": "event:gap:g2:name", "next": "sit-name"},
         {"id": "none", "on": "event:gap:g2:none", "next": "sit-none"},
         {"id": "resume", "on": "event:gap:g2:resume", "next": "sit-none"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     },
     {
       "id": "sit-name",
@@ -189,8 +186,7 @@
       "choices": [
         {"id": "sat", "on": "event:together:sit:done", "next": "charm-name"},
         {"id": "wandered", "on": "event:together:sit:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     },
     {
       "id": "sit-none",
@@ -214,8 +210,7 @@
       "choices": [
         {"id": "sat", "on": "event:together:sit:done", "next": "charm-none"},
         {"id": "wandered", "on": "event:together:sit:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 1, "next": "left"}
+      ]
     },
     {
       "id": "charm-name",
@@ -230,8 +225,7 @@
         {"when": "line:T6.c.01:done", "say": "T6.c.03"},
         {"when": "line:T6.c.03:done", "gap": "g4"}
       ],
-      "choices": [{"id": "answered", "on": "event:gap:g4:resume", "next": "witnessed-name"}],
-      "timeout": {"gameHours": 1, "next": "witnessed-name"}
+      "choices": [{"id": "answered", "on": "event:gap:g4:resume", "next": "witnessed-name"}]
     },
     {
       "id": "charm-none",
@@ -246,8 +240,7 @@
         {"when": "line:T6.c.01:done", "say": "T6.c.03"},
         {"when": "line:T6.c.03:done", "gap": "g4"}
       ],
-      "choices": [{"id": "answered", "on": "event:gap:g4:resume", "next": "witnessed-none"}],
-      "timeout": {"gameHours": 1, "next": "witnessed-none"}
+      "choices": [{"id": "answered", "on": "event:gap:g4:resume", "next": "witnessed-none"}]
     }
   ],
   "endings": {
@@ -266,11 +259,6 @@
       "memory": "You left Takemura at the shrine before the rites were done, and he said he understood.",
       "bond": 40,
       "script": [{"when": "ending:left", "say": "T6.close.03"}]
-    },
-    "no-witness": {
-      "memory": "You never came to the shrine, and Takemura hung the plaques alone.",
-      "bond": -10,
-      "script": [{"when": "ending:no-witness", "text": "T6.close.04"}]
     }
   }
 }

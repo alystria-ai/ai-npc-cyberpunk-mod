@@ -65,8 +65,7 @@
         {"when": "line:R2.open.02:done", "say": "R2.open.03"},
         {"when": "line:R2.open.03:done", "gap": "g1"}
       ],
-      "choices": [{"id": "begin", "on": "event:gap:g1:resume", "next": "interview-1"}],
-      "timeout": {"gameHours": 2, "next": "unseated"}
+      "choices": [{"id": "begin", "on": "event:gap:g1:resume", "next": "interview-1"}]
     },
     {
       "id": "interview-1",
@@ -81,8 +80,7 @@
         {"p": "timer", "id": "t-1", "seconds": 300, "clock": "game"}
       ],
       "script": [{"when": "stage:enter", "say": "R2.stage.interview.01"}],
-      "choices": [{"id": "next", "on": "event:timer:t-1", "next": "interview-2"}],
-      "timeout": {"gameHours": 2, "next": "unseated"}
+      "choices": [{"id": "next", "on": "event:timer:t-1", "next": "interview-2"}]
     },
     {
       "id": "interview-2",
@@ -97,8 +95,7 @@
         {"p": "timer", "id": "t-2", "seconds": 300, "clock": "game"}
       ],
       "script": [{"when": "stage:enter", "say": "R2.stage.interview.02"}],
-      "choices": [{"id": "next", "on": "event:timer:t-2", "next": "interview-3"}],
-      "timeout": {"gameHours": 2, "next": "unseated"}
+      "choices": [{"id": "next", "on": "event:timer:t-2", "next": "interview-3"}]
     },
     {
       "id": "interview-3",
@@ -113,8 +110,7 @@
         {"p": "timer", "id": "t-3", "seconds": 300, "clock": "game"}
       ],
       "script": [{"when": "stage:enter", "say": "R2.stage.interview.03"}],
-      "choices": [{"id": "next", "on": "event:timer:t-3", "next": "choice"}],
-      "timeout": {"gameHours": 2, "next": "unseated"}
+      "choices": [{"id": "next", "on": "event:timer:t-3", "next": "choice"}]
     },
     {
       "id": "choice",
@@ -129,8 +125,7 @@
         {"id": "pick-b", "on": "tag", "means": "V picks the polite ex-corporate security man", "kind": "honest", "next": "bad-hire"},
         {"id": "pick-c", "on": "tag", "means": "V picks the quiet netrunner for the courier job", "kind": "flatter", "next": "good-hire"},
         {"id": "none", "on": "tag", "means": "V says none of the three is right for the job", "kind": "no", "next": "none"}
-      ],
-      "timeout": {"gameHours": 1, "next": "unseated"}
+      ]
     }
   ],
   "endings": {
@@ -153,10 +148,6 @@
     "none": {
       "memory": "You said none of the three for Rogue's courier job, and she did it herself, and it went fine.",
       "bond": 30
-    },
-    "unseated": {
-      "memory": "You left Rogue's booth before she could make a pick.",
-      "bond": -5
     }
   }
 }

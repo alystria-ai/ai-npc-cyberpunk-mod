@@ -75,8 +75,7 @@
         {"when": "stage:enter", "text": "RW2.open.01"},
         {"when": "place:cart:arrived", "say": "RW2.open.02"}
       ],
-      "choices": [{"id": "came", "on": "event:place:cart:arrived", "next": "park"}],
-      "timeout": {"gameHours": 2, "next": "no-show"}
+      "choices": [{"id": "came", "on": "event:place:cart:arrived", "next": "park"}]
     },
     {
       "id": "park",
@@ -94,8 +93,7 @@
         {"when": "line:RW2.open.03:done", "say": "RW2.open.04"},
         {"when": "line:RW2.open.04:done", "gap": "g1"}
       ],
-      "choices": [{"id": "parked", "on": "event:place:park-spot:arrived", "next": "watch"}],
-      "timeout": {"gameHours": 2, "next": "no-show"}
+      "choices": [{"id": "parked", "on": "event:place:park-spot:arrived", "next": "watch"}]
     },
     {
       "id": "watch",
@@ -126,8 +124,7 @@
       "choices": [
         {"id": "blown", "on": "event:together:stakeout:broken", "next": "blown"},
         {"id": "courier-left", "on": "event:timer:courier-out", "next": "follow"}
-      ],
-      "timeout": {"gameHours": 2, "next": "blown"}
+      ]
     },
     {
       "id": "follow",
@@ -152,8 +149,7 @@
         {"id": "left", "on": "event:npc:courier-react:leave", "next": "grabbed"},
         {"id": "cowered", "on": "event:npc:courier-react:cower", "next": "grabbed"},
         {"id": "fought", "on": "event:npc:courier-react:attack", "next": "grabbed"}
-      ],
-      "timeout": {"gameHours": 1, "next": "noted"}
+      ]
     }
   ],
   "endings": {
@@ -172,10 +168,6 @@
       "memory": "V left the stakeout before the courier arrived.",
       "bond": 15,
       "script": [{"when": "ending:blown", "text": "RW2.close.03"}]
-    },
-    "no-show": {
-      "memory": "You did not come to the Northside cart, and River drank his cold coffee alone.",
-      "bond": -5
     }
   }
 }

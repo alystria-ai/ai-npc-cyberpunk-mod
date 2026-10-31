@@ -66,8 +66,7 @@
       "choices": [
         {"id": "in", "on": "tag", "kind": "yes", "means": "V takes the job and keeps Misty in her chair.", "next": "reading"},
         {"id": "no", "on": "tag", "kind": "no", "means": "V says just give it to her, then agrees to try it with Viktor.", "next": "reading"}
-      ],
-      "timeout": {"gameHours": 6, "next": "reading"}
+      ]
     },
     {
       "id": "reading",
@@ -91,8 +90,7 @@
         {"id": "read", "on": "event:together:reading:done", "next": "scene"},
         {"id": "walked", "on": "event:together:reading:broken", "next": "walked-off"},
         {"id": "spoiled", "on": "event:post:viktor-watch:lost", "next": "spoiled"}
-      ],
-      "timeout": {"gameHours": 2, "next": "walked-off"}
+      ]
     },
     {
       "id": "scene",
@@ -108,8 +106,7 @@
         {"when": "stage:enter", "say": "V3.bark.reveal.a"},
         {"when": "line:V3.bark.reveal.a:done", "say": "V3.bark.reveal.b"}
       ],
-      "choices": [{"id": "shown", "on": "event:timer:reveal", "next": "hang"}],
-      "timeout": {"gameHours": 1, "next": "hang"}
+      "choices": [{"id": "shown", "on": "event:timer:reveal", "next": "hang"}]
     },
     {
       "id": "hang",
@@ -121,8 +118,7 @@
       "do": [
         {"p": "memory-share", "id": "tell", "to": "misty-olszewski", "note": "Viktor made you a windchime from brass and implant casings."}
       ],
-      "choices": [{"id": "told", "on": "event:memory-share:tell:done", "next": "reveal"}],
-      "timeout": {"gameHours": 1, "next": "reveal"}
+      "choices": [{"id": "told", "on": "event:memory-share:tell:done", "next": "reveal"}]
     }
   ],
   "endings": {

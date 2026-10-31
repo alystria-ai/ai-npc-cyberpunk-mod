@@ -105,8 +105,7 @@
         {"id": "in", "on": "event:gap:g1:in", "next": "meet"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no"}
+      ]
     },
     {
       "id": "meet",
@@ -122,8 +121,7 @@
       ],
       "choices": [
         {"id": "came", "on": "event:place:gate:arrived", "next": "ride"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no"}
+      ]
     },
     {
       "id": "ride",
@@ -134,7 +132,7 @@
       "wants": "V to get there in one piece.",
       "do": [
         {"p": "party"},
-        {"p": "ride", "to": "theatre", "limitMinutes": 30}
+        {"p": "ride", "to": "theatre"}
       ],
       "script": [
         {"when": "stage:enter", "say": "K4.stage.ride.01"},
@@ -143,8 +141,7 @@
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "museum"},
         {"id": "stopped", "on": "event:ride:abandoned", "next": "no"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no"}
+      ]
     },
     {
       "id": "museum",
@@ -177,8 +174,7 @@
         {"id": "freed", "on": "event:hostage:tech:freed", "next": "out"},
         {"id": "loud", "on": "event:squad:guards:hostile", "next": "out-loud"},
         {"id": "dead", "on": "event:hostage:tech:dead", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     },
     {
       "id": "out",
@@ -189,7 +185,7 @@
       "wants": "To get out of the museum.",
       "do": [
         {"p": "escortee", "id": "tech-e", "from": "tech"},
-        {"p": "ride", "to": "gate", "limitMinutes": 30}
+        {"p": "ride", "to": "gate"}
       ],
       "script": [
         {"when": "stage:enter", "say": "K4.bark.freed.b"}
@@ -197,8 +193,7 @@
       "choices": [
         {"id": "home", "on": "event:ride:arrived", "next": "after"},
         {"id": "stopped", "on": "event:ride:abandoned", "next": "after"}
-      ],
-      "timeout": {"gameHours": 1, "next": "after"}
+      ]
     },
     {
       "id": "out-loud",
@@ -209,13 +204,12 @@
       "wants": "To get the tech out of the museum.",
       "do": [
         {"p": "escortee", "id": "tech-e", "from": "tech"},
-        {"p": "ride", "to": "gate", "limitMinutes": 30}
+        {"p": "ride", "to": "gate"}
       ],
       "choices": [
         {"id": "home", "on": "event:ride:arrived", "next": "loud"},
         {"id": "stopped", "on": "event:ride:abandoned", "next": "loud"}
-      ],
-      "timeout": {"gameHours": 1, "next": "loud"}
+      ]
     },
     {
       "id": "after",
@@ -229,8 +223,7 @@
       "choices": [
         {"id": "stayed", "on": "event:gap:g3:yes", "next": "clean"},
         {"id": "left", "on": "event:gap:g3:no", "next": "clean-cold"}
-      ],
-      "timeout": {"gameHours": 1, "next": "clean-cold"}
+      ]
     }
   ],
   "endings": {

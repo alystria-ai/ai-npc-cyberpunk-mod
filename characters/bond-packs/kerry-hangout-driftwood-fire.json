@@ -62,8 +62,7 @@
       "choices": [
         {"id": "sat", "on": "event:together:fire-sit:done", "next": "sat"},
         {"id": "left", "on": "event:together:fire-sit:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -74,10 +73,6 @@
     "left": {
       "memory": "You got up from the driftwood fire on the Pacifica beach before the ten minutes were done, and Kerry sat on alone.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You did not come to the driftwood fire on the Pacifica beach, and Kerry waited by it alone.",
-      "bond": 0
     }
   }
 }

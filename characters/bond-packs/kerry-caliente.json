@@ -73,8 +73,7 @@
         {"when": "line:K1.open.02:done", "text": "K1.open.03"},
         {"when": "line:K1.open.03:done", "gap": "g1"}
       ],
-      "choices": [{"id": "came", "on": "event:place:gate:arrived", "next": "ride"}],
-      "timeout": {"gameHours": 1, "next": "stood-up"}
+      "choices": [{"id": "came", "on": "event:place:gate:arrived", "next": "ride"}]
     },
     {
       "id": "ride",
@@ -96,8 +95,7 @@
       "choices": [
         {"id": "waited", "on": "event:together:corner-wait:done", "next": "sit"},
         {"id": "wandered", "on": "event:together:corner-wait:broken", "next": "half"}
-      ],
-      "timeout": {"gameHours": 1, "next": "half"}
+      ]
     },
     {
       "id": "sit",
@@ -121,8 +119,7 @@
         {"id": "sugar", "on": "event:gap:g2:sugar", "next": "order-sugar"},
         {"id": "other", "on": "event:gap:g2:other", "next": "order"},
         {"id": "gone", "on": "event:together:order-sit:broken", "next": "half"}
-      ],
-      "timeout": {"gameHours": 2, "next": "half"}
+      ]
     }
   ],
   "endings": {
@@ -140,10 +137,6 @@
     "half": {
       "memory": "Kerry showed you the corner where his SAMURAI diner used to stand, and you left before the coffee.",
       "bond": 25
-    },
-    "stood-up": {
-      "memory": "You never came to Kerry's gate for coffee, and he drank his alone.",
-      "bond": -5
     }
   }
 }

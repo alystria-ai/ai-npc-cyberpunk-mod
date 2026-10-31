@@ -95,8 +95,7 @@
       "choices": [
         {"id": "done", "on": "event:together:balcony:done", "next": "ask"},
         {"id": "left", "on": "event:together:balcony:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 2, "next": "left"}
+      ]
     },
     {
       "id": "ask",
@@ -108,8 +107,7 @@
       "choices": [
         {"id": "defends", "on": "tag", "means": "V names the song or station V would defend, and why", "kind": "honest", "next": "listen"},
         {"id": "noise", "on": "tag", "means": "V says it is only noise", "kind": "no", "next": "listen"}
-      ],
-      "timeout": {"gameHours": 2, "next": "listen"}
+      ]
     },
     {
       "id": "listen",
@@ -131,8 +129,7 @@
         {"id": "worry", "on": "event:gap:g2:worry", "next": "quiet-worry"},
         {"id": "listened", "on": "event:together:listen:done", "next": "quiet"},
         {"id": "gone", "on": "event:together:listen:broken", "next": "left"}
-      ],
-      "timeout": {"gameHours": 2, "next": "left"}
+      ]
     }
   ],
   "endings": {

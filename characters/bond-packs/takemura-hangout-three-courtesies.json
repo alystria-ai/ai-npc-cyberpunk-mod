@@ -49,12 +49,11 @@
       "objective": "Take tea with Takemura and the host on the Japantown roof",
       "know": "You are at the rooftop tea garden with Takemura and an old tea host. She tests three moments: arriving, receiving the cup and leaving.",
       "wants": "V to pass the three courtesies.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [{"p": "place", "at": "spot"}],
       "script": [{"when": "place:spot:arrived", "gap": "g1"}],
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "done"},
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+        {"id": "met", "on": "meet:met", "next": "done"}
       ]
     }
   ],
@@ -62,9 +61,6 @@
     "done": {
       "memory": "You took Takemura to a Japantown rooftop tea garden, and the old host tested you on three courtesies.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You did not come to the tea garden, and Takemura waited for you above the shop."
     }
   }
 }

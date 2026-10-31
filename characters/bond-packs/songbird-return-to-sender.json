@@ -68,8 +68,7 @@
       "choices": [
         {"id": "carry", "on": "tag", "means": "V agrees to carry the message to the Moth", "kind": "yes", "next": "moth"},
         {"id": "refuse", "on": "tag", "means": "V refuses to carry the message", "kind": "no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no"}
+      ]
     },
     {
       "id": "moth",
@@ -92,8 +91,7 @@
       "choices": [
         {"id": "hopeful", "on": "event:gap:g1:hopeful", "next": "deliver"},
         {"id": "doubtful", "on": "event:gap:g1:doubtful", "next": "deliver"}
-      ],
-      "timeout": {"gameHours": 3, "next": "deliver"}
+      ]
     },
     {
       "id": "deliver",
@@ -111,8 +109,7 @@
         {"id": "as-written", "on": "tag", "means": "V gives Alex the shard and reads the message out exactly as it was written", "kind": "honest", "next": "report"},
         {"id": "softened", "on": "tag", "means": "V gives Alex the shard but changes or softens the words first", "kind": "flatter", "next": "softened"},
         {"id": "withheld", "on": "tag", "means": "V keeps the shard and only says that Songbird is alive", "kind": "no", "next": "withheld"}
-      ],
-      "timeout": {"gameHours": 3, "next": "no"}
+      ]
     },
     {
       "id": "report",
@@ -126,8 +123,7 @@
         {"when": "stage:enter", "say": "S3.report.01"},
         {"when": "line:S3.report.01:done", "gap": "g2"}
       ],
-      "choices": [{"id": "retold", "on": "event:gap:g2:recount", "next": "as-written"}],
-      "timeout": {"gameHours": 3, "next": "as-written"}
+      "choices": [{"id": "retold", "on": "event:gap:g2:recount", "next": "as-written"}]
     }
   ],
   "endings": {

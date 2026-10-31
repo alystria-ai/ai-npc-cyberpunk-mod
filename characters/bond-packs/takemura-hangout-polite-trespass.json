@@ -49,12 +49,11 @@
       "objective": "Stand under the cherry tree with Takemura in Vista del Rey",
       "know": "You are on the closed garden terrace in Vista del Rey with Takemura. A corporate guard has let you stay under the tree for five minutes.",
       "wants": "V to stay under the tree and be polite.",
-      "meet": {"where": "waypoint", "inGameHours": 2},
+      "meet": {"where": "waypoint"},
       "do": [{"p": "place", "at": "spot"}],
       "script": [{"when": "place:spot:arrived", "gap": "g1"}],
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "done"},
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+        {"id": "met", "on": "meet:met", "next": "done"}
       ]
     }
   ],
@@ -62,9 +61,6 @@
     "done": {
       "memory": "You talked your way into a closed corporate garden in Vista del Rey, and stood under a cherry tree while the guard brought you both tea.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You did not come to the corporate garden, and Takemura walked past the closed gate alone."
     }
   }
 }

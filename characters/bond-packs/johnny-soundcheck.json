@@ -96,8 +96,7 @@
       "choices": [
         {"id": "yes", "on": "event:gap:g1:yes", "next": "venue"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no"}
+      ]
     },
     {
       "id": "venue",
@@ -114,8 +113,7 @@
         {"when": "place:stage:arrived", "say": "SH6.stage.venue.01"},
         {"when": "line:SH6.stage.venue.01:done", "say": "SH6.stage.venue.02"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:stage:arrived", "next": "check"}],
-      "timeout": {"gameHours": 6, "next": "venue-left"}
+      "choices": [{"id": "arrived", "on": "event:place:stage:arrived", "next": "check"}]
     },
     {
       "id": "check",
@@ -141,8 +139,7 @@
         {"id": "silent", "on": "event:gap:g2:silent", "next": "wheel"},
         {"id": "done", "on": "event:together:check:done", "next": "wheel"},
         {"id": "broken", "on": "event:together:check:broken", "next": "venue-left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "wheel"}
+      ]
     },
     {
       "id": "wheel",
@@ -165,8 +162,7 @@
         {"id": "yes", "on": "event:gap:g3:yes", "next": "out-yes"},
         {"id": "no", "on": "event:gap:g3:no", "next": "out-no"},
         {"id": "together", "on": "event:gap:g3:together", "next": "out-together"}
-      ],
-      "timeout": {"gameHours": 0.17, "next": "out-no"}
+      ]
     },
     {
       "id": "out-yes",
@@ -183,8 +179,7 @@
         {"when": "stage:enter", "say": "SH6.stage.out.01"},
         {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-yes"}],
-      "timeout": {"gameHours": 6, "next": "wheel-yes"}
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-yes"}]
     },
     {
       "id": "out-together",
@@ -201,8 +196,7 @@
         {"when": "stage:enter", "say": "SH6.stage.out.01"},
         {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-together"}],
-      "timeout": {"gameHours": 6, "next": "wheel-together"}
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-together"}]
     },
     {
       "id": "out-no",
@@ -219,8 +213,7 @@
         {"when": "stage:enter", "say": "SH6.stage.out.01"},
         {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-no"}],
-      "timeout": {"gameHours": 6, "next": "wheel-no"}
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-no"}]
     }
   ],
   "endings": {

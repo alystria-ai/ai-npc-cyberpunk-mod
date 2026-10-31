@@ -67,8 +67,7 @@
       "choices": [
         {"id": "came", "on": "event:place:lane:arrived", "next": "crawl"},
         {"id": "yes", "on": "event:gap:g1:yes", "next": "crawl"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     },
     {
       "id": "crawl",
@@ -90,8 +89,7 @@
       "choices": [
         {"id": "walked", "on": "event:together:eat:done", "next": "call"},
         {"id": "broken", "on": "event:together:eat:broken", "next": "incomplete"}
-      ],
-      "timeout": {"gameHours": 3, "next": "incomplete"}
+      ]
     },
     {
       "id": "call",
@@ -109,8 +107,7 @@
       "choices": [
         {"id": "stay", "on": "tag", "means": "V stays close and waits while Jackie talks to his mother", "kind": "yes", "next": "pick"},
         {"id": "step-away", "on": "tag", "means": "V steps away to give Jackie room for his call", "kind": "honest", "next": "verdict-away"}
-      ],
-      "timeout": {"gameHours": 1, "next": "pick"}
+      ]
     },
     {
       "id": "pick",
@@ -132,8 +129,7 @@
       "choices": [
         {"id": "done", "on": "event:together:verdict:done", "next": "verdict"},
         {"id": "left", "on": "event:together:verdict:broken", "next": "incomplete"}
-      ],
-      "timeout": {"gameHours": 3, "next": "incomplete"}
+      ]
     }
   ],
   "endings": {
@@ -152,10 +148,6 @@
     "incomplete": {
       "memory": "You and Jackie tried some noodles in Little China and never settled on the bowl he was looking for.",
       "bond": 25
-    },
-    "stood-up": {
-      "memory": "Jackie waited for you on a noodle lane in Little China, and you never came.",
-      "bond": -5
     },
     "unfinished": {
       "memory": "You and Jackie were going to find a noodle stand that tasted like his mother's sopa de fideos. Then The Heist came, and you never did.",

@@ -64,8 +64,7 @@
       "choices": [
         {"id": "sandwich", "on": "event:gap:g1:truth", "next": "sandwich"},
         {"id": "quiet", "on": "event:gap:g1:silent", "next": "quiet"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -76,10 +75,6 @@
     "quiet": {
       "memory": "You raided Kerry's fridge in North Oak at two in the morning and said nothing about it.",
       "bond": 10
-    },
-    "stood-up": {
-      "memory": "You never reached Kerry's fridge in North Oak, and he gave up on the night raid.",
-      "bond": 0
     }
   }
 }

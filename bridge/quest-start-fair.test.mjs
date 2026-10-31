@@ -4,8 +4,7 @@
 // Rules pinned here, for every shipped pack:
 //   1. a pack that opens with a call does not start in person, nor with her beside V or in V's party, and is a phone or holocall pack in its data;
 //   2. a started pack is seen: the journal row is made at the start (the game side adds the tracker, the pin and the on-screen notice, see quest-journal-lua.test.mjs);
-//   3. the timeout clock starts only once the start was shown (the call rang, was answered or was texted), the pack's own hours are a minimum, and a timeout that costs bond
-//      points needs V to have accepted;
+//   3. no time limit at all (owner decision 1 Nov 2026): no stage times out, no clock runs, no penalty for time, and a quest stays open until V does it or abandons it;
 //   4. every line a pack's rows, calls and endings say exists in the pack (the prepared audio list is scripts/Check-QuestLineAudio.mjs).
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,7 +12,8 @@ import {readFileSync} from 'node:fs';
 import {BondPacks, ROLLBACK_SLACK} from './bond-pack-runner.mjs';
 import {shippedPacks} from './bond-packs.mjs';
 import {referencesOf} from './quest-format.mjs';
-import {startAllowed, opensWithCall, castsHerAtStart, timeoutHours, travelStage, penalty, presentedAtStart, START_FLOOR_HOURS, UNSEEN_WITHDRAW_HOURS} from './quest-start.mjs';
+import {startAllowed, opensWithCall, castsHerAtStart, WITHDRAWN_DAYS} from './quest-start.mjs';
+import {validatePack} from './bond-packs.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 
 const DAY = 86400, HOUR = 3600;
@@ -27,6 +27,9 @@ const coverage = {status: 'complete', ageSeconds: 1, windowSeconds: 30, observed
 const journal = () => parseJournalHistory({version: 1, status: 'ready', generation: 1, capturedAtMs: 2000, worldToken: 'w1', tracked: {status: 'untracked'},
   coverage: {active: coverage, history: coverage},
   quests: [{id: '100', nativeId: 'sq026_04_hiromi', nativePath: 'quests/side_quest/sq026_04_hiromi', title: 'Quest', state: 'succeeded', lane: 'history', observedAtMs: 1000, objectivesComplete: true, objectives: []}]});
+const journal2 = () => parseJournalHistory({version: 1, status: 'ready', generation: 1, capturedAtMs: 2000, worldToken: 'w1', tracked: {status: 'untracked'},
+  coverage: {active: coverage, history: coverage},
+  quests: ['sq026_04_hiromi', 'sq030_judy_romance'].map((id, index) => ({id: String(200 + index), nativeId: id, nativePath: `quests/side_quest/${id}`, title: 'Quest', state: 'succeeded', lane: 'history', observedAtMs: 1000, objectivesComplete: true, objectives: []}))});
 let counter = 0;
 /** One turn of V's. `how`: 'own' (typed to her in person, one of V's party copies), 'phone' (a Phone Chat text) or 'holocall'. */
 const turn = (how, gameSeconds, text = 'hey') => ({requestId: `s-${++counter}`, profileKey: 'judy-alvarez', name: 'Judy', text, entity: 'e1', turnContext: {gameTime: gameSeconds}, journalHistory: journal(),
@@ -108,132 +111,91 @@ test('a pack that casts her at its first place never moves a party member: the g
   assert.equal(cast.some(pack => opensWithCall(pack) && pack.id !== 'viktor-corner'), false, 'only Viktor\'s corner both casts her and calls, and it is a call opening');
 });
 
-test('the timeout clock waits until the call was shown: no timeoutAt in the play file, no timeout however long the game runs', () => {
+test('no time limit: a call opening started on a phone chat stays open for days and weeks, with no clock, no penalty and no timeout in the play file', () => {
   const {runner, awards} = make();
   talk(runner, turn('phone', T0), FAR);
-  assert.equal(stageOf(runner).unshown, true, 'the phone text is not the call');
-  assert.equal(play(runner).timeoutAt, undefined, 'the game is told no timeout yet');
-  // Hours of game time pass with no call ever rung (V talks to someone else, drives): the pack does not end, there is no penalty.
-  talk(runner, turn('phone', T0 + 5 * HOUR, 'busy'), FAR);
   assert.equal(stageOf(runner).stage, 'call');
-  assert.deepEqual(awards, []);
-  game(runner, 'stage:timeout', T0 + 9 * HOUR);
-  assert.equal(stageOf(runner).stage, 'call', 'even a timeout event from the game does not end a stage that was not shown');
+  assert.equal(play(runner).timeoutAt, undefined, 'the game is told no timeout');
+  for (const days of [0.2, 2, 30]) {
+    talk(runner, turn('phone', T0 + days * DAY, 'busy'), FAR);
+    assert.equal(stageOf(runner).stage, 'call', `still waiting after ${days} game days`);
+    assert.equal(entryOf(runner).status, 'active');
+  }
+  assert.deepEqual(awards, [], 'no penalty for time');
+  game(runner, 'stage:timeout', T0 + 40 * DAY);
+  assert.equal(stageOf(runner).stage, 'call', 'even a stray timeout event from the game ends nothing');
+  const {runner: holocall} = make({...structuredClone(judy), start: {...judy.start, channels: ['phone', 'holocall']}});
+  talk(holocall, turn('holocall', T0), FAR);
+  assert.equal(play(holocall).timeoutAt, undefined, 'a holocall start has no clock either');
 });
 
-test('once the call rang the clock starts from that moment, with the pack\'s 1 hour only a minimum', () => {
-  const {runner, lines} = make();
-  talk(runner, turn('phone', T0), FAR);
-  const rang = T0 + 3 * HOUR;
-  assert.equal(game(runner, 'call:claws-ring:ringing', rang), false);
-  assert.equal(stageOf(runner).unshown, undefined);
-  assert.equal(stageOf(runner).shownAt, rang);
-  assert.equal(timeoutHours(judy, judy.stages[0]), START_FLOOR_HOURS);
-  assert.equal(play(runner).timeoutAt, rang + START_FLOOR_HOURS * HOUR, 'the game is told the moment, from the ring and not from the start');
-  assert.ok(lines.some(line => /pack=judy-claws-calling presented: call:claws-ring:ringing/.test(line)));
-  assert.ok(lines.some(line => /\[dev\] pack=judy-claws-calling stage call: the timeout clock started at day \d+ .* \(6 game hours, the pack says 1/.test(line)), lines.filter(line => /dev/.test(line)).join(' | '));
-  // 5 hours after the ring V is still on the way: no ending.
-  talk(runner, turn('phone', rang + 5 * HOUR, 'on my way'), FAR);
-  assert.equal(stageOf(runner).stage, 'call');
-});
-
-test('a timeout that costs bond points needs V to have accepted: unaccepted it lapses with no penalty, accepted it is the pack\'s ending', () => {
-  // Never accepted: the call rang and V missed it.
-  const missed = make();
-  talk(missed.runner, turn('phone', T0), FAR);
-  game(missed.runner, 'call:claws-ring:ringing', T0 + HOUR);
-  game(missed.runner, 'call:claws-ring:missed', T0 + HOUR + 40);
-  game(missed.runner, 'call:claws-ring:texted', T0 + HOUR + 41);
-  assert.equal(entryOf(missed.runner).accepted, false, 'a missed call is not taking it up');
-  const late = T0 + HOUR + 6 * HOUR + 30;
-  game(missed.runner, 'stage:timeout', late);
-  assert.equal(entryOf(missed.runner), undefined, 'the pack lapsed');
-  assert.deepEqual(missed.awards, [], 'no bond change: late-end would have cost 15');
-  assert.ok(missed.lines.some(line => /pack=judy-claws-calling lapsed, no bond change \(its time ran out and V had not accepted it/.test(line)));
-  assert.deepEqual(missed.runner.playState().quests, [], 'and the game is told the quest is gone');
-  assert.deepEqual(missed.runner.playState().journal, [], 'so the journal entry goes too, no failed quest V never saw');
-  // It is not offered again the same game day, but is after it.
-  talk(missed.runner, turn('phone', late + HOUR), FAR);
-  assert.equal(entryOf(missed.runner), undefined, 'not again within a game day');
-  talk(missed.runner, turn('phone', late + 25 * HOUR), FAR);
-  assert.equal(entryOf(missed.runner)?.status, 'active', 'and offered again a day later');
-
-  // Accepted: V answered the call. The same timeout is now the ending the pack wrote, with its penalty.
-  const answered = make();
-  talk(answered.runner, turn('phone', T0), FAR);
-  game(answered.runner, 'call:claws-ring:ringing', T0 + HOUR);
-  game(answered.runner, 'call:claws-ring:answered', T0 + HOUR + 10);
-  assert.equal(entryOf(answered.runner).accepted, true);
-  game(answered.runner, 'stage:timeout', T0 + HOUR + 6 * HOUR + 30);
-  assert.equal(entryOf(answered.runner).status, 'done');
-  assert.equal(entryOf(answered.runner).trail.at(-1).stage, 'late-end');
-  assert.deepEqual(answered.awards, [['judy-alvarez', -15]]);
-  assert.ok(answered.lines.some(line => /pack=judy-claws-calling ended late-end bond -15/.test(line)));
-
-  // Accepted in words: V says yes on a turn after the one that brought it up.
-  const yes = make();
-  talk(yes.runner, turn('phone', T0), FAR);
-  assert.equal(entryOf(yes.runner).accepted, false);
-  game(yes.runner, 'call:claws-ring:ringing', T0 + 600);
-  const second = turn('phone', T0 + 900, 'yes, I am on my way');
-  yes.runner.forTurn(second, FAR); yes.runner.afterTurn(second, 'yes, I am on my way');
-  assert.equal(entryOf(yes.runner).accepted, true);
-});
-
-test('a call that is never shown lapses after a game day without a penalty', () => {
-  const {runner, awards, lines} = make();
-  talk(runner, turn('phone', T0), FAR);
-  talk(runner, turn('phone', T0 + (UNSEEN_WITHDRAW_HOURS - 1) * HOUR), FAR);
-  assert.equal(entryOf(runner)?.status, 'active', 'still waiting for a calm moment');
-  talk(runner, turn('phone', T0 + UNSEEN_WITHDRAW_HOURS * HOUR + 60), FAR);
-  assert.equal(entryOf(runner), undefined);
-  assert.deepEqual(awards, []);
-  assert.ok(lines.some(line => /lapsed, no bond change \(its call was never shown in 24 game hours\)/.test(line)));
-});
-
-test('a start on a holocall is shown by the call itself: the clock starts at the start', () => {
-  const {runner} = make({...structuredClone(judy), start: {...judy.start, channels: ['phone', 'holocall']}});
-  talk(runner, turn('holocall', T0), FAR);
-  assert.equal(stageOf(runner).unshown, undefined);
-  assert.equal(presentedAtStart(judy, judy.stages[0], 'holocall'), true);
-  assert.equal(presentedAtStart(judy, judy.stages[0], 'phone'), false);
-  assert.equal(play(runner).timeoutAt, T0 + START_FLOOR_HOURS * HOUR);
-});
-
-test('the clock state survives a restart of the bridge, and a load of an earlier save rewinds to the stage the clock had it at', async () => {
-  const {runner, files} = make();
-  talk(runner, turn('phone', T0), FAR);
-  await runner.flush();
-  const shared = {read: async file => files.get(file), write: async (file, text) => { files.set(file, text); }};
-  const again = make(judy, shared).runner;
-  await again.load();
-  assert.equal(again.entries.get('judy-claws-calling').trail.at(-1).unshown, true, 'still waiting for its call');
-  game(again, 'call:claws-ring:ringing', T0 + 600);
-  await again.flush();
-  const third = make(judy, shared).runner;
-  await third.load();
-  assert.equal(third.entries.get('judy-claws-calling').trail.at(-1).shownAt, T0 + 600);
-  assert.equal(third.playState().quests[0].timeoutAt, T0 + 600 + START_FLOOR_HOURS * HOUR);
-  third.rewind(T0 - ROLLBACK_SLACK - 1000);
-  assert.equal(third.entries.get('judy-claws-calling'), undefined, 'a load before the start forgets the pack');
-});
-
-test('every shipped pack: a first stage and a travel stage run at least the floor, any other stage keeps its own hours, and the audit finds the packs it changes', () => {
-  let raised = 0;
+test('no pack, shipped or old, carries a time limit: no stage timeout, no meeting deadline, no ride, race or convoy limit, and every stage still has a way out', () => {
   for (const pack of all) {
+    assert.deepEqual(validatePack(pack, {characters: roster}).errors, [], pack.id);
     for (const stage of pack.stages) {
-      if (!stage.timeout) continue;
-      const hours = timeoutHours(pack, stage);
-      assert.ok(hours >= stage.timeout.gameHours, `${pack.id}/${stage.id}: the pack's value is a minimum`);
-      if (pack.stages[0] === stage || travelStage(stage)) assert.ok(hours >= START_FLOOR_HOURS, `${pack.id}/${stage.id}`);
-      else assert.equal(hours, stage.timeout.gameHours, `${pack.id}/${stage.id}: a fight or a scene beat keeps its hours`);
-      if (hours > stage.timeout.gameHours) raised += 1;
+      assert.equal(stage.timeout, undefined, `${pack.id}/${stage.id}: no timeout`);
+      assert.equal(stage.meet?.inGameHours, undefined, `${pack.id}/${stage.id}: no meeting deadline`);
+      assert.ok((stage.choices?.length ?? 0) > 0 || typeof stage.next === 'string', `${pack.id}/${stage.id}: a way out that is not a timer`);
+      for (const spec of stage.do ?? []) assert.equal(spec.limitMinutes, undefined, `${pack.id}/${stage.id}: no ${spec.p} time limit`);
+      for (const choice of stage.choices ?? []) assert.doesNotMatch(choice.on, /^event:(ride:timeout|race:[a-z0-9-]+:timeout)$/, `${pack.id}/${stage.id}: ${choice.id}`);
+      assert.doesNotMatch(JSON.stringify(stage.choices ?? []), /meet:stood-up/, `${pack.id}/${stage.id}: a meeting she waited for in vain ends nothing`);
     }
   }
-  assert.ok(raised > 100, `${raised} stage timeouts are raised`);
-  // The packs whose first stage ends with a penalty are the ones the unaccepted rule protects.
-  const guarded = all.filter(pack => penalty(pack, pack.stages[0].timeout?.next));
-  assert.ok(guarded.length >= 10, `${guarded.length} packs have a first stage whose timeout costs bond points`);
+  // An old pack that still has them is read, warned about and its timeout is not a way out.
+  const old = structuredClone(judy);
+  old.stages[0].timeout = {gameHours: 1, next: 'wrecked'};
+  const result = validatePack(old, {characters: roster});
+  assert.ok(result.warnings.some(text => /timeout is ignored/.test(text)), result.warnings.join(' | '));
+  const stuck = structuredClone(judy);
+  delete stuck.stages[0].choices; delete stuck.stages[0].next; stuck.stages[0].timeout = {gameHours: 1, next: 'wrecked'};
+  assert.ok(validatePack(stuck, {characters: roster}).errors.some(text => /must lead somewhere/.test(text)), 'a timeout alone leaves a stage with no way out');
+});
+
+test('V closes a quest by telling the character it is off: no bond change, the journal row goes, and it is not offered again for a game day', async () => {
+  const {runner, awards, files} = make({...structuredClone(judy), start: {...judy.start, channels: ['phone', 'holocall']}});
+  talk(runner, turn('phone', T0), FAR);
+  assert.equal(entryOf(runner)?.status, 'active');
+  assert.equal(runner.playState().journal.length, 1);
+  const first = turn('phone', T0 + HOUR, 'forget it, I am not doing this');
+  runner.forTurn(first, FAR); runner.afterTurn(first, 'forget it, I am not doing this');
+  assert.equal(entryOf(runner), undefined, 'abandoned: the quest is gone');
+  assert.deepEqual(awards, [], 'no bond change');
+  assert.deepEqual(runner.playState().journal, [], 'and its journal entry, tracker line and pin go with the next play file');
+  assert.deepEqual(runner.playState().quests, []);
+  // Not offered again inside a game day, offered again after it.
+  talk(runner, turn('phone', T0 + 2 * HOUR), FAR);
+  assert.equal(entryOf(runner), undefined, 'a game day of quiet first');
+  talk(runner, turn('phone', T0 + 3 * HOUR), FAR);
+  talk(runner, turn('phone', T0 + WITHDRAWN_DAYS * DAY + 2 * HOUR), FAR);
+  talk(runner, turn('phone', T0 + WITHDRAWN_DAYS * DAY + 3 * HOUR), FAR);
+  assert.equal(entryOf(runner)?.status, 'active', 'it can start again after the day');
+  // The abandon survives a restart of the bridge.
+  await runner.flush();
+  assert.ok([...files.values()].some(text => /withdrawn/.test(text)), 'the quiet day is saved');
+});
+
+test('abandoned from the game (the journal or the probe): the event closes it with no bond change, a stale or unknown one does nothing', () => {
+  const {runner, awards} = make({...structuredClone(judy), start: {...judy.start, channels: ['phone', 'holocall']}});
+  talk(runner, turn('phone', T0), FAR);
+  assert.equal(runner.noteEvent({pack: 'judy-claws-calling', serial: 99, name: 'quest:abandon', at: T0 + 60}), false, 'an event for another stage is dropped');
+  assert.equal(entryOf(runner)?.status, 'active');
+  assert.equal(runner.noteEvent({pack: 'no-such-pack', serial: 1, name: 'quest:abandon', at: T0 + 60}), false);
+  assert.equal(runner.noteEvent({pack: 'judy-claws-calling', serial: 1, name: 'quest:abandon', at: T0 + 120}), true);
+  assert.equal(entryOf(runner), undefined);
+  assert.deepEqual(awards, []);
+  assert.equal(runner.abandon('judy-claws-calling'), false, 'nothing open any more');
+});
+
+test('a stage\'s own no answer is read before the generic abandon: "forget it" on a yes or no stage takes the stage\'s no', () => {
+  const dress = all.find(pack => pack.id === 'judy-dinner-dress');
+  const {runner, awards} = make(dress);
+  const start = turn('phone', T0); start.journalHistory = journal2(); runner.forTurn(start, FAR); runner.afterTurn(start, 'hi');
+  const entry = runner.entries.get('judy-dinner-dress');
+  assert.equal(entry?.status, 'active');
+  const no = turn('phone', T0 + 60, 'forget it'); no.journalHistory = journal2(); runner.forTurn(no, FAR); runner.afterTurn(no, 'forget it');
+  assert.equal(entry.trail.at(-1).choice, 'cant', 'the stage\'s no choice took it, not the generic abandon');
+  assert.ok(runner.entries.get('judy-dinner-dress'), 'the quest closes through its own ending');
+  void awards;
 });
 
 test('every line a pack says exists in the pack: rows, call steps, call texts and endings', () => {

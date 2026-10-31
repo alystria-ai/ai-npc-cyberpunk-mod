@@ -49,12 +49,11 @@
       "objective": "Pick a coat for Takemura at the Wellsprings tailor",
       "know": "You are at a tailor boutique in Heywood's Wellsprings with Takemura. The tailor is ready to haggle, and Takemura is watching in silence.",
       "wants": "V to pick a coat for him, and to haggle.",
-      "meet": {"where": "waypoint", "inGameHours": 2},
+      "meet": {"where": "waypoint"},
       "do": [{"p": "place", "at": "spot"}],
       "script": [{"when": "place:spot:arrived", "gap": "g1"}],
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "done"},
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+        {"id": "met", "on": "meet:met", "next": "done"}
       ]
     }
   ],
@@ -62,9 +61,6 @@
     "done": {
       "memory": "You went to a tailor in Heywood's Wellsprings with Takemura and helped him choose a coat from three, while he watched the price.",
       "bond": 8
-    },
-    "stood-up": {
-      "memory": "You did not come to the tailor, and Takemura left with the one coat he has."
     }
   }
 }

@@ -96,8 +96,7 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:place:door:arrived", "next": "entrance"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stood-up"}
+      ]
     },
     {
       "id": "entrance",
@@ -122,8 +121,7 @@
       ],
       "choices": [
         {"id": "bar", "on": "event:place:bar:arrived", "next": "photo"}
-      ],
-      "timeout": {"gameHours": 1, "next": "photo"}
+      ]
     },
     {
       "id": "photo",
@@ -143,8 +141,7 @@
       "choices": [
         {"id": "got-it", "on": "event:gap:g2:got-it", "next": "drink"},
         {"id": "resume", "on": "event:gap:g2:resume", "next": "drink"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "drink"}
+      ]
     },
     {
       "id": "drink",
@@ -171,8 +168,7 @@
         {"id": "salt", "on": "event:line:JW5.close.02:done", "next": "flourish"},
         {"id": "float", "on": "event:line:JW5.close.03:done", "next": "flourish"},
         {"id": "plain", "on": "event:line:JW5.close.04:done", "next": "plain"}
-      ],
-      "timeout": {"gameHours": 1, "next": "entrance-only"}
+      ]
     }
   ],
   "endings": {
@@ -186,14 +182,6 @@
       "memory": "You helped Jackie plan his Afterlife entrance and name his drink, and you ordered the plain version.",
       "bond": 45,
       "script": [{"when": "ending:plain", "say": "JW5.close.05"}]
-    },
-    "entrance-only": {
-      "memory": "You walked Jackie through the Afterlife to the bar, and you never got around to naming his drink.",
-      "bond": 35
-    },
-    "stood-up": {
-      "memory": "Jackie waited for you at the front door of the Afterlife, and you never came.",
-      "bond": -5
     },
     "unfinished": {
       "memory": "You and Jackie rehearsed his entrance to the Afterlife and named a drink you never ordered. Then The Heist came.",

@@ -126,8 +126,7 @@
         {"id": "no", "on": "event:gap:g1:no", "next": "abandoned"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "abandoned"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "abandoned"}
-      ],
-      "timeout": {"gameHours": 1, "next": "abandoned"}
+      ]
     },
     {
       "id": "ground",
@@ -157,8 +156,7 @@
         {"id": "door", "on": "event:gap:g2:door", "next": "waves"},
         {"id": "window", "on": "event:gap:g2:window", "next": "waves"},
         {"id": "roof", "on": "event:gap:g2:roof", "next": "waves"}
-      ],
-      "timeout": {"gameHours": 0.67, "next": "late"}
+      ]
     },
     {
       "id": "waves",
@@ -186,8 +184,7 @@
         {"id": "refuse", "on": "event:gap:g3:refuse", "next": "wave3-refuse"},
         {"id": "listen", "on": "event:gap:g3:listen", "next": "wave3-listen"},
         {"id": "take", "on": "event:gap:g3:take", "next": "wave3-take"}
-      ],
-      "timeout": {"gameHours": 1, "next": "abandoned"}
+      ]
     },
     {
       "id": "wave3-refuse",
@@ -201,8 +198,7 @@
         {"when": "stage:enter", "say": "T5.w1.07"},
         {"when": "line:T5.w1.07:done", "say": "T5.w1.09"}
       ],
-      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-refuse"}],
-      "timeout": {"gameHours": 1, "next": "abandoned"}
+      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-refuse"}]
     },
     {
       "id": "wave3-listen",
@@ -213,8 +209,7 @@
       "wants": "V to hold the last wave with Takemura.",
       "do": [{"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true}],
       "script": [{"when": "stage:enter", "say": "T5.w1.09"}],
-      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-listen"}],
-      "timeout": {"gameHours": 1, "next": "abandoned"}
+      "choices": [{"id": "held", "on": "event:squad:wave3:down", "next": "quiet-listen"}]
     },
     {
       "id": "wave3-take",
@@ -228,8 +223,7 @@
         {"p": "timer", "id": "hold", "seconds": 60}
       ],
       "script": [{"when": "stage:enter", "say": "T5.w1.08"}],
-      "choices": [{"id": "alone", "on": "event:timer:hold", "next": "take"}],
-      "timeout": {"gameHours": 1, "next": "take"}
+      "choices": [{"id": "alone", "on": "event:timer:hold", "next": "take"}]
     },
     {
       "id": "quiet-refuse",
@@ -252,8 +246,7 @@
       "choices": [
         {"id": "answered", "on": "event:gap:g4:resume", "next": "held-refuse"},
         {"id": "done", "on": "event:together:quiet:done", "next": "held-refuse"}
-      ],
-      "timeout": {"gameHours": 1, "next": "held-refuse"}
+      ]
     },
     {
       "id": "quiet-listen",
@@ -271,8 +264,7 @@
         {"when": "line:T5.q.01:done", "say": "T5.q.02"},
         {"when": "line:T5.q.02:done", "say": "T5.q.03"}
       ],
-      "choices": [{"id": "done", "on": "event:together:quiet:done", "next": "held-listen"}],
-      "timeout": {"gameHours": 1, "next": "held-listen"}
+      "choices": [{"id": "done", "on": "event:together:quiet:done", "next": "held-listen"}]
     }
   ],
   "endings": {
@@ -296,10 +288,6 @@
       "memory": "You did not stand with Takemura at the hideout, and he said he understood.",
       "bond": -15,
       "script": [{"when": "ending:abandoned", "text": "T5.close.04"}]
-    },
-    "late": {
-      "memory": "You reached the hideout after the forty minutes Takemura gave you.",
-      "bond": -10
     }
   }
 }

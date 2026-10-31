@@ -49,7 +49,7 @@
       "objective": "Lie in the grass under the turbines with Panam",
       "know": "The turbines hum over the flat ground. Panam lies on her back in the grass and names constellations wrong on purpose.",
       "wants": "V to correct her, and to lie there and talk about the sky.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "turbines"},
         {"p": "place", "at": "turbines"},
@@ -61,10 +61,8 @@
       ],
       "choices": [
         {"id": "stargazed", "on": "event:together:sky:done", "next": "stargazed"},
-        {"id": "left", "on": "event:together:sky:broken", "next": "left"},
-        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 4, "next": "left"}
+        {"id": "left", "on": "event:together:sky:broken", "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -75,9 +73,6 @@
     "left": {
       "memory": "You left the turbines before you and Panam finished looking at the sky.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You never came to the turbines, and Panam watched the sky alone."
     }
   }
 }

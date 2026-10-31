@@ -53,7 +53,7 @@
       "objective": "Listen to Songbird pick a station by memory at the Dogtown Wall market",
       "know": "V is parked by the market with the radio on. You picked the station by memory and you expect to be wrong.",
       "wants": "V's ear for the station, and V's honest take on the song.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "spot"},
         {"p": "place", "at": "spot"},
@@ -65,12 +65,10 @@
         {"when": "line:SBH1.ask.01:done", "gap": "g1"}
       ],
       "choices": [
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
         {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
         {"id": "flatter", "on": "event:gap:g1:flatter", "next": "faked"},
         {"id": "no", "on": "event:gap:g1:no", "next": "left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -84,9 +82,6 @@
     },
     "left": {
       "memory": "You let Songbird's radio play by the Dogtown Wall market and did not say much about it."
-    },
-    "stood-up": {
-      "memory": "You never came to the parking lot by the Dogtown Wall market, and Songbird's radio played on alone."
     }
   }
 }

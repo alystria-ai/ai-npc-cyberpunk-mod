@@ -23,7 +23,7 @@ To turn the packs back on for development, create an empty file named `story-pac
 
 For testing a pack without waiting for the dice, add a second empty file `story-packs-dev-fast.flag` next to it (or set `CYBERPUNK_CONVAI_STORY_PACKS_FAST=1` for the bridge). It only works while the first switch is on. A pack whose gate is open then starts on the next eligible turn: no quiet days after the last quest, no daily rolls and a start chance of 1 (the gate, the active limit and the one hangout a game day still hold). The bridge logs `[BondPacks] dev fast mode` once at its start. Restart the service after adding or removing the file.
 
-A pack brought on over the phone or a holocall while she is beside V keeps its first stage waiting for the travel allowance (6 game hours) on top of the stage's own timeout, like a pack brought on with her far away: before 31 Oct a stage such as Panam's driving school ran out after its own 2 game hours (about 15 real minutes) before V had been told it was open.
+A quest has no time limit at all (owner decision 1 Nov 2026, docs/REAL_QUESTS.md section 5c): no stage timeout, no travel allowance, no lapse. Before that, on 30 and 31 Oct, a stage such as Panam's driving school ran out after its own 2 game hours (about 15 real minutes) before V had been told it was open. V ends a quest by doing it, by saying no, by telling the character it is off or by abandoning it from the game.
 
 A "Story packs on" saved by a dev or test install does nothing in a release build: the value stays in the settings file and the gate ignores it.
 

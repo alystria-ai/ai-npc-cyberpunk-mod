@@ -62,8 +62,7 @@
       "choices": [
         {"id": "in-story", "on": "event:gap:g1:cousin", "next": "in-story"},
         {"id": "dodge", "on": "event:gap:g1:vague", "next": "dodge"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -74,10 +73,6 @@
     "dodge": {
       "memory": "You dodged Kerry's question about who you were at a North Oak garden party, and you left early.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "You did not make it to the North Oak garden party, and Kerry crashed it alone.",
-      "bond": 0
     }
   }
 }

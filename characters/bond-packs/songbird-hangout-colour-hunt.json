@@ -57,7 +57,7 @@
       "objective": "Find five colours around Pacifica for Songbird",
       "know": "V is in Pacifica looking for five colours. You picked the list, and the fifth colour is the one you chose first.",
       "wants": "V to find the colours, describe them, and say one honest thing about the last one.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "spot"},
         {"p": "place", "at": "spot"},
@@ -73,12 +73,10 @@
         {"when": "line:SBH4.ask.01:done", "gap": "g1"}
       ],
       "choices": [
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
         {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
         {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
         {"id": "no", "on": "event:gap:g1:no", "next": "left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -92,9 +90,6 @@
     },
     "left": {
       "memory": "You found a couple of colours around Pacifica for Songbird and went home before the list was done."
-    },
-    "stood-up": {
-      "memory": "You never went looking for the five colours in Pacifica, and Songbird sent nothing to the plaza."
     }
   }
 }

@@ -83,8 +83,7 @@
         {"id": "in", "on": "event:gap:g1:in", "next": "toll"},
         {"id": "loud", "on": "event:gap:g1:loud", "next": "toll"},
         {"id": "no", "on": "event:gap:g1:no", "next": "pass"}
-      ],
-      "timeout": {"gameHours": 4, "next": "pass"}
+      ]
     },
     {
       "id": "toll",
@@ -117,8 +116,7 @@
         {"id": "bluffed", "on": "event:npc:react:leave", "next": "debrief-bluff"},
         {"id": "cleared", "on": "event:squad:wraiths:down", "next": "debrief-clear"},
         {"id": "ran", "on": "event:place:barricade:left", "next": "ran"}
-      ],
-      "timeout": {"gameHours": 3, "next": "pass"}
+      ]
     },
     {
       "id": "debrief-bluff",
@@ -136,8 +134,7 @@
         {"when": "stage:enter", "say": "P2.debrief.01"},
         {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
       ],
-      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "bluffed"}],
-      "timeout": {"gameHours": 4, "next": "bluffed"}
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "bluffed"}]
     },
     {
       "id": "debrief-paid",
@@ -155,8 +152,7 @@
         {"when": "stage:enter", "say": "P2.debrief.01"},
         {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
       ],
-      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "paid"}],
-      "timeout": {"gameHours": 4, "next": "paid"}
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "paid"}]
     },
     {
       "id": "debrief-clear",
@@ -174,8 +170,7 @@
         {"when": "stage:enter", "say": "P2.debrief.01"},
         {"when": "place:sunset:arrived", "say": "P2.debrief.02"}
       ],
-      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "cleared"}],
-      "timeout": {"gameHours": 4, "next": "cleared"}
+      "choices": [{"id": "home", "on": "event:place:sunset:arrived", "next": "cleared"}]
     }
   ],
   "endings": {

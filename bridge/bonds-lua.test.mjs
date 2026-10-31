@@ -451,3 +451,35 @@ test('Characters text first: OFF by default in the settings file (30 Oct, revers
   assert.match(ui, /elseif key == 'reachOuts' then values\.reachOuts = change\.value/);
   assert.match(read('../mod/init.lua'), /reach = function\(\) return type\(manager\.reachOuts\) == 'function' and manager\.reachOuts\(\) end,/);
 });
+
+test('busy is asked with phone = true for a Phone Chat message only, and the block carries why the game was busy', () => withGame(`
+local asked = {}
+options.busy = function(phone) asked[#asked + 1] = tostring(phone); return game.busy, game.why end
+local own = M.new(options)
+game.busy, game.why = true, 'scene tier 3'
+local talk = {entity = '7', profileKey = 'judy-alvarez'}; own.attach(talk)
+local text = {phone = true, profileKey = 'judy-alvarez'}; own.attach(text)
+local call = {entity = '7', holocall = {contact = 'judy-alvarez'}, profileKey = 'judy-alvarez'}; own.attach(call)
+assert(asked[1] == 'false' and asked[2] == 'true' and asked[3] == 'false', table.concat(asked, ','))
+assert(talk.bonds.busy == true and talk.bonds.busyWhy == 'scene tier 3', 'the reason rides in the block')
+assert(text.bonds.busy == true and text.bonds.busyWhy == 'scene tier 3')
+game.busy, game.why = false, nil
+local calm = {phone = true, profileKey = 'judy-alvarez'}; own.attach(calm)
+assert(calm.bonds.busy == nil and calm.bonds.busyWhy == nil, 'not busy names nothing')
+game.busy, game.why = true, nil
+local plain = {phone = true, profileKey = 'judy-alvarez'}; own.attach(plain)
+assert(plain.bonds.busy == true and plain.bonds.busyWhy == nil, 'busy with no reason given is still busy')
+game.busy, game.why = true, string.rep('x', 200)
+local long = {phone = true, profileKey = 'judy-alvarez'}; own.attach(long)
+assert(#long.bonds.busyWhy == 60, 'a reason is cut short')
+`));
+
+test('init.lua: the bonds busy test leaves the scene tier out for a Phone Chat message (the open phone holds it) and keeps every real scene signal', () => {
+  const init = read('../mod/init.lua');
+  const start = init.indexOf('busy = function(phone)');
+  assert.ok(start > 0, 'busy takes the phone flag');
+  const body = init.slice(start, init.indexOf('gameTime = function()', start));
+  assert.match(body, /elseif phone ~= true and sample\.tier ~= nil and sample\.tier ~= 1 then why = 'scene tier '/);
+  for (const signal of ['sample.combat', 'sample.dialogue', 'sample.choices', 'sample.call', 'battles.fighting']) assert.ok(body.includes(signal), signal);
+  assert.match(body, /return true, why/);
+});

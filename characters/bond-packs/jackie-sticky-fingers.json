@@ -82,8 +82,7 @@
         {"id": "admire", "on": "event:gap:g1:admire", "next": "lift"},
         {"id": "tease", "on": "event:gap:g1:tease", "next": "lift"},
         {"id": "resume", "on": "event:gap:g1:resume", "next": "lift"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lift"}
+      ]
     },
     {
       "id": "lift",
@@ -109,8 +108,7 @@
         {"id": "caught", "on": "event:runner:kid:caught", "next": "catch"},
         {"id": "stopped", "on": "event:runner:kid:stopped", "next": "catch"},
         {"id": "lost", "on": "event:runner:kid:lost", "next": "fenced"}
-      ],
-      "timeout": {"gameHours": 1, "next": "fenced"}
+      ]
     },
     {
       "id": "catch",
@@ -127,8 +125,7 @@
         {"id": "let-go", "on": "event:gap:g2:let-go", "next": "listen"},
         {"id": "scare", "on": "event:gap:g2:scare", "next": "scared-ending"},
         {"id": "rough", "on": "event:gap:g2:rough", "next": "rough-ending"}
-      ],
-      "timeout": {"gameHours": 0.1, "next": "listen"}
+      ]
     },
     {
       "id": "listen",
@@ -149,8 +146,7 @@
       "choices": [
         {"id": "done", "on": "event:together:ride:done", "next": "let-go"},
         {"id": "left", "on": "event:together:ride:broken", "next": "let-go"}
-      ],
-      "timeout": {"gameHours": 1, "next": "let-go"}
+      ]
     },
     {
       "id": "fenced",
@@ -169,8 +165,7 @@
         {"id": "declined", "on": "event:pay:toll:declined", "next": "lost"},
         {"id": "short", "on": "event:pay:toll:short", "next": "lost"},
         {"id": "broke", "on": "event:pay:toll:broke", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost"}
+      ]
     }
   ],
   "endings": {

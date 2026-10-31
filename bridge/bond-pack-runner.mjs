@@ -5,8 +5,8 @@
 //           volatile note carries the pack's `bringUp` and the first stage's `know` and `wants`. Nothing starts from a timer, so no turn is spent that V did not start.
 //   NOTES   every later turn on a channel the pack allows carries the current stage (`know`, `wants`, the meeting it hopes for, the money it needs).
 //   CHOICES a stage ends by V's own words (bridge/bond-intent.mjs, read after the reply is published: no model call, no tag in a reply), by an Eddies transfer
-//           with the pack as its story (the ledger row of the next turn says it was done), by the outcome of a meeting (appointment events), or by its timer.
-//   TIMERS  checked when a turn's context is built, never by a tick.
+//           with the pack as its story (the ledger row of the next turn says it was done), by the outcome of a meeting (appointment events) or by an event the game saw.
+//   NO TIME LIMIT (owner decision 1 Nov 2026) a stage has no timer and no clock: a quest stays open until V does it, says no, or abandons it (words, or the game's quest:abandon).
 //   ENDING  a bond reward (or penalty) and a note the character keeps for 3 game days.
 // The state follows the SAVE: every step carries the game clock, and a turn whose clock is earlier than a step rewinds the pack to where that clock had it.
 // What the game is asked to do (runtime/bond-effects.json) is computed from the state: a car that is not offered, one-shot items, an outfit for a stage.
@@ -17,9 +17,9 @@ import {resolve as resolvePath, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {atomicFile} from './guarded-file.mjs';
 import {packGate, explainGate, validatePack, shippedPacks, blockingQuest, trackedPathOf, KNOWN_STAGE_TYPES, CHANNELS, HANGOUT_DEFAULTS} from './bond-packs.mjs';
-import {intentKind} from './bond-intent.mjs';
+import {intentKind, screenAbandon} from './bond-intent.mjs';
 import {debts} from './eddies.mjs';
-import {channelOf} from './bonds.mjs';
+import {channelOf, bondable} from './bonds.mjs';
 import {QUEST_NEAR_NOTE} from './turn-context.mjs';
 import {questStates, questState, finished, inventoryComplete} from './bonds.mjs';
 import {placesOf, referencesOf} from './quest-format.mjs';
@@ -28,11 +28,13 @@ import {wantedFacts} from './quest-facts.mjs';
 import {resolveGive, likesFor, giftBond, TIERS} from './gift-tables.mjs';
 import {screenGift, giftWords} from './gift-intent.mjs';
 import {payNote, readPay, payData} from './quest-pay.mjs';
-import {inPerson, rendezvousSpecs, travelGrace} from './quest-rendezvous.mjs';
+import {inPerson, rendezvousSpecs} from './quest-rendezvous.mjs';
 import {journalBlock} from './quest-journal.mjs';
-import {startAllowed, presentedAtStart, hasCallIn, timeoutHours, penalty, CALL_SHOWN, CALL_ANSWERED, UNSEEN_WITHDRAW_HOURS, WITHDRAWN_DAYS} from './quest-start.mjs';
+import {startAllowed, WITHDRAWN_DAYS} from './quest-start.mjs';
 
 const DAY = 86400, HOUR = 3600;
+/** The event the game raises when V abandons a quest (mod/quest-play.lua abandonQuest). */
+export const QUEST_ABANDON = 'quest:abandon';
 /** Game seconds of slack before an entry counts as later than the loaded save (the clock read and the stamp are a moment apart). */
 export const ROLLBACK_SLACK = 120;
 export const MAX_ACTIVE = 2;
@@ -55,18 +57,6 @@ export const REACH_NOTE_TURNS = 3, OFFER_HOURS = 24, LEVELS_CACHE_MS = 30000;
 const SHIPPED_PACK_FOLDER = fileURLToPath(new URL('../characters/bond-packs/', import.meta.url));
 const MAX_FILE_CHARS = 1_000_000;
 const MAX_STEPS = 8;
-/**
- * The game seconds a stage's timeout is stretched by: the travel allowance (V answered over the phone with her far away) and the wait (the same hours when she was beside V but
- * the stage was brought on over the phone or a holocall). Live 31 Oct: Panam's driving school began in a holocall, her opening lines were not spoken, and the stage timed out
- * after its own 2 game hours (about 15 real minutes) before V had been told it was waiting, so the quest ended in its chicken ending unseen.
- */
-const stageSlack = step => (step?.grace ?? 0) + (step?.wait ?? 0);
-/**
- * When a stage's clock starts (game seconds), or null while it has not started. Live 31 Oct 2026 (Judy, The Claws Come Calling): the clock of a first stage that opens with a
- * call ran from the start turn, the call never rang while V talked, and the pack ended with a bond penalty for a quest V never saw. A stage waiting for the game to show its
- * call (`unshown`) has no clock; once shown it runs from `shownAt`.
- */
-const clockStart = step => (step?.unshown === true ? null : whole(step?.shownAt) ? step.shownAt : whole(step?.at) ? step.at : null);
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const whole = value => Number.isSafeInteger(value) && value >= 0;
 
@@ -107,7 +97,8 @@ export class BondPacks {
    * packs     the packs (validated here; an invalid one is left out and logged)    characters   the roster keys (a Set) for the validator
    * path      <state>/bond-packs.json                                              effectsPath  runtime/bond-effects.json
    * bonds     the Bonds object (award points, publish the status)                  random, now, read, write, timers   injectable for tests
-   * explain   () -> true while Developer mode is on: a pack that does not start says why in the log, once per pack per game day
+   * explain   () -> true while Developer mode is on: every private turn logs one line that says whether a pack started and why not (gate, channel, party, cooldown, chance), and a pack
+   *            that waits also says why once per pack per game day
    */
   constructor({packs = shippedOrNone(), characters = null, path = null, effectsPath = null, bonds = null, random = Math.random,
     now = Date.now, read = file => readFile(file, 'utf8'), write = (file, text) => atomicFile(file, text), log = () => {}, debounceMs = 5000,
@@ -118,6 +109,8 @@ export class BondPacks {
     this.fast = fast === true;
     if (this.fast) log('dev fast mode (story-packs-dev-fast.flag): a pack whose gate is open starts on the next eligible turn, with no quiet days, no daily rolls and a start chance of 1');
     this.explained = new Map();    // pack id (or profile key) -> the game day its reason was last logged
+    this.turnNotes = null;         // while a turn is decided in Developer mode: the reasons its packs gave, for the turn's one line
+    this.noted = new Set();            // turn ids whose "no pack decision" line was said
     this.packs = new Map();
     for (const pack of packs) {
       const result = validatePack(pack, {characters});
@@ -135,8 +128,7 @@ export class BondPacks {
     this.loggedTypes = new Set();
     this.timer = null; this.dirty = false; this.chain = Promise.resolve();
     this.effectsText = ''; this.effectsRevision = 0; this.effectsChain = Promise.resolve();
-    this.phoneTurn = false;        // true while V's words over the phone or a holocall move a pack with her beside V
-    this.remoteTurn = false;       // true while V's words over the phone or a holocall (she is not beside V) move a pack: a stage that needs her in person gets a travel allowance
+    this.remoteTurn = false;       // true while V's words over the phone or a holocall (she is not beside V) move a pack: a stage that needs her in person gets the means of getting her to V
     this.on = false;               // Story packs was on at the last turn (a meeting's outcome moves a pack only then)
     this.lastClock = undefined;
     // The quest files (docs/QUEST_PRIMITIVES.md): commands for the game (events the bridge decided), the closing rows of quests that just ended, the play file's revision.
@@ -226,16 +218,14 @@ export class BondPacks {
     const trail = [];
     for (const step of row.trail) {
       if (!plain(step) || typeof step.stage !== 'string' || !(whole(step.at) || step.at === null)) return null;
-      trail.push({stage: step.stage, at: step.at, ...(typeof step.choice === 'string' ? {choice: step.choice.slice(0, 40)} : {}), ...(step.ending === true ? {ending: true} : {}),
-        ...(whole(step.grace) && step.grace <= 48 * HOUR ? {grace: step.grace} : {}), ...(whole(step.wait) && step.wait <= 48 * HOUR ? {wait: step.wait} : {}),
-        ...(step.unshown === true ? {unshown: true} : {}), ...(whole(step.shownAt) ? {shownAt: step.shownAt} : {})});
+      trail.push({stage: step.stage, at: step.at, ...(typeof step.choice === 'string' ? {choice: step.choice.slice(0, 40)} : {}), ...(step.ending === true ? {ending: true} : {}), ...(step.remote === true ? {remote: true} : {})});
     }
     const last = trail.at(-1), ended = last.ending === true;
     if (ended ? !(last.stage in pack.endings) : !pack.stages.some(stage => stage.id === last.stage)) return null;
     const gapId = plain(row.gap) && typeof row.gap.id === 'string' ? row.gap.id : null;
     const gap = !ended && gapId && pack.gaps?.[gapId] ? {id: gapId, openedAt: whole(row.gap.openedAt) ? row.gap.openedAt : null} : null;
     const variation = typeof row.variation === 'string' && pack.hangout?.variations?.some(item => item.id === row.variation) ? row.variation : null;
-    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null, gap, accepted: row.accepted === true || trail.length > 1, ...(variation ? {variation} : {}), ...(CHANNELS.includes(row.via) ? {via: row.via} : {})};
+    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null, gap, ...(variation ? {variation} : {}), ...(CHANNELS.includes(row.via) ? {via: row.via} : {})};
   }
 
   #schedule() {
@@ -256,7 +246,7 @@ export class BondPacks {
     this.dirty = false;
     try {
       const entries = {}, meta = {};
-      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, accepted: entry.accepted === true, ...(entry.gap ? {gap: entry.gap} : {}), ...(entry.variation ? {variation: entry.variation} : {}), ...(entry.via ? {via: entry.via} : {})};
+      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, ...(entry.gap ? {gap: entry.gap} : {}), ...(entry.variation ? {variation: entry.variation} : {}), ...(entry.via ? {via: entry.via} : {})};
       for (const [key, row] of this.meta) {
         meta[key] = {rolled: row.rolled, rolls: row.rolls, idle: row.idle, endedAt: row.endedAt, ...(row.history?.length ? {history: row.history} : {}), ...(row.talkedAt !== null ? {talkedAt: row.talkedAt} : {}),
           ...(row.romance ? {romance: row.romance} : {}), ...(row.hangoutDay !== null ? {hangoutDay: row.hangoutDay} : {}), ...(row.cap ? {cap: row.cap} : {}),
@@ -272,7 +262,6 @@ export class BondPacks {
 
   /** The state keeps the pack ids only; the stage the entry is at is the last step of its trail. */
   #stageOf(pack, entry) { const last = entry.trail.at(-1); return entry.status === 'active' ? pack.stages.find(stage => stage.id === last.stage) : null; }
-  #stageAt(entry) { return entry.trail.at(-1).at; }
   #started(entry) { return entry.trail[0].at; }
 
   /**
@@ -370,66 +359,52 @@ export class BondPacks {
       if (next in pack.endings) { this.#finish(pack, entry, next, gameSeconds, choice); break; }
       const stage = pack.stages.find(item => item.id === next);
       if (!stage) { this.#finish(pack, entry, Object.keys(pack.endings)[0], gameSeconds, choice); break; }
-      // A stage that needs her in person, entered by V's words over the phone: its clock gets a travel allowance (bridge/quest-rendezvous.mjs).
-      const grace = this.remoteTurn ? travelGrace(pack, stage) : 0;
-      const wait = !grace && this.phoneTurn ? travelGrace(pack, stage) : 0;
-      // A stage with a call waits for the game to show the call before its clock starts (clockStart); any other stage is shown by the talk or the game at once.
-      const unshown = hasCallIn(stage);
-      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ...(grace ? {grace} : {}), ...(wait ? {wait} : {}), ...(unshown ? {unshown: true} : {})});
+      // A stage that needs her in person, entered by V's words over the phone with her far away: the play file adds the means of getting her to V (bridge/quest-rendezvous.mjs).
+      const remote = this.remoteTurn && inPerson(pack, stage).needs;
+      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ...(remote ? {remote: true} : {})});
       entry.presented = false; entry.beat = null; entry.gap = null;
-      // Whatever V did to reach a later stage, V has taken the quest up. A timeout, a skip and the story finishing it first are not V's doing.
-      if (choice && choice !== 'timeout' && choice !== 'skipped' && choice !== 'unfinished') entry.accepted = true;
       this.log(`pack=${pack.id} stage=${next}${choice ? ` via ${choice}` : ''}`);
-      this.#dev(`pack=${pack.id} stage ${next}: ${unshown ? 'the timeout clock waits for its call to be shown' : this.#clockLine(pack, stage, entry)}`);
+      this.#dev(`pack=${pack.id} stage ${next}: no time limit, it stays open until V does it, says no or abandons it`);
       this.#enter(pack, stage, gameSeconds);
       if (!stage.type || KNOWN_STAGE_TYPES.includes(stage.type)) break;
-      // A stage type this build does not play: skipped, logged once per type, on to its skip, next, timeout or first choice.
+      // A stage type this build does not play: skipped, logged once per type, on to its skip, next or first choice.
       if (!this.loggedTypes.has(stage.type)) { this.loggedTypes.add(stage.type); this.log(`stage type ${stage.type} is not played yet: skipped (pack ${pack.id})`); }
-      next = stage.skip ?? stage.next ?? stage.timeout?.next ?? stage.choices?.[0]?.next;
+      next = stage.skip ?? stage.next ?? stage.choices?.[0]?.next;
       choice = 'skipped';
       if (typeof next !== 'string') { this.#finish(pack, entry, Object.keys(pack.endings)[0], gameSeconds, choice); break; }
     }
     this.#schedule(); this.#effects();
   }
 
-  /** Developer mode only: one line of the story pack's start and clock (presented, placed, clock started, withdrawn). Never throws. */
+  /** Developer mode only: one line of the story pack's start and why (never a clock: a quest has no time limit). Never throws. */
   #dev(line) {
     try { if (typeof this.explain === 'function' && this.explain() === true) this.log(`[dev] ${line}`); } catch {}
   }
 
-  /** The game second this stage's timeout runs out, or null: no timeout, no game clock, or the stage was not shown yet (its clock has not started). */
-  #timeoutAt(pack, entry, stage) {
-    const last = entry.trail.at(-1), start = clockStart(last), hours = timeoutHours(pack, stage);
-    if (!hours || start === null) return null;
-    return start + hours * HOUR + stageSlack(last);
-  }
-
-  /** "the timeout clock started at 12:00 and ends at 18:00 (6 game hours, the pack says 1)" for the Developer log. */
-  #clockLine(pack, stage, entry) {
-    const last = entry.trail.at(-1), end = this.#timeoutAt(pack, entry, stage);
-    if (end === null) return stage.timeout ? 'the timeout clock has not started' : 'no timeout';
-    const hours = timeoutHours(pack, stage), clock = value => `day ${Math.floor(value / DAY)} ${String(Math.floor(value % DAY / HOUR)).padStart(2, '0')}:${String(Math.floor(value % HOUR / 60)).padStart(2, '0')}`;
-    return `the timeout clock started at ${clock(clockStart(last))} and ends at ${clock(end)} (${hours} game hours${hours !== stage.timeout.gameHours ? `, the pack says ${stage.timeout.gameHours}` : ''}${stageSlack(last) ? `, plus ${stageSlack(last) / HOUR} for the way` : ''}, goes to ${stage.timeout.next})`;
-  }
-
   /**
-   * The pack lapses: V was never fairly given it, or never took it up, so it ends with no bond change and no quiet days, leaves the journal (the next play file has no row for it)
-   * and is not offered again for a game day. Logged with the reason.
+   * V gives a quest up (by telling the character, or from the journal). There is no time limit, so this is the only way a quest closes without V doing it. It ends with no bond
+   * change and no quiet days, leaves the journal (the next play file has no row for it) and is not offered again for a game day. Returns whether a quest was open.
    */
-  #withdraw(pack, entry, reason, gameSeconds) {
-    entry.status = 'lapsed';
-    this.entries.delete(pack.id);
-    const meta = this.#meta(pack.character);
-    if (whole(gameSeconds)) meta.withdrawn[pack.id] = gameSeconds;
-    this.log(`pack=${pack.id} lapsed, no bond change (${reason})`);
-    this.#schedule(); this.#effects();
+  abandon(packId, {gameSeconds, why = 'V gave it up'} = {}) {
+    try {
+      const pack = this.packs.get(packId), entry = this.entries.get(packId);
+      if (!pack || entry?.status !== 'active') return false;
+      this.entries.delete(pack.id);
+      const meta = this.#meta(pack.character);
+      const clock = whole(gameSeconds) ? gameSeconds : this.lastClock;
+      if (whole(clock)) meta.withdrawn[pack.id] = clock;
+      this.log(`pack=${pack.id} abandoned, no bond change (${why})`);
+      this.#dev(`pack=${pack.id} abandoned: the journal entry, the tracker line and the map pin go with the next play file`);
+      this.#schedule(); this.#effects();
+      return true;
+    } catch (error) { this.log(`abandon failed: ${String(error?.message ?? error).slice(0, 120)}`); return false; }
   }
 
-  /** Whatever ends the current stage by itself: its timer, a finished Eddies transfer of the pack, or a closing beat already shown. Returns whether it moved. */
+  /** Whatever ends the current stage by itself: a finished Eddies transfer of the pack, or a closing beat already shown. There is no timer. Returns whether it moved. */
   #resolve(pack, entry, {gameSeconds, eddiesRow}) {
     let moved = false;
     for (let step = 0; step < MAX_STEPS && entry.status === 'active'; step++) {
-      const stage = this.#stageOf(pack, entry), at = this.#stageAt(entry);
+      const stage = this.#stageOf(pack, entry);
       const tag = `${pack.id}:${stage.id}`;
       let next = null, choice = null;
       for (const item of stage.choices ?? []) {
@@ -437,17 +412,7 @@ export class BondPacks {
         const flow = item.on.slice(7), last = eddiesRow?.last;
         if (last?.story === tag && last.flow === flow && last.result === 'done' && (flow !== 'repayToV' || debts(eddiesRow).owesV === 0)) { next = item.next; choice = item.id; break; }
       }
-      const timeoutAt = this.#timeoutAt(pack, entry, stage);
-      if (!next && whole(gameSeconds) && timeoutAt !== null && gameSeconds >= timeoutAt) {
-        // A timeout that costs bond points is for a quest V took up. If V never accepted (never answered the call, never said yes, never went), nothing is lost: the pack lapses.
-        if (!entry.accepted && penalty(pack, stage.timeout.next)) { this.#withdraw(pack, entry, `its time ran out and V had not accepted it (it would have cost bond points: ${stage.timeout.next})`, gameSeconds); moved = true; break; }
-        next = stage.timeout.next; choice = 'timeout';
-      }
-      // Its call was never shown (V never had a calm moment for it) for a whole game day: it lapses without a word to the character's bond.
-      if (!next && whole(gameSeconds) && whole(at) && entry.trail.at(-1).unshown === true && gameSeconds >= at + UNSEEN_WITHDRAW_HOURS * HOUR) {
-        this.#withdraw(pack, entry, `its call was never shown in ${UNSEEN_WITHDRAW_HOURS} game hours`, gameSeconds); moved = true; break;
-      }
-      if (!next && !stage.choices && !stage.timeout && typeof stage.next === 'string' && entry.presented) { next = stage.next; choice = 'next'; }
+      if (!next && !stage.choices && typeof stage.next === 'string' && entry.presented) { next = stage.next; choice = 'next'; }
       if (!next) break;
       this.#go(pack, entry, next, gameSeconds, choice);
       moved = true;
@@ -503,10 +468,16 @@ export class BondPacks {
     if (facts.romance !== undefined && meta.romance !== romance) { meta.romance = romance; this.#schedule(); }
   }
 
-  /** Developer mode only: why a pack did not start for a character on this turn, once per pack per game day ("panam-sunset-coffee waits: q307_before_tomorrow still active"). Never throws. */
+  /** Whether Developer mode is on (the turn lines and the reasons are logged only then). */
+  #devOn() {
+    try { return typeof this.explain === 'function' && this.explain() === true; } catch { return false; }
+  }
+
+  /** Developer mode only: why a pack did not start for a character on this turn. The turn's own line (turnLine) always has it, the line of its own is said once per pack per game day ("panam-sunset-coffee waits: q307_before_tomorrow still active"). Never throws. */
   #waits(key, gameSeconds, text) {
     try {
-      if (typeof this.explain !== 'function' || this.explain() !== true) return;
+      if (!this.#devOn()) return;
+      if (this.turnNotes) this.turnNotes.push(`${key} waits: ${text}`);
       const day = whole(gameSeconds) ? Math.floor(gameSeconds / DAY) : -1;
       if (this.explained.get(key) === day) return;
       this.explained.set(key, day);
@@ -514,10 +485,75 @@ export class BondPacks {
     } catch {}
   }
 
+  /** Developer mode only: one more reason in the turn's own line. */
+  #note(text) { if (this.turnNotes) this.turnNotes.push(text); }
+
+  /** The words for how V and the character talk this turn, for the Developer log. */
+  #howText(input) {
+    const channel = channelOf(input);
+    return {phone: 'a Phone Chat text', holocall: 'a holocall', own: 'talk in person with one of V\'s copies', story: 'talk with a character the game placed'}[channel] ?? channel;
+  }
+
+  /** Why a turn never reached the pack logic, in words (null when it did or the reason is not known here). */
+  #noPackReason(input) {
+    if (!input?.bonds) return 'the game sent no bonds block, so Character bonds is off in Settings or the block could not be made';
+    if (!input.bonds.on) return 'the bonds block is off';
+    if (!input.bonds.packs) return 'the bonds block has no Story packs flag, so Story packs is off in Settings or the development switch is missing';
+    if (input.reaction) return 'a reaction is no turn of V\'s';
+    if (input.head) return 'Johnny in V\'s head is no turn of V\'s';
+    if (input.event) return 'a message the character started is no turn of V\'s';
+    return null;
+  }
+
+  /**
+   * Developer mode only: the one line every private turn leaves about the packs, so a text that started nothing can be read without a guess. It names how V and the character talk
+   * (the channel), whether she is beside V and in V's party, the bond level, the game clock, whether the game called the turn busy and why, and then either the pack that started,
+   * the pack that is running, or the reason each pack gave for waiting (the gate, the channel, the party, the quiet days, the dice and their chance). Never throws.
+   */
+  #turnLine(input, facts, decision, notes) {
+    try {
+      const clock = value => `day ${Math.floor(value / DAY)} ${String(Math.floor(value % DAY / HOUR)).padStart(2, '0')}:${String(Math.floor(value % HOUR / 60)).padStart(2, '0')}`;
+      const bonds = input?.bonds ?? {};
+      const time = Number.isSafeInteger(input?.turnContext?.gameTime) && input.turnContext.gameTime >= 0 ? clock(input.turnContext.gameTime) : 'no game clock yet';
+      const who = [facts?.near === true ? 'she is beside V' : 'she is apart from V', bonds.copy === 'party' ? 'in V\'s party' : 'not in V\'s party', `bond level ${facts?.level ?? 0}`, time,
+        bonds.busy === true ? `the game is busy (${bonds.busyWhy ?? 'no reason given'})` : 'the game is not busy'].join(', ');
+      let result;
+      if (decision?.start) result = `started ${decision.start.pack.id}`;
+      else if (decision?.pack) result = `${decision.pack.id} is running (stage ${decision.entry?.trail?.at(-1)?.stage ?? '?'}), so no new pack starts`;
+      else if (notes?.length) result = notes.join(' | ');
+      else result = this.#noPackReason(input) ?? (this.#packsOf(input?.profileKey).length ? 'no pack had anything to say about this turn' : 'this character has no story pack');
+      this.log(`[dev] turn ${input?.profileKey} on ${this.#howText(input)}: ${who}. ${result}`);
+    } catch {}
+  }
+
+  /** Developer mode only: a private turn of V's that never reached the pack logic (no bonds block, Story packs off in the block), said once per turn. Never throws. */
+  noDecision(input) {
+    try {
+      if (!this.#devOn() || !this.packs.size || !input || input.reaction || input.head || input.group || !bondable(input.profileKey)) return;
+      const id = turnId(input);
+      if (id && this.noted.has(id)) return;
+      if (id) { this.noted.add(id); while (this.noted.size > 64) this.noted.delete(this.noted.values().next().value); }
+      this.log(`[dev] turn ${input.profileKey} on ${this.#howText(input)}: no pack decision, ${this.#noPackReason(input) ?? 'the turn is not one the packs read'}`);
+    } catch {}
+  }
+
   /** "panam-palmer" -> "Panam Palmer" (a lasting line from another character says who it is from). */
   #nameOf(key) { return String(key).split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '); }
 
+  /** The turn's decision, with the turn's one Developer log line (turnLine) whatever came of it. */
   #decide(input, facts) {
+    this.turnNotes = this.#devOn() ? [] : null;
+    let decision = null;
+    try { decision = this.#decideTurn(input, facts); }
+    finally {
+      const notes = this.turnNotes;
+      this.turnNotes = null;
+      if (notes) this.#turnLine(input, facts, decision, notes);
+    }
+    return decision;
+  }
+
+  #decideTurn(input, facts) {
     const bonds = input?.bonds;
     if (!bonds?.on || !bonds.packs || input.reaction || input.head || input.event) return null;
     const reachBefore = this.settings.reach;
@@ -558,6 +594,7 @@ export class BondPacks {
       return decision.note ? decision : null;
     }
     const activeRow = mine.map(pack => [pack, this.entries.get(pack.id)]).find(([, entry]) => entry?.status === 'active');
+    if (!allowed) this.#note(`${channel} never starts or moves a pack (a pack runs on one of V's own copies, a phone chat or a holocall)`);
     if (activeRow && allowed) {
       const [pack, entry] = activeRow;
       // The story reached the quest this pack waits for to end (Jackie: The Heist): the pack ends unfinished, whatever else is going on.
@@ -565,6 +602,7 @@ export class BondPacks {
       if (stop && inventoryComplete(input.journalHistory) && finished(questState(input.journalHistory, stop.finished))) this.#go(pack, entry, stop.ending, gameSeconds, 'unfinished');
       // Paused (no new stage, no timer) while the character has a quest of their own going, the story is at its end, or the game is busy.
       const paused = entry.status === 'active' && (bonds.busy === true || !this.#quietJournal(pack, input.journalHistory));
+      if (paused) this.#note(`${pack.id} is running but paused: ${bonds.busy === true ? `the game is busy (${bonds.busyWhy ?? 'a scene, a choice, a fight or a call'})` : 'a quest of the game or the main story holds the moment'}`);
       if (!paused) {
         decision.evaluate = entry.presented === true;
         this.#resolve(pack, entry, {gameSeconds, eddiesRow: decision.eddiesRow});
@@ -635,13 +673,13 @@ export class BondPacks {
       } else if (entry || (quiet && !offered)) { this.#waits(pack.id, gameSeconds, entry ? `already ${entry.status === 'done' ? 'played' : 'running'}` : `quiet days after the last quest (${COOLDOWN_DAYS} game days)`); continue; }
       const gate = packGate(pack, {level, journalHistory: input.journalHistory, romance, channel, finishedPacks, busy: bonds.busy === true,
         settings: {eddies: bonds.eddies === true, invitations: bonds.invitations === true}, facts: pack.requires?.facts ? this.#facts() : null});
-      if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance})); continue; }
+      if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance, busyWhy: bonds.busyWhy})); continue; }
       // Fair starts (bridge/quest-start.mjs): a pack that opens with a call does not start in person, nor with her beside V or in V's party. And a pack that lapsed unseen or
       // unaccepted is left alone for a game day. Neither takes a roll of the dice.
       const allowed = startAllowed(pack, {channel, near, party});
       if (!allowed.ok) { this.#waits(pack.id, gameSeconds, allowed.why); continue; }
       const lapsed = meta.withdrawn[pack.id];
-      if (whole(lapsed) && gameSeconds >= lapsed && gameSeconds - lapsed < WITHDRAWN_DAYS * DAY) { this.#waits(pack.id, gameSeconds, 'it lapsed less than a game day ago'); continue; }
+      if (whole(lapsed) && gameSeconds >= lapsed && gameSeconds - lapsed < WITHDRAWN_DAYS * DAY) { this.#waits(pack.id, gameSeconds, 'V abandoned it less than a game day ago'); continue; }
       // The dice (DAILY_ROLLS above): only when a pack could start, every ROLL_EVERY_TURNS eligible turns, at most DAILY_ROLLS a game day per character.
       if (!offered && !this.fast) {
         if (meta.rolled !== today) { meta.rolled = today; meta.rolls = 0; meta.idle = ROLL_EVERY_TURNS - 1; }   // the first eligible turn of a game day rolls at once
@@ -663,8 +701,8 @@ export class BondPacks {
     if (stage.wants || variation?.wants) parts.push(`What you want from V: ${[stage.wants, variation?.wants].filter(Boolean).join(' ')}`);
     if (stage.meet) {
       parts.push(settings.invitations || pack.requires?.invitations !== true
-        ? near ? `You would like to go ${stage.meet.where === 'here' ? 'somewhere' : WHERE[stage.meet.where].replace(/^at /, 'to ')} together with V, within about ${stage.meet.inGameHours} game hours. V is beside you, so you go from here, and V arranges it with you in V's own words.`
-        : `You would like V to meet you ${WHERE[stage.meet.where]}, within about ${stage.meet.inGameHours} game hours. V arranges it with you in V's own words.`
+        ? near ? `You would like to go ${stage.meet.where === 'here' ? 'somewhere' : WHERE[stage.meet.where].replace(/^at /, 'to ')} together with V, whenever V can. V is beside you, so you go from here, and V arranges it with you in V's own words.`
+        : `You would like V to meet you ${WHERE[stage.meet.where]}, whenever V can, there is no rush. V arranges it with you in V's own words.`
         : 'You would like to meet V, but meetings cannot be arranged now: say you will sort it out yourself.');
     }
     if (!stage.meet && channel !== 'own' && !near) {
@@ -725,20 +763,14 @@ export class BondPacks {
       const decision = id ? this.turns.get(id) : this.forTurn(input);
       if (!decision?.pack) return;
       const {pack, gameSeconds} = decision;
-      // V's words over the phone or a holocall (she is not beside V) move the pack: a stage that needs her in person gets its travel allowance.
+      // V's words over the phone or a holocall with her far away move the pack: a stage that needs her in person is marked remote.
       this.remoteTurn = decision.channel !== 'own' && decision.near !== true;
-      // A phone or holocall turn with her beside V: no travel allowance (the bridge does not bring her to V), but the stage's clock still waits (stageSlack).
-      this.phoneTurn = decision.channel !== 'own' && decision.near === true;
       if (decision.start) {
         const known = this.entries.get(pack.id);
         if (known && (!decision.start.restart || known.status === 'active')) return;
         const variation = decision.start.variation;
-        const grace = this.remoteTurn ? travelGrace(pack, pack.stages[0]) : 0;
-        const wait = !grace && this.phoneTurn ? travelGrace(pack, pack.stages[0]) : 0;
-        // The start turn shows the stage when it has no call (her words are spoken or written in the reply). A call opening started on the phone or in person is shown
-        // only when the game rings it, and its timeout clock waits for that (clockStart).
-        const shownNow = presentedAtStart(pack, pack.stages[0], decision.channel);
-        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null, ...(grace ? {grace} : {}), ...(wait ? {wait} : {}), ...(shownNow ? {} : {unshown: true})}], presented: true, beat: null, accepted: false,
+        const remote = this.remoteTurn && inPerson(pack, pack.stages[0]).needs;
+        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null, ...(remote ? {remote: true} : {})}], presented: true, beat: null,
           ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
         this.entries.set(pack.id, entry);
         const meta = this.#meta(pack.character);
@@ -750,8 +782,7 @@ export class BondPacks {
         this.#enter(pack, pack.stages[0], gameSeconds);
         this.log(`pack=${pack.id} started on ${decision.channel} (stage ${pack.stages[0].id}${variation ? `, ${variation}` : ''}${decision.start.offered ? ', offered' : ''})`);
         this.#dev(`pack=${pack.id} start: ${decision.channel}, she is ${decision.near ? 'beside V' : 'apart from V'}${input.bonds?.copy === 'party' ? ' and in V\'s party' : ''}; the journal entry, the tracker and the map pin are made from the next play file, and the game shows a notice`);
-        this.#dev(shownNow ? `pack=${pack.id} presented: the start turn showed it (${decision.channel})` : `pack=${pack.id} not presented yet: its call has to ring first`);
-        this.#dev(`pack=${pack.id} stage ${pack.stages[0].id}: ${shownNow ? this.#clockLine(pack, pack.stages[0], entry) : 'the timeout clock waits for its call to be shown'}`);
+        this.#dev(`pack=${pack.id} no time limit: it stays open until V does it, says no or abandons it`);
         this.#schedule(); this.#effects();
         return;
       }
@@ -769,8 +800,6 @@ export class BondPacks {
         const tag = kind ? decision.gap.tags.find(item => item.kind === kind) : null;
         if (tag) { this.#gapTag(pack, entry, decision.gap.id, tag.id, gameSeconds); return; }
       }
-      // V says yes to what the character brought up (a turn after the one that brought it): the pack is taken up.
-      if (!entry.accepted && decision.evaluate && intentKind(words, ['yes']) === 'yes') { entry.accepted = true; this.#dev(`pack=${pack.id} accepted: V agreed in words`); this.#schedule(); }
       if (decision.story?.repay?.due && proposal?.story === decision.story.tag) { entry.beat = gameSeconds ?? null; this.#schedule(); }
       const moneyTurn = !!proposal?.story;
       if (decision.evaluate && !moneyTurn) {
@@ -779,11 +808,14 @@ export class BondPacks {
         const choice = kind ? tags.find(item => item.kind === kind) : null;
         if (choice) { this.#go(pack, entry, choice.next, gameSeconds, choice.id); return; }
       }
+      // V tells the character the whole thing is off ("forget it", "I give up"): the one way to close a quest without doing it, besides the journal (no time limit runs it out).
+      // A stage's own `no` answer was read first, so this only catches a line no choice took.
+      if (!moneyTurn && screenAbandon(words)) { this.abandon(pack.id, {gameSeconds, why: 'V told her it is off'}); return; }
       if (!entry.presented) { entry.presented = true; this.#schedule(); }
     } catch (error) {
       this.log(`record failed: ${String(error?.message ?? error).slice(0, 120)}`);
     } finally {
-      this.remoteTurn = false; this.phoneTurn = false;
+      this.remoteTurn = false;
     }
   }
 
@@ -892,7 +924,6 @@ export class BondPacks {
         if (entry?.status !== 'active') continue;
         const stage = this.#stageOf(pack, entry);
         const choice = stage?.choices?.find(item => item.on === `meet:${outcome}`);
-        entry.accepted = true;   // a meeting was arranged: V said yes to it
         this.#command(pack, entry, {cmd: 'event', name: `meet:${outcome}`});
         if (choice) { this.#go(pack, entry, choice.next, gameSeconds, choice.id); return choice.id; }
       }
@@ -911,7 +942,7 @@ export class BondPacks {
 
   /** V's words picked a gap's tag: the gap ends, the game is told (the tag's event, then the resume), and a stage waiting on the event moves. */
   #gapTag(pack, entry, gapId, tag, gameSeconds) {
-    entry.gap = null; entry.accepted = true;
+    entry.gap = null;
     this.#command(pack, entry, {cmd: 'event', name: `gap:${gapId}:${tag}`});
     this.#command(pack, entry, {cmd: 'resume', gap: gapId});
     this.log(`pack=${pack.id} gap ${gapId} tag ${tag}`);
@@ -920,7 +951,7 @@ export class BondPacks {
     this.#playChanged();
   }
 
-  /** A stage that waits on `event:<name>` moves, else a timeout that has run out may. Returns whether it moved. */
+  /** A stage that waits on `event:<name>` moves, else a finished Eddies transfer or a closing beat may. Returns whether it moved. */
   #moveOn(pack, entry, name, gameSeconds) {
     if (entry.status !== 'active') return false;
     const stage = this.#stageOf(pack, entry);
@@ -965,8 +996,7 @@ export class BondPacks {
   }
 
   /**
-   * An event the game saw ({pack, serial, name, at, data}). Opens and closes the talk gap, moves a stage that waits on it, applies a gift's bond and checks the stage's timeout
-   * against the event's game clock. An event for another stage (a different serial) is dropped. A `reach` event (pack "reach") starts a reach-out's cooldown. Returns whether the
+   * An event the game saw ({pack, serial, name, at, data}). Opens and closes the talk gap, moves a stage that waits on it and applies a gift's bond. An event for another stage (a different serial) is dropped. A `reach` event (pack "reach") starts a reach-out's cooldown. Returns whether the
    * quest moved. Never throws.
    */
   noteEvent({pack: packId, serial, name: rawName, at, data} = {}) {
@@ -979,12 +1009,12 @@ export class BondPacks {
       const pack = this.packs.get(packId), entry = this.entries.get(packId);
       if (!pack || entry?.status !== 'active' || typeof rawName !== 'string') return false;
       if (Number.isSafeInteger(serial) && serial !== entry.trail.length) return false;
-      const name = this.#unmap(pack, entry, rawName);
       const gameSeconds = whole(at) ? at : undefined;
       if (gameSeconds !== undefined) this.lastClock = Math.max(this.lastClock ?? 0, gameSeconds);
+      // V abandoned the quest in the game (the journal, or the developer probe): it closes at once, with no bond change (abandon).
+      if (rawName === QUEST_ABANDON) return this.abandon(packId, {gameSeconds, why: 'V abandoned it in the game'});
+      const name = this.#unmap(pack, entry, rawName);
       let match;
-      // The game showed the call (it rang, V answered, missed it, or its text went out): the stage's timeout clock starts now. Answering it is taking it up.
-      if (CALL_SHOWN.test(name)) this.#shown(pack, entry, name, gameSeconds);
       if ((match = /^gap:([a-z][a-z0-9-]*):open$/.exec(name)) && pack.gaps?.[match[1]]) {
         entry.gap = {id: match[1], openedAt: gameSeconds ?? null};
         this.#schedule(); this.#playChanged();
@@ -994,19 +1024,6 @@ export class BondPacks {
       } else if (name.startsWith('gift:')) this.#giftEvent(pack, entry, name, gameSeconds);
       return this.#moveOn(pack, entry, name, gameSeconds);
     } catch (error) { this.log(`event failed: ${String(error?.message ?? error).slice(0, 120)}`); return false; }
-  }
-
-  /** A call event of the current stage: the stage was shown, so its clock starts (once); an answered call is also V taking the quest up. */
-  #shown(pack, entry, name, gameSeconds) {
-    const last = entry.trail.at(-1);
-    if (CALL_ANSWERED.test(name) && !entry.accepted) { entry.accepted = true; this.#dev(`pack=${pack.id} accepted: V answered the call`); this.#schedule(); }
-    if (last.unshown !== true) return;
-    delete last.unshown;
-    if (whole(gameSeconds)) last.shownAt = gameSeconds;
-    const stage = this.#stageOf(pack, entry);
-    this.log(`pack=${pack.id} presented: ${name}`);
-    if (stage) this.#dev(`pack=${pack.id} stage ${stage.id}: ${this.#clockLine(pack, stage, entry)}`);
-    this.#schedule(); this.#playChanged();
   }
 
   #pruneClosing() {
@@ -1051,7 +1068,7 @@ export class BondPacks {
     const places = this.#variationOf(pack, entry)?.places;
     // A stage that V's words over the phone brought on (it carries a travel allowance) and that needs her in person gets the means of getting her to V: a pin and a cast of her
     // at the meeting place (both only while she has no copy of V's), a party join for a ride. A stage entered in person or by the game is the pack's own business.
-    const remote = entry.trail.at(-1).grace > 0;
+    const remote = entry.trail.at(-1).remote === true;
     return [...(stage.do ?? []), ...(remote ? rendezvousSpecs(pack, stage) : [])].map(spec => {
       let out = spec;
       if (spec?.p === 'gift' && spec.dir === 'receive') {
@@ -1102,10 +1119,9 @@ export class BondPacks {
         if (gap) gaps[key] = {...(gap.idle ? {idle: gap.idle} : {}), ...(gap.situation ? {situation: gap.situation} : {}), ...(gap.resumeAfterSeconds ? {resumeAfterSeconds: gap.resumeAfterSeconds} : {}),
           ...(gap.resumeOn ? {resumeOn: swap ? gap.resumeOn.map(name => remapName(name, swap)) : gap.resumeOn} : {})};
       }
-      const timeoutAt = this.#timeoutAt(pack, entry, stage) ?? undefined;
       const gifts = doList.some(spec => spec?.p === 'gift' && spec.dir === 'give') ? likesFor(pack.character) : null;
       quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: doList, script,
-        ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {}), ...(entry.via ? {via: entry.via} : {}),
+        ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(entry.via ? {via: entry.via} : {}),
         ...(Object.keys(calls).length ? {calls} : {}), ...(stage.music ? {music: swap ? remapSounds(stage.music, swap) : stage.music} : {}),
         ...(stage.sfx ? {sfx: swap ? remapSounds(stage.sfx, swap) : stage.sfx} : {}), ...(stage.situation ? {situation: stage.situation} : {}), ...(gifts ? {gifts} : {})});
     }

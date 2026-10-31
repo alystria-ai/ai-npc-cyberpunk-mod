@@ -113,8 +113,7 @@
         {"id": "off", "on": "event:gap:g1:off", "next": "no"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "no"}
-      ],
-      "timeout": {"gameHours": 2, "next": "no"}
+      ]
     },
     {
       "id": "climb",
@@ -133,8 +132,7 @@
         {"when": "place:roof:arrived", "say": "S6.bark.arrive.a"},
         {"when": "line:S6.bark.arrive.a:done", "say": "S6.c.02"}
       ],
-      "choices": [{"id": "looking", "on": "event:line:S6.c.02:done", "next": "sky"}],
-      "timeout": {"gameHours": 2, "next": "sky"}
+      "choices": [{"id": "looking", "on": "event:line:S6.c.02:done", "next": "sky"}]
     },
     {
       "id": "sky",
@@ -163,8 +161,7 @@
         {"id": "free", "on": "event:gap:g2:free", "next": "free-path"},
         {"id": "ask", "on": "event:gap:g2:ask", "next": "ask-path"},
         {"id": "quiet", "on": "event:gap:g2:resume", "next": "quiet"}
-      ],
-      "timeout": {"gameHours": 24, "next": "weather"}
+      ]
     },
     {
       "id": "stay-path",
@@ -179,8 +176,7 @@
         {"when": "line:S6.a.01:done", "say": "S6.a.06"},
         {"when": "line:S6.a.06:done", "gap": "g4"}
       ],
-      "choices": [{"id": "named", "on": "event:gap:g4:resume", "next": "send"}],
-      "timeout": {"gameHours": 2, "next": "send"}
+      "choices": [{"id": "named", "on": "event:gap:g4:resume", "next": "send"}]
     },
     {
       "id": "send",
@@ -195,8 +191,7 @@
         {"when": "line:S6.a.07:done", "text": "S6.a.08", "image": "sky-window"},
         {"when": "line:S6.a.07:done", "gap": "g3"}
       ],
-      "choices": [{"id": "answered", "on": "event:gap:g3:resume", "next": "kept"}],
-      "timeout": {"gameHours": 2, "next": "kept"}
+      "choices": [{"id": "answered", "on": "event:gap:g3:resume", "next": "kept"}]
     },
     {
       "id": "free-path",
@@ -207,8 +202,7 @@
       "wants": "V to hear the thanks.",
       "do": [{"p": "remote"}],
       "script": [{"when": "stage:enter", "say": "S6.a.02"}],
-      "choices": [{"id": "thanked", "on": "event:line:S6.a.02:done", "next": "free"}],
-      "timeout": {"gameHours": 2, "next": "free"}
+      "choices": [{"id": "thanked", "on": "event:line:S6.a.02:done", "next": "free"}]
     },
     {
       "id": "ask-path",
@@ -219,8 +213,7 @@
       "wants": "V to accept the answer.",
       "do": [{"p": "remote"}],
       "script": [{"when": "stage:enter", "say": "S6.a.03"}],
-      "choices": [{"id": "answered", "on": "event:line:S6.a.03:done", "next": "kept"}],
-      "timeout": {"gameHours": 2, "next": "kept"}
+      "choices": [{"id": "answered", "on": "event:line:S6.a.03:done", "next": "kept"}]
     }
   ],
   "endings": {
@@ -242,11 +235,6 @@
         {"when": "ending:quiet", "say": "S6.a.04"},
         {"when": "ending:quiet", "text": "S6.close.03"}
       ]
-    },
-    "weather": {
-      "memory": "The cloud never lifted over your roof, and Songbird said she would call when it did.",
-      "bond": 40,
-      "script": [{"when": "ending:weather", "text": "S6.close.04"}]
     },
     "no": {
       "memory": "You did not go up to the roof for Songbird, and she did not call for a while.",

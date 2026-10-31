@@ -108,8 +108,7 @@
         {"id": "yes", "on": "event:gap:g1:yes", "next": "lobby"},
         {"id": "no", "on": "event:gap:g1:no", "next": "stood-up"},
         {"id": "hangup", "on": "event:call:ci:hung-up", "next": "stood-up"}
-      ],
-      "timeout": {"gameHours": 1, "next": "stood-up"}
+      ]
     },
     {
       "id": "lobby",
@@ -141,8 +140,7 @@
         {"id": "confess", "on": "event:npc:leak-react:obey", "next": "dawn-caught"},
         {"id": "fight", "on": "event:npc:leak-react:attack", "next": "catch"},
         {"id": "missed", "on": "event:timer:watch", "next": "catch"}
-      ],
-      "timeout": {"gameHours": 1, "next": "catch"}
+      ]
     },
     {
       "id": "catch",
@@ -164,8 +162,7 @@
       ],
       "choices": [
         {"id": "held", "on": "event:squad:hotel-squad:down", "next": "dawn-fought"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lost-client"}
+      ]
     },
     {
       "id": "dawn-caught",
@@ -184,8 +181,7 @@
       "choices": [
         {"id": "loyal", "on": "event:gap:g3:loyal", "next": "caught"},
         {"id": "cold", "on": "event:gap:g3:cold", "next": "caught"}
-      ],
-      "timeout": {"gameHours": 1, "next": "caught"}
+      ]
     },
     {
       "id": "dawn-fought",
@@ -202,8 +198,7 @@
       "choices": [
         {"id": "loyal", "on": "event:gap:g3:loyal", "next": "fought"},
         {"id": "cold", "on": "event:gap:g3:cold", "next": "fought"}
-      ],
-      "timeout": {"gameHours": 1, "next": "fought"}
+      ]
     }
   ],
   "endings": {
@@ -215,11 +210,6 @@
     "fought": {
       "memory": "You found out too late, and you and Rogue held the capsule hotel corridor until the squad was down.",
       "bond": 55
-    },
-    "lost-client": {
-      "memory": "You did not find the leak in time, and Rogue's client was taken from the hotel.",
-      "bond": 15,
-      "script": [{"when": "ending:lost-client", "say": "R5.close.03"}]
     },
     "stood-up": {
       "memory": "You did not answer Rogue's call for help, and she found another way.",

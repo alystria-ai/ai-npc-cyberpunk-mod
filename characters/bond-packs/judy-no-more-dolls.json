@@ -94,8 +94,7 @@
       "choices": [
         {"id": "together", "on": "tag", "means": "V lets Judy come along to the den", "kind": "yes", "next": "together-go"},
         {"id": "alone", "on": "tag", "means": "V tells Judy to stay out and keep the van", "kind": "no", "next": "den"}
-      ],
-      "timeout": {"gameHours": 0.5, "next": "together-go"}
+      ]
     },
     {
       "id": "together-go",
@@ -105,8 +104,7 @@
       "know": "Judy is coming into the den with you.",
       "wants": "V to go in now.",
       "script": [{"when": "stage:enter", "say": "J5.found.05"}],
-      "choices": [{"id": "go", "on": "event:line:J5.found.05:done", "next": "den"}],
-      "timeout": {"gameHours": 0.5, "next": "den"}
+      "choices": [{"id": "go", "on": "event:line:J5.found.05:done", "next": "den"}]
     },
     {
       "id": "den",
@@ -135,8 +133,7 @@
         {"id": "sneaked", "on": "event:unseen:sneak:reached", "next": "chair-quiet"},
         {"id": "fought", "on": "event:place:chair:arrived", "next": "chair"},
         {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "chair-quiet",
@@ -151,8 +148,7 @@
       "choices": [
         {"id": "freed", "on": "event:hostage:rina:freed", "next": "saved-unseen"},
         {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "chair",
@@ -176,8 +172,7 @@
       "choices": [
         {"id": "freed", "on": "event:hostage:rina:freed", "next": "out"},
         {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "out",
@@ -199,8 +194,7 @@
       "choices": [
         {"id": "van", "on": "event:place:van:arrived", "next": "ride"},
         {"id": "lost", "on": "event:escortee:rina:lost", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "ride",
@@ -210,13 +204,11 @@
       "know": "Rina is in the van with you. Lizzie's basement is across the city.",
       "wants": "V to drive Rina to Lizzie's.",
       "do": [
-        {"p": "ride", "to": "basement", "limitMinutes": 30}
+        {"p": "ride", "to": "basement"}
       ],
       "choices": [
-        {"id": "arrived", "on": "event:ride:arrived", "next": "after"},
-        {"id": "timed", "on": "event:ride:timeout", "next": "after"}
-      ],
-      "timeout": {"gameHours": 1, "next": "after"}
+        {"id": "arrived", "on": "event:ride:arrived", "next": "after"}
+      ]
     },
     {
       "id": "after",
@@ -237,8 +229,7 @@
         {"when": "gap:g3:resume", "say": "J5.after.03"},
         {"when": "line:J5.after.03:done", "say": "J5.after.04"}
       ],
-      "choices": [{"id": "sat", "on": "event:together:after-sit:done", "next": "saved"}],
-      "timeout": {"gameHours": 1, "next": "saved"}
+      "choices": [{"id": "sat", "on": "event:together:after-sit:done", "next": "saved"}]
     }
   ],
   "endings": {

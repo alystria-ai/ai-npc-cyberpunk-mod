@@ -462,19 +462,17 @@ assert(#game.phones == 1 and game.phones[1].text == 'Words.' and #game.subtitles
 local e = events().events; assert(e[#e].name == 'line:P3.c:done' and e[#e].serial == 6, e[#e].name)
 `));
 
-test('a stage with no timeoutAt has no timer; when the bridge starts its clock later (its call was shown) the same stage gets the timer, once, and a new moment moves it', () => withGame(`
--- The call has not been shown: the bridge sends no timeoutAt, so nothing times out however long the game runs.
-file({quest({stage = 'call'})}); play.restore()
+test('no time limit: a stage has no timer, even when an older bridge writes a timeoutAt, and V can abandon a quest (the event goes to the bridge)', () => withGame(`
+-- A quest stage never times out in the game: not with no timeoutAt, not with one an older bridge still wrote, however long the game runs.
+file({quest({stage = 'call', timeoutAt = game.gameClock + 60})}); play.restore()
 step(30)
-assert(not names():find('stage:timeout', 1, true), 'no timer before the call was shown')
--- The call rang: the same stage, same serial, now with the moment its clock runs out (60 game seconds on). The stage is not restarted.
-file({quest({stage = 'call', timeoutAt = game.gameClock + 60})}); step(1.1)
-assert(count('stage:enter') == 1, 'the stage was not started again')
-assert(logged('timeout clock runs'), 'and the game says its clock runs')
-step(30); assert(not names():find('stage:timeout', 1, true), 'not yet')
--- A later moment replaces the first one.
-local first = game.gameClock + 30
-file({quest({stage = 'call', timeoutAt = game.gameClock + 120})}); step(1.1)
-step(40); assert(not names():find('stage:timeout', 1, true), 'the earlier moment no longer fires')
-step(90); assert(count('stage:timeout') == 1, 'and the new moment fires once: ' .. names())
+assert(count('stage:enter') == 1, 'the stage started once')
+assert(not names():find('stage:timeout', 1, true), 'no timer: ' .. names())
+assert(not logged('timeout clock runs'), 'and the game never says a clock runs')
+step(300); assert(not names():find('stage:timeout', 1, true), 'no timer however long it runs')
+-- V abandons it: the event reaches the bridge with the stage's serial, and a pack that is not armed says no.
+assert(play.abandonQuest('panam-sunset-coffee') == true)
+step(1.1)
+assert(count('quest:abandon') == 1, names())
+assert(play.abandonQuest('no-such-pack') == false)
 `));

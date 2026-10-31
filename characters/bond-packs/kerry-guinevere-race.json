@@ -62,8 +62,7 @@
       "choices": [
         {"id": "race", "on": "event:gap:g1:race", "next": "start"},
         {"id": "no", "on": "event:gap:g1:no", "next": "no"}
-      ],
-      "timeout": {"gameHours": 6, "next": "no"}
+      ]
     },
     {
       "id": "start",
@@ -80,8 +79,7 @@
       ],
       "choices": [
         {"id": "ready", "on": "event:place:gate:arrived", "next": "race"}
-      ],
-      "timeout": {"gameHours": 1, "next": "no"}
+      ]
     },
     {
       "id": "race",
@@ -91,23 +89,20 @@
       "know": "The race is on from the North Oak gate to the Atlantis Stadium lot in Heywood. Guinevere is in front of you or behind you, and a wanted level would void the race.",
       "wants": "To beat V to the lot, or to lose to them and be proud of it.",
       "do": [
-        {"p": "race", "id": "dash", "from": "gate", "to": "finish", "heat": true, "limitMinutes": 30}
+        {"p": "race", "id": "dash", "from": "gate", "to": "finish", "heat": true}
       ],
       "script": [
         {"when": "stage:enter", "say": "K3.stage.start.01"},
         {"when": "line:K3.stage.start.01:done", "event": "race:dash:go"},
         {"when": "race:dash:won", "say": "K3.bark.won.b"},
         {"when": "race:dash:lost", "say": "K3.bark.won.a"},
-        {"when": "race:dash:void", "say": "K3.bark.void.a"},
-        {"when": "race:dash:timeout", "say": "K3.bark.void.b"}
+        {"when": "race:dash:void", "say": "K3.bark.void.a"}
       ],
       "choices": [
         {"id": "v-won", "on": "event:race:dash:won", "next": "won-by-v"},
         {"id": "k-won", "on": "event:race:dash:lost", "next": "won-by-kerry"},
-        {"id": "void", "on": "event:race:dash:void", "next": "void"},
-        {"id": "timed-out", "on": "event:race:dash:timeout", "next": "void"}
-      ],
-      "timeout": {"gameHours": 1, "next": "void"}
+        {"id": "void", "on": "event:race:dash:void", "next": "void"}
+      ]
     }
   ],
   "endings": {

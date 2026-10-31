@@ -49,12 +49,11 @@
       "objective": "Sing with Takemura at the Japantown karaoke bar",
       "know": "You are at a small karaoke bar in Japantown with Takemura. The machine has only pop, and he has decided to sing enka.",
       "wants": "V to sing and to keep a straight face.",
-      "meet": {"where": "waypoint", "inGameHours": 4},
+      "meet": {"where": "waypoint"},
       "do": [{"p": "place", "at": "spot"}],
       "script": [{"when": "place:spot:arrived", "gap": "g1"}],
       "choices": [
-        {"id": "met", "on": "meet:met", "next": "done"},
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+        {"id": "met", "on": "meet:met", "next": "done"}
       ]
     }
   ],
@@ -62,9 +61,6 @@
     "done": {
       "memory": "You sang at a Japantown karaoke bar with Takemura, and he sang one enka verse flat and with total dignity while the bar went quiet.",
       "bond": 8
-    },
-    "stood-up": {
-      "memory": "You did not come to the karaoke bar, and Takemura sang nothing that night."
     }
   }
 }

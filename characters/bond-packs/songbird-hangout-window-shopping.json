@@ -56,7 +56,7 @@
       "objective": "Walk the Grand Imperial Mall while Songbird picks things",
       "know": "V is walking through the Grand Imperial Mall. You pick one small item per shop for V, and you watch what V looks at.",
       "wants": "V's honest choice, and a refusal you can learn from.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "spot"},
         {"p": "place", "at": "spot"},
@@ -69,12 +69,10 @@
         {"when": "place:spot-b:arrived", "gap": "g1"}
       ],
       "choices": [
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
         {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
         {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
         {"id": "no", "on": "event:gap:g1:no", "next": "left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -88,9 +86,6 @@
     },
     "left": {
       "memory": "You looked through a few shops in the Grand Imperial Mall with Songbird and left before the lights went down."
-    },
-    "stood-up": {
-      "memory": "You never came to the Grand Imperial Mall, and Songbird picked nothing for you."
     }
   }
 }

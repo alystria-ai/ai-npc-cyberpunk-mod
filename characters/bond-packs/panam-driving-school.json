@@ -73,8 +73,7 @@
       "choices": [
         {"id": "bet", "on": "event:gap:g1:bet", "next": "run"},
         {"id": "pass", "on": "event:gap:g1:pass", "next": "chicken"}
-      ],
-      "timeout": {"gameHours": 2, "next": "chicken"}
+      ]
     },
     {
       "id": "run",
@@ -85,7 +84,7 @@
       "know": "V is at the wheel of the car and Panam is in the passenger seat. The route runs through the riverbed, the turbines, the ramp and the old rail bridge, back to the Sunset Motel. The time limit is six game minutes.",
       "wants": "V to run the route under Panam's time.",
       "do": [
-        {"p": "ride", "to": "sunset", "checkpoints": ["riverbed", "turbines", "ramp", "bridge"], "limitMinutes": 6}
+        {"p": "ride", "to": "sunset", "checkpoints": ["riverbed", "turbines", "ramp", "bridge"]}
       ],
       "script": [
         {"when": "stage:enter", "say": "P3.run.01"},
@@ -97,10 +96,8 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "her-turn"},
-        {"id": "late", "on": "event:ride:timeout", "next": "pass-grade"},
         {"id": "crashed", "on": "event:ride:abandoned", "next": "crash-out"}
-      ],
-      "timeout": {"gameHours": 2, "next": "crash-out"}
+      ]
     },
     {
       "id": "her-turn",
@@ -115,7 +112,9 @@
       "script": [
         {"when": "stage:enter", "say": "P3.her.01"}
       ],
-      "timeout": {"gameHours": 1, "next": "ace"}
+      "choices": [
+        {"id": "done", "on": "event:line:P3.her.01:done", "next": "ace"}
+      ]
     }
   ],
   "endings": {
@@ -123,11 +122,6 @@
       "memory": "You beat the kids' route through the Badlands under Panam's time, and she made you swear not to tell Mitch.",
       "bond": 50,
       "script": [{"when": "ending:ace", "text": "P3.grade.01", "image": "driving-school-dust"}]
-    },
-    "pass-grade": {
-      "memory": "You ran the kids' route through the Badlands and ran out of time, but Panam says you are not bad for a city driver.",
-      "bond": 40,
-      "script": [{"when": "ending:pass-grade", "say": "P3.grade.02"}]
     },
     "crash-out": {
       "memory": "You gave up on the kids' route, or wrecked the car, and Panam is still laughing about it.",

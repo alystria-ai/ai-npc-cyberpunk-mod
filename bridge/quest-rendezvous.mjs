@@ -9,10 +9,8 @@
 //                               whether a party copy is needed (a ride, a seat).
 //   rendezvousSpecs(pack, stage) the `do` entries the bridge adds to the play file so she can be got to V: a pin and a cast of her at the meeting place, both only while she
 //                               has no copy of V's, and a party join for a ride or a seat.
-//   travelGrace(pack, stage)    game seconds added to the stage's timeout when it was entered by words over the phone (V needs time to travel).
 //
 // The meeting place of a stage is `meetAt` (an optional place id of the pack), else the place its pin marks, else the first place V is sent to.
-export const TRAVEL_GRACE_HOURS = 6;
 /** Primitives that are played by her copy beside V (a ride needs her in the car, a seat beside V, a hangout activity with V). */
 const NEEDS_COPY = new Set(['ride', 'seat', 'together', 'party']);
 /** Primitives that need the copy to be one of V's party (the line of sight is not enough). */
@@ -83,9 +81,4 @@ export function rendezvousSpecs(pack, stage) {
   }
   if (found.party && !doList.some(spec => spec.p === 'party')) specs.push({p: 'party'});
   return specs;
-}
-
-/** Game seconds a stage's timeout is stretched by when V answered it over the phone: travel time V could never meet. */
-export function travelGrace(pack, stage) {
-  return inPerson(pack, stage).needs ? TRAVEL_GRACE_HOURS * 3600 : 0;
 }

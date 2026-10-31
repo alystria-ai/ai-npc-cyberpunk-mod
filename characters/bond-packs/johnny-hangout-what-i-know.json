@@ -55,8 +55,7 @@
       "choices": [
         {"id": "right", "on": "event:gap:g1:right", "next": "right"},
         {"id": "wrong", "on": "event:gap:g1:wrong", "next": "wrong"}
-      ],
-      "timeout": {"gameHours": 2, "next": "wrong"}
+      ]
     }
   ],
   "endings": {

@@ -55,8 +55,7 @@
       "choices": [
         {"id": "commit", "on": "event:gap:g1:commit", "next": "fair"},
         {"id": "refuse", "on": "event:gap:g1:refuse", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 2, "next": "lost"}
+      ]
     }
   ],
   "endings": {

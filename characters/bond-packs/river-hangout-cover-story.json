@@ -65,8 +65,7 @@
       "choices": [
         {"id": "coffee", "on": "event:npc:vendor-react:obey", "next": "coffee"},
         {"id": "caught", "on": "event:npc:vendor-react:leave", "next": "caught"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -77,9 +76,6 @@
     "caught": {
       "memory": "The vendor at the Santo Domingo night market saw through your alias within a minute, but the story kept River laughing.",
       "bond": 4
-    },
-    "stood-up": {
-      "memory": "You never came to the Santo Domingo night market, and River told his alias to the vendor alone."
     }
   }
 }

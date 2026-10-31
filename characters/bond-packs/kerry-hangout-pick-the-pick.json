@@ -66,8 +66,7 @@
       "choices": [
         {"id": "right", "on": "event:gap:g1:right", "next": "right"},
         {"id": "wrong", "on": "event:gap:g1:wrong", "next": "wrong"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -80,10 +79,6 @@
       "memory": "You picked the wrong guitar in a North Oak shop, and Kerry said he had been trying to trick you.",
       "bond": 6,
       "script": [{"when": "ending:wrong", "text": "KH1.end.wrong"}]
-    },
-    "stood-up": {
-      "memory": "You did not show up to the guitar shop in North Oak, and Kerry went in alone.",
-      "bond": 0
     }
   }
 }

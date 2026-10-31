@@ -78,8 +78,7 @@
       "choices": [
         {"id": "follow", "on": "event:gap:g1:follow", "next": "tail"},
         {"id": "leave", "on": "event:gap:g1:leave", "next": "shrug"}
-      ],
-      "timeout": {"gameHours": 4, "next": "shrug"}
+      ]
     },
     {
       "id": "tail",
@@ -107,8 +106,7 @@
       "choices": [
         {"id": "arrived", "on": "event:place:office:arrived", "next": "lobby"},
         {"id": "lost", "on": "event:tail:watch:lost", "next": "lost"}
-      ],
-      "timeout": {"gameHours": 4, "next": "lost"}
+      ]
     },
     {
       "id": "lobby",
@@ -132,8 +130,7 @@
         {"id": "left", "on": "event:npc:react:leave", "next": "office"},
         {"id": "cowered", "on": "event:npc:react:cower", "next": "heat"},
         {"id": "police", "on": "event:npc:react:call-police", "next": "heat"}
-      ],
-      "timeout": {"gameHours": 2, "next": "shrug"}
+      ]
     }
   ],
   "endings": {

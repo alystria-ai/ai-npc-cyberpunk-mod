@@ -101,8 +101,7 @@
       ],
       "choices": [
         {"id": "came", "on": "event:place:warehouse:arrived", "next": "approach"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "approach",
@@ -133,8 +132,7 @@
         {"id": "sneaked", "on": "event:unseen:sneak:reached", "next": "ward"},
         {"id": "fought", "on": "event:squad:crew:hostile", "next": "ward"},
         {"id": "attacked", "on": "event:npc:react:attack", "next": "ward"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "ward",
@@ -165,8 +163,7 @@
         {"id": "done", "on": "event:together:ward:done", "next": "out"},
         {"id": "broken", "on": "event:together:ward:broken", "next": "too-late"},
         {"id": "dead", "on": "event:hostage:viktor-hold:dead", "next": "lost-patient"}
-      ],
-      "timeout": {"gameHours": 1, "next": "too-late"}
+      ]
     },
     {
       "id": "out",
@@ -178,7 +175,7 @@
       "do": [
         {"p": "cast", "id": "viktor", "who": "self", "at": "ward", "carry": true},
         {"p": "escortee", "id": "out", "from": "viktor", "to": "clinic", "metres": 10},
-        {"p": "ride", "to": "clinic", "limitMinutes": 30}
+        {"p": "ride", "to": "clinic"}
       ],
       "script": [
         {"when": "stage:enter", "say": "V5.s3.07"},
@@ -189,10 +186,8 @@
       ],
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "close"},
-        {"id": "late", "on": "event:ride:timeout", "next": "close"},
         {"id": "abandoned", "on": "event:ride:abandoned", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 1, "next": "close"}
+      ]
     },
     {
       "id": "close",
@@ -211,8 +206,7 @@
       "choices": [
         {"id": "spoke", "on": "tag", "kind": "honest", "means": "V says what the night was like.", "next": "clean"},
         {"id": "silent", "on": "tag", "kind": "no", "means": "V stays silent, and Viktor accepts the silence.", "next": "clean"}
-      ],
-      "timeout": {"gameHours": 1, "next": "clean"}
+      ]
     }
   ],
   "endings": {

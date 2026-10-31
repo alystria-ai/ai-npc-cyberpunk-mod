@@ -94,8 +94,7 @@
         {"p": "cast", "id": "judy", "who": "self", "at": "flat"}
       ],
       "script": [{"when": "stage:enter", "text": "J6.gift.01"}],
-      "choices": [{"id": "came", "on": "event:place:flat:arrived", "next": "bd"}],
-      "timeout": {"gameHours": 3, "next": "missed"}
+      "choices": [{"id": "came", "on": "event:place:flat:arrived", "next": "bd"}]
     },
     {
       "id": "bd",
@@ -123,8 +122,7 @@
         {"when": "gap:b5:resume", "text": "J6.bd.06", "image": "grandpa-bd-hill"},
         {"when": "line:J6.bd.06:done", "say": "J6.bd.07"}
       ],
-      "choices": [{"id": "watched", "on": "event:line:J6.bd.07:done", "next": "drive"}],
-      "timeout": {"gameHours": 2, "next": "drive"}
+      "choices": [{"id": "watched", "on": "event:line:J6.bd.07:done", "next": "drive"}]
     },
     {
       "id": "drive",
@@ -143,8 +141,7 @@
         {"when": "line:J6.drive.01:done", "say": "J6.drive.02"},
         {"when": "timer:drive-sing", "say": "J6.drive.03"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:lakeshore:arrived", "next": "frame"}],
-      "timeout": {"gameHours": 2, "next": "frame"}
+      "choices": [{"id": "arrived", "on": "event:place:lakeshore:arrived", "next": "frame"}]
     },
     {
       "id": "frame",
@@ -169,8 +166,7 @@
         {"id": "held", "on": "event:line:J6.frame.05:done", "next": "stay"},
         {"id": "walked", "on": "event:apart:frame-hold:far", "next": "rushed"},
         {"id": "broke", "on": "event:apart:frame-hold:broken", "next": "rushed"}
-      ],
-      "timeout": {"gameHours": 1, "next": "rushed"}
+      ]
     },
     {
       "id": "stay",
@@ -190,8 +186,7 @@
         {"when": "gap:s1:resume", "say": "J6.stay.02"},
         {"when": "line:J6.stay.02:done", "text": "J6.end.03", "image": "grandpa-bd-now"}
       ],
-      "choices": [{"id": "sat", "on": "event:together:view:done", "next": "frame-end"}],
-      "timeout": {"gameHours": 2, "next": "frame-end"}
+      "choices": [{"id": "sat", "on": "event:together:view:done", "next": "frame-end"}]
     }
   ],
   "endings": {
@@ -208,10 +203,6 @@
         {"when": "ending:rushed", "say": "J6.frame.06"},
         {"when": "ending:rushed", "say": "J6.end.02"}
       ]
-    },
-    "missed": {
-      "memory": "You never came to Judy's flat to see the braindance, so she kept her grandfather's recording to herself.",
-      "bond": -5
     }
   }
 }

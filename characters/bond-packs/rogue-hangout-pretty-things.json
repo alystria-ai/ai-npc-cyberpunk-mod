@@ -174,20 +174,10 @@
           "means": "V will not answer the question",
           "kind": "no",
           "next": "refused"
-        },
-        {
-          "id": "stood",
-          "on": "meet:stood-up",
-          "next": "stood-up"
         }
       ],
       "meet": {
-        "where": "waypoint",
-        "inGameHours": 3
-      },
-      "timeout": {
-        "gameHours": 1,
-        "next": "refused"
+        "where": "waypoint"
       }
     }
   ],
@@ -199,9 +189,6 @@
     "refused": {
       "memory": "You walked the gallery with Rogue and would not say which piece Johnny would hate.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "V did not come to the gallery opening, and Rogue looked at the paintings alone."
     }
   }
 }

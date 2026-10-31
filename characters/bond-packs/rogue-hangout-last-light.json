@@ -151,20 +151,10 @@
           "means": "V picks no glass",
           "kind": "no",
           "next": "declined"
-        },
-        {
-          "id": "stood",
-          "on": "meet:stood-up",
-          "next": "stood-up"
         }
       ],
       "meet": {
-        "where": "waypoint",
-        "inGameHours": 3
-      },
-      "timeout": {
-        "gameHours": 0.1,
-        "next": "declined"
+        "where": "waypoint"
       }
     }
   ],
@@ -180,9 +170,6 @@
     "declined": {
       "memory": "You would not pick a glass at sunset, and the bartender poured one for you anyway.",
       "bond": 6
-    },
-    "stood-up": {
-      "memory": "V did not come to the bar at sunset, and Rogue watched the light go alone."
     }
   }
 }

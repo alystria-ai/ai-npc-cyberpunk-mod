@@ -53,7 +53,7 @@
       "objective": "Keep watch on the water tower roof while Songbird sleeps",
       "know": "V is on the water tower roof in Dogtown. You are going to sleep for the first time in two days, and you are glad it is V who is watching.",
       "wants": "V to keep watch quietly and tell you honestly what you said.",
-      "meet": {"where": "waypoint", "inGameHours": 3},
+      "meet": {"where": "waypoint"},
       "do": [
         {"p": "pin", "at": "spot"},
         {"p": "place", "at": "spot"},
@@ -66,12 +66,10 @@
         {"when": "line:SBH5.ask.01:done", "gap": "g1"}
       ],
       "choices": [
-        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
         {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
         {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
         {"id": "no", "on": "event:gap:g1:no", "next": "left"}
-      ],
-      "timeout": {"gameHours": 3, "next": "left"}
+      ]
     }
   ],
   "endings": {
@@ -85,9 +83,6 @@
     },
     "left": {
       "memory": "You left the water tower roof before Songbird woke, and she never asked what you heard."
-    },
-    "stood-up": {
-      "memory": "You never climbed to the water tower roof in Dogtown, and Songbird slept without anyone watching."
     }
   }
 }

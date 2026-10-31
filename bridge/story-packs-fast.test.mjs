@@ -1,7 +1,8 @@
 // Two things from the live test of 31 Oct 2026 (docs/STORY_PACKS_INACTIVE.md):
 //   1. the development fast switch: runtime/story-packs-dev-fast.flag (bridge/story-packs-gate.mjs storyPacksFast), which only works while the story packs switch is on, and what it does to
 //      the runner (no quiet days, no daily rolls, a start chance of 1, said once in the log);
-//   2. a pack brought on over the phone or a holocall while she is beside V: its stage clock waits (the `wait` of a trail step) instead of running out in 2 game hours unseen.
+//   2. a pack brought on over the phone or a holocall with her beside V or far away has no clock at all (owner decision 1 Nov 2026): the stage that used to run out in 2 game
+//      hours unseen stays open for as long as V takes.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync, writeFileSync, rmSync, readFileSync} from 'node:fs';
@@ -10,7 +11,6 @@ import path from 'node:path';
 import {configureStoryPacksGate, resetStoryPacksGate, storyPacksAvailable, storyPacksFast, STORY_PACKS_ENV, STORY_PACKS_FLAG, STORY_PACKS_FAST_ENV, STORY_PACKS_FAST_FLAG} from './story-packs-gate.mjs';
 import {BondPacks, DAILY_ROLLS, COOLDOWN_DAYS} from './bond-pack-runner.mjs';
 import {shippedPacks} from './bond-packs.mjs';
-import {TRAVEL_GRACE_HOURS} from './quest-rendezvous.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 
 const DAY = 86400, HOUR = 3600;
@@ -106,35 +106,31 @@ test('fast keeps the gate: a pack whose requirements are not met still waits', (
   assert.equal(entryOf(runner), undefined, 'bond level 1 is below the pack\'s bond 5');
 });
 
-test('begun on a holocall with her beside V the stage clock waits as long as the travel allowance, with no rendezvous means added', async () => {
+test('begun on a holocall with her beside V or far away: no clock, no wait, no travel allowance, the stage stays open for as long as V takes, and the state has none to keep', async () => {
   const {runner, files} = make({random: () => 0});
   talk(runner, turn('holocall', T0), {level: 6, near: true});
   const step = entryOf(runner).trail.at(-1);
-  assert.equal(step.grace, undefined, 'no travel allowance: she is beside V');
-  assert.equal(step.wait, TRAVEL_GRACE_HOURS * HOUR);
+  assert.deepEqual(Object.keys(step).sort(), ['at', 'stage'], 'a trail step has no grace, wait or clock fields');
   const dare = runner.playState().quests[0];
   assert.deepEqual(dare.do.map(spec => spec.p), ['pin'], 'nothing is added to bring her to V');
-  assert.equal(dare.timeoutAt, T0 + (6 + TRAVEL_GRACE_HOURS) * HOUR, 'the game is told the same moment (the pack says 2, a first stage runs at least 6)');
-  talk(runner, turn('holocall', T0 + 3 * HOUR, 'one moment'), {level: 6, near: true});
-  assert.equal(entryOf(runner).trail.at(-1).stage, 'dare', 'not timed out after 3 hours (the stage\'s own timeout is 2, a first stage runs at least 6)');
+  assert.equal(dare.timeoutAt, undefined, 'and the game is told no timeout');
+  for (const hours of [3, 12, 24 * 30]) {
+    talk(runner, turn('holocall', T0 + hours * HOUR, 'one moment'), {level: 6, near: true});
+    assert.equal(entryOf(runner).trail.at(-1).stage, 'dare', `still open after ${hours} game hours`);
+  }
   await runner.flush();
   const again = make({random: () => 0, read: async file => files.get(file)}).runner;
   await again.load();
-  assert.equal(again.entries.get('panam-driving-school').trail.at(-1).wait, TRAVEL_GRACE_HOURS * HOUR, 'kept across a restart of the bridge');
-  talk(runner, turn('holocall', T0 + (6 + TRAVEL_GRACE_HOURS) * HOUR + 60, 'hello?'), {level: 6, near: true});
-  assert.equal(entryOf(runner).trail.at(-1).stage, 'chicken', 'and it still comes');
+  assert.equal(again.entries.get('panam-driving-school').trail.at(-1).stage, 'dare', 'kept across a restart of the bridge');
+  assert.equal(entryOf(runner).status, 'active');
 });
 
-test('a phone chat with her beside V waits too; in person nothing changes; far away it is the travel allowance and not the wait', () => {
-  const phone = make({random: () => 0});
-  talk(phone.runner, turn('phone', T0), {level: 6, near: true});
-  assert.equal(entryOf(phone.runner).trail.at(-1).wait, TRAVEL_GRACE_HOURS * HOUR);
-  const own = make({random: () => 0});
-  talk(own.runner, turn('own', T0), {level: 6, near: true});
-  assert.equal(entryOf(own.runner).trail.at(-1).wait, undefined, 'in person: the stage is played at once');
-  assert.equal(entryOf(own.runner).trail.at(-1).grace, undefined);
-  const far = make({random: () => 0});
-  talk(far.runner, turn('holocall', T0), {level: 6});
-  assert.equal(entryOf(far.runner).trail.at(-1).grace, TRAVEL_GRACE_HOURS * HOUR);
-  assert.equal(entryOf(far.runner).trail.at(-1).wait, undefined, 'never both');
+test('a phone chat with her beside V, in person and far away all start the same way, none with a clock', () => {
+  for (const [how, facts] of [['phone', {level: 6, near: true}], ['own', {level: 6, near: true}], ['holocall', {level: 6}]]) {
+    const one = make({random: () => 0});
+    talk(one.runner, turn(how, T0), facts);
+    const keys = Object.keys(entryOf(one.runner).trail.at(-1));
+    for (const field of ['grace', 'wait', 'unshown', 'shownAt']) assert.equal(keys.includes(field), false, `${how}: no ${field}`);
+    assert.equal(one.runner.playState().quests[0].timeoutAt, undefined, how);
+  }
 });

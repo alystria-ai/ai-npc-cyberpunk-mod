@@ -104,8 +104,7 @@
         {"when": "line:R6.open.02:done", "say": "R6.open.03"},
         {"when": "line:R6.open.03:done", "gap": "g1"}
       ],
-      "choices": [{"id": "arrived", "on": "event:place:laundromat:arrived", "next": "spin"}],
-      "timeout": {"gameHours": 3, "next": "stood-up"}
+      "choices": [{"id": "arrived", "on": "event:place:laundromat:arrived", "next": "spin"}]
     },
     {
       "id": "spin",
@@ -137,8 +136,7 @@
         {"id": "relay", "on": "event:gap:g2:relay", "next": "spin-2-relay"},
         {"id": "keep", "on": "event:gap:g2:keep", "next": "spin-2-keep"},
         {"id": "lie", "on": "event:gap:g2:lie", "next": "spin-2-lie"}
-      ],
-      "timeout": {"gameHours": 1, "next": "spin-2-lie"}
+      ]
     },
     {
       "id": "spin-2-relay",
@@ -160,8 +158,7 @@
       "choices": [
         {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-tell"},
         {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-tell"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walk-out-tell"}
+      ]
     },
     {
       "id": "spin-2-keep",
@@ -183,8 +180,7 @@
       "choices": [
         {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-keep"},
         {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-keep"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walk-out-keep"}
+      ]
     },
     {
       "id": "spin-2-lie",
@@ -206,8 +202,7 @@
       "choices": [
         {"id": "gentle", "on": "event:gap:g3:gentle", "next": "walk-out-lie"},
         {"id": "hard", "on": "event:gap:g3:hard", "next": "walk-out-lie"}
-      ],
-      "timeout": {"gameHours": 1, "next": "walk-out-lie"}
+      ]
     },
     {
       "id": "walk-out-tell",
@@ -226,8 +221,7 @@
       "choices": [
         {"id": "no", "on": "event:gap:g4:no", "next": "tell"},
         {"id": "yes", "on": "event:gap:g4:yes", "next": "tell"}
-      ],
-      "timeout": {"gameHours": 1, "next": "tell"}
+      ]
     },
     {
       "id": "walk-out-keep",
@@ -246,8 +240,7 @@
       "choices": [
         {"id": "no", "on": "event:gap:g4:no", "next": "keep"},
         {"id": "yes", "on": "event:gap:g4:yes", "next": "keep"}
-      ],
-      "timeout": {"gameHours": 1, "next": "keep"}
+      ]
     },
     {
       "id": "walk-out-lie",
@@ -266,8 +259,7 @@
       "choices": [
         {"id": "no", "on": "event:gap:g4:no", "next": "lie"},
         {"id": "yes", "on": "event:gap:g4:yes", "next": "lie"}
-      ],
-      "timeout": {"gameHours": 1, "next": "lie"}
+      ]
     }
   ],
   "endings": {
@@ -286,10 +278,6 @@
       "memory": "You let it lie, and she did not ask again.",
       "bond": 85,
       "script": [{"when": "ending:lie", "say": "R6.close.05"}]
-    },
-    "stood-up": {
-      "memory": "You did not come to the laundromat, and Rogue folded her last shirt alone.",
-      "bond": -5
     }
   }
 }

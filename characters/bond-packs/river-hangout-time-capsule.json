@@ -67,8 +67,7 @@
       "choices": [
         {"id": "someone", "on": "event:gap:g1:someone", "next": "for-someone"},
         {"id": "nobody", "on": "event:gap:g1:nobody", "next": "buried"}
-      ],
-      "timeout": {"gameHours": 2, "next": "stood-up"}
+      ]
     }
   ],
   "endings": {
@@ -79,9 +78,6 @@
     "buried": {
       "memory": "You buried a tin at the pullout on the Badlands west road, and the note stayed private.",
       "bond": 4
-    },
-    "stood-up": {
-      "memory": "You never came to the pullout on the Badlands west road, and River buried his tin under the tree alone."
     }
   }
 }

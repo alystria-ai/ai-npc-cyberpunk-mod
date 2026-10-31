@@ -60,8 +60,7 @@
       "choices": [
         {"id": "twist", "on": "event:npc:limp:obey", "next": "twist"},
         {"id": "done", "on": "event:place:amp:arrived", "next": "done"}
-      ],
-      "timeout": {"gameHours": 2, "next": "done"}
+      ]
     }
   ],
   "endings": {

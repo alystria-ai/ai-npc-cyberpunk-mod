@@ -105,8 +105,7 @@
         {"id": "no", "on": "event:gap:g1:no", "next": "abandoned"},
         {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "abandoned"},
         {"id": "missed", "on": "event:call:ring:missed", "next": "abandoned"}
-      ],
-      "timeout": {"gameHours": 2, "next": "abandoned"}
+      ]
     },
     {
       "id": "scout",
@@ -131,8 +130,7 @@
       "choices": [
         {"id": "container", "on": "event:line:S5.s2.03:done", "next": "dead-zone"},
         {"id": "seen", "on": "event:unseen:sneak:spotted", "next": "dead-zone"}
-      ],
-      "timeout": {"gameHours": 2, "next": "abandoned"}
+      ]
     },
     {
       "id": "dead-zone",
@@ -146,8 +144,7 @@
         {"when": "dead-zone:dz:entered", "say": "S5.s3.01"},
         {"when": "dead-zone:dz:left", "say": "S5.s3.02"}
       ],
-      "choices": [{"id": "back", "on": "event:line:S5.s3.02:done", "next": "rescue"}],
-      "timeout": {"gameHours": 2, "next": "rescue"}
+      "choices": [{"id": "back", "on": "event:line:S5.s3.02:done", "next": "rescue"}]
     },
     {
       "id": "rescue",
@@ -163,8 +160,7 @@
       "choices": [
         {"id": "out", "on": "tag", "means": "V says the boy is out of the chair and alive", "kind": "honest", "next": "out"},
         {"id": "too-late", "on": "tag", "means": "V says the boy did not make it out", "kind": "no", "next": "too-late"}
-      ],
-      "timeout": {"gameHours": 2, "next": "out"}
+      ]
     },
     {
       "id": "out",
@@ -177,7 +173,7 @@
         {"p": "remote"},
         {"p": "place", "at": "car"},
         {"p": "squad", "id": "chase", "at": "car", "faction": "maelstrom", "count": 2, "hostile": true},
-        {"p": "ride", "to": "contact", "limitMinutes": 30, "heat": true}
+        {"p": "ride", "to": "contact", "heat": true}
       ],
       "script": [
         {"when": "stage:enter", "say": "S5.s4.01"},
@@ -187,8 +183,7 @@
       "choices": [
         {"id": "arrived", "on": "event:ride:arrived", "next": "after"},
         {"id": "heat", "on": "event:ride:failed-heat", "next": "saved-loud"}
-      ],
-      "timeout": {"gameHours": 2, "next": "after"}
+      ]
     },
     {
       "id": "after",
@@ -204,8 +199,7 @@
       "choices": [
         {"id": "hopeful", "on": "event:gap:g3:hopeful", "next": "saved"},
         {"id": "cautious", "on": "event:gap:g3:cautious", "next": "saved"}
-      ],
-      "timeout": {"gameHours": 2, "next": "saved"}
+      ]
     }
   ],
   "endings": {

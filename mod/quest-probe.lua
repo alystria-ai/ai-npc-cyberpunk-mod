@@ -8,13 +8,14 @@
 --                                into a pack's `places`
 --   event:<name>                 an event as if the game saw it (every armed quest gets it: its rows fire, its gap can end)
 --   line:<pack>:<lineId>         one scripted line of an armed quest now, as a plot line
+--   abandon:<pack>               V abandons that quest. The bridge closes it with no bond change. There is no time limit, so this and V's own words close a quest left open
 --   reap                         every ctx, pin, spawn, timer and line is cleaned up now
 --   reach                        what Characters text first holds: the timer, the listed items, the caps used, the play file's reach block (mod/quest-reach.lua)
 --   gifts                        checks every id of runtime/quest-gift-allowlist.json (the bridge writes {version = 1, ids = [...]}) against the game with TweakDB:GetRecord,
 --                                logs a line per missing id and writes runtime/quest-gift-check.json {version = 1, checked, missing = [...], ok = [...]}
 local M = {}
 M.CAPTURE = 'runtime/quest-place-capture.json'
-M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true, gifts = true, reach = true}
+M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true, gifts = true, reach = true, abandon = true}
 M.ALLOWLIST, M.GIFT_CHECK, M.MAX_GIFT_IDS = 'runtime/quest-gift-allowlist.json', 'runtime/quest-gift-check.json', 400
 M.OUTDOOR_RADIUS, M.INDOOR_RADIUS = 25, 8
 
@@ -103,6 +104,11 @@ function M.run(action, env)
         local lines = convaiQuestLines
         if not lines then error('the line player is not loaded') end
         return {pack = pack, line = lineId, queued = lines.playNow(pack, lineId) == true, lines = lines.status()}
+    end
+    if verb == 'abandon' then
+        local pack = rest:match('^([%w][%w%-_]*)$')
+        if not pack then error('abandon:<pack>') end
+        return {pack = pack, abandoned = play.abandonQuest(pack) == true}
     end
     if verb == 'reap' then
         play.reapAll('probe')

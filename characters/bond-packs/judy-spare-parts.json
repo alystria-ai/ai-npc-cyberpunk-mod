@@ -64,8 +64,7 @@
         {"when": "line:J1.ask.01:done", "text": "J1.ask.02"},
         {"when": "place:market:arrived", "say": "J1.stalls.01"}
       ],
-      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "stalls"}],
-      "timeout": {"gameHours": 3, "next": "stood-up"}
+      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "stalls"}]
     },
     {
       "id": "stalls",
@@ -89,8 +88,7 @@
       "choices": [
         {"id": "stall", "on": "event:place:stall:arrived", "next": "haggle"},
         {"id": "wandered", "on": "event:together:walk:broken", "next": "judy-pays"}
-      ],
-      "timeout": {"gameHours": 2, "next": "judy-pays"}
+      ]
     },
     {
       "id": "haggle",
@@ -112,8 +110,7 @@
         {"id": "short", "on": "event:pay:matrix:short", "next": "judy-pays"},
         {"id": "broke", "on": "event:pay:matrix:broke", "next": "judy-pays"},
         {"id": "declined", "on": "event:pay:matrix:declined", "next": "judy-pays"}
-      ],
-      "timeout": {"gameHours": 1, "next": "judy-pays"}
+      ]
     },
     {
       "id": "hand",
@@ -125,8 +122,7 @@
       "script": [
         {"when": "stage:enter", "say": "J1.hand.01"}
       ],
-      "choices": [{"id": "taken", "on": "event:line:J1.hand.01:done", "next": "bargain"}],
-      "timeout": {"gameHours": 1, "next": "bargain"}
+      "choices": [{"id": "taken", "on": "event:line:J1.hand.01:done", "next": "bargain"}]
     },
     {
       "id": "judy-pays",
@@ -138,7 +134,9 @@
       "do": [
         {"p": "timer", "id": "pays", "seconds": 60, "clock": "game"}
       ],
-      "timeout": {"gameHours": 0.5, "next": "judy-paid"}
+      "choices": [
+        {"id": "done", "on": "event:timer:pays", "next": "judy-paid"}
+      ]
     }
   ],
   "endings": {
@@ -149,11 +147,6 @@
     "judy-paid": {
       "memory": "Judy paid for her matrix at Kabuki Market herself and teased you for being cheap.",
       "bond": 30
-    },
-    "stood-up": {
-      "memory": "You never came to Kabuki Market, so Judy got the matrix herself at full price.",
-      "bond": -5,
-      "script": [{"when": "ending:stood-up", "text": "J1.end.01"}]
     }
   }
 }

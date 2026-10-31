@@ -16,7 +16,7 @@ param(
 #   feats    start | status | stop
 #   media    read | car | pocket | stations | tv | ring | production   (Music and TV, mod/media-probe.lua: the raw value of every candidate read; not about Johnny)
 #   phoneimage list | send:<picture>[:<contact>] | text   (a picture in the phone Chat, mod/phone-image-probe.lua: one test message from a character; docs/PHONE_IMAGES.md)
-#   quest    status | capture:<place> | event:<name> | line:<pack>:<line> | reap | gifts | reach   (the bond quest primitives, mod/quest-probe.lua, docs/QUEST_PRIMITIVES.md; not about Johnny)
+#   quest    status | capture:<place> | event:<name> | line:<pack>:<line> | reap | gifts | reach | abandon:<pack>   (the bond quest primitives, mod/quest-probe.lua, docs/QUEST_PRIMITIVES.md; not about Johnny)
 #              status           what the quest module, the line player and the places hold
 #              capture:<place>  V's position, district and a radius guess, merged into runtime\quest-place-capture.json under that id
 #              event:<name>     an event as if the game saw it, for every armed quest (a line id or event name may hold dots, colons and hyphens)
@@ -24,6 +24,7 @@ param(
 #              reap             every ctx, pin, spawn, timer and line is cleaned up now
 #              gifts            checks every id of runtime\quest-gift-allowlist.json against the game (writes runtime\quest-gift-check.json)
 #              reach            what Characters text first holds (the timer, the listed items, the caps used)
+#              abandon:<pack>   V abandons that quest: no bond change, it leaves the journal, the tracker and the map (quests have no time limit)
 # Usage: powershell -File scripts\Send-JohnnyProbe.ps1 place read
 #        powershell -File scripts\Send-JohnnyProbe.ps1 quest status
 #        powershell -File scripts\Send-JohnnyProbe.ps1 quest line:panam-sunset-coffee:P1.walk.02

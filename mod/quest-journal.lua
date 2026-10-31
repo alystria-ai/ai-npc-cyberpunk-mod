@@ -25,6 +25,12 @@ local function text(value, max)
     return (value:sub(1, max):gsub('[\192-\255][\128-\191]*$', ''))
 end
 
+-- How a pin got its position, in words for the log: the stage's own place, the last place of an earlier stage, the quest's first place, a named place of its words, a landmark of
+-- the character, or a place the developer probe measured in this game.
+local ANCHORS = {stage = 'the stage\'s place', earlier = 'the place of an earlier stage', first = 'the quest\'s first place', named = 'a named place in its words',
+    landmark = 'a landmark of the character', measured = 'a place measured in the game'}
+function M.anchorText(anchor) return ANCHORS[anchor] or 'a known place' end
+
 -- One row of the journal block, cleaned: nil when it is not usable.
 function M.cleanRow(row)
     if type(row) ~= 'table' or not plainId(row.pack) or STATES[row.state] == nil then return nil end
@@ -36,6 +42,13 @@ function M.cleanRow(row)
     if type(place) == 'table' then
         out.placeId = plainId(place.id) and place.id or nil
         if finite(place.x) and finite(place.y) and finite(place.z) then out.x, out.y, out.z = place.x, place.y, place.z end
+        -- Where the pin falls back to when the place has no position and the game never measured it (the bridge's chain, bridge/quest-journal.mjs pinPlace): the quest's
+        -- earlier place, its first place, a named place in its words or a landmark of the character. Every started quest gets a pin.
+        local fallback = place.fallback
+        if type(fallback) == 'table' and finite(fallback.x) and finite(fallback.y) and finite(fallback.z) then
+            out.fx, out.fy, out.fz, out.fallbackAnchor = fallback.x, fallback.y, fallback.z, text(fallback.anchor, 20)
+        end
+        out.anchor = type(place.anchor) == 'string' and text(place.anchor, 20) or nil
         out.hasPlace = true
     end
     return out
@@ -114,8 +127,10 @@ function M.new(options)
             if row and not wanted[row.id] and (type(opts.fresh) ~= 'function' or row.since == nil or opts.fresh(row.since)) then
                 if row.hasPlace and row.x == nil and row.placeId then
                     local got = captured(row.placeId)
-                    if got then row.x, row.y, row.z = got.x, got.y, got.z end
+                    if got then row.x, row.y, row.z, row.anchor = got.x, got.y, got.z, 'measured' end
                 end
+                -- Still no position: the bridge's fallback, so the quest has a pin from the start.
+                if row.hasPlace and row.x == nil and row.fx ~= nil then row.x, row.y, row.z, row.anchor = row.fx, row.fy, row.fz, row.fallbackAnchor or 'fallback' end
                 wanted[row.id] = row
                 order[#order + 1] = row
             end
@@ -144,13 +159,14 @@ function M.new(options)
                 end
                 if call('set', row, track) then
                     if not before then count = count + 1 end
-                    held[row.id] = {signature = sig, state = row.state, placeId = row.placeId, marked = row.x ~= nil}
+                    -- Only a pin at the stage's own place (the bridge's position or a measured one) counts as its waypoint: a fallback pin must not stop the pin primitive adding its own.
+                    held[row.id] = {signature = sig, state = row.state, placeId = row.placeId, marked = row.x ~= nil and (row.anchor == nil or row.anchor == 'stage' or row.anchor == 'measured')}
                     sent = sent + 1
                     if not before or before.state ~= row.state then log(string.format('%s %s', row.id, row.state)) end
                     -- A quest that just started cannot be missed: besides the journal entry, the tracker line (when the tracker is free) and the map pin, a notice says it
                     -- is there (live 31 Oct 2026: a started pack showed nothing the owner noticed, because a main job held the tracker and nobody opened the journal).
                     if row.state == 'active' and (not before or before.state ~= 'active') and not opts.startup then
-                        log(string.format('%s started: journal entry made, tracker %s, map pin %s, notice shown', row.id, track == 2 and 'taken when free' or 'not taken', row.x ~= nil and 'placed' or 'none (no position yet)'))
+                        log(string.format('%s started: journal entry made, tracker %s, map pin %s, notice shown', row.id, track == 2 and 'taken when free' or 'not taken', row.x ~= nil and ('placed (' .. M.anchorText(row.anchor) .. ')') or 'none (the bridge named no place and no landmark)'))
                         if type(options.notice) == 'function' then
                             local okNotice, err = pcall(options.notice, row)
                             if not okNotice then logOnce('notice', 'the start notice failed: ' .. tostring(err)) end
