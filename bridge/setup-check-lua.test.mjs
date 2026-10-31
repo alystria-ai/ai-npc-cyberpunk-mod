@@ -39,14 +39,19 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   assert(lineOf('codeware').state == 'problem')
   assert(table.concat(check.problems(), ',') == 'red4ext,codeware', table.concat(check.problems(), ','))
   assert(check.problemCount() == 2)
-  -- the scripts did not compile either: the frameworks cannot be judged from them (Unknown), but nothing RED4ext loads answers, not even
-  -- this mod's native plugin, so RED4ext is still not loaded, and it comes first: without it Codeware's scripts never reach the compile
+  -- the scripts did not compile either: the frameworks cannot be judged from them (Unknown). With no service of this session and nothing RED4ext loads answering, not even
+  -- this mod's native plugin, RED4ext is still not loaded, and it comes first: without it Codeware's scripts never reach the compile
+  files['runtime/knowledge-status.json'] = nil; advance(60)
   env.scripts, env.requirements = false, nil
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
   assert(lineOf('red4ext').state == 'problem' and lineOf('red4ext').description:find('RED4ext is not loaded', 1, true))
   assert(lineOf('codeware').state == 'unknown' and lineOf('codeware').description == '')
-  assert(check.problemCount() == 2)
+  -- The launcher of this mod is a RED4ext plugin: its conversation service answering in this session proves RED4ext although the native plugin did not bind and the scripts did not
+  -- compile (0.4.0 reports bbbc0ad4 and 4fdccb3f: a compile that broke in Mod Configuration Menu, "RED4ext is not loaded" in the Help page of a player whose service was running)
+  serviceRunning(); advance(6); serviceRunning(); applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'ok' and lineOf('red4ext').description == 'Loaded.')
+  assert(lineOf('redscript').state == 'problem' and lineOf('codeware').state == 'unknown')
   -- the native plugin answers: RED4ext is loaded, and the scripts are the one problem
   env.native = true; applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
