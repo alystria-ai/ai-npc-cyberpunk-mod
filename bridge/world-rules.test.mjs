@@ -99,13 +99,15 @@ test('every persona carries the rules: story characters, everyday people, Johnny
 test('the block comes right after the persona and the output rules, before the format notes, the world and the right-now block (cache order)', () => {
   const book = withRules();
   for (const key of ['judy-alvarez', 'johnny-silverhand', roster.find(row => row.kind === 'archetype').key]) {
-    const system = buildMessages({persona: book.persona(key), memory: 'I fixed a rig for V.', contextParts: parts(), text: 'Hi.'})[0].content;
+    const messages = buildMessages({persona: book.persona(key), memory: 'I fixed a rig for V.', contextParts: parts(), text: 'Hi.'});
+    const system = messages[0].content;
     const at = text => system.indexOf(text);
     assert(at('OUTPUT RULES') >= 0 && at('OUTPUT RULES') < at(WORLD_RULES_HEADING), key + ': after the output rules');
     assert(at(WORLD_RULES_HEADING) < at('FORMAT NOTES FOR EVERY REPLY'), key + ': before the format notes');
-    assert(at(WORLD_RULES_HEADING) < at('WORLD AND QUEST CONTEXT'), key + ': before the world');
-    assert(at(WORLD_RULES_HEADING) < at('WHAT YOU REMEMBER OF V FROM EARLIER TALKS'), key + ': before the summary');
-    assert(at(WORLD_RULES_HEADING) < at('RIGHT NOW'), key + ': before the right-now block');
+    // The world, the summary and the right-now block are not in the system message at all: they open the last message, after the turns.
+    for (const text of ['WORLD AND QUEST CONTEXT', 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS', 'RIGHT NOW']) {
+      assert(at(text) < 0 && messages.at(-1).content.includes(text), key + ': ' + text + ' is in the last message');
+    }
     assert(system.includes(RULES));
     assert.match(system, /never change or unlock them/, 'framed as setting facts under the hard rules, not a way past them');
   }
@@ -173,7 +175,7 @@ for (const kind of ['local', 'mistral', 'custom']) {
       await withBook.host.reply(turn(`hello ${channel}`, {sessionId: 'session-' + channel, local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel}}));
       const system = withBook.prompts.at(-1)[0].content;
       assert(system.includes(WORLD_RULES_HEADING + '\n' + RULES), `${kind}/${channel}: the block is in the system message`);
-      assert(system.indexOf('OUTPUT RULES') < system.indexOf(WORLD_RULES_HEADING) && system.indexOf(WORLD_RULES_HEADING) < system.indexOf('WORLD AND QUEST CONTEXT'), `${kind}/${channel}: in cache order`);
+      assert(system.indexOf('OUTPUT RULES') < system.indexOf(WORLD_RULES_HEADING) && system.indexOf(WORLD_RULES_HEADING) < system.indexOf('FORMAT NOTES FOR EVERY REPLY'), `${kind}/${channel}: in cache order`);
     }
     // Johnny in V's head and an everyday person go through the same builder.
     await withBook.host.reply(turn('hey', {sessionId: 's-j', local: {profileKey: 'johnny-silverhand', name: 'Johnny Silverhand', channel: 'private'}}));
@@ -234,7 +236,7 @@ test('the bridge puts the Convai block after the facts of the game (the characte
   const source = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /phoneRecentConversationContext\(prepared\.input\) : ''\),(?:\s*\/\/[^\n]*\n)+\s*\.\.\.convaiWorldRulesBlocks\(addonContent\.convaiWorldRulesText\(worldRules\.get\(\)\), mistral\.active\),(?:\s*\/\/[^\n]*\n)+\s*\.\.\.convaiCharacterEdits\.blocks\(input\.profileKey, mistral\.active\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', naturalSpeechContext\(input\)\), block\('notes', expressiveEmotionsContext\(input\)\)/);
   assert.match(source, /WorldRules\.open\(\{dir: stateDirectory/);
-  assert.match(source, /new PersonaBook\(roster, \{[^}]*worldRules\}\)/);
+  assert.match(source, /new PersonaBook\(roster, \{[^}]*worldRules[^}]*\}\)/);
   assert.match(source, /new CharacterEditor\(\{[^]*?worldRules,/);
   // The tiers the text providers read are the four it names; 'convai' is none of them.
   assert.match(source, /\['now', 'notes', 'volatile', 'closing'\]/);

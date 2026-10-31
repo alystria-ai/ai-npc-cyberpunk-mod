@@ -10,7 +10,7 @@ const at = (text, needle, from = 0) => { const index = text.indexOf(needle, from
 
 test('one switch puts the whole blocks back: the persona book and the retrieval follow CYBERPUNK_CONVAI_TALK_RETRIEVAL', () => {
   assert.match(source, /const talkRetrievalOn = String\(process\.env\.CYBERPUNK_CONVAI_TALK_RETRIEVAL \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== 'off';/);
-  assert.match(source, /new PersonaBook\(roster, \{lean: true, [^}]*topics: talkRetrievalOn/);
+  assert.match(source, /new PersonaBook\(roster, \{lean: true, [^;]*topics: talkRetrievalOn\}\)/);
   assert.match(source, /const retrievalFor = input => talkRetrievalOn && /);
   assert.match(source, /function startConvaiRetrieval\(input, signal\) \{\n  if \(!talkRetrievalOn \|\| mistral\.active/);
 });

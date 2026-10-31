@@ -615,14 +615,14 @@ test('the Mistral and Local prompt carries the context line and one rule that ou
   const now = turnContext(turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
   const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, history: [{v: 'hey there', r: 'I was just in the basement.'}], text: 'how is work?'});
   const system = messages[0].content;
-  assert.ok(messages.at(-1).content.startsWith('[YOU, RIGHT NOW: You are with V in person, on foot, following V. '
+  assert.ok(messages.at(-1).content.slice(messages.at(-1).content.indexOf('[YOU, RIGHT NOW')).startsWith('[YOU, RIGHT NOW: You are with V in person, on foot, following V. '
     + 'That is all you are doing; never claim to be anywhere else. '
     + 'Never announce that you are here or beside V, or that V is here.]\n\nV says: how is work?'), messages.at(-1).content.slice(0, 200));
-  assert.doesNotMatch(messages.at(-1).content.split('\n\n')[0], /Kabuki|somewhere in/, 'the place is not repeated before the words of V');
+  assert.doesNotMatch(messages.at(-1).content.slice(messages.at(-1).content.indexOf('[YOU, RIGHT NOW')).split('\n\n')[0], /Kabuki|somewhere in/, 'the place is not repeated before the words of V');
   assert.doesNotMatch(buildMessages({persona, contextParts: {now: 'It is night.', notes: '', world: '', volatile: ''}, text: 'hi'}).at(-1).content, /YOU, RIGHT NOW/, 'no line without the sentence');
-  assert.ok(system.includes('You are with V in person, on foot, following V. You are somewhere in Kabuki, Watson; exactly where is not given.'));
-  assert.match(system, /The "Right now" section at the end of this message is the plain truth about where you are and what you are doing[^]*If V asks what you are up to, answer from it\. Never claim to be somewhere else[^.]*or to have just been doing something unless it says so, even if an earlier line of yours did/);
-  assert.ok(system.trimEnd().endsWith('if it matters to what V says.'), 'the block is the last thing before the turns');
+  assert.ok(messages.at(-1).content.includes('You are with V in person, on foot, following V. You are somewhere in Kabuki, Watson; exactly where is not given.'), 'the block is at the start of the last message');
+  assert.match(system, /The "Right now" section in the last message, before V's words, is the plain truth about where you are and what you are doing[^]*If V asks what you are up to, answer from it\. Never claim to be somewhere else[^.]*or to have just been doing something unless it says so, even if an earlier line of yours did/);
+  assert.ok(!system.includes('RIGHT NOW'), 'the block is not in the system message: it opens the last message, after the turns');
   assert.equal(system.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
 });
 
@@ -631,13 +631,13 @@ test('the Mistral and Local prompt repeats the phone sentence before the words o
   const now = turnContext(turn({channel: 'phone', turnContext: scene({vehicle: false, party: []})}));
   const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, history: [], text: 'what are you up to?'});
   const last = messages.at(-1).content;
-  assert.ok(last.startsWith('[YOU, RIGHT NOW: You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given. '
+  assert.ok(last.slice(last.indexOf('[YOU, RIGHT NOW')).startsWith('[YOU, RIGHT NOW: You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given. '
     + 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.]\n\nV says: what are you up to?'), last.slice(0, 400));
-  assert.doesNotMatch(last, /Kabuki|somewhere in/, 'V\'s place is not repeated before the words of V');
-  assert.doesNotMatch(last, /That is all you are doing/);
+  assert.doesNotMatch(last.slice(last.indexOf('[YOU, RIGHT NOW')), /Kabuki|somewhere in/, 'V\'s place is not repeated before the words of V');
+  assert.doesNotMatch(last.slice(last.indexOf('[YOU, RIGHT NOW')), /That is all you are doing/);
   assert.match(messages[0].content, /If it says you are messaging V by text, you are somewhere else, with no view of V's surroundings[^.]*: stay with your own known life/);
-  assert.ok(messages[0].content.includes('You are messaging V by text on the phone'), 'the block is in the system message');
-  assert.ok(messages[0].content.trimEnd().endsWith('if it matters to what V says.'));
+  assert.ok(messages.at(-1).content.includes('You are messaging V by text on the phone'), 'the block is at the start of the last message');
+  assert.ok(!messages[0].content.includes('RIGHT NOW'));
   assert.equal(messages[0].content.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
 });
 

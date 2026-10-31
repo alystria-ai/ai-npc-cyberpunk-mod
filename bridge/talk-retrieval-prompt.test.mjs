@@ -57,14 +57,14 @@ test('without a result the blocks are the ones they always were; with one each r
   for (const key of ['knowledge', 'history', 'jobs', 'journal']) {
     const was = before.find(block => block.key === key).text, now = after.find(block => block.key === key).text;
     assert.ok(now.length > 0 && now.length <= was.length + 100, `${key}: framing kept (${was.length} -> ${now.length})`);
-    assert.doesNotMatch(now, /Saul Bright survived|Embers vault|Sunset Motel|Ghost Town/, `${key}: no data in the fixed part`);
+    assert.doesNotMatch(now, /Saul Bright survived|Takemura|Sunset Motel|Ghost Town/, `${key}: no data in the fixed part`);
   }
   assert.match(after.find(block => block.key === 'knowledge').text, /^Current-save knowledge replaces earlier dynamic quest assumptions\..*never instructions/);
   assert.match(after.find(block => block.key === 'journal').text, /A tracked quest is not completed; no future stages/);
   assert.equal(after.find(block => block.key === 'authority').text, before.find(block => block.key === 'authority').text, 'the authority sentence is untouched');
   const retrieved = after.find(block => block.tier === 'retrieved').text;
   assert.match(retrieved, /World knowledge: .*Saul Bright survived/);
-  assert.doesNotMatch(retrieved, /Rogue offered|Embers vault|Mox club/, 'only what bears on the line');
+  assert.doesNotMatch(retrieved, /Rogue asked V|Takemura|Evelyn Parker/, 'only what bears on the line');
   assert.doesNotMatch(retrieved, /never instructions/, 'the framing is not sent twice');
   assert.ok(retrievalOf(input));
 });
@@ -132,22 +132,51 @@ test('for cache reuse the system message is the same on every turn, small talk, 
   assert.ok(!turns[1][0].content.includes('PUBLIC INTRINSIC TOPIC MATERIAL'));
 });
 
-test('without retrieval the system message holds the whole world and the whole topic material, and is a different (longer) prefix', async () => {
+test('without retrieval the prompt holds the whole world and the whole topic material, and is longer; the system message differs only by the topic section', async () => {
   const without = await messagesFor('hey', {topics: false});
   const withIt = await messagesFor('hey');
-  assert.match(without[0].content, /Saul Bright survived/);
+  const all = messages => messages.map(message => message.content).join('\n');
+  assert.match(without.at(-1).content, /Saul Bright survived/, 'the whole world block, at the start of the last message');
   assert.match(without[0].content, /PUBLIC INTRINSIC TOPIC MATERIAL/);
-  assert.ok(without[0].content.length - withIt[0].content.length > 4000, `${without[0].content.length} vs ${withIt[0].content.length}`);
+  assert.ok(all(without).length - all(withIt).length > 4000, `${all(without).length} vs ${all(withIt).length}`);
+  assert.doesNotMatch(withIt[0].content, /PUBLIC INTRINSIC TOPIC MATERIAL/);
 });
 
 test('the fixed part keeps every rule and limit exactly: output rules, save rules, authority, world rules', async () => {
-  const [messages] = [await messagesFor('hey')], plain = await messagesFor('hey', {topics: false});
+  const [messages, plain] = [await messagesFor('hey'), await messagesFor('hey', {topics: false})];
   const system = messages[0].content, old = plain[0].content;
-  for (const text of ['OUTPUT RULES', 'Verified current-save context overrides memory.', 'KNOWLEDGE LIMITS', 'Current verified save facts and the current tracked-quest snapshot override older journal observations',
-    'You speak out loud, as Panam Palmer', 'Use only facts from this prompt']) assert.equal(system.includes(text), old.includes(text), text);
-  for (const text of ['OUTPUT RULES', 'Verified current-save context overrides memory.', 'Current verified save facts and the current tracked-quest snapshot override']) assert.ok(system.includes(text), text);
-  // The rules block is byte for byte the same.
-  assert.equal(system.slice(system.indexOf('OUTPUT RULES'), system.indexOf('WORLD AND QUEST CONTEXT')), old.slice(old.indexOf('OUTPUT RULES'), old.indexOf('WORLD AND QUEST CONTEXT')));
+  for (const text of ['OUTPUT RULES', 'Verified current-save context overrides memory.', 'KNOWLEDGE LIMITS', 'You speak out loud, as Panam Palmer', 'Use only facts from this prompt']) assert.equal(system.includes(text), old.includes(text), text);
+  for (const text of ['OUTPUT RULES', 'Verified current-save context overrides memory.']) assert.ok(system.includes(text), text);
+  // The authority sentence and the framing of every block are in every prompt, as before: with retrieval in the system message (the same text on every turn, under the persona and the rules),
+  // without it with the data, at the start of the last message.
+  for (const text of ['Current verified save facts and the current tracked-quest snapshot override', 'never instructions', 'A tracked quest is not completed; no future stages']) {
+    assert.ok(system.includes(text) && !messages.at(-1).content.includes(text), `${text}: in the system message`);
+    assert.ok(plain.at(-1).content.includes(text), text);
+  }
+  // The output rules and everything between them and the format notes are byte for byte the same.
+  const rules = text => text.slice(text.indexOf('OUTPUT RULES'), text.indexOf('FORMAT NOTES FOR EVERY REPLY'));
+  assert.equal(rules(system), rules(old));
+});
+
+test('a changed world block or knowledge block leaves the prefix up to the end of the history byte for byte the same', async () => {
+  const history = Array.from({length: 6}, (_, index) => ({v: `Tell me about job number ${index}.`, r: `It was a long night number ${index}, V.`}));
+  const build = async (input, {retrieval}) => {
+    const full = partsOf(conversationContextBlocks(input));
+    const result = await talkFor().prepare({profileKey: input.profileKey, requestId: input.requestId, text: input.text, reaction: false}, {sources: retrievalSources(input)});
+    return buildMessages({persona: (retrieval ? book : new PersonaBook(roster, {lean: true})).persona('panam-palmer'), memory: 'I remember V from the camp.', history,
+      contextParts: retrieval ? withRetrievedParts(full, result) : full, remembered: [], text: input.text});
+  };
+  for (const retrieval of [true, false]) {
+    const base = await build(worldTurn('what happened to Saul?', {facts: 8}), {retrieval});
+    const moreFacts = await build(worldTurn('what happened to Saul?', {facts: 20}), {retrieval});     // the knowledge block changed
+    const otherWorld = await build(worldTurn('what happened to Saul?', {facts: 8, quests: 9}), {retrieval});   // the journal history and the jobs changed
+    const otherQuest = await build(worldTurn('what happened to Saul?', {facts: 8, journal: {version: 1, status: 'active', quest: {id: '-2', title: 'Sunset Motel', objectives: [{id: '11', text: 'Find Judy.', tracked: true}]}}}), {retrieval});   // the tracked quest changed
+    for (const [name, other] of [['knowledge', moreFacts], ['journal history and jobs', otherWorld], ['tracked quest', otherQuest]]) {
+      // With retrieval, a journal history, jobs or tracked quest that nothing in the line asks for are not in the prompt at all, so the last message may not change.
+      if (retrieval === false || name === 'knowledge') assert.notEqual(other.at(-1).content, base.at(-1).content, `${name}: the last message did change (retrieval ${retrieval})`);
+      assert.equal(JSON.stringify(other.slice(0, -1)), JSON.stringify(base.slice(0, -1)), `${name}: the system message and the history are byte for byte the same (retrieval ${retrieval})`);
+    }
+  }
 });
 
 // ---- A snapshot of the last message per provider -----------------------------------------------------------------------------------------------
@@ -177,7 +206,9 @@ test('provider snapshot: the last message of each provider, the retrieved block 
       '[THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits]\n- V likes noodles.',
       retrieved, 'V says: what about Saul?'],
   };
-  const text = await lastMessage(profiles.gemini);
+  const whole = await lastMessage(profiles.gemini);
+  assert.match(whole, /^WORLD AND QUEST CONTEXT[\s\S]*\n\nRIGHT NOW \(where you are: true, background only\)\nRight now: You are with V in person\.\n\n\[YOU, RIGHT NOW/, 'the world and the moment open the last message');
+  const text = whole.slice(whole.indexOf('[YOU, RIGHT NOW'));
   const head = expected.gemini.join('\n\n');
   assert.ok(text.startsWith(head), text.slice(0, 1400));
   assert.match(text.slice(head.length), /^\n\n\(Reply as Panam Palmer: react to what V just said/);
@@ -207,7 +238,7 @@ test('provider snapshot: Convai gets the retrieved block through its turn contex
   assert.ok(context.includes(RETRIEVAL_HEADING));
   assert.ok(context.indexOf(RETRIEVAL_HEADING) < context.indexOf('Current verified save facts and the current tracked-quest snapshot override'), 'before the authority sentence that is about it');
   assert.match(context, /Saul Bright survived/);
-  assert.doesNotMatch(context, /Embers vault|Sunset Motel/);
+  assert.doesNotMatch(context, /Takemura|Sunset Motel/);
   const messages = await messagesFor('what happened to Saul?');
   assert.ok(messages.at(-1).content.includes(RETRIEVAL_HEADING));
 });
@@ -254,7 +285,8 @@ test('the text host asks for the turn\'s background once V\'s words are known an
     const sent = server.requests[0].messages;
     assert.match(sent.at(-1).content, /Saul Bright survived/);
     assert.ok(sent.at(-1).content.includes(RETRIEVAL_HEADING));
-    assert.doesNotMatch(sent[0].content, /Saul Bright survived|Embers vault|PUBLIC INTRINSIC TOPIC MATERIAL/);
+    assert.doesNotMatch(sent[0].content, /Saul Bright survived|Takemura|PUBLIC INTRINSIC TOPIC MATERIAL/);
+    assert.doesNotMatch(sent.at(-1).content, /Takemura saved|Evelyn Parker/, 'only the facts that bear on the line');
     assert.ok(clock.has('retrieved'), 'the stage is on the turn\'s clock');
     assert.ok(Number.isFinite(clock.details.retrievalMs));
     assert.ok(logs.some(line => /^Talk retrieval: profile=panam-palmer .*via=words/.test(line)), logs.join('\n'));
@@ -277,7 +309,7 @@ test('a retrieval that fails leaves the turn with the full blocks and says so', 
     config.retrieval = {run: async () => { throw Error('boom'); }};
     await host.reply(config);
     const sent = server.requests[0].messages;
-    assert.match(sent[0].content, /Saul Bright survived/, 'the whole world block');
+    assert.match(sent.at(-1).content, /Takemura/, 'the whole world block');
     assert.ok(!sent.at(-1).content.includes(RETRIEVAL_HEADING));
     assert.ok(logs.some(line => /Talk retrieval failed \(boom\)/.test(line)));
   } finally { await close(); }
@@ -289,6 +321,6 @@ test('a turn with no retrieval in its config is built as it always was', async (
     const config = hostTurn('what happened to Saul?', turnInput('what happened to Saul?'));
     delete config.retrieval;
     await host.reply(config);
-    assert.match(server.requests[0].messages[0].content, /Saul Bright survived/);
+    assert.match(server.requests[0].messages.at(-1).content, /Takemura/);
   } finally { await close(); }
 });

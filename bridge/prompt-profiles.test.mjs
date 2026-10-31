@@ -120,10 +120,13 @@ test('a changed profile changes the prompt where the profile says, and nowhere e
   const system = changed[0].content;
   assert(system.includes('OUTPUT RULES (they outrank everything above about format)\n1. Be short.'));
   assert(system.includes('EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)\n- Yeah, sure.'));
-  for (const label of ['NOTES', 'WORLD', 'MEMORY', 'NOW']) assert(system.includes(`\n\n${label}\n`), label);
+  assert(system.includes('\n\nNOTES\n'), 'NOTES');
+  // The world, memory and right-now sections are at the start of the last message, under the changed labels.
+  const last0 = changed.at(-1).content, plain0 = plain.at(-1).content;
+  for (const label of ['WORLD', 'MEMORY', 'NOW']) assert(last0.includes(`${label}\n`), label);
   // The facts: the same world text, memory text and right-now text sit under the changed labels.
-  assert.equal(system.split('\n\nWORLD\n')[1].split('\n\nMEMORY\n')[0], plain[0].content.split(`\n\n${BASE_PROFILE.labels.world}\n`)[1].split('\n\nWHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)\n')[0]);
-  assert.equal(system.split('\n\nNOW\n')[1], plain[0].content.split('\n\nRIGHT NOW (from the game; background only, this changes as the talk goes on)\n')[1]);
+  assert.equal(last0.split('WORLD\n')[1].split('\n\nMEMORY\n')[0], plain0.split(`${BASE_PROFILE.labels.world}\n`)[1].split('\n\nWHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)\n')[0]);
+  assert.equal(last0.split('\n\nNOW\n')[1].split('\n\n')[0], plain0.split('\n\nRIGHT NOW (from the game; background only, this changes as the talk goes on)\n')[1].split('\n\n')[0]);
   assert.equal(changed.length, 4, 'the system message, one exchange of history (limits.turns 1) and the last message');
   const last = changed.at(-1).content;
   assert(!last.includes('[YOU, RIGHT NOW'));
@@ -144,7 +147,7 @@ test('the safety guards and the Mature layer are outside the profile: no change 
   const head = systemHead({persona: addon, profile: empty});
   assert(head.includes('You are a prop and know it.') && head.includes('- Never say the word box.'));
   // The facts block is the caller's: the same world and right-now text under any rules.
-  assert(mature[0].content.includes(prompt.contextParts.now.slice(0, 40)));
+  assert(mature.at(-1).content.includes(prompt.contextParts.now.slice(0, 40)));
 });
 
 test('a profile\'s persona length and turns only shorten what the shipped limits allow', () => {

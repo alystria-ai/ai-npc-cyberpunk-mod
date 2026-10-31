@@ -33,9 +33,9 @@ const worldKnowledge = profileKey => ({version: 1, status: 'ready', gameVersion:
 
 let ids = 0;
 /** A turn input with the world attached, as the bridge has it after the knowledge stage. */
-export function worldTurn(text, {profileKey = 'panam-palmer', name = 'Panam', facts = 8, quests = 6} = {}) {
+export function worldTurn(text, {profileKey = 'panam-palmer', name = 'Panam', facts = 8, quests = 6, journal} = {}) {
   const parsed = parseInput(JSON.stringify({requestId: `${++ids}-7-10ULL`, generation: 7, entity: '10ULL', profileKey, name, bodyType: 'WomanAverage', text,
-    journal: {version: 1, status: 'active', quest: {id: '-1', title: 'The Heist', objectives: [{id: '10', text: 'Meet Panam at the camp.', tracked: true}]}},
+    journal: journal ?? {version: 1, status: 'active', quest: {id: '-1', title: 'The Heist', objectives: [{id: '10', text: 'Meet Panam at the camp.', tracked: true}]}},
     worldKnowledge: worldKnowledge(profileKey), journalHistory: journalHistoryFor(quests)}));
   return withConversationKnowledge({...parsed, worldKnowledge: structuredClone(parsed.worldKnowledge), journalHistory: structuredClone(parsed.journalHistory)},
     {generation: 7, worldToken: 'load-7', now: NOW, knowledgeContext: knowledgeContextFor(profileKey, facts)});

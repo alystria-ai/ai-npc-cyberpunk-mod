@@ -52,7 +52,7 @@ test('the live sequence: the suit was told, V is now naked: both ends of the pro
   assert.equal(block.text, `TRUE RIGHT NOW: ${block.facts}`, 'Convai\'s joined context carries the labelled form');
   assert.match(conversationContext(second), /TRUE RIGHT NOW: V is completely naked/);
   const messages = messagesOf(second);
-  assert.ok(messages[0].content.trimEnd().endsWith(`TRUE RIGHT NOW: ${block.facts}`), 'the end of the system message');
+  assert.ok(messages.at(-1).content.includes(`TRUE RIGHT NOW: ${block.facts}`), 'the head line, at the start of the last message');
   const last = messages.at(-1).content;
   assert.ok(last.includes(`${tailLine(block.facts)}\n\nV says: What am I wearing now?`), 'right before V\'s words');
   assert.deepEqual(messages.slice(1, -1).map(row => row.role), ['user', 'assistant'], 'the exchange that says the suit is not sent');
@@ -145,7 +145,7 @@ test('drinks: "am i drunk" is a question about themself; stage 3 is told as drun
   const block = freshOf(input);
   assert.equal(block.facts, 'V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.');
   const messages = messagesOf(input, {history: [{v: 'Another round', r: 'Coming up.'}]});
-  assert.ok(messages[0].content.trimEnd().endsWith('TRUE RIGHT NOW: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'));
+  assert.ok(messages.at(-1).content.includes('TRUE RIGHT NOW: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'));
   assert.ok(messages.at(-1).content.includes('[RIGHT NOW, TRUE: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.]\n\nV says: am i drunk?'));
   assert.equal(messages.length, 4, 'the history is sent as it is');
   assert.equal(freshOf(drinking('do i seem drunk?', 2)).facts, 'V is tipsy: loose, a little loud, smelling of booze. If V asks whether they have been drinking, the answer is yes.');

@@ -41,7 +41,8 @@ test('an edit reaches the prompt: the layer lines, the closing clause and the tw
   for (const level of ['full', 'suggestive']) {
     const parts = level === 'full' ? ['speechFull', 'wordsFull', 'romanceFull', 'tone'] : ['speechSuggestive', 'wordsSuggestive', 'romanceSuggestive', 'tone'];
     const messages = buildMessages(args({mature: level, profile, contextParts: {...prompt.contextParts, world}}));
-    const system = messages[0].content;
+    // The layer lines are in the system message, the relationship paragraphs in the world block at the start of the last message.
+    const system = `${messages[0].content}\n${messages.at(-1).content}`;
     for (const key of parts) assert(system.includes(`EDITED ${key} text.`), `${level} ${key}`);
     const other = level === 'full' ? 'Suggestive' : 'Full';
     assert.equal(system.includes(`EDITED speech${other} text.`), false, 'the other level\'s line is not in this prompt');

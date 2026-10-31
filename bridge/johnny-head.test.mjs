@@ -434,7 +434,8 @@ test('the text providers say where he is right before V\'s words', () => {
     samples: ['V: Hi. Johnny: What.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages[messages.length - 1].content;
   assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*under their breath\. You have no body; you go where V goes/);
-  assert.doesNotMatch(last, /Watson|somewhere in/, 'where V is is not repeated before the words of V');
+  // The right-now block (with the place) opens the last message; the copy right before V's words has no place.
+  assert.doesNotMatch(last.slice(last.indexOf('[YOU, RIGHT NOW')), /Watson|somewhere in/, 'where V is is not repeated before the words of V');
 });
 
 test('shipping: the module ships and dev-installs; the setting has its row and help in English and all 15 languages', () => {

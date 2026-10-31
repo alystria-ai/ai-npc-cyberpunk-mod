@@ -268,7 +268,7 @@ test('with no add-on, or none with content, nothing changes: the same profile ob
   assert.equal(linked.resolve(MISTRAL), linked.resolve(MISTRAL));
   assert.deepEqual(linked.list(), plain.list(), 'no `packs` field appears in the editor\'s list');
   const bridge = read('./convai-bridge.mjs');
-  assert.match(bridge, /worldRules: addonContent\.installed \? addonContent\.worldRulesView\(worldRules\) : worldRules\}\);/, 'without a pack the persona book reads the player\'s store itself');
+  assert.match(bridge, /worldRules: addonContent\.installed \? addonContent\.worldRulesView\(worldRules\) : worldRules, topics: talkRetrievalOn\}\);/, 'without a pack the persona book reads the player\'s store itself');
   assert.match(bridge, /packs: addonContent\.installed \? addonContent : null,/);
   assert.match(bridge, /\.\.\.convaiWorldRulesBlocks\(addonContent\.convaiWorldRulesText\(worldRules\.get\(\)\), mistral\.active\),/, 'Convai\'s dynamic info carries the packs\' rules after the player\'s');
   assert.match(bridge, /addonContent: addonContent\.installed \? addonContent : null,/);

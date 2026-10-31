@@ -1359,8 +1359,8 @@ const worldRules = await WorldRules.open({dir: stateDirectory, log: message => c
 // Retrieval for a turn's background (bridge/talk-retrieval.mjs, docs/NATURAL_TALK_RESEARCH_2026-10-30.md section 15): the character's topic views and the quest, journal and world
 // facts reach the prompt as the few units that bear on V's words, not as whole blocks on every turn. CYBERPUNK_CONVAI_TALK_RETRIEVAL=off puts the whole blocks back (a comparison, or a fault).
 const talkRetrievalOn = String(process.env.CYBERPUNK_CONVAI_TALK_RETRIEVAL ?? '').trim().toLowerCase() !== 'off';
-const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions, topics: talkRetrievalOn,
-  worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
+const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions,
+  worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules, topics: talkRetrievalOn});
 // One embedder for the memory search and for this: V's words are embedded once per turn (MemoryStore.queryVector), the units' vectors are made ahead and kept in <state>/talk-vectors.json.
 // The roster's topic text is the corpus the rarity of a word is judged by. Convai's provisioned characters carry the roster's own text, so they get the roster's wording of the items.
 const talkRetrieval = new TalkRetrieval({embedder: localEmbedder, queryVector: (text, options) => mistralMemory.queryVector(text, options),

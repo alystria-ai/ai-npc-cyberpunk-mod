@@ -73,7 +73,7 @@ const parts = (extra = {}) => ({now: 'Right now (from the game, this turn only):
 
 // ---- Prompt layout v2 ------------------------------------------------------------------------------------------------------
 
-test('layout v2: persona and rules, then format notes, world, summary and the right-now block, then the turns, then the volatile notes', () => {
+test('layout v2: persona, rules and format notes in the system message, then the turns, then the last message: world, summary, right-now block, the turn\'s notes, V\'s words', () => {
   const persona = book.persona('judy-alvarez');
   const history = [{v: 'my name is Kestrel', r: 'Nice to meet you, Kestrel.'}];
   const messages = buildMessages({persona, memory: 'I fixed a rig for V.', history, contextParts: parts(),
@@ -82,27 +82,38 @@ test('layout v2: persona and rules, then format notes, world, summary and the ri
   const at = text => system.indexOf(text);
   assert(at('You are Judy Alvarez') === 0);
   assert(at('OUTPUT RULES') < at('FORMAT NOTES FOR EVERY REPLY'));
-  assert(at('FORMAT NOTES FOR EVERY REPLY') < at('WORLD AND QUEST CONTEXT'));
-  assert(at('WORLD AND QUEST CONTEXT') < at('WHAT YOU REMEMBER OF V FROM EARLIER TALKS'));
-  assert(at('WHAT YOU REMEMBER OF V FROM EARLIER TALKS') < at('RIGHT NOW'));
-  assert(system.trimEnd().endsWith('It is night, about 11 PM.'), 'the right-now block is the last thing before the turns');
-  assert(system.includes(CONTEXT_PREFIX) && system.includes('Quest: Heist.'));
+  assert(system.trimEnd().endsWith('Use {joy} tags for feelings.'), 'the format notes are the last thing before the turns');
+  assert.doesNotMatch(system, /WORLD AND QUEST CONTEXT|WHAT YOU REMEMBER OF V FROM EARLIER TALKS|RIGHT NOW|Quest: Heist|about 11 PM|I fixed a rig/, 'nothing that changes is in the system message');
   assert.deepEqual(messages.slice(1, 3).map(message => message.content), ['my name is Kestrel', 'Nice to meet you, Kestrel.'], 'recent turns are verbatim');
   const last = messages.at(-1).content;
-  assert(last.indexOf('Whether you ask V anything') < last.indexOf('THINGS YOU REMEMBER ABOUT V'));
-  assert(last.indexOf('THINGS YOU REMEMBER ABOUT V') < last.indexOf('V says: What is my name?'));
-  assert(last.includes('- V told me about a brother in the Badlands.'));
-  assert.doesNotMatch(last, /Quest: Heist|about 11 PM/, 'world and clock are not repeated in the last message');
+  const where = text => last.indexOf(text);
+  assert(where('WORLD AND QUEST CONTEXT') === 0 && last.includes(CONTEXT_PREFIX) && last.includes('Quest: Heist.'));
+  assert(where('WORLD AND QUEST CONTEXT') < where('WHAT YOU REMEMBER OF V FROM EARLIER TALKS'));
+  assert(where('WHAT YOU REMEMBER OF V FROM EARLIER TALKS') < where('RIGHT NOW'));
+  assert(where('RIGHT NOW') < where('Whether you ask V anything'));
+  assert(where('Whether you ask V anything') < where('THINGS YOU REMEMBER ABOUT V'));
+  assert(where('THINGS YOU REMEMBER ABOUT V') < where('V says: What is my name?'));
+  assert(last.includes('- V told me about a brother in the Badlands.') && last.includes('It is night, about 11 PM.'));
 });
 
-test('layout v2: everything before the turns is byte-identical when only the volatile notes, the retrieved memories or the history change', () => {
+test('layout v2: the system message and the history are byte-identical when the world, the summary, the right-now block, the knowledge, the notes or the retrieved memories change', () => {
   const persona = book.persona('judy-alvarez');
-  const a = buildMessages({persona, memory: 's', history: [], contextParts: parts(), text: 'one'});
-  const b = buildMessages({persona, memory: 's', history: [{v: 'one', r: 'two'}], contextParts: parts({volatile: 'Another speaks after you.'}),
-    remembered: [{text: 'x remembered fact'}], text: 'three'});
-  assert.equal(a[0].content, b[0].content);
-  const c = buildMessages({persona, memory: 's', history: [], contextParts: parts({now: 'Right now: it is morning.'}), text: 'one'});
-  assert.notEqual(a[0].content, c[0].content);
+  const history = [{v: 'one', r: 'two'}];
+  const a = buildMessages({persona, memory: 's', history, contextParts: parts(), text: 'one'});
+  const prefix = messages => JSON.stringify(messages.slice(0, -1));
+  const changes = {
+    volatile: parts({volatile: 'Another speaks after you.'}), now: parts({now: 'Right now: it is morning.'}), world: parts({world: 'Quest: Heist.\n\nV wears a coat.'}),
+    knowledge: parts({worldBlocks: [{key: 'knowledge', text: 'A new fact.'}], world: 'Quest: Heist.\n\nA new fact.'}), retrieved: parts({retrieved: 'WHAT COMES TO MIND\nsomething'}),
+  };
+  for (const [name, changed] of Object.entries(changes)) {
+    const b = buildMessages({persona, memory: 's', history, contextParts: changed, text: 'one'});
+    assert.equal(prefix(b), prefix(a), `${name}: the system message and the turns before the last message do not move`);
+    assert.notEqual(b.at(-1).content, a.at(-1).content, name);
+  }
+  const summary = buildMessages({persona, memory: 'a different summary', history, contextParts: parts(), text: 'one'});
+  assert.equal(prefix(summary), prefix(a), 'the summary');
+  const b = buildMessages({persona, memory: 's', history, contextParts: parts(), remembered: [{text: 'x remembered fact'}], text: 'three'});
+  assert.equal(prefix(b), prefix(a));
   assert.equal(a[0].content.slice(0, systemHead({persona}).length), systemHead({persona}), 'the persona prefix is the prewarm text');
 });
 
@@ -181,8 +192,7 @@ test('with contextParts the request uses layout v2 and the memory store\'s retri
   try {
     await host.reply(turn('who am I?', {contextParts: parts()}));
     const messages = server.requests[0].body.messages;
-    assert.match(messages[0].content, /WORLD AND QUEST CONTEXT[\s\S]*Quest: Heist/);
-    assert.match(messages.at(-1).content, /- V told me their name is Kestrel\./);
+    assert.match(messages.at(-1).content, /WORLD AND QUEST CONTEXT[\s\S]*Quest: Heist[\s\S]*- V told me their name is Kestrel\./);
     assert.equal(retrievals[0].query, 'who am I?');
     assert.equal(retrievals[0].profileKey, 'judy-alvarez');
     // A reaction retrieves nothing.

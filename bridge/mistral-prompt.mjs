@@ -2,25 +2,25 @@
 // carry, and the cleaning of what comes back (docs/MISTRAL.md, docs/LOCAL_AI.md). Pure functions: no I/O.
 //
 // Layout v2 (used whenever the bridge supplies `contextParts`), ordered from the most stable text to the most volatile so a
-// server that reuses the longest identical prefix of the previous request (llama.cpp's prompt cache; some cloud APIs) recomputes
-// as little as possible. Nothing that alternates between turns may sit early: on a hybrid model (Qwen3.5, Gemma 4) a changed
-// early token throws away every checkpoint after it (docs/LOCAL_OPTION_DESIGN.md, "Hybrid model caveat"):
-//   system   1. the persona (backstory with the appearance, speaking style, original example lines) and the output rules, then the
-//               world rules the player wrote in the editor (bridge/world-rules.mjs; nothing when there are none): they change only when
-//               the player saves them, so they sit with the other stable text and never after the world facts or the right-now block
-//            2. the format notes (Expressive emotion tags): identical every turn for a given setting
-//            3. the world: quest and journal, relationship, who V is to this character, gear (changes on game events only)
-//            4. what the character remembers of V from older talks (the summary; changes every few exchanges)
-//            5. the "right now" block (game clock to the hour, district, company, vehicle; bridge/turn-context.mjs). It sits LAST
-//               in the system message, i.e. just before the conversation turns: it is stable for minutes at a time, so it must
-//               not come before the world block, but it does change, so nothing stable may follow it. The bridge builds it first
-//               in the Convai context (Convai ignores the order); a prefix cache does not.
+// server or an API that reuses the longest identical prefix of the previous request (llama.cpp's prompt cache, Gemini's implicit cache) recomputes
+// as little as possible. Nothing that changes between turns may sit before the history: on a hybrid model (Qwen3.5, Gemma 4) a changed early token throws
+// away every checkpoint after it (docs/LOCAL_OPTION_DESIGN.md, "Hybrid model caveat"), and a 30 turn Gemini run showed the cached share falling to nothing
+// on 12 turns of 30, each time a block in the system message changed (the world block 7 times, the knowledge 3, the summary once).
+//   system   the persona (backstory with the appearance, speaking style, original example lines), the output rules, the world rules the player
+//            wrote in the editor (bridge/world-rules.mjs) and the format notes (Expressive emotion tags): all identical every turn of a talk, and for
+//            a given setting. The fully local server is prewarmed with the first part of this text when a companion joins.
 //   history  the last few exchanges of this conversation (user / assistant)
-//   user     the volatile notes of this turn (follow-up policy, Natural speech offer, game dialogue, battle and loot, language,
-//            first-person reminder), what the memory store retrieved for V's words, the background chosen for V's words (`contextParts.retrieved`: the
-//            character's topic views and the quest, journal and world facts that bear on the line, bridge/talk-retrieval.mjs; nothing for small talk), then
-//            `V says: ...` and the closing reminder. The retrieved block is last of the changing text on purpose: everything before it in the prompt stays
-//            identical from turn to turn (the persona without its topic section, the rules, the stable world), so a prefix cache keeps reading it.
+//   user     the last message, everything that can change, most stable first:
+//            1. the world: quest and journal framing, relationship, who V is to this character, gear (changes on game events only)
+//            2. what the character remembers of V from older talks (the summary; changes every few exchanges)
+//            3. the knowledge facts (ranked by V's words when retrieval is off)
+//            4. the "right now" block (game clock to the hour, district, company, vehicle; bridge/turn-context.mjs), then the fresh facts
+//            5. the volatile notes of this turn (follow-up policy, Natural speech offer, game dialogue, battle and loot, language, first-person
+//               reminder), what the memory store retrieved for V's words, the background chosen for V's words (`contextParts.retrieved`: the
+//               character's topic views and the quest, journal and world facts that bear on the line, bridge/talk-retrieval.mjs; nothing for small
+//               talk), then `V says: ...` and the closing reminder.
+//            The bridge builds the same blocks first in the Convai context (Convai ignores the order). Because nothing before the last message
+//            changes except by the history growing, a changed world fact, summary or knowledge block costs only the last message.
 // Without `contextParts` (older callers, tests) the old layout is used: persona, summary and rules in the system message, and the
 // whole live context (the string Convai gets) in the last user message.
 // A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
@@ -288,31 +288,43 @@ export function systemHead({persona, memory = '', limits = LIMITS, mature = null
 
 /**
  * The system message. Layout v1 (no `layers`): `memory` is what the character remembers of V from older talks, before the rules.
- * Layout v2 (`layers` = {notes, world, now}): persona and rules, then the format notes, the world, the memory summary and the
- * right-now block, in that order (see the header comment for why).
+ * Layout v2 (`layers` = {notes, fixed, ...}): only what never changes between turns of a talk: the persona and the output rules, the player's world rules, the format notes and the
+ * framing rules of the data that is chosen per turn (`fixed`, the same text every turn). Everything
+ * that changes (the world, the older-talk summary, the knowledge, the right-now block, the fresh facts) comes after the history, at the start of the last message (`turnBackground`).
  */
 export function systemPrompt({persona, memory = '', limits = LIMITS, layers = null, mature = null, guard = false, profile = BASE_PROFILE}) {
   // The player's world rules follow the head (persona, output rules, Mature or guard layer) and come before everything that can change between
   // turns. Never cut by the prompt budget (bridge/prompt-budget.mjs): they are not part of the persona levels.
   const rules = worldRulesBlock(persona.worldRules);
   if (!layers) return [systemHead({persona, memory, limits, mature, guard, profile}), rules].filter(Boolean).join('\n\n');
+  return [systemHead({persona, limits, mature, guard, profile}), rules, section(profile.labels.formatNotes, capContext(layers.notes, limits.notes)),
+    // The rules for reading the quest, journal and world data (their framing sentences, bridge/quest-context.mjs retrievalSources) when the data itself is chosen per turn: the same text on every turn.
+    layers.fixed ? section(READING_RULES, layers.fixed) : ''].filter(Boolean).join('\n\n');
+}
+
+export const READING_RULES = 'HOW TO READ THE QUEST, JOURNAL AND WORLD DATA (rules that outrank the data; the data itself comes in the last message, under WHAT COMES TO MIND, on the turns it bears on)';
+
+/**
+ * Layout v2: everything about the world and the moment that can change from one turn to the next, as the first part of the last message: the world (quest, journal, relationship),
+ * the older-talk summary, the per-turn knowledge, the right-now block, then the fresh facts. It sits after the history, not in the system message, because a server or an API that
+ * reuses the longest identical prefix of the previous request (llama.cpp's cache, Gemini's implicit cache) throws away everything after the first changed token: a world block that
+ * changed (a quest step, a new fact) in the system message made the persona's tail and the whole history read again (a 30 turn Gemini run: the cached share fell to nothing on 12 turns
+ * of 30, each time an early system block changed). Here a change costs only the last message. Within it the blocks keep their order, the most stable first.
+ */
+export function turnBackground({memory = '', limits = LIMITS, layers, mature = null, profile = BASE_PROFILE}) {
   const prefixed = `${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`;
   const fitted = capContext(prefixed, limits.world);
   const lean = text => mature ? matureWorld(text, profile.matureLayer) : text;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
-  // The per-turn knowledge block (ranked by V's words, so it differs on nearly every turn) goes after everything that is stable between turns, the older-talk summary
-  // included: a prompt cache (llama.cpp's) reuses the text up to the first difference, and with the block in the middle of the world context every turn read the summary
-  // again. Only when the blocks are the very ones the world context is made of; otherwise the old order stands. The cap of the world context then cuts the stable blocks
-  // (the middle of them, as before) at a place that does not depend on the facts (a cut that moved with the length of the facts would move the cached text with it), and
-  // the facts have a cap of their own, half the world's.
+  // The per-turn knowledge block (ranked by V's words) goes after the blocks that are stable between turns, the older-talk summary included. Only when the blocks are the very ones the
+  // world context is made of; otherwise the old order stands. The cap of the world context then cuts the stable blocks (the middle of them, as before) at a place that does not depend
+  // on the facts, and the facts have a cap of their own, half the world's.
   const apart = knowledgeApart(layers.worldBlocks, layers.world);
   const world = lean(apart ? capContext(`${CONTEXT_PREFIX}${apart.stable || 'This is a private conversation with V.'}`, limits.world) : fitted);
-  return [systemHead({persona, limits, mature, guard, profile}), rules,
-    section(profile.labels.formatNotes, capContext(layers.notes, limits.notes)),
-    section(profile.labels.world, world),
+  return [section(profile.labels.world, world),
     memory ? section(profile.labels.remember, clip(memory, limits.summary)) : '',
     apart ? section(profile.labels.knowledge, lean(capContext(apart.knowledge, Math.floor(limits.world / 2)))) : '',
     section(profile.labels.rightNow, clip(layers.now, limits.now)),
-    // What changed this turn or what V asks about, once more at the very end (bridge/fresh-facts.mjs): after the right-now block, which changes anyway, so a prompt cache keeps all before it.
+    // What changed this turn or what V asks about (bridge/fresh-facts.mjs), after the right-now block.
     layers.fresh ? headLine(clip(layers.fresh, FRESH_MAX_CHARS)) : '']
     .filter(Boolean).join('\n\n');
 }
@@ -330,14 +342,21 @@ export function knowledgeApart(blocks, world) {
 }
 
 /**
- * The context parts of a turn with the retrieval result laid over them (bridge/talk-retrieval.mjs): each world block the result replaced keeps its framing (`result.frames`, the same
- * text on every turn) and the chosen units go in `retrieved`, which buildMessages puts late in the last message. Parts that do not list their world blocks (older callers) are returned as they are, and then the full blocks stay.
+ * The context parts of a turn with the retrieval result laid over them (bridge/talk-retrieval.mjs): the framing of each world block the result replaced (`result.frames`, the same
+ * text on every turn) goes to `fixed`, in the system message, and the chosen units go in `retrieved`, which buildMessages puts late in the last message. Parts that do not list their world blocks (older callers) are returned as they are, and then the full blocks stay.
  */
 export function withRetrievedParts(parts, result) {
   if (!parts || typeof parts !== 'object' || !result || !Array.isArray(parts.worldBlocks)) return parts;
   const dropped = new Set(result.dropped ?? []), frames = result.frames ?? {};
-  const worldBlocks = parts.worldBlocks.map(block => (dropped.has(block?.key) ? {...block, text: frames[block.key] ?? ''} : block)).filter(block => block?.text);
-  return {...parts, worldBlocks, world: joinBlocks(worldBlocks.map(block => block?.text)), retrieved: result.text ?? ''};
+  // The framing of each replaced block and the authority sentence are the same text on every turn: they go to `fixed`, with the persona and the rules (a text that never changes is not what
+  // a changed fact should throw away). Everything else of the world part (relationship, bond, group, an unavailable notice) stays where it was, after the turns.
+  const fixed = [], rest = [];
+  for (const block of parts.worldBlocks) {
+    if (dropped.has(block?.key)) { if (frames[block.key]) fixed.push(frames[block.key]); }
+    else if (block?.key === 'authority' && block.text) fixed.push(block.text);
+    else rest.push(block);
+  }
+  return {...parts, worldBlocks: rest, world: joinBlocks(rest.map(block => block?.text)), fixed: joinBlocks([parts.fixed, ...fixed]), retrieved: result.text ?? ''};
 }
 
 /** A context longer than the cap keeps its head and its tail (the voice and first-person notes are last). */
@@ -368,8 +387,8 @@ const HERE = /You are (?:with V in person[^.]*\.|in V's head[^.]*\.|(?:messaging
 const withoutPlace = here => String(here).replace(/;\s+V is in [^.]*(?=\.$)/, '').replace(/\s+(?:in|through)\s+(?!V's)[A-Z][^.]*(?=\.$)/, '');
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null, guard = false, profile = BASE_PROFILE}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
-  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard, profile,
-    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks, fresh: reaction ? '' : contextParts.fresh} : null})}];
+  const layers = v2 ? {notes: contextParts.notes, fixed: contextParts.fixed, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks, fresh: reaction ? '' : contextParts.fresh} : null;
+  const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard, profile, layers})}];
   // The earlier replies that say what is no longer true (V's clothes just changed) are not sent: a 4B model repeats its own last answer over any line above it (bridge/fresh-facts.mjs).
   const stale = v2 && !reaction ? staleTest(contextParts.freshDrop) : null;
   let droppedHistory = 0, droppedMemory = 0;
@@ -415,7 +434,10 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   const notesAfter = profile.layout.volatile === 'after' && !reaction && volatile;
   // The fresh facts again, last before V's words (or, in a profile that puts the notes after V's line, last before the closing).
   const fresh = reaction || !contextParts.fresh ? '' : tailLine(clip(contextParts.fresh, FRESH_MAX_CHARS));
+  // The world and the moment come first in the last message, after the history; see turnBackground.
+  const background = turnBackground({memory, limits, layers, mature, profile});
   messages.push({role: 'user', content: [
+    background,
     here && profile.layout.youNow ? `[${profile.labels.youNow}: ${here} ${here.startsWith('You are messaging')
       ? 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.'
       : here.startsWith('You are on a')
@@ -430,7 +452,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, tail, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
   // For the bridge log: where the fresh facts went (names only) and what was left out because the game read the opposite.
   Object.defineProperty(messages, FRESH_NOTE, {enumerable: false, value: {codes: reaction ? '' : contextParts.freshCodes || '', asked: !reaction && contextParts.freshAsked === true,
-    placed: fresh ? ['system-end', notesAfter ? 'before-closing' : 'before-v'] : [], history: droppedHistory, memory: droppedMemory}});
+    placed: fresh ? ['context-end', notesAfter ? 'before-closing' : 'before-v'] : [], history: droppedHistory, memory: droppedMemory}});
   return withPromptSource(messages, arguments[0]);
 }
 

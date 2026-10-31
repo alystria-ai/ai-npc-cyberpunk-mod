@@ -24,13 +24,13 @@ test('the closing note sits right after V\'s words and before the closing rules,
   assert.doesNotMatch(buildMessages({persona, context: 'ctx', text: 'Hello there'}).at(-1).content, /Tone with V/, 'the older layout has none');
 });
 
-test('the same note, the same prefix: the tone is in the cached block and the note is the same text on every turn', () => {
+test('the same note, the same prefix: the system message does not change between turns and the note is the same text on every turn', () => {
   const world = relationshipContext(romantic, 'phone');
   const note = romanceReminder(romantic, 'phone');
   const a = buildMessages({persona, contextParts: {now: '', notes: '', world, volatile: 'a', closing: note}, text: 'hey'});
   const b = buildMessages({persona, contextParts: {now: '', notes: '', world, volatile: 'b', closing: note}, text: 'how was your day'});
   assert.equal(a[0].content, b[0].content, 'the system message (the cached prefix) does not change between turns');
-  assert.ok(a[0].content.includes('you love V'), 'the tone is in the system message');
+  assert.ok(a.at(-1).content.includes('you love V'), 'the tone is in the world block, at the start of the last message');
   assert.ok(a.at(-1).content.includes(ROMANCE_REMINDER.partner) && b.at(-1).content.includes(ROMANCE_REMINDER.partner));
 });
 
