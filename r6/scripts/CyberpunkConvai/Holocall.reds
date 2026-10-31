@@ -92,6 +92,15 @@ public final func ConvaiHolocallConnect(live: Bool) -> String {
     return hud.ConvaiCallConnect(live);
 }
 
+// The live picture failed (no studio spot, the copy lost) and the call goes on as a voice call: the call window shows the contact's own picture
+// (the game's avatar of her journal contact, or its unknown-caller picture for a Chat row with none). Asked again here, after the window
+// switched to the voice call, so the picture is there whatever state the ring left the window in. A no-op without a call.
+@addMethod(PlayerPuppet)
+public final func ConvaiHolocallPortrait() -> Void {
+    let hud = this.m_convaiHolocallHud;
+    if IsDefined(hud) { hud.ConvaiCallPortrait(); };
+}
+
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallEnd() -> Void {
     let hud = this.m_convaiHolocallHud;
@@ -124,6 +133,8 @@ private let m_convaiCallActive: Bool;
 // The journal contact of the call, empty for a Chat row with none. What the window shows is kept below, read once when the call starts.
 @addField(NewHudPhoneGameController)
 private let m_convaiCallContact: wref<JournalContact>;
+@addField(NewHudPhoneGameController)
+private let m_convaiCallId: String;
 @addField(NewHudPhoneGameController)
 private let m_convaiCallAvatar: TweakDBID;
 @addField(NewHudPhoneGameController)
@@ -199,6 +210,7 @@ public final func ConvaiCallBegin(id: String, fallbackName: String) -> String {
         this.m_convaiCallAvatar = t"";
         this.m_convaiCallName = fallbackName;
     };
+    this.m_convaiCallId = id;
     this.m_convaiCallActive = true;
     this.m_convaiCallPreempted = false;
     this.m_convaiCallPressed = false;
@@ -226,6 +238,26 @@ public final func ConvaiCallConnect(live: Bool) -> String {
     this.ConvaiCallShow();
     if !IsDefined(this.m_holoAudioCallLogicController) { return "pending"; };
     return live ? "holocall" : "audiocall";
+}
+
+// The picture of a voice call that was meant to be a video one. The contact is looked for again when the call began without one (it can have
+// become known since), then the window is told to show the voice call with the avatar, whatever it showed before. Runs once, when the call
+// connects without its live picture.
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiCallPortrait() -> Void {
+    if !this.m_convaiCallActive || this.m_convaiCallPreempted || !IsDefined(this.m_holoAudioCallLogicController) { return; };
+    if !IsDefined(this.m_convaiCallContact) && StrLen(this.m_convaiCallId) > 0 {
+        let contact = this.ConvaiCallFindContact(this.m_convaiCallId);
+        if IsDefined(contact) {
+            this.m_convaiCallContact = contact;
+            this.m_convaiCallAvatar = contact.GetAvatarID(this.m_journalMgr);
+            this.m_convaiCallName = contact.GetLocalizedName(this.m_journalMgr);
+        };
+    };
+    this.m_holoAudioCallLogicController.ConvaiHolocallBacking(false);
+    this.m_holoAudioCallLogicController.StartAudiocall(this.m_convaiCallAvatar, this.m_convaiCallName, true);
+    this.m_CurrentFunction = EHudPhoneFunction.Audiocall;
+    this.m_convaiCallWanted = EHudPhoneFunction.Audiocall;
 }
 
 @addMethod(NewHudPhoneGameController)

@@ -269,7 +269,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     among up to three of them that stops when you talk. One scheduler
     (`mod/speak-up.lua`) paces both lists; see `docs/COMPANION_SPEAK_UP.md`.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On Settings,
-  every category page, the Romantic relationships page, the Dynamic info page, the Key bindings page, the Immersive invitations page and the Housemates page (the pages `M.hasDefaults` says yes to, which both hosts ask before they offer the button) it applies every saved row of all of those pages that is not at
+  every category page, the Romantic relationships page, the Dynamic info page, the Key bindings page, the Immersive invitations page and the Housemates page (the pages `M.hasDefaults` says yes to, which both hosts ask before they offer the button; **not** the Settings list, which has no setting of its own) it applies every saved row of THAT PAGE ONLY (since 2026-11-01: `M.defaults(page)`, rows of other pages are never in the batch; before, one press put every page back, and Restore defaults on Dynamic info switched off Character bonds and Story packs) that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits; the own key bindings are cleared in the same
   save as one change, `keyBindings:clear`), then says "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says
   "Open Settings to restore its defaults."

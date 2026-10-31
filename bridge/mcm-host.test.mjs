@@ -166,7 +166,8 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   press('Settings')
   local config = mcm.config()
   assert(config.navigation.backActionId == 'settings:back' and config.navigation.escapeBack == true, config.navigation.backActionId)
-  assert(config.footerActions[1] == 'defaults:restore' and config.footerActions[2] == 'settings:back', table.concat(config.footerActions, ','))
+  -- The Settings list has no setting of its own: no Restore defaults there (1 Nov 2026), only Back.
+  assert(config.footerActions[1] == 'settings:back' and #config.footerActions == 1, table.concat(config.footerActions, ','))
   assert(mcm.row('Back to Companion Manager').value == 'Back')
   assert(config.navigation.pageId == 'settings|1|1')
   -- A category page goes back to the Settings list, a page opened from one goes back to the category page that holds its row.
@@ -320,14 +321,17 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true, 'defaults saved')
+  assert(settings.voiceVolume == 150 and settings.vVoiceVolume == 150, 'defaults saved')
+  assert(settings.lootReactions == false and settings.battleReactions == false, 'the rows of the Companions page are not part of the Voice page')
   assert(mcm.row('Companion voice volume (%)').value == 150 and mcm.row('V’s voice volume (%)').value == 150, 'the page shows them')
   frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
   assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
-  -- A press on another page drops it too: the confirmation is for the page it was asked on. The rows of the other pages came back with it.
+  -- A press on another page drops it too: the confirmation is for the page it was asked on. The rows of the other pages did not come back with it.
   press('Defaults'); press('Back to settings'); press('Companions')
-  assert(footerLabels() == 'Defaults | Back' and mcm.row('Companions react').value == true, footerLabels())
+  assert(footerLabels() == 'Defaults | Back' and mcm.row('Companions react').value == false, footerLabels())
+  press('Defaults'); press('Defaults')
+  assert(mcm.row('Companions react').value == true and manager.snapshot(player).settings.lootReactions == true)
 `));
 
 test('the footer never cuts a label: with changes pending five buttons share the row (Revert, Apply, MCM’s Add to favorites, Defaults, Back), and the mod’s own ones are short enough for that share', () => withScreen(`
@@ -734,7 +738,7 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   assert(phone.time == false and phone.money == false and phone.location == true and info.time == true and info.money == true and info.location == false)
   assert(manager.dynamicInfoSet('time', true) == false and manager.dynamicInfoSet('time', false) == true and manager.dynamicInfo('time') == true, 'read from the game when either set wants it')
   assert(manager.dynamicInfo('location') == true, 'off in person but on for the phone: still read')
-  -- Restore defaults on this page puts every switch back to its default, on except Other mods' state (and Settings with them).
+  -- Restore defaults on this page puts every switch back to its default, on except Other mods' state, and no row of any other page.
   press('Defaults'); press('Defaults')
   info = manager.snapshot(player).settings.dynamicInfo
   for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
@@ -748,7 +752,7 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   press('Back to settings'); press('Back to Companion Manager')
 `));
 
-test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Defaults on the page or on Conversations gives each set its own defaults', () => withScreen(`
+test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Defaults on the page gives each set its own defaults, on Conversations it leaves them alone', () => withScreen(`
   ${footer}
   local function allOn()
     local person, phone = {}, {}
@@ -769,11 +773,36 @@ test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Def
   press('Defaults'); press('Defaults')
   check('from the Dynamic info page')
   assert(mcm.row('dynamicPhone:location').value == false and mcm.row('dynamicPhone:quest').value == true and mcm.row('dynamic:location').value == true)
-  -- A pending draft on the page does not stand in the way, and Conversations restores both sets as well.
+  -- Restore defaults is per page (1 Nov): on the Conversations page it leaves the Dynamic info page alone.
   allOn(); core.refresh(); frames(4)
   press('Back to settings')
   press('Defaults'); press('Defaults')
-  check('from Conversations')
+  do local settings = manager.snapshot(player).settings
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(settings.dynamicInfo[kind] == true and settings.dynamicInfoPhone[kind] == true, 'Conversations leaves Dynamic info as it was: ' .. kind) end end
+`));
+
+test('the owner’s case of 1 Nov 2026: Restore defaults on Dynamic info leaves Character bonds and Story packs on the Companions page switched on', () => withScreen(`
+  ${footer}
+  settingsPage('Companions')
+  assert(mcm.set('Character bonds', true) and mcm.set('Story packs', true) and mcm.set('Companions change outfits', true) and mcm.apply())
+  assert(saved.characterBonds == true and saved.storyPacks == true and saved.companionOutfits == true)
+  press('Back to settings'); press('Conversations')
+  press('Dynamic info')
+  assert(mcm.set('Location', false) and mcm.set('dynamicPhone:time', false) and mcm.apply())
+  press('Defaults'); press('Defaults')
+  frames(8)
+  local settings = manager.snapshot(player).settings
+  assert(settings.dynamicInfo.location == true and settings.dynamicInfoPhone.time == true, 'the Dynamic info rows are back')
+  assert(settings.characterBonds == true and settings.storyPacks == true and settings.companionOutfits == true, 'the Companions page is as it was')
+  assert(saved.characterBonds == true and saved.storyPacks == true and saved.companionOutfits == true, 'and so is the saved file')
+  -- The other way round: Restore defaults on Companions leaves Dynamic info alone.
+  assert(mcm.set('Location', false) and mcm.apply())
+  press('Back to settings'); press('Back to settings'); press('Companions')
+  press('Defaults'); press('Defaults')
+  frames(8)
+  settings = manager.snapshot(player).settings
+  assert(settings.characterBonds == false and settings.storyPacks == false and settings.companionOutfits == false, 'Companions is back to its defaults')
+  assert(settings.dynamicInfo.location == false, 'Dynamic info is as it was')
 `));
 
 test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Conversations', () => withScreen(`
@@ -1459,7 +1488,7 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
   assert(#mcm.config().footerActions == 0 and labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings')
   press('Settings')
-  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  assert(footerLabels() == 'Back', footerLabels())
   press('Interface')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.set('Subtitles', 1))
@@ -1535,8 +1564,11 @@ test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape s
   assert(labels() == 'Main characters to invite | Side characters to invite | Parties | Model browser | Relationships | Character editor | Key bindings | Settings | Back', labels())
   -- The sub-pages keep their own Back, and Home's is only on Home.
   press('Settings')
-  assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
+  assert(footerLabels() == 'Back' and mcm.config().navigation.backActionId == 'settings:back')
   assert(mcm.row('home:close') == nil)
+  press('Interface')
+  assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings-interface:back', tostring(mcm.config().navigation.backActionId))
+  press('Back to settings')
   press('Back to Companion Manager')
   assert(footerLabels() == 'Back')
   assert(mcm.closes == 0 and mcm.api.ui.getContext().open == true)
@@ -1593,7 +1625,7 @@ test('MCM 0.10.6 by version but refusing the new presentation options: the base 
   for _, line in ipairs(logged) do if line:find('refused the 0.10.6 presentation options', 1, true) then said = said + 1 end end
   assert(said == 1, 'said once: ' .. said)
   mcm.openScreen(); frames(2)
-  press('Settings')
+  press('Settings'); press('Interface')
   assert(footerLabels() == 'Defaults | Back', 'the 0.10.5 name of the button: ' .. footerLabels())
 `));
 
@@ -1909,7 +1941,7 @@ test('the OmniVoice entry of V’s voice engine is a normal choice with the pack
   assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
 `));
 
-test('Companions react is on by default, and Restore defaults puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on, from whichever page it is pressed on', () => withScreen(`
+test('Companions react is on by default, and Restore defaults puts Johnny to Off, V’s voice to Typed lines with Pocket and the reactions on, one page at a time', () => withScreen(`
   settingsPage('Companions')
   assert(mcm.row('Companions react').value == true)
   assert(mcm.set('Companions react', false))
@@ -1924,18 +1956,27 @@ test('Companions react is on by default, and Restore defaults puts Johnny to Off
   assert(mcm.apply())
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   frames(6)
-  -- One Restore defaults puts the rows of every Settings page back.
+  -- Restore defaults on the Voice page puts V's voice back and nothing of any other page.
   press('Defaults'); press('Defaults')
   frames(8)
   local settings = manager.snapshot(player).settings
-  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
-  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'normal', 'companions are back to Often')
   assert(settings.vVoice == true and settings.vVoiceMic == false and settings.vVoiceEngine == 'pocket', 'V speaks typed lines with Pocket')
   assert(mcm.row('V’s voice').value == 2 and mcm.row('V’s voice engine').value == 1)
+  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are untouched by the Voice page')
+  assert(settings.johnnyInHead == true and settings.johnnyRemarks == 'normal', 'Johnny is untouched by the Voice page')
   press('Back to settings'); press('Conversations')
+  press('Defaults'); press('Defaults')
+  frames(8)
+  settings = manager.snapshot(player).settings
+  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.companionSpeakUp == 'normal', 'companions are back to Often')
+  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are untouched by Conversations')
   assert(mcm.row('Johnny in your head').value == 1 and mcm.row('Companions speak up').value == 4)
   press('Back to settings'); press('Companions')
+  press('Defaults'); press('Defaults')
+  frames(8)
+  settings = manager.snapshot(player).settings
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(mcm.row('Companions react').value == true)
 `));
 

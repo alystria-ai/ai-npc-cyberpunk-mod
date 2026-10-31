@@ -6386,18 +6386,27 @@ test('Mature content and the way back: an old saved record keeps its voice parts
     assert(result.ok and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', 'a voice the player changed is not put back')
     result = turnOff({matureRestore = RECORD, vVoice = false, vVoiceChosen = true})
     assert(result.ok and saved.vVoice == false and saved.vVoiceEngine == 'voxtral' and saved.voiceProvider == 'voxtral', 'V Off stays off, the engine row is its own and goes back')
-    -- Restore defaults with Mature content on and such a record: the rows it names are at their defaults (Pocket), Voxtral does not come back.
+    -- Restore defaults with Mature content on and such a record, on the AI provider page: the provider rows it names are at their defaults, and the rows of the
+    -- Voice page are not touched at all (Voxtral stays where it is: each page restores its own rows, 1 Nov 2026).
     load({matureRestore = RECORD})
-    local changes = core.defaults()
+    local changes = core.defaults('settings-provider')
     local at = {}
     for index, change in ipairs(changes) do at[change.id] = index end
-    assert(at.matureContent and at.conversationProvider and at.voiceProvider and at.vVoiceEngine, 'the rows the way back would put back are named at their default')
-    assert(changes[at.matureContent].value == false and changes[at.conversationProvider].value == 1 and changes[at.voiceProvider].value == 2 and changes[at.vVoiceEngine].value == 1)
+    assert(at.matureContent and at.conversationProvider, 'the rows the way back would put back are named at their default')
+    assert(not at.voiceProvider and not at.vVoiceEngine, 'the Voice page rows are not in the provider page batch')
+    assert(changes[at.matureContent].value == false and changes[at.conversationProvider].value == 1)
     assert(core.apply(changes).ok)
-    assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
-    local ids = {}
-    for _, change in ipairs(changes) do ids[#ids + 1] = change.id end
-    assert(at.vVoiceEngine and changes[at.vVoiceEngine].value == 1, 'the engine row is listed at Pocket')
+    -- Mature content on forced the voices to Pocket; its record says Voxtral came before. Restore defaults of the provider page does not put Voxtral back
+    -- (the Voice page is not its page) and does not change the voices either.
+    assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket',
+      'Mature content off through the provider page leaves the voice rows alone: ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
+    -- The Voice page's batch holds its own rows only.
+    changes = core.defaults('settings-voice')
+    at = {}
+    for index, change in ipairs(changes) do at[change.id] = index end
+    assert(not at.matureContent and not at.conversationProvider and not at.localModel, 'no provider row in the voice batch')
+    assert(core.apply(changes).ok)
+    assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
   `);
 });
 
@@ -7269,23 +7278,23 @@ test('own key bindings: only game key names of the seven actions are kept, no ke
 
 test('Key bindings page: Restore defaults lists one change that puts the default keys back, and nothing when the keys are the defaults; the Controller talk button is gone from the page', () => {
   run(`${nsuiFixture}
-    assert(next(core.defaults()) == nil, 'nothing to restore: a fresh file holds the default keys')
+    assert(next(core.defaults('key-bindings')) == nil, 'nothing to restore: a fresh file holds the default keys')
     local function ids()
       local list = {}
-      for _, change in ipairs(core.defaults()) do list[#list + 1] = change.id end
+      for _, change in ipairs(core.defaults('key-bindings')) do list[#list + 1] = change.id end
       table.sort(list)
       return table.concat(list, ',')
     end
     assert(manager.setKeyBinding(player, 'voice', 'IK_F2'))
     assert(ids() == 'keyBindings:reset', ids())
-    local result = core.apply(core.defaults())
+    local result = core.apply(core.defaults('key-bindings'))
     assert(result.ok, tostring(result.error))
     assert(manager.keyBindings().voice == 'IK_F7' and manager.keyBindings().manager == 'IK_F4' and ids() == '')
     -- A key cleared on purpose differs from the defaults too, and so does a key on a Johnny action (they have none).
     assert(manager.setKeyBinding(player, 'manager', nil) and ids() == 'keyBindings:reset')
-    assert(core.apply(core.defaults()).ok and manager.keyBindings().manager == 'IK_F4' and ids() == '')
+    assert(core.apply(core.defaults('key-bindings')).ok and manager.keyBindings().manager == 'IK_F4' and ids() == '')
     assert(manager.setKeyBinding(player, 'johnny_text', 'IK_J') and ids() == 'keyBindings:reset')
-    assert(core.apply(core.defaults()).ok and manager.keyBindings().johnny_text == nil and ids() == '')
+    assert(core.apply(core.defaults('key-bindings')).ok and manager.keyBindings().johnny_text == nil and ids() == '')
     -- The old id is gone, and so is the Controller category with its setting.
     local old = core.apply({{id = 'keyBindings:clear', value = true}})
     assert(old.ok == false and old.error == 'That setting is read-only.', tostring(old.error))

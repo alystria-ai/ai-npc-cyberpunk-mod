@@ -304,7 +304,7 @@ local function schema()
         -- MCM 0.10.6 wraps a label that does not fit (and Add to favorites is hidden there), so the whole name fits.
         local label = newUi.presentation and ui.t('Restore defaults') or ui.t('Defaults')
         footer[#footer + 1] = action(DEFAULTS_ID, label, restoreArmed and ui.t('Confirm') or label,
-            ui.t('Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.'))
+            ui.t('Puts every setting on this page back to its default. Other pages are not changed. Press the button twice to confirm.'))
     end
     -- Home's Back (MCM 0.10.6): the footer button that closes MCM's screen, like the Back of the pages under it. It is not the page's
     -- back action (no backActionId), so Escape stays MCM's own close.
@@ -463,16 +463,17 @@ local function restoreScroll(before)
     putScroll(before)
 end
 
--- Restore defaults: the first press asks for a second one (the button says so), the second puts every row on Settings and
--- Relationships and Dynamic info back to its default, and puts the default key bindings back, in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
+-- Restore defaults: the first press asks for a second one (the button says so), the second puts every row of the page it was pressed on back to its default
+-- (and on Key bindings the default keys), and nothing of any other page, in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
 local function restoreDefaults()
     if not restoreArmed then
         restoreArmed, restorePage = true, core.pageId()
-        core.setFeedback(ui.t('Press Confirm to put every setting back to its default.'))
+        core.setFeedback(ui.t('Press Confirm to put every setting on this page back to its default.'))
         return {ok = true, schemaChanged = true}
     end
     restoreArmed = false
-    local changes = core.defaults()
+    -- The page the button is on, named here so the manager can never fall back to another page.
+    local changes = core.defaults(core.view())
     if #changes > 0 then
         local before = contentScroll()
         local result = core.apply(changes)

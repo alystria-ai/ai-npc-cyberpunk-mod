@@ -466,7 +466,8 @@ local function onRestoreDefaults()
         rebuildAt = os.clock()
         return
     end
-    local changes = core.defaults()
+    -- Only the rows of the page on screen: the tab's one Restore defaults button covers the page that is open, never the other pages.
+    local changes = core.defaults(core.view())
     if #changes > 0 then
         local ok, problem = pcall(applyChanges, changes)
         if not ok then lastError = 'Defaults: ' .. tostring(problem); logRepeat('Manager: defaults could not be applied: ' .. tostring(problem)) end

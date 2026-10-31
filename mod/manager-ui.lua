@@ -729,9 +729,13 @@ local function stageMature(changes, snapshot)
     -- `explicit`: the rows the batch itself sets (the player's own choice in it, or Restore defaults). Turning Mature content off never puts one
     -- of those back: what the batch asks for wins.
     local batch, by, explicit = {}, {}, {}
+    -- `restoring`: the batch is one page's Restore defaults. Turning Mature content off then puts back nothing of another page (Voices rows), only the
+    -- provider page's own rows, which the batch names at their defaults anyway.
+    local restoring = false
     for _, change in ipairs(changes) do
         local copy = {id = change.id, value = change.value}
         batch[#batch + 1], by[change.id], explicit[change.id] = copy, copy, true
+        if change.restoring == true then restoring = true end
     end
     local function stage(id, value)
         if by[id] then by[id].value = value
@@ -789,7 +793,7 @@ local function stageMature(changes, snapshot)
             end
         end
         part = restore.voice
-        if part and not explicit.voiceProvider then
+        if part and not explicit.voiceProvider and not restoring then
             local current, back = now('voiceProvider', savedVoiceIndex(saved)), voiceIndexOf(part.before)
             -- Only a voice that can be chosen now: Voxtral needs the Mistral key, OmniVoice its pack (M.apply refuses either without, and the
             -- refusal would keep Mature content on). Otherwise the voice stays where it is.
@@ -802,7 +806,7 @@ local function stageMature(changes, snapshot)
         end
         part = restore.vVoiceEngine
         -- V's engine goes back to Voxtral only if it still is Pocket (not changed by the player in this batch) and the key is saved.
-        if part and part.before == 'voxtral' and not explicit.vVoiceEngine and vEngineNow == 1 and keySaved then
+        if part and part.before == 'voxtral' and not explicit.vVoiceEngine and not restoring and vEngineNow == 1 and keySaved then
             stage('vVoiceEngine', 2); vEngineNow = 2
             names[#names + 1] = ui.t('V’s voice engine')
         end
@@ -3154,11 +3158,13 @@ for name in pairs(settingsPages.byView) do PAGES[name] = true end
 
 function M.view() return view end
 
--- Does Restore defaults cover the page on screen (Settings and its category pages, Relationships, Dynamic info, Key bindings, Immersive invitations, Housemates)?
+-- Does Restore defaults cover the page on screen? Each settings page restores only its own rows: the category pages (not the Settings list, which has no
+-- setting of its own) and the pages that open from one with settings of their own (Relationships, Dynamic info, Key bindings, Immersive invitations,
+-- Housemates). Fixed 2026-11-01: it used to put every page back, so Restore defaults on Dynamic info also switched off Character bonds and Story packs.
 local DEFAULTS_PAGES = {relationships = true, ['dynamic-info'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 function M.hasDefaults(name)
     name = name or view
-    return settingsPages.isSettingsView(name) or DEFAULTS_PAGES[name] == true
+    return (name ~= 'settings' and settingsPages.isSettingsView(name)) or DEFAULTS_PAGES[name] == true
 end
 
 -- The page on screen as one short text (the view, the page of its long list, the letter group and the search text): a host that scrolls to
@@ -3304,52 +3310,65 @@ function M.setUi(id, value)
     return true
 end
 
--- The saved value of every Settings row the player can change that is not at its default, as a batch for M.apply: Restore defaults.
--- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
-function M.defaults()
+-- The rows Restore defaults covers on ONE page, as the page draws them: every switch, list and slider that has a default and is not a view-only row (ui:...). The
+-- page is built once for this (the view on screen is put back and drawn again), so it is for a button press and for tests, never per frame.
+local function restorableRows(name)
+    local rows = {}
+    if not M.hasDefaults(name) then return rows end
     local previous = view
-    local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
-    -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
-    local pageNames = {}
-    for _, page in ipairs(settingsPages.list) do pageNames[#pageNames + 1] = page.view end
-    for _, name in ipairs({'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do pageNames[#pageNames + 1] = name end
-    for _, name in ipairs(pageNames) do
-        view = name
-        local ok, model = pcall(schema)
-        if not ok then lastError = tostring(model); break end
-        for _, section in ipairs(model.categories) do
-            for _, row in ipairs(section.settings) do
-                local kind = row.type
-                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') and not listed[row.id] then
-                    listed[row.id] = true
-                    local target = row.defaultValue
-                    if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
-                    -- A saved Move-in flat that V no longer owns shows as Ask me but is still saved: it is put back too.
-                    local shown = row.value
-                    if row.id == 'housemates:moveIn' and manager.housemates().moveIn ~= 'ask' then shown = 0 end
-                    if shown ~= target then
-                        changes[#changes + 1] = {id = row.id, value = target}
-                        if row.id == 'matureContent' then turningMatureOff = true end
-                    else atDefault[row.id] = target end
-                end
-            end
+    view = name
+    local ok, model = pcall(schema)
+    if not ok then lastError = tostring(model) end
+    for _, section in ipairs(ok and model.categories or {}) do
+        for _, row in ipairs(section.settings) do
+            local kind = row.type
+            if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then rows[#rows + 1] = row end
         end
+    end
+    -- Drawing the page replaced the page's actions and signature: the page on screen is built again.
+    view = previous
+    pcall(schema)
+    return rows
+end
+
+-- The row ids of one settings page that Restore defaults covers, in page order. Every id belongs to one page only.
+function M.pageRows(name)
+    local ids = {}
+    for _, row in ipairs(restorableRows(name or view)) do ids[#ids + 1] = row.id end
+    return ids
+end
+
+-- The saved value of every row of ONE settings page that is not at its default, as a batch for M.apply: Restore defaults. `name` is the page (the view on
+-- screen when left out); rows of any other page are never in the batch, so each page restores its own keys and nothing else. The Local AI model has no
+-- default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default. Runs when the player presses the button, never per frame.
+function M.defaults(name)
+    name = name or view
+    local changes, atDefault, turningMatureOff = {}, {}, false
+    for _, row in ipairs(restorableRows(name)) do
+        local target = row.defaultValue
+        if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
+        -- A saved Move-in flat that V no longer owns shows as Ask me but is still saved: it is put back too.
+        local shown = row.value
+        if row.id == 'housemates:moveIn' and manager.housemates().moveIn ~= 'ask' then shown = 0 end
+        if shown ~= target then
+            changes[#changes + 1] = {id = row.id, value = target, restoring = true}
+            if row.id == 'matureContent' then turningMatureOff = true end
+        else atDefault[row.id] = target end
     end
     -- Turning Mature content off puts back what turning it on changed (stageMature). Here the defaults are wanted instead: the rows it would put
     -- back are named in the batch at their default, so they stay there.
     if turningMatureOff then
         for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoiceEngine'}) do
-            if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
+            if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id], restoring = true} end
         end
     end
-    -- The own key bindings go back to the default keys (F4, F6, F7, F8, F10; none for the Johnny actions): one change for all seven.
-    local savedKeys = manager.keyBindings()
-    for action, name in pairs(manager.defaultKeyBindings()) do
-        if (name or nil) ~= savedKeys[action] then changes[#changes + 1] = {value = true, id = 'keyBindings:reset'}; break end
+    -- The own key bindings go back to the default keys (F4, F6, F7, F8, F10; none for the Johnny actions): one change for all seven, on the Key bindings page only.
+    if name == 'key-bindings' and M.hasDefaults(name) then
+        local savedKeys = manager.keyBindings()
+        for action, key in pairs(manager.defaultKeyBindings()) do
+            if (key or nil) ~= savedKeys[action] then changes[#changes + 1] = {value = true, id = 'keyBindings:reset', restoring = true}; break end
+        end
     end
-    -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.
-    view = previous
-    pcall(schema)
     return changes
 end
 

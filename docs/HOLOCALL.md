@@ -542,6 +542,13 @@ Needs a full game restart (redscript).
 - The channel stays private, so memory is shared with face-to-face talk.
 - `bridge/mistral-prompt.mjs` treats these sentences as a "where" line.
 
+## The forgiving spot search and the picture of a voice call (2026-11-01, branch `fix/release-1101`)
+
+Live test, game 2.5: a call with Judy logged `holo failed contact=judy reason=no-studio-spot (in-view=15, not-level=2) fallback=audio`, and the voice call showed no picture of her. Two changes.
+
+- **Second pass of the spot search.** The strict pass is unchanged. When it finds nothing, the floors it turned down for a reason that can be forgiven (`M.RELAXABLE`: `in-view`, `not-level`, `no-headroom`, `no-lens-room`, at most `M.RETRY_MAX` = 24) are tried once more with the ground allowed `M.RELAX_LEVEL` = 0.5 m off level (was 0.2), headroom of `M.RELAX_HEADROOM` = 2 m (was 2.5) and no cover from V's eyes required. The ones behind V come first (V's facing is read once with `player:GetWorldForward()`; unknown, nearest first), a spot is at least `M.RELAX_MIN_AWAY` = 3 m from V and within `FACE_RANGE` like any near spot. The probe lines are `holo relaxed search contact=<c> floors=<n> strict=(<reasons>)` and `holo relaxed spot contact=<c> away=<m>`; with nothing found the failure line is the strict one as before. Cost: it runs only while a call starts, three floors per tick like the strict pass, bounded, never per frame; a connected call searches nothing. The price is that on open ground the copy may stand in the open, behind V, instead of out of sight: the picture was lost there before.
+- **The voice call after a lost picture shows her picture.** `Holocall.reds` `ConvaiCallPortrait` (asked through `PlayerPuppet.ConvaiHolocallPortrait` after `connect` when a live picture was wanted and not delivered, and after a copy is lost mid-call) finds the journal contact again if the call began without one, then tells the window `StartAudiocall(avatar, name, true)` with the game's own avatar of that contact (the unknown-caller picture for a Chat row with none). One probe line, `portrait contact=<c> picture=<contact|unknown-caller> asked=<yes|no ...>`. Older scripts without the method answer an error and the window shows what it showed before. There is still no portrait art of our own for characters the game has no contact for. NOT verified in the game (no game here): that the window draws the avatar after the ring left it in the holocall state, which is what this call is for.
+
 ## Probe lines (`[Holocall]` in the CET log, one per state change)
 
 ```
