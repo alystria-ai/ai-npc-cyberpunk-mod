@@ -258,17 +258,15 @@ days per character after one ends.
       "say": {"en": "A fixed line she can send or say when no model may be called (the shared Convai key, a timer)."},
       "text": {"when": "start", "line": {"en": "fixed phone text"}},   // optional: a phone text at the stage start
       "ask": {"flow": "loanFromV", "amount": 6000, "reason": "the ransom"},   // optional: an Eddies ask with this pack as its story
-      "meet": {"where": "here", "inGameHours": 2},                         // optional: an Immersive invitation she makes
+      "meet": {"where": "here"},                                           // optional: an Immersive invitation she makes (no deadline)
       "effects": [{"kind": "vehicleBlocked"}],                           // optional, from a closed list (7.4)
-      "choices": [                                                       // how the stage ends: one of these, or the timer
+      "choices": [                                                       // how the stage ends: one of these (there is no timer)
         {"id": "paid", "on": "eddies:loanFromV", "next": "repay"},
         {"id": "help", "on": "tag", "means": "V offers to get the truck back with her", "next": "recover"},
         {"id": "refuse", "on": "tag", "means": "V says no or tells her to handle it", "next": "alone"}
-      ],
-      "timeout": {"gameHours": 48, "next": "alone"}
+      ]
     },
-    {"id": "repay", "know": "...", "repay": {"part": 2000}, "choices": [{"id": "settled", "on": "eddies:repayToV", "next": "repaid"}],
-     "timeout": {"gameHours": 168, "next": "repaid"}},
+    {"id": "repay", "know": "...", "repay": {"part": 2000}, "choices": [{"id": "settled", "on": "eddies:repayToV", "next": "repaid"}]},
     {"id": "back", "know": "...", "next": "together"}       // a closing beat: straight on to an ending at the next turn
   ],
   "endings": {
@@ -293,7 +291,7 @@ Added in phase 2 (all optional unless stated; the validator checks them):
   languages); at most one choice per kind in a stage. `means` stays as the author's description of the choice.
 * `label` on a stage: one English line (80 characters) for the Relationships page ("She wants your honest eye on the dress").
 * `type` on a stage (default `talk`) and `params` (an object): the stage format is open. The runner plays `talk`; any other type is accepted by the
-  validator (as a warning) and **skipped** by the runner (it follows the stage's `skip`, else `next`, else the timeout's `next`, else the first choice) and logged once per
+  validator (as a warning) and **skipped** by the runner (it follows the stage's `skip`, else `next`, else the first choice) and logged once per
   type. Gameplay stage types (enemies at a place, a drive, a hangout, a rescue, an escort) are added later without changing existing packs.
 * `image` on a stage: `{"file": "images/<name>.png", "alt": "..."}`, a picture made ahead of time and shipped inside the pack (png, jpg or webp). Data only:
   nothing shows it and nothing is generated while playing. Where a stage "texts a photo" the description stays in `know`.
@@ -317,7 +315,7 @@ Code: `bridge/bond-pack-runner.mjs` (the runner), `bridge/bond-intent.mjs` (V's 
   A new playthrough whose clock passes an old entry's would inherit it: there is no save identity in the turn (the Eddies ledger has the same limit).
 * **On the phone**: a stage that needs her in person (her own lines, a talk gap, a ride) cannot be played while she is only a voice on a Phone Chat or a holocall. Her note then tells V where to meet her, the gap's question is asked in her own words, V's answer on the same channel is read against the gap's tags, the stage clock gets a travel allowance and the play file gets a cast and a pin that stand down when she already has a copy of V's. All of it is in docs/QUEST_PRIMITIVES.md section 11.
 * **Notes**: while a pack is active on a channel it allows, every turn carries one volatile note: the stage's `know` and `wants`, the meeting it hopes for, the
-  money it needs, in the second person, with the instruction never to call it a story, a quest or a stage. It pauses (no note, no new stage, no timer)
+  money it needs, in the second person, with the instruction never to call it a story, a quest or a stage. It pauses (no note, no new stage)
   while a quest of the character is active, the main story is at its end, the journal is unknown, or the game is busy (a scene, a choice, a fight, a game call).
 * **Choices** are decided on the bridge, after the reply is published, never by a tag in a reply. The first plan used "[pack:help]" tags; they were dropped because
   a tag in a spoken or streamed reply would be voiced, and stripping it everywhere would put work on the speech path. Instead:
@@ -327,7 +325,7 @@ Code: `bridge/bond-pack-runner.mjs` (the runner), `bridge/bond-intent.mjs` (V's 
     it was done. A turn that made such a proposal does not also answer by words. A repayment stage ends when the debt is clear.
   * `meet:met` / `meet:stood-up` come from the game's own appointment outcomes: a Phone Chat event (arrived, stood up) or the greeting at a meeting. Only while a turn
     has said Story packs is on.
-  * the **timer** (`timeout`) is checked when a turn's context is built, never by a tick.
+  * there is **no timer** (owner decision 1 Nov 2026, docs/REAL_QUESTS.md section 5c): a stage stays open until V's words, an event or a transfer move it, or V gives the quest up.
   * a closing beat (a stage with only `next`) is shown once, then ends at the next turn.
 * **Effects for the game** (`runtime/bond-effects.json`, written when they change): `blocked` (a personal car not offered), `outfits`, `items`, each with the game clock they
   started at; the game ignores an entry from later than the loaded save. `bonds-status.json` carries `effectsRevision`, the active packs and the Relationships rows.

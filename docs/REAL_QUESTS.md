@@ -164,6 +164,8 @@ Tests: `bridge/quest-journal.test.mjs`, `bridge/quest-journal-lua.test.mjs`, and
 
 ## 5b. Fair starts (31 Oct 2026, branch `fix/quest-start-1031`)
 
+> The clock rules of this section (the start shown before the clock runs, the pack's hours as a minimum, a penalty that needs acceptance, the lapse of a call never shown) are gone. Since 1 Nov 2026 a quest has no time limit at all, see section 5c. What stays: a call opening starts only with her apart from V, a party member is never moved, the start is seen, the Developer logs of the start.
+
 The owner's live test of 31 Oct on game 2.5: Judy (invited, in V's party, following V, bond level 7, romance partner) was typed to in person and `judy-claws-calling` started on `own`.
 Its first stage pins and places the front of Lizzie's and has a call-in. The call-in rings only at a calm moment (`convaiQuestLineBusy`: a talk is not calm), so it never rang. The
 stage clock (1 game hour, about 8 real minutes) ran from the start anyway and the pack ended `late-end` with bond -15 for a quest V never saw. V saw no holocall, tracker or
@@ -177,22 +179,73 @@ and the runner (`bridge/bond-pack-runner.mjs`), for every pack:
   character who already follows V out of the party. A cast of a character who is in V's party is skipped (at the stage start and before every try) and logged: she goes where
   V goes and stands at the place when V arrives with her. The `post` primitive already refused a party member. Of the shipped packs 47 cast her at their first place and are
   protected by this without data changes. Only V dismissing her, or a pack that asks V first, changes her follow state.
-* **The start is shown before the clock runs.** A stage with a call-in has no timeout clock until the game reports `call:<id>:ringing`, `:answered`, `:missed` or `:texted`
-  (`unshown` and `shownAt` on the trail step). The play file carries no `timeoutAt` until then, and `mod/quest-play.lua` arms the game's own timer when the moment arrives in a
-  later play file. A start on a holocall is shown by the call itself. A call that is never shown lapses after 24 game hours.
-* **The pack's hours are a minimum.** A first stage and a stage that sends V somewhere (a place arrival, a meeting, a call) run at least 6 game hours (`START_FLOOR_HOURS`),
-  plus the travel allowance of a phone start. A fight or a scene beat keeps its own hours. Distance is not measured: a longer drive across the city than 6 game hours is not
-  covered.
-* **A penalty needs acceptance.** `accepted` is set when V answers the call, says yes after the bring-up, picks a talk tag, arranges a meeting or does anything that moves the
-  pack on. A timeout of an unaccepted pack that would end with bond points lost lapses the pack instead: no bond change, no quiet days, no failed quest in the journal, not
-  offered again for a game day.
+* **Replaced by section 5c.** The start-shown clock, the pack's hours as a minimum, the acceptance rule and the 24 hour lapse existed only to make a timeout fair. There is no
+  timeout any more, so none of them is left (`unshown`, `shownAt`, `accepted`, `START_FLOOR_HOURS`, `UNSEEN_WITHDRAW_HOURS`, `penalty` and `presentedAtStart` are removed).
 * **Seen.** The journal entry is made when the play file with the new row is applied (Developer log `[QuestJournal] <pack> started: journal entry made, tracker ..., map pin ...`),
   the tracker line is taken when no main job holds it, the pin when the place has a position. New: an on-screen notice `quest-started` names the pack and its first objective
   (`New story quest: <title>. <objective> (Journal, Quests)`), once per start and never at a session start or a load.
-* **Developer logs.** Bridge: `pack=<id> started on <channel>`, `[dev] ... start: ...` (channel, beside V, in the party), `presented`, `stage ...: the timeout clock started at ... and ends at
-  ...` or `waits for its call to be shown`, `accepted: ...`, `lapsed, no bond change (<reason>)`, `ended <ending> bond N`. Game: `cast ...: placing <character> at ... (her copy now: ...)`,
-  `cast ...: ... is in V's party, so she is not placed`, `stage ...: timeout clock runs, N game hours left`.
+* **Developer logs.** Bridge: `pack=<id> started on <channel>`, `[dev] ... start: ...` (channel, beside V, in the party), `ended <ending> bond N`, and since 1 Nov the one
+  line per turn of section 5c. Game: `cast ...: placing <character> at ... (her copy now: ...)`, `cast ...: ... is in V's party, so she is not placed`.
 * **Prepared line audio.** `scripts/Check-QuestLineAudio.mjs` lists the spoken lines with no prepared audio; the list for this repository is docs/QUEST_LINE_AUDIO.md.
+
+## 5c. No time limits, a pin from the start, and Phone Chat starts (1 Nov 2026, branch `fix/quests-1101`)
+
+The owner's live test of 1 Nov on game 2.5 (Convai text provider, dev flags on, Judy invited earlier, then dismissed and away) showed three things.
+
+**Phone Chat texts started nothing.** Three texts to Judy started nothing and the bridge log showed no pack decision, then a holocall started `judy-dinner-dress` at once. The bond
+and pack logic does run for a text: `mod/phone-chat.lua` sends the bonds block with the message, `bridge/phone-chat.mjs` parses it, the provider input has the channel `phone`
+(`channelOf` in `bridge/bonds.mjs`, the same word the packs list in `start.channels`, and `judy-dinner-dress` lists `own`, `phone` and `holocall`), and the reply hook reads the pack
+decision and records the start like a talk turn (`bridge/phone-pack-start.test.mjs` proves it through the real Phone Chat parser). The cause is the `busy` flag of the bonds block
+(`mod/init.lua`, built from the battle sample: a dialogue, a choice hub, combat, a game call, or a scene tier other than 1). A text is typed from the open phone, and the open phone
+holds the scene tier above gameplay's (docs/HOLOCALL.md, "A scene reading is not trusted at once"), so every text went out marked busy and the pack gate refused it first. A holocall is
+judged after the phone has closed, so it passed. The log said nothing because the reason line was written once per pack per game day and never for a turn that ended with the pack
+running or the game busy. Changes:
+
+* `busy(phone)` in `mod/init.lua`: for a Phone Chat message (`mod/bonds.lua` asks with `phone = true`) the scene tier is no reason. Dialogue, choices, a game call and a fight still are.
+* The block carries `busyWhy` (what the game saw, for example `scene tier 3` or `combat`), and `parseBonds` keeps it for the log.
+* A text is a valid start wherever the pack's `start.channels` list `phone`, like a holocall. Nothing in the pack data changed for this: 96 packs list `phone`, 16 list only `own`
+  and 2 only `holocall`.
+* **Developer mode logs one line per private turn** (`[dev] turn <profile> on <how>: ...`) with the channel (a Phone Chat text, a holocall, talk in person), whether she is beside V
+  and in V's party, the bond level, the game clock, whether the game was busy and why, then the pack that started, the pack that is running, or the reason each pack gave for waiting:
+  the gate (a quest not finished, the bond level), the channel (`phone does not start it`), the party (`opens with a call and she is beside V`), the quiet days after the last quest,
+  the day after V abandoned a quest, and the dice with their chance (`the dice said no (chance 0.35, roll 1 of 5 today)`). A turn that never reached the pack logic says why in a
+  `no pack decision` line (no bonds block, or a block without Story packs). The older `<pack> waits:` line stays, once per pack per game day.
+
+**No map marker.** The probe said `map pin none (no position yet)` because `judy-dinner-dress` names no place at all (its stages have no `do` and the pack no `places`), so the journal
+row had no place. Every started quest now gets a pin (`pinPlace` in `bridge/quest-journal.mjs`), in this order:
+
+1. the place the stage sends V to, when it has a position (its own, or the named place of Night City its name points at, `anchor: stage`),
+2. else the last place an earlier stage had (`earlier`), so the pin stays where it was and moves when a stage names a new place,
+3. else the quest's first place by the order of its places (`first`),
+4. else the first named place of Night City the quest's own words point at, the current stage's words first (`named`: Judy's dinner at Lizzie's gets Lizzie's Bar),
+5. else a landmark of the character (`LANDMARKS`: Judy's flat, Jackie's El Coyote Cojo, the Afterlife for Rogue and Johnny), then the Afterlife (`landmark`).
+
+A stage place with a name and no position keeps its own id, because the game may have measured it (`quest capture:<id>`), and carries the chain's result as `place.fallback`.
+`mod/quest-journal.lua` takes the measured position first and the fallback after. Every one of the 367 stages of the shipped packs ends with a position (31 own, the rest by the
+chain). A pin that came from the chain is not the stage's own waypoint, so the pin primitive may still add its own. The pin moves with the stages because the row is sent again when the
+position changes, and `SetMappinPosition` moves it. The start log reads `map pin placed (a named place in its words)` and the like, or `map pin none` only when the position list is empty.
+Not done: the character's own position (the bridge does not know where she is) and V's position as a last resort. The pin look in the game is still unverified (section 4).
+
+**No time limits.** Owner decision of 1 Nov 2026: a quest stays open until V does it, or abandons it from the journal or by telling the character. Removed:
+
+* every stage `timeout` from the 114 shipped packs (355 of them), every meeting deadline (`meet.inGameHours`), every `limitMinutes` of a ride, race or convoy, and every
+  `meet:stood-up` choice and `event:...:timeout` choice (a meeting she waited for in vain ends nothing),
+* the 70 endings that only a timeout could reach (`late-end`, `cold-coffee`, `too-late` and the like), so nothing ends late or costs bond points for time,
+* seven stages whose only exit was a timer now leave on their last line (`event:line:<id>:done`) or their timer beat (`event:timer:pays`),
+* in the runner: the stage clock, the travel allowance (`grace`, `wait`), the start-shown clock (`unshown`, `shownAt`), the acceptance rule (`accepted`), the lapse of a call never shown,
+  the `timeoutAt` of the play file, and the game's stage timer in `mod/quest-play.lua`. A pack that still carries a `timeout` (an older or a community pack) is read, warned about,
+  and the timeout is not a way out of the stage (a stage with nothing else is refused: `must lead somewhere`). `meet.inGameHours` is read and ignored. The meeting note a character
+  gets says "whenever V can", never a number of hours.
+
+A quest closes by V doing it, by a stage's own `no` answer (read first, it leads to the pack's own ending), by **abandoning it**, or by the story finishing it first (`unfinishedWhen`).
+Abandoning: V tells the character it is off ("forget it", "I give up", "cancel the quest", "vergiss es", "laisse tomber", in the fifteen languages, an explicit phrase and nothing vague, `screenAbandon` in `bridge/bond-intent.mjs`),
+or the game sends the event `quest:abandon` (`P.abandonQuest(pack)` in `mod/quest-play.lua`, the probe action `quest abandon:<pack>`). The quest closes at once with no bond change and no
+quiet days, the journal entry, the tracker line and the pin go with the next play file, and the pack is not offered again for a game day (`WITHDRAWN_DAYS`).
+Not built: an abandon button in the Journal screen itself. The game side is ready for one (`abandonQuest`), but the Journal UI is redscript (`QuestLog.reds`) that cannot be compiled or
+seen offline, so wiring a key or a hold action there waits for a live session and a decision on the control.
+Still timed, by design and not a quest limit: the quiet days after a finished quest (7 game days), one hangout a game day, a hangout's repeat days, the rolls of the dice per game day, the
+day a reach-out's offer waits (`OFFER_HOURS`), and the gameplay timers inside primitives (`timer` beats, gap `resumeAfterSeconds`, a race's own `stillSeconds`). The ride, race and convoy
+primitives still understand `limitMinutes` for community packs, no shipped pack uses it.
 
 ## 6. Live check list (owner)
 
@@ -213,7 +266,8 @@ Character bonds, Story packs and Immersive invitations, and Developer mode for t
    the description ("Panam has a rare free morning at the Sunset Motel ...") and the objective with the tracked mark.
 3. In the Journal, click the objective (or press the track key) to untrack it. Check the tracker goes back to the game's quest (or hides). Track it again.
    Then track a game quest. Check the game quest takes the tracker and ours shows untracked.
-4. The waypoint, part one: the Sunset Motel has no position yet, so check there is **no** pin. Drive to the Sunset Motel forecourt, run
+4. The waypoint, part one: the Sunset Motel has no position yet, so the pin sits at the chain's fallback (for Panam the Afterlife, the log says `map pin placed (a landmark of the character)`).
+   Drive to the Sunset Motel forecourt, run
    `quest capture:sunset`, then load the last save (or wait for the next stage). Check a yellow quest pin now sits on the forecourt on the map and the minimap,
    and only one.
 5. On the world map, select that pin and press Track. Check the road route appears, and the tracker's map pin line reads the quest's name and objective (not
@@ -221,8 +275,8 @@ Character bonds, Story packs and Immersive invitations, and Developer mode for t
 6. Walk into the forecourt. Check the tracker ticks the objective off and shows **Walk around Rocky Ridge with Panam**, the Journal shows the new objective,
    and the pin goes (the lookout has no position unless you capture `lookout` too, which gives a pin there).
 7. Finish the quest (walk off for the quick way, or play it through). Check the tracker plays the success animation once and lets go, the pin is gone, and the
-   Journal lists the quest with the finished quests, marked completed, with the ending's sentence after the description. For a failure, start it in a new save
-   and never go: after 3 game hours check the failed mark (cold coffee).
+   Journal lists the quest with the finished quests, marked completed, with the ending's sentence after the description. There is no failure by time: start it in a new save
+   and never go, and check that after a game day or more the quest is still open and Panam's bond did not drop.
 8. Save during the quest, load that save. Check the entry, the objective and the pin come back exactly once. Load a save from before the quest started.
    Check the entry, the tracker line and the pin are gone right after the load (the game drops a row stamped later than the save's clock), and that they do
    not come back after the next talk with anyone (the bridge then forgets the quest too).
@@ -237,7 +291,16 @@ Character bonds, Story packs and Immersive invitations, and Developer mode for t
 13. Fair starts (31 Oct 2026 fix, section 5b). With Judy invited and following V, type to her in person for five minutes with Story packs on: nothing starts, Developer mode logs
     `judy-claws-calling waits: it opens with a call ...`. Dismiss her (or text her from far away) and talk by Phone Chat: the pack can start, the notice
     `New story quest: The Claws Come Calling ...` shows, the journal has the entry, and the log says `not presented yet: its call has to ring first`. Do not answer the call: wait
-    more than 6 game hours and check Judy's bond did not drop and the log says `lapsed, no bond change`. Answer a call, wait out the time, and check the pack's own ending applies.
+    a game day or more and check Judy's bond did not drop and the quest is still open. Answer the call and play on, no clock runs.
+
+14. Phone Chat starts (section 5c). Developer mode on, Judy not beside V. Send three texts to her by Phone Chat. Each text leaves one line in the bridge log
+    `[dev] turn judy-alvarez on a Phone Chat text: she is apart from V, not in V's party, bond level N, day D HH:MM, the game is not busy. ...` and the rest says the reason (the dice with
+    their chance, the gate, the quiet days). With the dev fast flag on the first text starts `judy-dinner-dress`. If a line says `the game is busy (scene tier N)` the open phone still
+    counts as a scene in the game's reading: send that line.
+15. The pin from the start (section 5c). When `judy-dinner-dress` starts, check a quest pin sits at Lizzie's Bar on the map and the minimap, the start log says `map pin placed (a named
+    place in its words)`, and the pin stays at Lizzie's as the stages change.
+16. Abandon (section 5c). With a quest open, text its character "forget it, I'm not doing this". Check the quest leaves the Journal, the tracker and the map, the character's bond is
+    unchanged, and `pack=<id> abandoned, no bond change` is in the bridge log. Then run `quest abandon:<pack>` for another open quest and check the same.
 
 If something is wrong, send: a screenshot of the tracker, the Journal and the map, `runtime/quest-play.json`, the `[QuestJournal]` and `Quest play` lines of the
 CET log (`...\mods\AiNpcCyberpunkMod\AiNpcCyberpunkMod.log`), the `quest status` output, and `r6/logs/redscript_rCURRENT.log` if the game said the scripts
