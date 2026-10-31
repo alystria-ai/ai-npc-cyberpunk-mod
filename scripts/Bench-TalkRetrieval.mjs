@@ -1,6 +1,6 @@
 // Local benchmark of retrieval-driven prompts (docs/NATURAL_TALK_RESEARCH_2026-10-30.md, section 15). Offline: no model, no game, no network. Not part of the release.
 //
-//   node scripts/Bench-TalkRetrieval.mjs [--facts 40] [--quests 10] [--turns 3] [--embed-ms 17] [--json]
+//   node scripts/Bench-TalkRetrieval.mjs [--facts 40] [--quests 10] [--turns 3] [--embed-ms 17] [--change-every 0] [--json]
 //
 // 1. Prompt size and cache reuse, before (the whole topic material and the whole world blocks on every turn) and after (retrieval), for four characters and three prompt families
 //    (Google Gemini, Local AI Standard, a Custom generic endpoint). A conversation is a fixed script (small talk, topic questions, work questions, a world-fact question) with the history
@@ -18,6 +18,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const option = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 && argv[i + 1] ? Number(argv[i + 1]) : fallback; };
 const FACTS = option('facts', 40), QUESTS = option('quests', 10), ROUNDS = option('turns', 3), EMBED_MS = option('embed-ms', 17), asJson = argv.includes('--json');
+// --change-every N: the world changes every N turns (a new world fact is learned, the journal gains a quest): the knowledge, history and jobs blocks change. 0: the world stays as it is.
+const CHANGE_EVERY = option('change-every', 0);
 
 const imp = name => import(new URL(`../bridge/${name}`, import.meta.url).href);
 const {PersonaBook, buildMessages, withRetrievedParts, joinBlocks, worldBlocksInCacheOrder} = await imp('mistral-prompt.mjs');
@@ -70,7 +72,8 @@ async function conversation(key, name, family, mode) {
   for (const round of Array.from({length: ROUNDS})) {
     history = []; previous = '';
     for (const [index, [kind, text]] of script(key).entries()) {
-      const input = worldTurn(text, {profileKey: key, name, facts: FACTS, quests: QUESTS});
+      const bump = CHANGE_EVERY ? Math.floor(index / CHANGE_EVERY) : 0;
+      const input = worldTurn(text, {profileKey: key, name, facts: FACTS + bump, quests: QUESTS + (bump % 3)});
       const full = partsOf(conversationContextBlocks(input));
       let contextParts = full;
       if (mode === 'after') contextParts = withRetrievedParts(full, await talk.prepare({profileKey: key, requestId: input.requestId, text, reaction: false}, {sources: retrievalSources(input)}));
@@ -185,14 +188,15 @@ const pct = (a, b) => `${Math.round(100 * (b - a) / a)}%`;
 if (asJson) {
   console.log(JSON.stringify({facts: FACTS, quests: QUESTS, sizes, timings, turnPath, stage, lookups, vectorBytes}, null, 2));
 } else {
-  console.log(`Retrieval benchmark: ${CAST.length} characters, ${FACTS} world facts and ${QUESTS} journal quests per turn, ${ROUNDS} runs of a 12-turn script; ${BUDGET.charsPerToken} characters per token (the bridge's own estimate).\n`);
+  console.log(`Retrieval benchmark: ${CAST.length} characters, ${FACTS} world facts and ${QUESTS} journal quests per turn${CHANGE_EVERY ? `, the world changing every ${CHANGE_EVERY} turns` : ''}, ${ROUNDS} runs of a 12-turn script; ${BUDGET.charsPerToken} characters per token (the bridge's own estimate).\n`);
   console.log('Prompt size, mean per turn (tokens; "new" = tokens after the prefix shared with the previous turn, what a prefix cache reads again)\n');
-  console.log('| family | turns | before tokens | after tokens | change | before new | after new | change |');
-  console.log('|---|---|---|---|---|---|---|---|');
+  console.log('| family | turns | before tokens | after tokens | change | before new | after new | change | cached share before | after |');
+  console.log('|---|---|---|---|---|---|---|---|---|---|');
   for (const [family, set] of Object.entries(sizes)) {
     for (const [name, label] of [['all', 'all turns'], ['small', 'small talk'], ['topic', 'a topic question'], ['work', 'a work question'], ['world', 'a world-fact question']]) {
       const row = set[name];
-      console.log(`| ${family} | ${label} | ${row.before.tokens} | ${row.after.tokens} | ${pct(row.before.tokens, row.after.tokens)} | ${row.before.newTokens} | ${row.after.newTokens} | ${pct(row.before.newTokens, row.after.newTokens)} |`);
+      const share = side => `${Math.round(100 * (1 - side.newTokens / side.tokens))}%`;
+      console.log(`| ${family} | ${label} | ${row.before.tokens} | ${row.after.tokens} | ${pct(row.before.tokens, row.after.tokens)} | ${row.before.newTokens} | ${row.after.newTokens} | ${pct(row.before.newTokens, row.after.newTokens)} | ${share(row.before)} | ${share(row.after)} |`);
     }
   }
   console.log('\nSystem message and last message, mean characters (all turns)\n');
