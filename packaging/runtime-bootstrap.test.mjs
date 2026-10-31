@@ -8,7 +8,7 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {build} from 'esbuild';
-import {ADAPTER_REVISION, BRIDGE_AUXILIARY_FILES, BRIDGE_MODULES, bridgeEnvironment, CLIENT_ASSETS, inspectSetup, MOD_DIRECTORY,
+import {ADAPTER_REVISION, BRIDGE_AUXILIARY_FILES, BRIDGE_MODULES, bridgeEnvironment, CLIENT_ASSETS, inspectSetup, MAX_CHARACTER_IDS, MOD_DIRECTORY,
   NODE_PACKAGE_ENTRIES, OMNI_REVISION, packageFile, packagePath,
   readJson, resolveRuntimeLayout, validateManifest, verifyManifestFiles} from './runtime-layout.mjs';
 import {atomicJson, recoverService, requestStop, serviceStatus, superviseRuntime} from './runtime-bootstrap.mjs';
@@ -246,6 +246,21 @@ test('setup returns field names without creating player IDs, profiles, workers o
     assert.equal((await serviceStatus(fix.layout)).state, 'setup-required');
     await assert.rejects(stat(fix.layout.leasePath), {code: 'ENOENT'});
     await assert.rejects(stat(join(fix.state, 'characters.json')), {code: 'ENOENT'});
+  } finally { await cleanup(fix); }
+});
+
+test('the whole shipped id map, side characters included, is a complete setup (it once refused more than 256 ids)', async () => {
+  const fix = await fixture();
+  try {
+    const shipped = JSON.parse(await readFile(new URL('./release-data/characters.json', import.meta.url), 'utf8'));
+    assert.ok(Object.keys(shipped).length > 700, 'the side characters are in the shipped ids');
+    await atomicJson(join(fix.state, 'characters.json'), shipped);
+    assert.deepEqual(await inspectSetup(fix.layout), [], 'about 770 ids are no reason to ask for character profiles');
+    const many = Object.fromEntries(Array.from({length: MAX_CHARACTER_IDS}, (_, at) => [`person-${at}`, `id-${at}`]));
+    await atomicJson(join(fix.state, 'characters.json'), many);
+    assert.deepEqual(await inspectSetup(fix.layout), [], 'the bound itself is allowed');
+    await atomicJson(join(fix.state, 'characters.json'), {...many, 'one-too-many': 'id-x'});
+    assert.deepEqual(await inspectSetup(fix.layout), ['character-profiles'], 'beyond it the map is refused');
   } finally { await cleanup(fix); }
 });
 

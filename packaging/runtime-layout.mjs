@@ -535,6 +535,9 @@ export async function resolveRuntimeLayout({appDirectory, developmentProject, ga
     bridgeControlPath: resolve(stateRoot, 'bridge-control.json')});
 }
 
+// The most Convai character ids one installation may hold: the same bound as the bridge's registries (bridge/relationship-routing.mjs MAX_PROFILES, player memory).
+export const MAX_CHARACTER_IDS = 4096;
+
 export async function inspectSetup(layout) {
   const needed = [];
   let key;
@@ -545,8 +548,9 @@ export async function inspectSetup(layout) {
   } catch { needed.push('convai-key'); }
   if (key !== undefined && !/^api-key\s*=\s*\S+\s*$/i.test(key.trim())) needed.push('convai-key');
   const ids = await readJson(resolve(layout.stateRoot, 'characters.json'));
+  // MAX_CHARACTER_IDS: the shipped map holds about 770 ids since the side characters (it held under 256 before), and 256 here made a full map read as "no character profiles".
   if (!object(ids) || !Object.keys(ids).length
-      || Object.keys(ids).length > 256
+      || Object.keys(ids).length > MAX_CHARACTER_IDS
       || Object.entries(ids).some(([name, id]) => !/^[a-z0-9][a-z0-9-]{0,79}$/.test(name)
         || ['__proto__', 'constructor', 'prototype'].includes(name)
         || typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(id))) needed.push('character-profiles');
