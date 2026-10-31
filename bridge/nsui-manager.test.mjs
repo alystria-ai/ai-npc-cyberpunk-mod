@@ -482,6 +482,41 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   assert(managerUi.inspect().view == 'settings-conversations')
 `));
 
+test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Restore defaults from the Dynamic info page or from Settings gives each set its own defaults and keeps them after a restart', () => run(`${harness()}
+  local function allOn()
+    local person, phone = {}, {}
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do person[kind], phone[kind] = true, true end
+    assert(manager.applySettings(player, {dynamicInfo = person, dynamicInfoPhone = phone}))
+  end
+  local function inSet(set, name)
+    for _, section in ipairs(ns.sections()) do
+      if section.label == set then for _, option in pairs(section.options) do if option.label == name then return option end end end
+    end
+  end
+  local function check(why)
+    local settings = manager.snapshot(player).settings
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do
+      assert(settings.dynamicInfo[kind] == manager.dynamicInfoDefault(kind, false), why .. ': in person ' .. kind)
+      assert(settings.dynamicInfoPhone[kind] == manager.dynamicInfoDefault(kind, true), why .. ': phone ' .. kind)
+      assert(saved.dynamicInfo[kind] == settings.dynamicInfo[kind] and saved.dynamicInfoPhone[kind] == settings.dynamicInfoPhone[kind], why .. ': saved ' .. kind)
+    end
+    assert(settings.dynamicInfoPhone.location == false and settings.dynamicInfoPhone.mods == false and settings.dynamicInfoPhone.time == true and settings.dynamicInfo.location == true, why)
+  end
+  allOn(); core.refresh(); frames(4)
+  settingsPage('Conversations'); press('Dynamic info')
+  assert(inSet('In person', 'Location').state == true and inSet('Phone calls and texts', 'Location').state == true and inSet('Phone calls and texts', 'V’s money').state == true, 'the identical lists of the report')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  check('from the Dynamic info page')
+  assert(inSet('Phone calls and texts', 'Location').state == false and inSet('Phone calls and texts', 'Quest and journal').state == true and inSet('In person', 'Location').state == true)
+  -- From the Settings pages (the Conversations category), the same.
+  allOn(); core.refresh(); frames(4)
+  press('Back to settings')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  check('from Conversations')
+  -- The settings file keeps the marker that the phone set was given its defaults (bridge/settings-file-lua.test.mjs covers the restart itself).
+  assert(saved.dynamicInfoPhoneDefaults == 1, 'the marker is saved, so the load never treats the two sets as a copy again')
+`));
+
 test('without Native Settings UI the shortcut says so; a copy that loads later is found and registered', () => run(`${harness({nsui: false, screen: false})}
   local popups = {}
   function player:ConvaiPhoneFeedback(message) popups[#popups + 1] = message end

@@ -767,6 +767,32 @@ test('Dynamic info, phone defaults: an untouched phone set (missing, empty or th
   assert.deepEqual(out.markedEmpty.phone, PHONE, 'a missing kind takes the phone default');
 });
 
+test('Dynamic info, owner state 31 Oct: two identical sets with the marker are the player\'s own until Restore defaults, which saves each set\'s own defaults, and a restart keeps them apart', () => {
+  const out = run(`${managerLua}
+    local kinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
+    local allOn = {}
+    for _, kind in ipairs(kinds) do allOn[kind] = true end
+    files['runtime/settings.json'] = json.encode({version = 2, dynamicInfo = allOn, dynamicInfoPhone = allOn, dynamicInfoPhoneDefaults = 1})
+    local player, manager = newPlayer(), newManager()
+    report('before', manager.snapshot(player).settings.dynamicInfoPhone)
+    -- The batch Restore defaults sends (mod/manager-ui.lua M.defaults): every kind of each set at manager.dynamicInfoDefault.
+    local person, phone = {}, {}
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do person[kind], phone[kind] = manager.dynamicInfoDefault(kind, false), manager.dynamicInfoDefault(kind, true) end
+    assert(manager.applySettings(player, {dynamicInfo = person, dynamicInfoPhone = phone}))
+    local again = newManager().snapshot(newPlayer()).settings
+    report('person', again.dynamicInfo)
+    report('phone', again.dynamicInfoPhone)
+    report('flags', convaiDynamicInfo)
+    report('marker', json.decode(settingsText()).dynamicInfoPhoneDefaults)
+  `);
+  assert.ok(Object.values(out.before).every(value => value === true), 'identical and the player\'s own while the marker is there');
+  assert.deepEqual(out.phone, PHONE, 'after Restore defaults and a restart the phone set is its own defaults');
+  assert.deepEqual(out.person, {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false});
+  assert.equal(out.marker, 1);
+  assert.equal(out.flags.location, true, 'the game is read for a kind either set wants');
+  assert.notDeepEqual(out.phone, out.person);
+});
+
 test('Dynamic info: a fresh settings file has the mods kind off and the other eleven on', () => {
   const out = run(`${managerLua}
     local manager = newManager()

@@ -39,7 +39,7 @@ groups of the same twelve rows, in the same row style, in the same order:
 - **In person** (the party and face to face talk). Row ids `dynamic:<kind>`, saved as `dynamicInfo.<kind>` (unchanged, so every older file keeps working).
 - **Phone calls and texts** (holocalls, voice or video, and Phone Chat messages). Row ids `dynamicPhone:<kind>`, saved as `dynamicInfoPhone.<kind>`.
 
-Restore defaults resets both groups. Only three new texts were added to the catalogue and the 15 locale files ("In person", "Phone calls and texts" and the
+Restore defaults resets both groups, each to its own defaults (the in person group to all on except Other mods' state, the phone group to the phone defaults below). Every Restore defaults path (the Native Settings UI button, the Defaults footer button of Mod Configuration Menu) takes its batch from `M.defaults` in `mod/manager-ui.lua`, which reads each row's own default, and the batch is saved by `manager.applySettings` as two tables. The tests start from the state of the owner's live test (both sets identical) in `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs` and `bridge/settings-file-lua.test.mjs`. Only three new texts were added to the catalogue and the 15 locale files ("In person", "Phone calls and texts" and the
 sentence under the second heading). The labels and help of the rows are the same strings as before.
 
 **Defaults and old files (changed 2026-10-31).** A caller or texter does not see V, so the phone set starts with its own defaults, not a copy of the in-person set.
