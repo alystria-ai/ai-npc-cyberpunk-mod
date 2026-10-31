@@ -123,14 +123,55 @@ test('the wrapped methods are exactly the list in docs/MOD_COMPATIBILITY.md', ()
 test('the scripts hold nothing that is saved and write no quest, journal or phone state', () => {
   for (const [file, text] of Object.entries(code)) {
     assert(!/\bpersistent\b/.test(text), `${file}: a persistent field would be written into every save`);
-    for (const word of ['SetFact', 'AddFact', 'SetFactStr', 'ChangeEntryState', 'TrackEntry', 'SetEntryVisited', 'MarkEntryAsRead',
+    for (const word of ['SetFact', 'AddFact', 'SetFactStr', 'ChangeEntryState', 'SetEntryVisited', 'MarkEntryAsRead',
       'TriggerCall', 'questTriggerCallRequest', 'SendMessage', 'AddItem', 'GiveItem', 'AddMoney', 'ChangeMoney']) {
       assert(!text.includes(word), `${file}: ${word} changes game state that a save keeps`);
     }
+    // TrackEntry is never called. UntrackEntry has exactly one call site (owner decision 31 Oct 2026), checked in the next test.
+    assert(!/\bTrackEntry\b/.test(text), `${file}: TrackEntry changes the game's tracked quest`);
+    if (file !== 'QuestLog.reds') assert(!/\bUntrackEntry\b/.test(text), `${file}: UntrackEntry changes the game's tracked quest`);
   }
   // The one file with persistent fields is retired and must stay out of the Scripts package.
   const retired = readdirSync(redsFolder).filter(name => name.endsWith('.reds') && /\bpersistent\b/.test(stripComments(read(redsFolder, name))));
   for (const name of retired) assert(config.retiredRedscript.includes(name), `${name} has persistent fields and ships`);
+});
+
+test('the one UntrackEntry: only when a pack starts and takes the tracker from a game side job, never a main job, never restored', () => {
+  const text = code['QuestLog.reds'];
+  assert.equal([...text.matchAll(/\bUntrackEntry\b/g)].length, 1, 'UntrackEntry must have exactly one call site');
+  assert.equal([...text.matchAll(/\.UntrackEntry\(\)/g)].length, 1, 'the call is journal.UntrackEntry()');
+  // The call sits inside TakeTracker, the function every tracker change goes through.
+  const start = text.indexOf('private final func TakeTracker(');
+  assert(start > 0, 'TakeTracker is gone');
+  let depth = 0, end = text.indexOf('{', start);
+  for (let i = end; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) { end = i; break; }
+  }
+  const body = text.slice(start, end + 1);
+  assert(body.includes('.UntrackEntry()'), 'the untrack is not in TakeTracker');
+  // Order: the main job returns before the untrack, and the untrack needs byItself (a pack that just started) and a quest that is known.
+  const mainJob = body.indexOf('gameJournalQuestType.MainQuest');
+  const untrack = body.indexOf('.UntrackEntry()');
+  assert(mainJob > 0 && mainJob < untrack, 'the main job test must come before the untrack');
+  assert(/MainQuest\) \{ return; \}/.test(body), 'a main job must leave TakeTracker before anything is written');
+  const guard = body.slice(body.lastIndexOf('if', untrack), untrack);
+  assert(/byItself\s*&&\s*IsDefined\(quest\)/.test(guard), 'the untrack must be guarded by byItself and a known quest');
+  // The only calls into TakeTracker: byItself = true for a pack that just started (track 2), false for a session start and for V's pick.
+  const calls = [...text.matchAll(/this\.TakeTracker\(id, (true|false)\)/g)].map(match => match[1]);
+  assert.deepEqual(calls, ['true', 'false', 'false'], 'TakeTracker gained a caller: check it cannot untrack');
+  assert(/if track == 2 \{ this\.TakeTracker\(id, true\); \}/.test(text));
+  // Nothing is restored: no TrackEntry, and no code that re-tracks the game's quest after the pack ends.
+  assert(!/\bTrackEntry\b/.test(text));
+  // No per-frame work: the untrack is not reached from an update or a tick.
+  assert(!/\b(OnUpdate|OnTick|Tick)\b[^\n]*UntrackEntry/.test(text));
+});
+
+test('the Lua sends track 2 (the only value that can untrack) only for a pack that starts in play, never at a session start', () => {
+  const lua = stripLua(read(new URL('mod/', root), 'quest-journal.lua'));
+  assert.equal([...lua.matchAll(/track = 2/g)].length, 1);
+  assert(/if opts\.startup then[\s\S]*?track = 1[\s\S]*?else track = 2 end/.test(lua), 'track 2 must be the not-startup branch');
+  assert(!/\bUntrackEntry\b|\bTrackEntry\b/.test(lua));
 });
 
 test('the Lua writes quest facts only from the housemate registry (a fact of its own), the developer tools and the retired save identity', () => {

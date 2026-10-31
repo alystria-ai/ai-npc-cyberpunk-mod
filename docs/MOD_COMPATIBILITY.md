@@ -8,7 +8,8 @@ intro messages and old phone messages of other mods firing again and Eviction No
 
 ## Short answer
 
-* Nothing in this mod's scripts, Lua or native plugin writes quest, journal, phone, contact, item, money or stat state that another mod reads. The only
+* Nothing in this mod's scripts, Lua or native plugin writes quest, journal, phone, contact, item, money or stat state that another mod reads, except one
+  `UntrackEntry` of a tracked game side job when a story pack (off for players for now) starts and takes the tracker. The only
   save writes are described under "What is written into a save", and none of them has a name any other mod uses.
 * Nothing in the scripts can break another mod's compile by name: every added field and method carries the `Convai` prefix, every class is `Convai…`, nothing
   is replaced, the wrapped game methods run the original (one exception, below). Combined with other mods' `@replaceMethod` and `@wrapMethod` of the same methods the
@@ -168,10 +169,13 @@ Default install, default settings: **nothing.** Details:
 
 The story packs as real quests (`QuestLog.reds`, only with the development switch of docs/STORY_PACKS_INACTIVE.md) are runtime only as well: a script system
 that holds no persistent field, quest map pins registered at runtime (the map keeps none over a load), and the journal screen and HUD tracker drawing the
-mod's quests next to the game's. The game's tracked quest is never changed (no `TrackEntry`, no `UntrackEntry`): a pack shows in the tracker over it and lets go.
+mod's quests next to the game's. The game's tracked quest is changed in exactly one case (`TrackEntry` is never called): when a pack starts and takes the tracker while a game side job is tracked,
+that job is untracked with one `UntrackEntry` on the journal manager (`ConvaiQuestLog.TakeTracker`), so the Journal shows one tracked mark. That is a journal write
+the save keeps (the tracked quest). A tracked main job is never untracked, nothing is re-tracked later, and it happens once, never per frame (docs/REAL_QUESTS.md,
+owner decision of 31 Oct 2026, guarded by `bridge/redscript-compat.test.mjs`).
 
 Everything else the mod does to the game is runtime only: UI widgets, blackboard values for UI (`HideDialogLine`, `WarningMessage`, `ScannerName`), AI events
-on its own copies, stat modifiers on its own copies. Journal, phone and contacts are only READ (`GetEntry`, `GetContactDataArray`, `GetQuests`). The Chat tab
+on its own copies, stat modifiers on its own copies. Journal, phone and contacts are only READ (`GetEntry`, `GetContactDataArray`, `GetQuests`), with the one `UntrackEntry` above. The Chat tab
 adds a `ContactData` row and a `JournalNotificationData` object in memory; no journal entry is created. A holocall never uses `PhoneSystem`, never writes
 `questTriggerCallRequest` or a phone blackboard (`Holocall.reds` header). The phone Chat page wraps the messenger so a vanilla message that arrives while it is
 open is not marked read by that open page: a UI listener skip, not a journal write.

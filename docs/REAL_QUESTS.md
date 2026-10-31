@@ -8,7 +8,8 @@ The owner's live test of 31 Oct: a started pack must show as a real quest. This 
 * a **journal entry** in the game's Journal screen (Quests), with the pack's title, its description and the current objective, listed with the side jobs, and
   the finished ones (succeeded or failed) with the finished quests,
 * the **objective in the HUD quest tracker** while it is the tracked quest, with the game's own intro, tick-off, success and failure animations,
-* the pack becomes the **tracked quest when it starts** (unless the game's tracked quest is a main job),
+* the pack becomes the **tracked quest when it starts** (unless the game's tracked quest is a main job), and a game side job that was tracked is then really
+  untracked in the Journal,
 * a **quest waypoint** on the map, the minimap and in the world at the stage's place, when that place has a position,
 * **cleanup** on every way out: an ending, a failure, the story finishing it first, a load, Story packs going off, the play file going away.
 
@@ -98,13 +99,22 @@ what the game shows of it changed.
 | `QuestTrackerGameController` | after the game's own `UpdateTrackerData`: our title and objective when ours is tracked, the game's objectives hidden (not removed) under it. A new objective plays the intro, the old one its tick-off. The ending plays success or failure once. The tracked map pin line names our quest when V tracks its waypoint |
 | `questLogGameController`, `SimpleQuestListItemController`, `QuestListItemData`, `QuestDetailsPanelController`, `QuestDetailsObjectiveController` | our rows in the Journal's quest list (side jobs while active, finished afterwards), the details panel (title, description, objective), track and untrack by click, by the track key and by the objective row |
 
-**Tracking, and the main story.** The game's tracked quest is never changed: the scripts never call `TrackEntry` or `UntrackEntry` (the mod's rule that the
-journal is only read, guarded by `bridge/redscript-compat.test.mjs`). Instead the tracker shows ours over it:
+**Tracking, and the main story.** The scripts never call `TrackEntry`. They call `UntrackEntry` at exactly one place (owner decision, 31 Oct 2026), so the
+Journal never shows two tracked marks:
 
-* a pack that starts takes the tracker, unless the game's tracked quest is a main job (then V can pick the pack in the Journal),
-* at a session start or after a load, the newest pack in progress takes the tracker only if no game quest is tracked,
-* it lets go when the pack ends, when V tracks a game quest in the Journal, and when the game moves its tracked objective (the story moved on, so the story
-  gets the tracker back at once). The game quest stays tracked underneath all along and keeps its route.
+* a pack that starts takes the tracker. If the game's tracked quest is a **side job** (any tracked journal quest that is not a main job), that job is really
+  untracked with one `UntrackEntry` on the journal manager, the way the game's own tracking UI does it (one journal write that the save keeps). The call is in
+  `ConvaiQuestLog.TakeTracker`, reached only by a pack that just started (Lua sends track 2 only then), never for a main job, never when V picks a pack by hand,
+  never at a session start,
+* if the game's tracked quest is a **main job**, it keeps the tracker and is never untracked (V can pick the pack in the Journal),
+* if no game quest is tracked, nothing changes,
+* nothing is restored later: when the pack ends or V tracks something else, the side job that was untracked stays untracked. The scripts never re-track it,
+* at a session start or after a load, the newest pack in progress takes the tracker only if no game quest is tracked (so it untracks nothing),
+* the pack lets go of the tracker when it ends, when V tracks a game quest in the Journal, and when the game moves its tracked objective (the story moved on,
+  so the story gets the tracker back at once).
+
+`bridge/redscript-compat.test.mjs` guards it: `TrackEntry` appears nowhere, `UntrackEntry` has one call site, inside `TakeTracker`, after the main job test and
+behind the started-pack guard, and the Lua sends track 2 only outside a session start. Nothing runs per frame: the call happens once, when the pack starts.
 
 **Cleanup.**
 
@@ -134,9 +144,10 @@ it does when it opens. No timer, no tick, no new file. A turn gains nothing: the
 * **The road route** needs V to track the pin on the world map once (section 1).
 * **Most places have no position yet** (31 of 281). A capture per place (`quest capture:<placeId>`) gives the waypoint at once, and the positions should then
   be pasted into the packs.
-* **Two tracked marks in the Journal** can show when ours took the tracker over a game quest: the game still has its quest tracked underneath. Decision for
-  the owner: keep this (no save write, the main story is never touched), or let a starting pack really untrack the game's quest (one journal write the save
-  keeps, against the rule of docs/MOD_COMPATIBILITY.md).
+* **Two tracked marks in the Journal: decided (owner, 31 Oct 2026).** A starting pack that takes the tracker from a game side job really untracks that job
+  (one journal write the save keeps), so the Journal shows exactly one tracked mark. A tracked main job is never untracked and keeps the tracker. Nothing
+  is restored when the pack ends. Unverified in the game: that `UntrackEntry` clears the Journal mark and the route at once, and that the tracker redraw
+  after it does not flash the game's objectives.
 * **A setting** to turn off "a starting pack takes the tracker" may come later, as the brief said.
 * **Texts are English only**, like all pack text (owner decision 29 Oct). The 367 objectives and 114 descriptions were written from the pack data and checked
   for length and wording. The owner may want to read a few.
@@ -163,8 +174,9 @@ Character bonds, Story packs and Immersive invitations, and Developer mode for t
 `q104_02_av_chase` finished (the pilot, "Coffee at the Sunset"). The probe is `scripts/Send-JohnnyProbe.ps1 quest <action>`.
 
 1. Talk to Panam (in person or a text) until she brings up the coffee. Check the HUD tracker shows **Coffee at the Sunset** with the objective
-   **Meet Panam at the Sunset Motel**, with the usual objective intro animation and sound. If a game side job was tracked before, check it is hidden under
-   ours. If a main job was tracked, check the main job stays in the tracker.
+   **Meet Panam at the Sunset Motel**, with the usual objective intro animation and sound. If a game side job was tracked before, open the Journal and check
+   that job is now **untracked** (no tracked mark on it, only ours has one), and that it stays untracked after our quest ends or you track something else.
+   If a main job was tracked, check the main job stays in the tracker, keeps its tracked mark, and ours is untracked until you pick it.
 2. Open the Journal (Quests). Check **Coffee at the Sunset** is in the list with the side jobs, its line reads the objective, and opening it shows the title,
    the description ("Panam has a rare free morning at the Sunset Motel ...") and the objective with the tracked mark.
 3. In the Journal, click the objective (or press the track key) to untrack it. Check the tracker goes back to the game's quest (or hides). Track it again.
