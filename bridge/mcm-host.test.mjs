@@ -716,6 +716,34 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   press('Back to settings'); press('Back to Companion Manager')
 `));
 
+test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Defaults on the page or on Conversations gives each set its own defaults', () => withScreen(`
+  ${footer}
+  local function allOn()
+    local person, phone = {}, {}
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do person[kind], phone[kind] = true, true end
+    assert(manager.applySettings(player, {dynamicInfo = person, dynamicInfoPhone = phone}))
+  end
+  local function check(why)
+    local settings = manager.snapshot(player).settings
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do
+      assert(settings.dynamicInfo[kind] == manager.dynamicInfoDefault(kind, false), why .. ': in person ' .. kind)
+      assert(settings.dynamicInfoPhone[kind] == manager.dynamicInfoDefault(kind, true), why .. ': phone ' .. kind)
+    end
+    assert(settings.dynamicInfoPhone.location == false and settings.dynamicInfoPhone.gear == false and settings.dynamicInfoPhone.time == true and settings.dynamicInfo.gear == true, why)
+  end
+  allOn(); core.refresh(); frames(4)
+  settingsPage('Conversations'); press('Dynamic info')
+  assert(mcm.row('dynamicPhone:location').value == true and mcm.row('dynamic:location').value == true, 'the identical lists of the report')
+  press('Defaults'); press('Defaults')
+  check('from the Dynamic info page')
+  assert(mcm.row('dynamicPhone:location').value == false and mcm.row('dynamicPhone:quest').value == true and mcm.row('dynamic:location').value == true)
+  -- A pending draft on the page does not stand in the way, and Conversations restores both sets as well.
+  allOn(); core.refresh(); frames(4)
+  press('Back to settings')
+  press('Defaults'); press('Defaults')
+  check('from Conversations')
+`));
+
 test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Conversations', () => withScreen(`
   ${footer}
   settingsPage('Conversations')

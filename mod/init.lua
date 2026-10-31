@@ -684,6 +684,19 @@ invitations = dofile('invitation-readiness.lua').new({
     end,
     isKnown = function(key) return supportedProfiles[key] == true end})
 convaiInvitations = invitations
+-- A copy came out with no body a player can see and its record was set aside (companions.lua bodyTick): the character is invited again through the
+-- same doors as the phone's Invite (an appointment with Immersive invitations On, else the party queue), and the new copy takes the next record.
+companions.onBodyMissing = function(info)
+    local queue = managerUi.party and managerUi.party()
+    if not queue or type(info) ~= 'table' or type(info.key) ~= 'string' then return end
+    if convaiLogLine then convaiLogLine('Companion body: ' .. tostring(info.name) .. ' had no visible body from ' .. tostring(info.record) .. ', inviting again with ' .. tostring(info.nextRecord)) end
+    local immersive = convaiImmersiveGet and convaiImmersiveGet() or nil
+    if immersive then
+        local taken = immersive.requestInvite(info.key)
+        if taken ~= nil then return end
+    end
+    queue.invite(info.key)
+end
 companions.canSpawn = function(key, job)
     if type(job) ~= 'table' or job.key ~= key then
         return false, 'Invite this character from the phone or Companion Manager first.'

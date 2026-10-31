@@ -1853,8 +1853,18 @@ local function definitionFor(profile)
     -- invite = false: the character's records come only from other mods (Night City Allies' Lucy, docs/NCA_FOLLOWERS_PLAN.md).
     -- They only let the talk path recognise that mod's copy; we never spawn one of our own from the menus.
     if profile.invite == false then return nil end
-    local record = type(profile.records) == 'table' and profile.records[1] or nil
-    return record and {id = record, name = profile.name} or nil
+    -- Every record of the profile in the order a copy is tried: a record the roster marks in badRecords (seen to give no body) goes last, so the
+    -- others come first and a character with only marked records still has one to try. companions.lua makes the copy from the first one not seen
+    -- without a body (docs/SIDE_CHARACTERS.md, "A record with no visible body").
+    local list = {}
+    if type(profile.records) == 'table' then
+        local marked = {}
+        for _, id in ipairs(profile.badRecords or {}) do marked[id] = true end
+        for _, id in ipairs(profile.records) do if type(id) == 'string' and not marked[id] then list[#list + 1] = id end end
+        for _, id in ipairs(profile.records) do if type(id) == 'string' and marked[id] then list[#list + 1] = id end end
+    end
+    local record = list[1]
+    return record and {id = record, name = profile.name, records = list} or nil
 end
 
 function M.configure(companionApi, profileList)
