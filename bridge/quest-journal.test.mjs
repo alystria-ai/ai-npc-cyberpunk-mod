@@ -7,7 +7,7 @@ import {BondPacks} from './bond-pack-runner.mjs';
 import {QuestLink} from './quest-link.mjs';
 import {shippedPacks, validatePack, PACK_LIMITS} from './bond-packs.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
-import {journalBlock, outcomeOf, resolvePlace, stagePlaceKey, namedPlaceFor, FINISHED_KEEP, NAMED_PLACE_WORDS} from './quest-journal.mjs';
+import {journalBlock, outcomeOf, resolvePlace, stagePlaceKey, namedPlaceFor, pinPlace, FINISHED_KEEP, NAMED_PLACE_WORDS} from './quest-journal.mjs';
 import {NAMED_PLACES} from './named-places-data.mjs';
 
 const DAY = 86400;
@@ -64,6 +64,9 @@ test('a started pack is one active quest: title, journal text, the first objecti
   assert.equal(row.place.id, 'sunset');
   assert.equal(row.place.name, 'the Sunset Motel forecourt in Rocky Ridge');
   assert.equal(row.place.x, undefined);
+  assert.equal(row.place.anchor, 'stage');
+  assert.equal(row.place.fallback.anchor, 'landmark', 'and a fallback rides along, so the quest has a pin from the start');
+  assert.ok(Number.isFinite(row.place.fallback.x) && Number.isFinite(row.place.fallback.y) && Number.isFinite(row.place.fallback.z));
 });
 
 test('each stage moves the objective and the waypoint place, and the play file revision follows', async () => {
@@ -83,7 +86,8 @@ test('each stage moves the objective and the waypoint place, and the play file r
   await a.game('together:tour:done', t0 + 1900);
   [row] = a.journal();
   assert.equal(row.objective, 'Watch the sunrise with Panam');
-  assert.equal(row.place, undefined, 'a stage with no place has no waypoint');
+  assert.ok(row.place && Number.isFinite(row.place.x), 'a stage with no place still has a pin: the last place with a position, else the first place, else a landmark');
+  assert.equal(row.place.anchor, 'landmark', 'Panam\'s places have no position yet, so the character\'s landmark');
 });
 
 test('an ending files the quest as succeeded or failed with its closing sentence, and the story finishing it first removes it', async () => {
@@ -198,4 +202,79 @@ test('every shipped pack has its journal text and an objective on every stage, i
   assert.ok(badStage.errors.some(error => error.includes('objective must be')));
   const badEnding = validatePack({...pilot, endings: {...pilot.endings, left: {...pilot.endings.left, outcome: 'maybe'}}}, {characters: roster});
   assert.ok(badEnding.errors.some(error => error.includes('outcome must be')));
+});
+
+// ---- every started quest has a map pin (owner decision 1 Nov 2026) ----------------------------------------------------------------------------------------------
+
+const LIST = [
+  {id: 'afterlife', phrase: 'the Afterlife, a merc bar', x: -1455, y: 1010, z: 17, radius: 25},
+  {id: 'lizzies-bar', phrase: "Lizzie's Bar, a club in Kabuki", x: -1184, y: 1568, z: 16, radius: 35},
+  {id: 'judys-apartment', phrase: "Judy's apartment in Kabuki", x: -896, y: 1856, z: 48, radius: 35},
+  {id: 'sunset-motel', phrase: 'the Sunset Motel', x: null, y: null, z: null, radius: 25},
+  {id: 'victors-clinic', phrase: "Viktor's clinic", x: null, y: null, z: null, radius: 12},
+];
+const stageOf = pack => ({...pack.stages[0]});
+
+test('the pin chain: the stage\'s own place with a position, else an earlier stage\'s, else the first place, else a named place in the words, else the character\'s landmark, else the Afterlife', () => {
+  const base = {id: 'pin-test', character: 'judy-alvarez', title: 'Pin test', places: {a: {name: 'The first place', radius: 10, x: 1, y: 2, z: 3}, b: {name: 'The second place', radius: 10, x: 4, y: 5, z: 6}, c: {name: 'The Sunset Motel forecourt', radius: 10}},
+    stages: [{id: 's1', objective: 'Go'}]};
+  const stage = base.stages[0];
+  // 1. the stage's own place with a position
+  let pin = pinPlace(base, stage, [{p: 'pin', at: 'b'}], [], {named: LIST});
+  assert.deepEqual([pin.id, pin.x, pin.anchor], ['b', 4, 'stage']);
+  // 2. no place of its own: the last place an earlier stage had (newest first), so the pin stays where it was and moves only when a stage names a new place
+  pin = pinPlace(base, stage, [], [[{p: 'pin', at: 'b'}], [{p: 'pin', at: 'a'}]], {named: LIST});
+  assert.deepEqual([pin.id, pin.anchor], ['b', 'earlier']);
+  // 3. nothing earlier: the quest's first place
+  pin = pinPlace(base, stage, [], [], {named: LIST});
+  assert.deepEqual([pin.id, pin.anchor], ['a', 'first']);
+  // 4. no place with a position: a named place its words point at
+  const words = {...base, places: {}, title: "Dinner at Lizzie's"};
+  pin = pinPlace(words, stage, [], [], {named: LIST});
+  assert.deepEqual([pin.id, pin.anchor, pin.x], ['lizzies-bar', 'named', -1184]);
+  // ... and the stage's own words come before the rest of the pack's
+  const mixed = {...words, title: "Dinner at Lizzie's", stages: [{id: 's1', objective: "Go to Judy's flat"}]};
+  assert.equal(pinPlace(mixed, mixed.stages[0], [], [], {named: LIST}).id, 'judys-apartment');
+  // 5. no words: the character's landmark, then the Afterlife
+  const bare = {...base, places: {}, title: 'Plain', character: 'judy-alvarez'};
+  assert.deepEqual([pinPlace(bare, stage, [], [], {named: LIST}).id, pinPlace(bare, stage, [], [], {named: LIST}).anchor], ['judys-apartment', 'landmark']);
+  assert.equal(pinPlace({...bare, character: 'panam-palmer'}, stage, [], [], {named: LIST}).id, 'afterlife');
+  assert.equal(pinPlace({...bare, character: 'viktor-vektor'}, stage, [], [], {named: LIST}).id, 'afterlife', 'a landmark with no position is skipped');
+  // A stage place with no position keeps its own id (the game may have measured it) and carries the fallback.
+  pin = pinPlace(base, stage, [{p: 'pin', at: 'c'}], [], {named: LIST});
+  assert.equal(pin.id, 'c'); assert.equal(pin.x, undefined);
+  assert.deepEqual([pin.fallback.id, pin.fallback.anchor], ['a', 'first']);
+  // Only an empty position list gives no pin.
+  assert.equal(pinPlace(bare, stage, [], [], {named: []}), null);
+});
+
+test('every stage of every shipped pack has a pin: its own position, or a fallback position from the chain', () => {
+  let ownPosition = 0, fallback = 0;
+  for (const pack of packs) {
+    for (const stage of pack.stages) {
+      const pin = pinPlace(pack, stage, stage.do ?? [], []);
+      assert.ok(pin, `${pack.id}/${stage.id}: a pin`);
+      const spot = Number.isFinite(pin.x) ? pin : pin.fallback;
+      assert.ok(spot && Number.isFinite(spot.x) && Number.isFinite(spot.y) && Number.isFinite(spot.z), `${pack.id}/${stage.id}: a position`);
+      if (Number.isFinite(pin.x)) ownPosition += 1; else fallback += 1;
+    }
+  }
+  assert.ok(ownPosition > 20 && fallback > 100, `${ownPosition} own, ${fallback} fallback`);
+});
+
+test('the owner\'s live case: Judy\'s dinner names no place, and a started quest of hers has a pin at Lizzie\'s from its first stage, moving with the stages', () => {
+  const dress = packs.find(pack => pack.id === 'judy-dinner-dress');
+  assert.equal(dress.places, undefined, 'the pack names no place of its own');
+  const entry = {status: 'active', trail: [{stage: 'invite', at: 5}], presented: true};
+  const block = () => journalBlock({packs: new Map([[dress.id, dress]]), entries: new Map([[dress.id, entry]])});
+  const [first] = block();
+  assert.equal(first.state, 'active');
+  assert.equal(first.place.id, 'lizzies-bar', 'the dinner is at Lizzie\'s, named in the pack\'s words');
+  assert.equal(first.place.anchor, 'named');
+  assert.ok(Number.isFinite(first.place.x) && Number.isFinite(first.place.y) && Number.isFinite(first.place.z));
+  entry.trail.push({stage: 'dress', at: 6});
+  assert.equal(block()[0].place.id, 'lizzies-bar', 'a later stage with no place keeps it');
+  // A quest that has finished has no pin.
+  const done = {status: 'done', trail: [{stage: 'invite', at: 5}, {stage: 'together', at: 9, ending: true}]};
+  assert.equal(journalBlock({packs: new Map([[dress.id, dress]]), entries: new Map([[dress.id, done]])})[0].place, undefined);
 });

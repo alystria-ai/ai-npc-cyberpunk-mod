@@ -215,3 +215,42 @@ calls = {}
 eq(broken.apply({row({pack = 'judy-door-duty', title = 'Door Duty'})}), 1)
 eq(broken.holding(), true)
 `));
+
+test('every started quest has a map pin: a place with no position takes the bridge\'s fallback, a measured place wins over it, and the log says where the pin went', () => lua(`
+local lines = {}
+local function logger(line) lines[#lines + 1] = line end
+local function journal(opts) return Journal.new({world = world, read = function(path) return files[path] end, decode = decode, log = logger, notice = function() end}) end
+-- Judy's dinner names no place of its own: the bridge sends a pin at a named place of her words, with its position, and no place id to measure.
+local j = journal()
+j.apply({{pack = 'judy-dinner-dress', title = 'Dressed for Dinner', description = 'd', objective = 'Go to Judy', state = 'active', serial = 1, since = 100,
+  place = {id = 'lizzies-bar', name = "Lizzie's Bar", radius = 35, x = -1184, y = 1568, z = 16, named = 'lizzies-bar', anchor = 'named'}}})
+eq(said(), 'set,judy-dinner-dress,active,Go to Judy,2,true', 'the entry, the tracker and a pin')
+local text = table.concat(lines, ' | ')
+assert(text:find('map pin placed (a named place in its words)', 1, true), text)
+-- A place with no position and nothing measured: the fallback gives the pin, and it is not the stage's own waypoint.
+lines = {}
+local k = journal()
+k.apply({{pack = 'panam-sunset-coffee', title = 'Coffee', description = 'd', objective = 'Meet Panam', state = 'active', serial = 1, since = 100,
+  place = {id = 'sunset', name = 'the Sunset Motel', radius = 25, anchor = 'stage', fallback = {x = 10, y = 20, z = 30, anchor = 'landmark'}}}})
+eq(said(), 'set,panam-sunset-coffee,active,Meet Panam,2,true', 'a pin from the fallback')
+assert(table.concat(lines, ' | '):find('map pin placed (a landmark of the character)', 1, true), table.concat(lines, ' | '))
+eq(k.waypoint('panam-sunset-coffee', 'sunset'), false, 'a fallback pin is not the place\\'s own waypoint, so the pin primitive may still add its own')
+-- A position measured in the game for that place beats the fallback.
+files['runtime/quest-place-capture.json'] = serialize({version = 1, places = {sunset = {x = 7, y = 8, z = 9}}})
+lines = {}
+local m = journal()
+m.apply({{pack = 'panam-sunset-coffee', title = 'Coffee', description = 'd', objective = 'Meet Panam', state = 'active', serial = 1, since = 100,
+  place = {id = 'sunset', name = 'the Sunset Motel', radius = 25, anchor = 'stage', fallback = {x = 10, y = 20, z = 30, anchor = 'landmark'}}}})
+assert(table.concat(lines, ' | '):find('map pin placed (a place measured in the game)', 1, true), table.concat(lines, ' | '))
+eq(m.waypoint('panam-sunset-coffee', 'sunset'), true, 'a measured pin is the place\\'s waypoint')
+-- No place at all in the row (an old bridge) still says so.
+lines = {}
+local n = journal()
+local bare = row(); bare.place = nil; n.apply({bare})
+assert(table.concat(lines, ' | '):find('map pin none', 1, true), table.concat(lines, ' | '))
+-- The pin moves when a stage names a new place: the same quest sent again with a new position is sent again.
+local p = journal()
+p.apply({row({place = {id = 'a', name = 'A', radius = 10, x = 1, y = 2, z = 3, anchor = 'stage'}})}); said()
+p.apply({row({serial = 2, place = {id = 'b', name = 'B', radius = 10, x = 4, y = 5, z = 6, anchor = 'stage'}})})
+eq(said(), 'set,panam-sunset-coffee,active,Meet Panam at the Sunset Motel,0,true', 'the pin follows the stage')
+`));
