@@ -42,19 +42,53 @@ character and twin. A sweep row (`"minor": true`) names an ordinary person, so i
    Then `node scripts/Build-GameRoster.mjs` (the lean file the game decodes, see Costs), `node scripts/cast-sweep/finances.mjs` (a minor profile takes the money row of its fallback archetype, `MINOR_FINANCE_BASES` in
    `bridge/eddies-finances.mjs`), `node scripts/Build-FacialGraphs.mjs --reds` (no change expected) and `node scripts/cast-sweep/name-pools.mjs` followed by
    `node scripts/Build-NpcNamePools.mjs` (generated names and street handles stay clear of the new names).
-8. `stems.py` and `voices.py`: voice stems that start with the person's full name (never a voice tag alone), `vo` folder only, news,
+8. `stems.py` and `voices.py` (27 people), then `voice_links.py` (13 more, see "Own voices by voice tag"): voice stems that start with the person's full name (never a voice tag alone), `vo` folder only, news,
    radio, call and loading screen stems skipped, 3.5 to 9.5 s, at least six words, no clipping, at least 0.4 percent of the energy above
    4 kHz (a telephone line has none). The best of up to six candidates is decoded to 24 kHz mono 16 bit WAV in
    `E:\CyberpunkConvai-offload\work\cast-sweep\<key>.wav` (outside the repo). One clip serves the OmniVoice short and long sets and Pocket.
 
 Card template and two worked examples: `scripts/cast-sweep/example-card.json`.
 
+## Own voices by voice tag (`feat/side-own-voices`, 31 Oct 2026)
+
+Step 8 above found 27 people because a file stem started with their full name. That rule is strict, so a second rule was added: `scripts/cast-sweep/voice_links.py`
+(then `voices.py --asr`, `apply_own_voices.py`). **13 more people have a clip of their own, 40 in all, 535 keep the fallback archetype voice.**
+
+A voice file is `<voice tag>_<group>` (`fredrik_sts_wat_nid_04`, `sasquatch_q110`). The tag picks the voice, so every file with the same tag is the same voice and the
+question is only whose tag it is. The REDmod tweak sources name a `voiceTag` on only 6 character records, so that alone found a few. The rest needed other evidence, and a
+tag is the person's own when at least one of these holds:
+
+| Evidence | Meaning | People |
+|---|---|---|
+| `voiceTag` | The person's record (or a parent) names the tag in the game's own tweak sources. | Emmerick Bronson, Leslie Wawuda (dropped later, see below), Matilda K. Rose (`sasquatch`), Roxanne Sumner, Tom Caldera |
+| `name` | The tag spells the full name (all words, first and last, last and first) or the first word with one letter off (`micheal_maldonado`). | Roh Chi-Won (every word, `stems.py` only tried first and last), Reverend Colver (the title), Michael Maldonado |
+| `record` | The tag is exactly the record's own name (`sts_wat_nid_04_fredrik` gives `fredrik`) and a file of the tag carries the record's quest group, or the record has no group at all (`Character.Scorpion`, `Character.mark_muratovitch`). | Fredrik Persson, Gottfrid Persson, Driss "Scorpion" Meriana, Mark Muratovich |
+| `display+group` | The tag is the short name the game shows for the record (`Taylor`, `Dorian`) and a file of the tag carries the record's quest group. | Taylor Gibbs, Dorian |
+| `scene` | A cached scene export (`research/cyberpunk/cache/game/scene-evidence`) shows an actor with the person's first record speaking a line of the tag. | confirms Scorpion, Sasquatch, Tom, Roxanne, Maldonado |
+
+A candidate is dropped when any of these holds (accuracy over count):
+
+* the tag is a **generic voice model or a role** (`civ_*`, `gang_*`, `ncpd_*`, `sec_*`, `merc_*`, crowd, vendor, V, an organisation voice, a quest label, a tag with a number, or a role word such as barman, bouncer, boss, ripperdoc, assassin, narrator: 5 role tags and 1 generic `voiceTag` were met).
+* **another person has a claim of the same or higher strength** on the tag, or a main character is named by that one word (`theo` is also the voice tag of Aymeric Cassel's record, so Theo Price is out).
+* another record **names the tag as its own `voiceTag`**, or a cached scene shows another named record speaking it.
+* the quest group of the record is on no file of the tag (Alex Pushkin, Jesse Sabara, Monique Ashka).
+* only radio, news, call or chip stems exist (Kevin King).
+
+Result of the rule on the 548 people without a clip: 19 had a tag that held, 11 candidates were dropped for the reasons above, and for 6 of the 19 no line passed the audio checks
+(Gorira and Grace: one line of 2.5 s or none with six words, Jotaro Shobo and Myriam Glesile: no line of six words, Jack Mausser: Whisper similarity under 0.85 on all eight lines, Leslie Wawuda: her one line is 11.2 s).
+13 passed. 17 more people are proven by a scene export to be the speaker of a generic voice model line (`held back` in the links file). They are left on the archetype on purpose, because that voice model is shared with ordinary people.
+Only 23 of the 213 non-generic tags in the files share no word with any roster name or record, and they are main or story voices (Wade Bleecker, Delamain, Skippy, Katya Karelina), so few non-generic tags are left unused. The other side characters are spoken in the game by shared civilian, gang, police and security voice models.
+
+The line is picked by `voices.py --asr` as in step 8, plus: Whisper small.en (the project's copy, CPU) must hear the game subtitle with a difflib similarity of at least 0.85, and the line must have the same bytes in the 2.31 archive. The 13 have 0.88 to 1.0. `apply_own_voices.py` writes `clip` and `link` (`{tag, how}`) into `characters/cast-sweep-voices.json`, and the wiring is the one below (manifest, rows, words, release plan, upload list).
+Run order: `inventory.py`, `voice_links.py`, `voices.py --people characters/roster.json --stems <stems-new.json> --asr`, `apply_own_voices.py`, `recover_manifest.py --cast-sweep`, `add_cast_manifest.py`, `stage_cast_voices.py --keys ... --apply`, `merge_rows.mjs`, `write_words.mjs`, `upload_list.py`.
+Open question: Dorian is a child (invite false, profile only), and the Reverend Colver line is from a televised debate scene (clean, Whisper similarity 0.98).
+
 ## Voices and what the owner uploads later
 
-27 people have a clip of their own (listed in the report file). Everyone else speaks with their fallback archetype voice
+The first 27 people have a clip of their own (listed in the report file), 13 more by voice tag (above). Everyone else speaks with their fallback archetype voice
 (`characters/archetype-voices.json` voicesets, key in `cast-sweep-voices.json`) and, as for every profile without a prepared reference,
 the roster's Convai voice locally falls back through `packaging/release-plan.json` `fallbackProfiles`. The fallback is applied by the bridge, not by the voice tables: `bridge/voice-fallbacks.mjs` reads `cast-sweep-voices.json` (shipped in appData) and gives the voice service an alias for each person, so the person is routed, listed in `routedProfiles` (the manager names the voice) and spoken with the archetype's voice on Pocket and on both OmniVoice sets, and the workers prepare that voice once however many people share it (no row is copied, the workers never hear the person's key). A person with a row of their own in an engine's table, or with clips built on this PC, keeps it. An engine whose table lacks an archetype answers that person in text, with one `[VoiceFallbacks]` log line at start.
-To ship the 27 clips:
+To ship the clips (done for all 40 on the branches `feat/voice-clips-on` and `feat/side-own-voices`, see `docs/VOICE_EXTRACTION.md`):
 copy `E:\CyberpunkConvai-offload\work\cast-sweep\<key>.wav` to `final/voice-references/picked/autobest/{omni-short,omni-long,pocket}/<key>.wav`,
 add the three config rows (the recipe in `docs/CAST_EXPANSION_RECIPE.md` step 3 and `merge_rows.mjs`), and add the keys to
 `voice.localProfiles`. Nothing is uploaded or merged by this branch. Convai originals and twins for the 575 keys:

@@ -1,6 +1,6 @@
 # Voice reference clips from the player's own game files
 
-Branch `feat/voice-extract` (2026-10-30) built the work. Branch `feat/voice-clips-on` (2026-10-30, for 0.4.0) switches it on: `voiceClips.fromGame` is true, the 1017 fallback clips are on Hugging Face and read back, the 27 side characters of the cast sweep are wired, the Runtime file check asks for scipy and torch, and a character whose clips are not built yet speaks with a stand-in voice. Not merged, not pushed. The two game folders were only read.
+Branch `feat/voice-extract` (2026-10-30) built the work. Branch `feat/voice-clips-on` (2026-10-30, for 0.4.0) switches it on: `voiceClips.fromGame` is true, the 1017 fallback clips are on Hugging Face and read back, the first 27 side characters of the cast sweep are wired (13 more since `feat/side-own-voices`, 31 Oct 2026, see "Side characters found by a voice tag" below), the Runtime file check asks for scipy and torch, and a character whose clips are not built yet speaks with a stand-in voice. Not merged, not pushed. The two game folders were only read.
 
 ## What this is
 
@@ -50,11 +50,11 @@ Both game versions work. All 1459 distinct lines the manifest uses are byte for 
 | Rebuild sample for sample (largest difference 0) | 1017 | 99.1 percent |
 | One 16-bit step in a few samples | 4 (`jesse/pocket`, `santiago/omni-long`, `steven-santos/omni-long`, `yorinobu-arasaka/pocket`) | 0.4 percent |
 | Cannot be rebuilt | 5 | 0.5 percent |
-| All clips in the manifest | 1026 (315 voices in the configs and the 27 side characters of the cast sweep, three kinds each) | |
+| All clips in the manifest | 1065 (315 voices in the configs and the 40 side characters of the cast sweep, three kinds each). The table above counts the 1026 of 30 Oct. The 39 clips of the 13 added on 31 Oct all rebuild sample for sample, so 1056 rebuild exactly | |
 
 The 5: `lucy-kushinada` (3 clips) is a web clip of the anime's dub with the music removed, not game audio, so no game file exists. `spider-murphy/omni-long` (kept from an earlier set, its second line does not match any candidate file with the recovered gain) and `npc-kang-tao-male/omni-short` (its first line does not match the file the id names) were looked at only briefly and the cause was not found. These three voices are left out of the manifest and keep the shipped clips.
 
-The 27 side characters of the cast sweep (`characters/cast-sweep-voices.json`) all rebuild sample for sample from their one game line. They have no entry in the voice lists yet, so nothing names them. They are in the manifest for when they do.
+The 40 side characters of the cast sweep (`characters/cast-sweep-voices.json`, 27 by a name in the file stem and 13 by a proven voice tag) all rebuild sample for sample from their one game line. They are in the manifest, the live voice configurations and `voice.localProfiles` (see "Side characters found by a voice tag" for the 13).
 
 ## Proof
 
@@ -102,7 +102,7 @@ Mistral's cloud voice keeps a prepared slot per clip, keyed by the SHA-256 of th
 | Runtime clip listing | The check that the listing of the Runtime's OmniVoice clips equals what the pack skips is held to the clips that are still shipped. The Voxtral slot caches are not touched (they are keyed by the clip's hash and stay valid). |
 | Hugging Face | `voice-clips/<kind>/<key>.wav`, 1017 files (936 of the main cast and archetypes plus 81 of the 27 side characters), 649.5 MB, in 6 commits of the packs repository. Every size and LFS SHA-256 was read back and equals the manifest. Three files were fetched over the public URL, as the bridge does, and matched. Nothing else on the repository was touched. |
 | Runtime file check | `bridge/runtime-python.mjs` `SITE_PACKAGES` now also asks for `scipy`, `scipy/signal` and `torch/nn` (the builder imports `scipy.signal` and `torch.nn.functional`). The setup check, the Runtime build and the install test use the same list. `packaging/check-runtime-contents.mjs` also requires the Pocket clips of the two stand-in voices in the Runtime zip. |
-| The 27 side characters | They have rows in the three voice configurations (`scripts/voice-extract/stage_cast_voices.py` writes the rows from the game's subtitles, `scripts/clip-search/cast-expansion/merge_rows.mjs` merges them with a backup), a place in `packaging/release-plan.json` `voice.localProfiles`, and their three paths in the upload list. One clip serves the three kinds. |
+| The 27 side characters (40 since 31 Oct) | They have rows in the three voice configurations (`scripts/voice-extract/stage_cast_voices.py` writes the rows from the game's subtitles, `scripts/clip-search/cast-expansion/merge_rows.mjs` merges them with a backup), a place in `packaging/release-plan.json` `voice.localProfiles`, and their three paths in the upload list. One clip serves the three kinds. |
 | Start-up log | `[OmniPack] N of M reference clips are missing` no longer counts the characters the game builds, and the stand-ins are put in the tables before it runs, so with the clips left out it stays silent. One line `[VoiceClips] N character(s) speak with a stand-in voice until their clips are built` says how many wait, with no names. |
 
 ### Stand-in voices and the first build
@@ -122,6 +122,19 @@ Write the file again after the manifest or the configurations change: `node scri
 
 The voice workers hold the voices of the configuration FILE they are started with. The clip service edits the tables in memory at start (`applyReadyClips`, `applyStandIns`), so on their own those edits reached the bridge's registries but not the workers: Pocket's answer listed only the file's voices, so the ready clips and the stand-ins were never routed (30 Oct 2026, 27 characters missing from `routedProfiles`). When anything was edited, `clipVoiceConfigPaths` writes the edited configurations to `<state>/clips.pocket-voices.json`, `clips.omni-short-voices.json` and `clips.omni-long-voices.json` (a few small writes, once, at start), and the voice service starts its workers on those. The shipped and add-on files are never changed, and a failed write keeps the original file. Clips built later reach the running workers through `LiveVoices` as before.
 
+## Side characters found by a voice tag (`feat/side-own-voices`, 31 Oct 2026)
+
+The first 27 side characters were found by a name that starts the file stem. `scripts/cast-sweep/voice_links.py` adds a second rule (details and numbers in `docs/CAST_SWEEP.md`, "Own voices by voice tag"): 13 more characters got one line of their own. They are wired exactly like the 27:
+
+| Part | What was done |
+|---|---|
+| Line | `scripts/cast-sweep/voices.py --asr`: plain `vo` file, 3.5 to 9.5 s, at least six words, no clipping, at least 0.4 percent energy above 4 kHz, Whisper small.en hears the game subtitle (similarity at least 0.85), and the same bytes are in the 2.31 archive. Decoded and resampled the way the first 27 were (`poly`, writer `sf`), into the offload folder. |
+| Manifest | `recover_manifest.py --cast-sweep` reproduced all 40 sample for sample, `scripts/voice-extract/add_cast_manifest.py` added the 13 entries (every other voice unchanged, 355 voices now). |
+| Rows | `stage_cast_voices.py --keys ... --apply` (the id check now pads the id to 16 hex digits, one new character has a leading zero) then `merge_rows.mjs` (backup `runtime/backups/cast-expansion-<stamp>`), `write_words.mjs`. |
+| Release plan | The 13 keys are in `voice.localProfiles` (166 now, `preparedLocalProfiles` equal). |
+| Hugging Face | `packaging/voice-clips-upload-list.json` is 1056 files, 662.1 MB. The 39 new rows (13 characters, three kinds) carry `"toUpload": true`. Nothing was uploaded. |
+| Proof | `scripts/voice-extract/prove.py` on all 13 new keys (there are only 13, not 20): game 2.5 two runs each, 78 of 78 clips byte for byte the staged clip, and game 2.31 one run each, 39 of 39. About 2 s and 116 MB per character. Built with the vendor Python and vgmstream of the developer machine (the same builder code as the Runtime's). |
+
 ## Risks
 
 - **Scipy and torch in the Runtime.** The `poly` and `torch` recipes need scipy or torch in the Runtime's Python. Both are in every Runtime since the first release builder, and the file check now asks for `scipy`, `scipy/signal` and `torch/nn`, so a broken Runtime is reported (the character then keeps a stand-in voice or downloads). Without torch the numpy port is used and a few samples differ by one step.
@@ -132,7 +145,7 @@ The voice workers hold the voices of the configuration FILE they are started wit
 - **A player with no English voice files and no network.** Nothing can be built or downloaded, so every character keeps the stand-in voice of its gender. That is the one case where the voices are not the character's own.
 - **Game updates.** The lines are fixed `StringID` files. A future patch that rewrites a voice line changes the audio and the SHA-256 (the clip still builds and the character speaks with the patched line). A patch that removes one makes that character unavailable and it falls back to the stand-in voice, or to the Hugging Face copy of the clip when the download is on.
 - **A stand-in for one line.** The stand-in is the same two archetype voices for everybody, so a character that talks before its clips are ready sounds like a resident for that line. The first line of an invited companion is not affected (the invitation waits for the build).
-- **The 27 cast sweep characters** are wired (rows with the game's subtitles as the words). Their roster rows are another branch's work: a profile still needs its roster row to be invited or talked to.
+- **The 40 cast sweep characters** (27 by name, 13 by voice tag) are wired (rows with the game's subtitles as the words). Their roster rows are another branch's work: a profile still needs its roster row to be invited or talked to.
 
 ## Re-running it
 
