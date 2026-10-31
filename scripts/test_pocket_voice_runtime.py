@@ -804,6 +804,113 @@ class LanguageModels(Assets):
         self.assertNotIn('threading.Timer(LANGUAGE', source)
         self.assertEqual(source.count('switch_language('), 2, 'defined once, called by the language command only')
 
+    # ---- Russian (docs/POCKET_TTS_RUNTIME.md, "Russian"): a SentencePiece tokenizer.model asset and the stress table ----------------------------------
+
+    def russian(self, config=None, stress=True):
+        """A Russian model folder: tokenizer.model instead of tokenizer.json, a config that says sentencepiece, and the stress table."""
+        import russian_stress
+        folder = self.refs / 'multilingual-pocket' / 'ru'
+        folder.mkdir(parents=True)
+        (folder / 'model.safetensors').write_bytes(b'not a neural model; a Russian fixture')
+        (folder / 'tokenizer.model').write_bytes(b'not a sentencepiece model; a fixture')
+        lookup = {**self.inference['flow_lm']['lookup_table'], 'tokenizer': 'sentencepiece'}
+        (folder / 'inference.yaml').write_text(json.dumps(config or {**self.inference, 'flow_lm': {**self.inference['flow_lm'], 'lookup_table': lookup}}))
+        (folder / 'stress-ru.bin').write_bytes(russian_stress.encode_dictionary({'привет': 4, 'молоко': 5}) if stress else b'')
+        expected = {'sha256': runtime.digest_file(folder / 'model.safetensors'), 'tokenizerName': 'tokenizer.model', 'tokenizerSha256': runtime.digest_file(folder / 'tokenizer.model'),
+                    'configSha256': runtime.digest_file(folder / 'inference.yaml'), 'stressSha256': runtime.digest_file(folder / 'stress-ru.bin')}
+        return folder, expected
+
+    def test_ru_is_a_language_and_the_list_is_the_five_of_kyutai_and_russian(self):
+        self.assertEqual(runtime.LANGUAGES, ('fr', 'it', 'de', 'es-es', 'pt-br', 'ru'))
+        self.assertTrue(runtime.language_valid('ru'))
+        self.assertFalse(runtime.language_valid('uk'))
+        self.assertEqual(runtime.LANGUAGE_EXTRA_ASSETS, {'ru': {'stress-ru.bin': 'stressSha256'}})
+
+    def test_a_sentencepiece_tokenizer_model_is_accepted_for_a_configuration_that_says_sentencepiece_and_its_name_is_passed_through(self):
+        folder, expected = self.russian()
+        config = runtime.inspect_language_export(self.paths, 'ru', expected, yaml_load=json.loads)
+        self.assertEqual(Path(config['flow_lm']['lookup_table']['tokenizer_path']), (folder / 'tokenizer.model').resolve())
+        self.assertEqual(config['flow_lm']['lookup_table']['tokenizer'], 'sentencepiece')
+        self.assertEqual(Path(config['weights_path']), (folder / 'model.safetensors').resolve())
+        self.assertEqual(runtime.language_asset_fields('ru', expected), {'model.safetensors': 'sha256', 'inference.yaml': 'configSha256', 'tokenizer.model': 'tokenizerSha256', 'stress-ru.bin': 'stressSha256'})
+        # French is unchanged: tokenizer.json, no name needed, no stress table
+        self.assertEqual(runtime.language_asset_fields('fr', self.expected), runtime.LANGUAGE_ASSETS)
+        self.assertEqual(runtime.TOKENIZER_ASSETS, {'tokenizer.json': 'tokenizers', 'tokenizer.model': 'sentencepiece'})
+
+    def test_a_tokenizer_model_under_a_configuration_that_does_not_say_sentencepiece_is_refused(self):
+        lookup = {**self.inference['flow_lm']['lookup_table'], 'tokenizer': 'tokenizers'}
+        _folder, expected = self.russian(config={**self.inference, 'flow_lm': {**self.inference['flow_lm'], 'lookup_table': lookup}})
+        with self.assertRaisesRegex(ValueError, 'says sentencepiece'):
+            runtime.inspect_language_export(self.paths, 'ru', expected, yaml_load=json.loads)
+
+    def test_a_russian_model_needs_every_hash_the_tokenizer_name_must_be_known_and_a_changed_file_is_refused(self):
+        folder, expected = self.russian()
+        for field in ('sha256', 'tokenizerSha256', 'configSha256', 'stressSha256'):
+            with self.assertRaises(ValueError, msg=field):
+                runtime.inspect_language_export(self.paths, 'ru', {key: value for key, value in expected.items() if key != field}, yaml_load=json.loads)
+            with self.assertRaisesRegex(ValueError, 'differs from its identity', msg=field):
+                runtime.inspect_language_export(self.paths, 'ru', {**expected, field: '0' * 64}, yaml_load=json.loads)
+        for name in ('tokenizer.txt', '../tokenizer.json', 7, None):
+            with self.assertRaisesRegex(ValueError, 'no such tokenizer'):
+                runtime.inspect_language_export(self.paths, 'ru', {**expected, 'tokenizerName': name}, yaml_load=json.loads)
+        # the French hash set does not open the Russian folder, and a missing tokenizer.model is a missing asset
+        with self.assertRaises(ValueError):
+            runtime.inspect_language_export(self.paths, 'ru', self.expected, yaml_load=json.loads)
+        (folder / 'tokenizer.model').unlink()
+        with self.assertRaisesRegex(ValueError, 'missing or linked'):
+            runtime.inspect_language_export(self.paths, 'ru', expected, yaml_load=json.loads)
+
+    def test_a_json_tokenizer_still_works_for_a_language_with_a_sentencepiece_config_name_absent(self):
+        # exactly one tokenizer asset: none or both are refused by checked_config
+        assets = {name: self.language / name for name in ('model.safetensors', 'inference.yaml', 'tokenizer.json')}
+        (self.language / 'tokenizer.model').write_bytes(b'x')
+        with self.assertRaisesRegex(ValueError, 'exactly one tokenizer'):
+            runtime.checked_config({**assets, 'tokenizer.model': self.language / 'tokenizer.model'}, json.loads)
+        with self.assertRaisesRegex(ValueError, 'exactly one tokenizer'):
+            runtime.checked_config({name: path for name, path in assets.items() if name != 'tokenizer.json'}, json.loads)
+
+    def test_the_stress_table_is_read_for_russian_only_and_a_table_that_cannot_be_read_never_stops_the_voice(self):
+        folder, expected = self.russian()
+        self.assertIsNone(runtime.load_language_stress(self.paths, 'fr'))
+        table = runtime.load_language_stress(self.paths, 'ru')
+        self.assertEqual(table.get('привет'), 4)
+        self.assertEqual(len(table), 2)
+        (folder / 'stress-ru.bin').write_bytes(b'damaged')
+        self.assertIsNone(runtime.load_language_stress(self.paths, 'ru'))
+        (folder / 'stress-ru.bin').unlink()
+        self.assertIsNone(runtime.load_language_stress(self.paths, 'ru'))
+
+    def test_the_text_of_a_russian_line_gets_its_marks_and_every_other_language_is_untouched(self):
+        folder, _expected = self.russian()
+        table = runtime.load_language_stress(self.paths, 'ru')
+        self.assertEqual(runtime.language_text('ru', 'Привет, сл+ово', table), 'Приве\u0301т, сло\u0301во')
+        self.assertEqual(runtime.language_text('ru', 'Привет, сл+ово', None), 'Привет, сло\u0301во', 'the written marks work without a table')
+        for language in ('fr', 'de', None, 'pt-br'):
+            self.assertEqual(runtime.language_text(language, 'Привет, сл+ово', table), 'Привет, сл+ово')
+
+    def test_the_stress_module_is_not_imported_until_a_russian_line_needs_it(self):
+        import subprocess
+        code = ("import sys; sys.path.insert(0, %r); import pocket_voice_runtime as r; "
+                "print('russian_stress' in sys.modules); r.language_text('fr', 'x'); r.load_language_stress({}, 'fr'); print('russian_stress' in sys.modules); "
+                "r.language_text('ru', 'x'); print('russian_stress' in sys.modules)") % str(ROOT / 'bridge')
+        result = subprocess.run([sys.executable, '-I', '-c', code], capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout.split(), ['False', 'False', 'True'])
+
+    def test_the_worker_reads_the_table_after_the_russian_model_loaded_drops_it_with_the_model_and_marks_the_text_before_the_short_line_plan(self):
+        source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
+        self.assertEqual(source.count('load_language_stress('), 1, 'read in one place')
+        # the table is read after the language model loaded (a model that will not load never reads it) and set to None where the resident model is released
+        self.assertGreater(source.index('load_language_stress(registry["paths"], target)'), source.index('model = load_model(config if target else registry["inference"])'))
+        release = source[source.index('model = None\n            lang["tag"] = None'):source.index('gc.collect()')]
+        self.assertIn('lang["stress"] = None', release)
+        self.assertLess(source.index('lang["stress"] = None'), source.index('model = load_model(config if target else registry["inference"])'))
+        # nothing reads a table at start: the only call is inside the language swap
+        self.assertGreater(source.index('load_language_stress(registry["paths"], target)'), source.index('def switch_language'))
+        # the line is marked once, before the short-line plan, and the model is given the marked line
+        marked = source.index('spoken = language_text(lang["tag"], text, lang["stress"])')
+        self.assertLess(marked, source.index('plan = plan_short_line(spoken'))
+        self.assertIn('stream_request(model, state, spoken,', source)
+
 
 class UsvfsPaths(unittest.TestCase):
     """Inside Mod Organizer 2's virtual file system (USVFS) Path.resolve() of a file answers with the mod folder that holds it, which is not where
