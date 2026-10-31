@@ -176,6 +176,42 @@ samples**, not generated-ahead samples, then animated against the audible
 consumed-sample clock. Only actual final EOF eases the mouth back to neutral.
 Convai continues using its original provider facial data and continuous audio.
 
+## The end of every line and short lines (31 Oct 2026)
+
+Both changes are in `bridge/pocket-voice-worker.py` (`stream_request`, `warm_up`) with their pure helpers in `bridge/pocket_voice_runtime.py`
+(`plan_short_line`, `find_cut`, `fade_out`, `CarrierTrimmer`). Tests: `scripts/test_pocket_short_lines.py` and `scripts/test_pocket_voice_runtime.py`,
+none of them loads the model. The `frames_after_eos=1` and "no fade, no trim" statements elsewhere in these docs describe the state before
+this section.
+
+**The end of every line.** The worker used to pass `frames_after_eos=1`. The end-of-speech mark comes a few frames before the sound has ended, so a
+short line lost 50 to 320 ms of its last sound and ended 4 to 29 dB under the speech level (a click and a chopped word, worst on Barry Lewis,
+whose clip starts late). The worker now passes `None`, which lets the pinned upstream choose (five frames for four words or fewer, three for
+longer lines). The audio before the end is the same sample for sample. The extra frames decode to digital silence (peak under `SILENT_PEAK`,
+0.001), and silence after the last sound is cut to `TAIL_SILENCE_FRAMES` (40 ms) with a 10 ms fade on the last piece when it was cut. Silence
+inside the line (a pause) is held and sent in order when more speech follows. Nothing waits for the first sound.
+
+**Short lines.** A line of one to five words came out grainy for V and the side characters, better when longer, and V improved after a while.
+Two causes are addressed, neither can be proven without the model:
+
+1. *Too little text to condition on.* A short line is said as the line, a full stop and a neutral carrier sentence
+   (`SHORT_LINE_CARRIERS[None]`, English only: a language with no entry keeps the old path). Upstream merges sentences up to 50 tokens into one
+   chunk, so line and carrier are one chunk of more than five words and take the path of a long line. The carrier is cut off the audio again by
+   `CarrierTrimmer`: audio before 0.6 of the expected end of the line (letters at 65 ms each, at least 200 ms per word, 100 ms lead in) is sent
+   at once, so the first sound is not later. After that the audio is held until the pause after the line is seen (80 ms or more under 6 percent of
+   the loudest sound, and followed by sound), or until 1.8 times the expected end. The cut keeps up to 40 ms of the pause and a 12 ms raised
+   cosine fade ends exactly at the cut, so there is no click. With no pause the cut is the quietest 10 ms of the window. The model is stopped as
+   soon as the cut is chosen (it is not asked for the rest of the carrier), so a short line is not later to finish than before by more than the
+   hold, and a line of six or more words takes the old path unchanged. `SHORT_LINE_CARRIER = False` in the worker turns this off for a listening
+   comparison. In a simulated sweep (lines of 150 ms to 1.2 s, pauses of 100 to 320 ms, guesses of 0.6 to 1.6 times the truth) the cut always
+   lay inside the pause. A guess more than about 1.7 times too long starts the window after the pause and leaves the first part of the carrier.
+2. *A cold model.* The first generations of a fresh model run on cold code paths. `warm_up` says `WARM_UP_LINES` (a short line with its carrier and
+   a normal sentence) once, silently, with a prepared voice, before the worker says `ready`, and the audio is thrown away. It needs a prepared
+   voice: the startup profiles, else the first `prepare` command, and after a language swap the voices kept from the stash (a fresh language
+   is warmed at its first `prepare`). A warm-up failure is logged (`Pocket warm-up skipped`) and never costs the voice. The log line
+   `Pocket warm-up: N chunks in X ms` in the worker's stderr gives its cost.
+
+The done frame of a short line carries `shortLine: {words, estimateFrames, cutFrames}` (the bridge ignores it) for tuning the constants from a log.
+
 ## Cancellation and ownership
 
 The worker's reader can signal cancellation while generation is in progress.

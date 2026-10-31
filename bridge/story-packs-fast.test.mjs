@@ -114,14 +114,14 @@ test('begun on a holocall with her beside V the stage clock waits as long as the
   assert.equal(step.wait, TRAVEL_GRACE_HOURS * HOUR);
   const dare = runner.playState().quests[0];
   assert.deepEqual(dare.do.map(spec => spec.p), ['pin'], 'nothing is added to bring her to V');
-  assert.equal(dare.timeoutAt, T0 + (2 + TRAVEL_GRACE_HOURS) * HOUR, 'the game is told the same moment');
+  assert.equal(dare.timeoutAt, T0 + (6 + TRAVEL_GRACE_HOURS) * HOUR, 'the game is told the same moment (the pack says 2, a first stage runs at least 6)');
   talk(runner, turn('holocall', T0 + 3 * HOUR, 'one moment'), {level: 6, near: true});
-  assert.equal(entryOf(runner).trail.at(-1).stage, 'dare', 'not timed out after 3 hours (the stage\'s own timeout is 2)');
+  assert.equal(entryOf(runner).trail.at(-1).stage, 'dare', 'not timed out after 3 hours (the stage\'s own timeout is 2, a first stage runs at least 6)');
   await runner.flush();
   const again = make({random: () => 0, read: async file => files.get(file)}).runner;
   await again.load();
   assert.equal(again.entries.get('panam-driving-school').trail.at(-1).wait, TRAVEL_GRACE_HOURS * HOUR, 'kept across a restart of the bridge');
-  talk(runner, turn('holocall', T0 + (2 + TRAVEL_GRACE_HOURS) * HOUR + 60, 'hello?'), {level: 6, near: true});
+  talk(runner, turn('holocall', T0 + (6 + TRAVEL_GRACE_HOURS) * HOUR + 60, 'hello?'), {level: 6, near: true});
   assert.equal(entryOf(runner).trail.at(-1).stage, 'chicken', 'and it still comes');
 });
 

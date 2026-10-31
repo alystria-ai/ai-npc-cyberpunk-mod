@@ -364,15 +364,18 @@ test('the host: the local AI and Custom get the very same system message for the
   assert.equal(heads[0], heads[1]);
 });
 
-test('the host: the layer, the world rules and the dynamic blocks are in one order: head, layer, world rules, format notes, world, memory, right now', () => {
+test('the host: the layer, the world rules and the dynamic blocks are in one order: head, layer, world rules, format notes in the system message, then world, memory, right now in the last message', () => {
   const persona = {...judy, worldRules: 'WORLD RULE: no one in this city has ever heard of a cat.'};
-  const system = buildMessages({persona, memory: 'I remember V.', history: [], contextParts: parts({world: 'RELATIONSHIP: V is Judy\'s partner.\n\n' + ROMANCE_USE + '\n\n' + ROMANCE_LIMITS}),
-    remembered: [], text: 'what now?', mature: 'suggestive'})[0].content;
-  const order = [system.indexOf('MATURE CONTENT IS ON'), system.indexOf('WORLD RULE: no one'), system.indexOf('FORMAT NOTES FOR EVERY REPLY'),
-    system.indexOf('WORLD AND QUEST CONTEXT'), system.indexOf('WHAT YOU REMEMBER OF V'), system.indexOf('RIGHT NOW')];
+  const messages = buildMessages({persona, memory: 'I remember V.', history: [], contextParts: parts({world: 'RELATIONSHIP: V is Judy\'s partner.\n\n' + ROMANCE_USE + '\n\n' + ROMANCE_LIMITS}),
+    remembered: [], text: 'what now?', mature: 'suggestive'});
+  const system = messages[0].content, last = messages.at(-1).content;
+  const order = [system.indexOf('MATURE CONTENT IS ON'), system.indexOf('WORLD RULE: no one'), system.indexOf('FORMAT NOTES FOR EVERY REPLY')];
   assert(order.every(at => at > 0), order.join(','));
-  assert.deepEqual(order, [...order].sort((a, b) => a - b), 'the layer ends the head and the rules follow it; the dynamic blocks come last');
-  assert(system.includes(MATURE_USE) && !system.includes(ROMANCE_USE), 'a partner\'s relationship text leans in, as on the local AI');
+  assert.deepEqual(order, [...order].sort((a, b) => a - b), 'the layer ends the head and the rules follow it, then the format notes');
+  const dynamic = [last.indexOf('WORLD AND QUEST CONTEXT'), last.indexOf('WHAT YOU REMEMBER OF V'), last.indexOf('RIGHT NOW')];
+  assert(dynamic.every(at => at >= 0), dynamic.join(','));
+  assert.deepEqual(dynamic, [...dynamic].sort((a, b) => a - b), 'the dynamic blocks come after the turns, in the last message');
+  assert(last.includes(MATURE_USE) && !last.includes(ROMANCE_USE), 'a partner\'s relationship text leans in, as on the local AI');
 });
 
 test('the host: Convai never gets it (no route of its own, nothing in a prompt built for it), with the setting on', async () => {
@@ -575,7 +578,7 @@ test('in the prompt: the swap happens only with the setting on, in both layouts;
   const panam = book.persona('panam-palmer');
   for (const withParts of [true, false]) {
     const base = {persona: panam, memory: '', history: [], text: 'hey', ...(withParts ? {contextParts: parts({world})} : {context: world})};
-    const where = messages => withParts ? messages[0].content : messages.at(-1).content;
+    const where = messages => messages.at(-1).content;
     const off = where(buildMessages(base)), on = where(buildMessages({...base, mature: 'full'}));
     assert(off.includes(ROMANCE_USE) && off.includes(ROMANCE_LIMITS) && !off.includes(MATURE_USE), `off, parts ${withParts}`);
     assert(on.includes(MATURE_USE) && on.includes(MATURE_LIMITS) && !on.includes(ROMANCE_USE) && !on.includes('do not narrate actions or kisses'), `on, parts ${withParts}`);
@@ -591,7 +594,8 @@ test('on: nothing that tells the model to dodge is left in the prompt, and the c
   assert.match(messages[0].content, /Four in an adult moment\./);
   assert(messages.at(-1).content.endsWith(`${matureClosing('full')})`));
   // The suggestive level gets the same rules and relationship text (it only keeps the act itself off the page).
-  const suggestive = buildMessages(args({persona: judy, mature: 'suggestive', contextParts: parts({world})}))[0].content;
+  const level2 = buildMessages(args({persona: judy, mature: 'suggestive', contextParts: parts({world})}));
+  const suggestive = `${level2[0].content}\n${level2.at(-1).content}`;   // the rules in the system message, the relationship text in the last
   assert(suggestive.includes(MATURE_USE) && suggestive.includes('if V flirts or brings up desire or sex, answer that in your own voice and never dodge it'));
   // The hard limits and the adults-only line are in the system message once, word for word.
   assert.equal(everything.split(LIMITS_LINE).length, 2);

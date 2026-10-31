@@ -646,3 +646,101 @@ test('the holocall backdrop: without Codeware the window has no black backing, s
   assert.match(code, /@if\(ModuleExists\("Codeware"\)\)\n@addMethod\(PlayerPuppet\)\npublic final func ConvaiHolocallHasBacking\(\) -> Bool \{\s*return true;\s*\}/);
   assert.match(code, /@if\(!ModuleExists\("Codeware"\)\)\n@addMethod\(PlayerPuppet\)\npublic final func ConvaiHolocallHasBacking\(\) -> Bool \{\s*return false;\s*\}/);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Scripts that compiled in part (docs/NOTIFICATIONS.md, scripts-not-compiled): the setup check looks the methods up once and sets
+// convaiScriptsMissing; the modules that would raise on every update stand down.
+
+test('the phone chat stands down when the chat methods are missing: no call, no error, on any tick; with them it works as before', () => {
+  const reports = runHost(`
+    ${diskLua}
+    ${freshSetupCheck}
+    files['phone-contacts.json'] = '[{"contact":"judy","key":"judy-alvarez"}]'
+    NewObject = function() return {} end
+    local chat = (function() ${hostSource('phone-chat.lua')} end)()
+    chat.resetPeriod, chat.resetIdlePeriod = 0, 0
+    local calls = 0
+    -- Scripts of an older build: the chat is asked who is typing, but the registration methods were added later
+    local function newPlayer()
+      return {ConvaiPhoneChatContact = function() calls = calls + 1; return '' end, ConvaiPhoneChatTick = function() calls = calls + 1 end,
+        ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
+        ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end}
+    end
+    chat.configure({{key = 'judy-alvarez'}}, {profileEnabled = function() return true end},
+      {captureBinding = function() return {version = 1, status = 'unavailable', generation = 1} end})
+    -- without the flag (the old behaviour): the missing method is a Lua error on the tick
+    local raised = 0
+    for _ = 1, 3 do if not pcall(chat.update, newPlayer(), 0.2) then raised = raised + 1 end end
+    report('raisedWithout', raised)
+    -- with the flag the setup check sets: nothing is called and nothing is raised, however many ticks
+    convaiScriptsMissing = {chat = true}
+    calls = 0
+    for _ = 1, 200 do
+      local ok, failure = pcall(chat.update, newPlayer(), 0.2)
+      assert(ok, tostring(failure))
+    end
+    report('callsWith', calls)
+    -- another group missing does not stop the chat
+    convaiScriptsMissing = {manager = true}
+    local player = newPlayer()
+    player.ConvaiPhoneChatClearContacts = function() end
+    player.ConvaiPhoneChatRegisterContact = function() end
+    player.ConvaiPhoneChatClearFavorites = function() end
+    player.ConvaiPhoneChatAddFavorite = function() end
+    player.ConvaiPhoneChatClearParty = function() end
+    player.ConvaiPhoneChatAddParty = function() end
+    player.ConvaiPhoneChatTakeFavoriteRequest = function() return '' end
+    local before = calls
+    for _ = 1, 3 do assert(pcall(chat.update, player, 0.2)) end
+    report('callsOther', calls - before)
+  `);
+  assert(reports.raisedWithout >= 1, 'the missing registration method raised before the guard');
+  assert.equal(reports.callsWith, 0, 'a chat with missing methods asks the scripts for nothing');
+  assert(reports.callsOther > 0, 'a missing group other than the chat leaves the chat running');
+});
+
+test('the manager’s voice and subtitle buttons do not raise when the scripts lack the method: the click is taken and nothing says it could not finish', () => {
+  const reports = runHost(`
+    ${managerLua}
+    local manager = newManager()
+    local player = newPlayer()
+    player.ConvaiManagerSetVoice, player.ConvaiManagerSetSubtitles = nil, nil
+    player.open = true
+    local feedback = {}
+    function player:ConvaiManagerSetFeedback(text) feedback[#feedback + 1] = text end
+    manager.update(player, 0.5)
+    player.queue = {'toggle:voice', 'toggle:subtitles'}
+    for _ = 1, 4 do
+      local ok, failure = pcall(manager.update, player, 0.5)
+      assert(ok, tostring(failure))
+    end
+    report('queue', #player.queue)
+    local failed = 0
+    for _, text in ipairs(feedback) do if tostring(text):find('could not finish', 1, true) then failed = failed + 1 end end
+    report('failed', failed)
+  `);
+  assert.equal(reports.queue, 0, 'both requests were taken');
+  assert.equal(reports.failed, 0, 'the click did not raise inside the action');
+});
+
+test('the phone catalog registration answers false for a player without the method, and registers every contact with it', () => {
+  const body = /function M\.registerPhoneContacts\(player\)[\s\S]*?\nend\n/.exec(hostSource('companions.lua').replace(/\r\n/g, '\n'));
+  assert(body, 'M.registerPhoneContacts moved in mod/companions.lua');
+  const reports = runHost(`
+    local phoneContacts = {judy = {name = 'Judy'}, panam = {name = 'Panam'}}
+    local M = {}
+    function M.phoneContactKey(id) return id .. '-key', nil, phoneContacts[id].name end
+    ${body[0]}
+    -- the scripts did not compile (or lack the method): false, three times, nothing raised
+    local bare = {}
+    for call = 1, 3 do report('bare' .. call, tostring(M.registerPhoneContacts(bare))) end
+    -- the scripts are there
+    local cleared, registered = 0, 0
+    local player = {ConvaiPhoneClearContacts = function() cleared = cleared + 1 end, ConvaiPhoneRegisterContact = function() registered = registered + 1 end}
+    report('full', tostring(M.registerPhoneContacts(player)))
+    report('cleared', cleared)
+    report('registered', registered)
+  `);
+  assert.deepEqual([reports.bare1, reports.bare2, reports.bare3], ['false', 'false', 'false']);
+  assert.deepEqual([reports.full, reports.cleared, reports.registered], ['true', 1, 2]);
+});

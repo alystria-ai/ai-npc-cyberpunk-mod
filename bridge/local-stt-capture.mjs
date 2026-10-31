@@ -377,7 +377,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
       let open, shut; const gate = new Promise((yes, no) => { open = yes; shut = no; }); gate.catch(() => {});
       // A turn that is closed or cancelled while the reply waits for its words to be confirmed must not leave the reply hanging.
       signal.addEventListener('abort', () => shut(cancelled('The words changed')), {once: true});
-      const real = options.stream, feed = real ? new ReplyStream({name: real.name, isTag: real.isTag, speak: real.speak, limits: real.limits}) : undefined;
+      const real = options.stream, feed = real ? new ReplyStream({name: real.name, aliases: real.aliases, isTag: real.isTag, speak: real.speak, limits: real.limits}) : undefined;
       const clock = currentClock() ? new TurnClock({origin: currentClock().origin}) : null;
       const run = () => reply({...config, text: guess.text}, {...options, signal, ...(feed ? {stream: feed} : {}), confirmed: gate});
       const promise = Promise.resolve().then(() => clock ? withClock(clock, run) : run());

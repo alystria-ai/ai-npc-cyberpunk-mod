@@ -65,7 +65,7 @@ local statusSources = {
     ['Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.'] = true,
     ['Google Gemini is rate limiting you. Wait a minute, then try again.'] = true,
     ['Google Gemini is not available in your region. Use Convai or Local AI.'] = true,
-    ['Google Gemini is busy or had an error. Wait a minute, then try again.'] = true,
+    ['Google Gemini is busy right now. Try again in a moment.'] = true,
     ['Google Gemini could not be reached. Check your internet connection, then try again.'] = true,
     ['The Gemini model is not available right now. Try again later or use Local AI.'] = true,
     ['The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider.'] = true,
@@ -509,7 +509,7 @@ local function childCount(widget) return widget:GetNumChildren() end
 function M.refresh(force, player, open)
     if player == nil then
         player = convaiPlayer()
-        open = player and player:ConvaiPhoneIsOpen()
+        open = player and type(player.ConvaiPhoneIsOpen) == 'function' and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then
         M.wasOpen, M.replyFontAt = false, nil

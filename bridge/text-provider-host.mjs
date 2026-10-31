@@ -10,11 +10,12 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, VISION_MODELS, failureKind, failureDetail, newTrace, newAdaptation, tagGemini} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, withRetrievedParts, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
 import {explicitRequest} from './text-action-words.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
+import {translationMessages, REQUEST_TOTAL_MS, LOCAL_REQUEST_TOTAL_MS} from './subtitle-translation.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -25,7 +26,7 @@ import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
-import {HEDGE_AFTER_MS, hedged} from './hedged-request.mjs';
+import {BUSY_BACKOFF_MS, HEDGE_AFTER_MS, hedged} from './hedged-request.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs, BUDGET} from './prompt-budget.mjs';
 import {imageReserveTokens} from './local-vision.mjs';
 import {pictureForTurn} from './vision-message.mjs';
@@ -36,6 +37,7 @@ import {profileSignature} from './prompt-profiles.mjs';
 import {extraFields} from './sampler-extras.mjs';
 import {baseOf} from './memory-scope.mjs';
 import {varietyNote, freshenReply, headRepeats, dedupeHistory} from './reply-variety.mjs';
+import {limitPetNames, headHasPetName} from './pet-names.mjs';
 import {asksAboutGear} from './player-gear.mjs';
 import {asksAboutClothes} from './scenery-memory.mjs';
 
@@ -172,11 +174,12 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  *   name        'custom', or 'gemini' for the Google Gemini provider (bridge/gemini-provider.mjs): the same client and the same handling of failures, but its own route name, so the Mature
  *               layer (MATURE_PROVIDERS has no 'gemini': a cloud provider never gets it) and the settings page tell the two apart
  */
-export function customRoute({provider, custom, name = 'custom', chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected, hedgeMs = HEDGE_AFTER_MS} = {}) {
+export function customRoute({provider, custom, name = 'custom', chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected, hedgeMs = HEDGE_AFTER_MS, busyBackoffMs = BUSY_BACKOFF_MS} = {}) {
   // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
   chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
-  // Google Gemini only: a streamed reply with no first word after 4 s is sent once more and the first to answer wins (bridge/hedged-request.mjs). No other provider hedges.
-  if (name === 'gemini') chat = hedged(chat, {afterMs: hedgeMs, log: line => log(`[TextProvider] ${line}`)});
+  // Google Gemini only: a streamed reply with no first word after 4 s is sent once more and the first to answer wins, and a busy answer from Google is asked again after 1 s and 2 s
+  // (bridge/hedged-request.mjs, which shares one extra request between the two). No other provider hedges.
+  if (name === 'gemini') chat = hedged(chat, {afterMs: hedgeMs, backoffMs: busyBackoffMs, log: line => log(`[TextProvider] ${line}`)});
   const adaptations = new Map();
   const adaptation = () => {
     const key = `${custom.origin}|${custom.model}`;
@@ -703,6 +706,21 @@ export class TextProviderHost {
     else if (!signal?.aborted) commit();
   }
 
+  // The retrieval of one turn, never throwing: null when it could not run (the full blocks then stay). Its time goes on the turn's clock (stage `retrieved`) and into one log line.
+  async #retrieve(config, {text, reaction, signal}) {
+    try {
+      const result = await config.retrieval.run({text, reaction, signal});
+      markStage('retrieved');
+      if (result && !reaction) this.log(`Talk retrieval: profile=${config.local?.profileKey ?? '-'} ${result.reason ? `none (${result.reason})` : `${result.detail ?? ''} via=${result.via}`} chars=${result.text.length} ms=${result.ms}`);
+      currentClock()?.annotate({retrievalMs: result?.ms});
+      return result ?? null;
+    } catch (error) {
+      if (signal?.aborted) return null;
+      this.log(`Talk retrieval failed (${String(error?.message ?? error).slice(0, 80)}); the full context is used`);
+      return null;
+    }
+  }
+
   async #reply(config, {signal, stream, confirmed, deferRecord} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
@@ -725,7 +743,7 @@ export class TextProviderHost {
     // The memory key is taken once here (a content pack with a separate memory may be switched while the turn runs); the persona and everything else keep the profile key.
     const memoryKey = {profileKey: this.memoryKeyFor ? this.memoryKeyFor(local.profileKey) : local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
-    const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
+    const feed = stream ?? new ReplyStream({name: persona.name, aliases: persona.aliases, isTag, speak: false});
     // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
@@ -765,9 +783,18 @@ export class TextProviderHost {
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
+    // What bears on V's words besides memories (bridge/talk-retrieval.mjs): the character's topic views and the quest, journal and world facts. It starts beside the memory search and
+    // they share one embedding of V's words; a turn of small talk gets nothing from either. A reaction gets none either, but its world blocks are left out the same way, so the
+    // system message reads the same on a reaction and on a talk (a prompt cache keeps it). Without `config.retrieval`, or when it fails, the turn goes on with the full blocks.
+    const asking = config.contextParts && typeof config.retrieval?.run === 'function' ? this.#retrieve(config, {text, reaction: reaction || Boolean(config.phoneEvent), signal}) : null;
     if (!reaction && config.contextParts && typeof this.memory?.retrieve === 'function') {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
+    }
+    if (asking) {
+      const result = await asking;
+      if (signal?.aborted) throw cancelled();
+      if (result) config = {...config, contextParts: withRetrievedParts(config.contextParts, result)};
     }
     const decision = byWords ? (byWords.code ? byWords : null) : deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
@@ -991,6 +1018,33 @@ export class TextProviderHost {
   }
 
   /**
+   * The subtitle translation of one finished reply (bridge/subtitle-translation.mjs): one short request with no persona, no history and no memory, to the route the
+   * player talks with and to no other (`#candidates` rule: with Local AI it runs on Local AI, with Mistral on Mistral, and a failing route never hands it on). It is
+   * never awaited by the reply. On Local AI it is background work: it gives way to any turn, as a summary does, and a turn that needs the model stops it.
+   * `text`: the reply; `to`: the language code; `from`: the language it is in, when known. Resolves to the model's answer (not yet cleaned) or null. Never throws, and
+   * logs a kind only, never the text.
+   */
+  async translate({text, to, from = null, signal} = {}) {
+    const route = this.routes[this.provider.route];
+    if (!route || this.closed || !this.provider.active || typeof text !== 'string' || !text.trim() || signal?.aborted) return null;
+    const local = route.name === 'local';
+    const stopper = local ? new AbortController() : null;
+    if (stopper) this.stoppable.add(stopper);
+    const own = stopper ? (signal ? AbortSignal.any([signal, stopper.signal]) : stopper.signal) : signal;
+    try {
+      const budget = Math.min(900, Math.max(80, Math.ceil(text.length * 1.2)));
+      const response = await this.#request(route, translationMessages({text, to, from}), own,
+        {maxTokens: budget, temperature: 0.2, retries: 0, totalMs: local ? LOCAL_REQUEST_TOTAL_MS : REQUEST_TOTAL_MS, firstByteMs: local ? 20000 : 8000, thinkingRoom: false,
+          background: local, ...(local ? {priority: 'background'} : {})});
+      return typeof response?.text === 'string' ? response.text : null;
+    } catch (error) {
+      if (stopper?.signal.aborted) this.log('subtitle translation put off: a turn needed the local model');
+      else if (!signal?.aborted) this.log('subtitle translation failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    } finally { if (stopper) this.stoppable.delete(stopper); }
+  }
+
+  /**
    * Which of the offered actions V's words plainly ask for: one small request, no persona, a one-word answer. Never throws; a failure,
    * a late answer or an unclear one is "none" (the reply is then written as plain talk with what is not possible said in its notes).
    */
@@ -1157,7 +1211,7 @@ export class TextProviderHost {
       const plain = splitActions(soFar, {streaming: true}).text;
       let shown = plain;
       if (!reaction) {
-        const cleanedSoFar = cleanReply(plain, {name: persona.name, isTag});
+        const cleanedSoFar = cleanReply(plain, {name: persona.name, aliases: persona.aliases, isTag});
         const cut = stripEchoOpener(cleanedSoFar, text, {streaming: true});
         // What remains starting with a quotation mark is held back: the stream cleans it once more and would take a quote pair off a reply that is not wholly quoted, so the voice's head and the finished reply would differ.
         if (cut !== cleanedSoFar) shown = QUOTED_START.test(cut) ? '' : cut;
@@ -1171,11 +1225,13 @@ export class TextProviderHost {
     // tokens, and is cut at its last sentence end. Ordinary replies and battle barks carry no such limit and are unchanged.
     const wordLimit = reaction && Number.isInteger(config.reaction?.maxWords) && config.reaction.maxWords > 0 ? config.reaction.maxWords : 0;
     const shouldStop = soFar => {
-      const clean = cleanReply(visible(soFar), {name: persona.name, isTag});
+      const clean = cleanReply(visible(soFar), {name: persona.name, aliases: persona.aliases, isTag});
       return capPoint(clean, this.limits) >= 0 || (wordLimit > 0 && overWords(clean, wordLimit));
     };
     // The pictures of this turn ("Companions can see", bridge/companion-vision.mjs), handed in with the config by attachTextProvider: never for a reaction.
     const pictures = !reaction && Array.isArray(config?.visionImages) && config.visionImages.length ? config.visionImages : null;
+    // A reply that was only narration or stage directions cleans to nothing (bridge/narration-strip.mjs): it is asked for once more before the turn fails as empty.
+    let narrationAsked = false;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
@@ -1202,7 +1258,7 @@ export class TextProviderHost {
         notes = reactionChosenNotes(only);
         return run(nudge);
       }
-      let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      let cleaned = cleanReply(spoken, {name: persona.name, aliases: persona.aliases, isTag});
       // Rule 4 (no opening with V's words asked back) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
       if (!reaction) cleaned = stripEchoOpener(cleaned, text);
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
@@ -1221,6 +1277,11 @@ export class TextProviderHost {
           return {response, reply: feed.committed ? `${feed.head} ${line}` : line, guarded: true};
         }
       }
+      if (!reply.trim() && spoken.trim() && !narrationAsked && !signal?.aborted) {
+        narrationAsked = true;
+        this.log('Reply was only narration; asking once more for the words');
+        return run(nudge);
+      }
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});
       return {response, reply};
     };
@@ -1229,7 +1290,7 @@ export class TextProviderHost {
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
     // A first sentence that opens as one of her last replies did, or says a sentence of one, is not spoken early either: the finished reply has it left out (freshenReply below).
-    const refuseHead = said.length || provoked || ownReplies.length || inPerson ? head => repeatsLine(head, said) || headRepeats(head, ownReplies, {inPerson}) || (provoked && takesUpAiTalk(head)) : null;
+    const refuseHead = said.length || provoked || ownReplies.length || inPerson || !reaction ? head => repeatsLine(head, said) || headRepeats(head, ownReplies, {inPerson}) || (!reaction && headHasPetName(head, ownReplies)) || (provoked && takesUpAiTalk(head)) : null;
     // With the guard on, a first sentence that flags is never committed to the voice either.
     if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
@@ -1256,6 +1317,16 @@ export class TextProviderHost {
         if (fresher && (!feed.committed || fresher.reply.startsWith(feed.head))) {
           this.log(`Reply variety: left ${fresher.dropped} repeated sentence${fresher.dropped === 1 ? '' : 's'} out of the reply`);
           outcome = {...outcome, reply: fresher.reply};
+        }
+      } catch { /* the reply stands as it was */ }
+    }
+    // A pet name for V is rare (bridge/pet-names.mjs): the ones the rule does not allow are left out of the finished reply, the same way (not when the voice already began with the first sentence).
+    if (!repeated && !reaction) {
+      try {
+        const lean = limitPetNames(outcome.reply, ownReplies);
+        if (lean && (!feed?.committed || lean.reply.startsWith(feed.head))) {
+          this.log(`Reply variety: left ${lean.removed} pet name${lean.removed === 1 ? '' : 's'} out of the reply`);
+          outcome = {...outcome, reply: lean.reply};
         }
       } catch { /* the reply stands as it was */ }
     }
@@ -1418,8 +1489,10 @@ export class TextProviderHost {
  * `prewarmVoice` (default true; a boolean or a function asked at each warm-up): a warm-up also opens the host's local voice renderer (the phone host has none to open; with voice playback Off the bridge says no).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
  * `onPlayerText(text)` is told the text of each typed turn (not a reaction), for the microphone's language.
+ * `onReplyText(config, result)` is told each finished reply of this text route the moment it is complete (the subtitle translation starts here, bridge/subtitle-translation.mjs).
+ * It is called without waiting, and nothing it does or throws changes the reply.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText, onReplyText} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -1437,12 +1510,17 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!pictureForTurn({text: config.text})) return send(config);
     return host.turnImages(config, 'reply').then(images => send(images ? {...config, visionImages: images} : config), () => send(config));
   };
+  // The finished reply is announced the moment it exists (the subtitle translation starts from it) and handed on unchanged and at once.
+  const announce = (config, replying) => !onReplyText ? replying : Promise.resolve(replying).then(result => {
+    try { onReplyText(config, result); } catch { /* an observer never breaks a turn */ }
+    return result;
+  });
   host.reply = function reply(config, options) {
     // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
     // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
     // (An appointment event's text is the mod's trigger too: config.phoneEvent.)
     if (provider.active && onPlayerText && !config?.reaction && !config?.phoneEvent && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
-    return provider.active ? withPictures(config, picked => textHost.reply(picked, options)) : original.reply.call(this, withoutLocal(config), options);
+    return provider.active ? withPictures(config, picked => announce(config, textHost.reply(picked, options))) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {
     if (provider.active) return Promise.reject(Error(`A speculative turn is not available with ${label()}`));
@@ -1474,7 +1552,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     // through the text route; without it the voice key says voice needs Convai.
     // A reply may start on a stable live-words decode before the final decode is back (bridge/local-stt-capture.mjs, `confirmed`): Mistral only
     // (a cancelled request costs a little quota there; the local AI shares the game's GPU and a cancelled request there is not free).
-    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => withPictures(config, picked => textHost.reply(picked, options)),
+    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => withPictures(config, picked => announce(config, textHost.reply(picked, options))),
       speculate: () => provider.route === 'mistral' && process.env.CYBERPUNK_CONVAI_STT_SPECULATE !== '0'});
     const refuse = () => Promise.reject(Error(`Voice needs Convai for now: speech recognition is not available with ${label()} [mistral:voice]`));
     return {beginVoice: refuse, finishVoice: refuse, heard: async () => '', close: async () => {}};

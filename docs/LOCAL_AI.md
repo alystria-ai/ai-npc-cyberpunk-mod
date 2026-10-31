@@ -490,6 +490,7 @@ against 81.7), plus `llama-fit-params.exe` and its library since the same change
 | `bridge/local-embed.mjs` | The embedding model (granite-embedding-107m-multilingual, 384 dimensions) as a CPU-only `llama-server` (`--device none -ngl 0`, one thread), started on demand and exiting after 300 idle seconds (a talk opening starts it ahead for a character with stored memories). About 14 ms a query. |
 | `bridge/text-provider-host.mjs` | The host shared by Mistral and Local (see `docs/MISTRAL.md`). `localRoute` calls `server.ensure()` for a connection, no pacing, JSON-schema fact extraction, persona-prefix prewarm on an invitation. Background work never starts the server. |
 | `bridge/memory-store.mjs` | The memory shared by the text providers. |
+| `bridge/talk-retrieval.mjs` | The background chosen for V's words: a character's topic views and the quest, journal and world facts, by rarity of words and by meaning (the memory embedder), with a cooldown. Nothing for small talk. See `docs/NATURAL_TALK_RESEARCH_2026-10-30.md` section 15. |
 
 ### Ordering with OmniVoice
 
@@ -815,7 +816,7 @@ the soft target (the server's `prompt_n` / `prompt_ms` of every answered turn wi
 The head (persona, output rules, Mature or guard layer, world rules) aims at about **8,000 characters, 1,900 tokens** (`COMPACT.targetChars`). Never cut,
 and counted first: the output rules (all nine, word for word), the Mature or guard layer, the player's world rules, a character's own rules of speech and
 remembered facts, and everything after the head (format notes, world block, right-now block, V's words). The persona text gets the room that is left, never
-less than 2,600 characters (`floorChars`), so a Mature layer or long world rules leave less of it. The blocks are taken in this order until the room is
+less than 2,450 characters (`floorChars`), so a Mature layer or long world rules leave less of it. The blocks are taken in this order until the room is
 used, each up to a cap, the last one cut at a line or a sentence: the opening paragraph (who they are, 1,500), the first paragraph of the style (voice and
 speech, 1,100), "who you are not" (archetypes, 1,500), ESTABLISHED RELATIONSHIPS (1,100; includes the line about V), ESTABLISHED BACKGROUND (800), the
 closing style paragraph about group talk and private history (520), KNOWLEDGE AND CURRENT SAVE (700), KNOWLEDGE LIMITS (650), two example lines (240 each),

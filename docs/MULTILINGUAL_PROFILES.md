@@ -410,6 +410,11 @@ the setting existed (the row stays visible and its description says so; the save
   re-detected), the context names it (`fixedLanguageContext`, nothing for English, so an English conversation sends the context it always did), V's typed
   line is voiced in it unless the line is solidly English. A voice that cannot speak the language still shows the reply as text with the usual one-time
   notice (Pocket needs the language's model and voice pack).
+- **Other language** (2026-10-31, `docs/SUBTITLE_LANGUAGE.md`): the last choice of the row, with the row **Other language** under it (`replyLanguageOther`: Finnish, Swedish,
+  Norwegian, Danish, Dutch, Greek, Romanian, Bulgarian, Croatian, Serbian, Slovak, Slovenian, Estonian, Latvian, Lithuanian, Hindi, Indonesian, Vietnamese, Hebrew). It is a
+  fixed language like the others, so the context names it, the voice plan and the voice request carry its code and V's lines follow it. It needs a text provider (not Convai,
+  which keeps the routing Automatic and says so in the log) and a voice that speaks it: OmniVoice, or Voxtral for the languages Voxtral TTS 3 lists. Pocket never speaks it
+  (`other-language-pocket`: the reply is shown as text with a message that names the language and the voices that can).
 - **Automatic** is the detection of this page, made harder to fool after the live finding of 2026-10-23: "hows biz" typed to Alex (Pocket voice, automatic)
   was detected as Turkish, went to the Turkish-speaking twin, Pocket could not voice it and the reply was text only.
   - A **short** line (fewer than 4 words or 20 letters) in Latin letters is solid evidence only when the word lists made the call (not the character model)

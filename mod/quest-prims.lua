@@ -198,6 +198,16 @@ function M.new(options)
             local who = spec.who or 'self'
             if who ~= 'self' and who ~= 'extra' and not (type(who) == 'string' and who:match('^[a-z0-9][a-z0-9%-]*$')) then log('cast ' .. id .. ': bad who'); return nil end
             if spec.ifAbsent == true and who ~= 'extra' and world('copyOf', who == 'self' and ctx.character or who) ~= nil then return nil end
+            -- A member of V's party is never moved away by a cast, whatever the stage says: the cast is a second body made at the spot through the party queue's appointment
+            -- form, and for a character who already follows V that form takes her out of the party and sends her there (live 31 Oct 2026: Judy stopped following V). She goes
+            -- where V goes, so she stands at the place when V arrives with her. Only V's own words (dismissing her) or the together primitive change that.
+            if who ~= 'extra' then
+                local member = world('copyOf', who == 'self' and ctx.character or who)
+                if type(member) == 'table' and member.kind == 'party' then
+                    log('cast ' .. id .. ': ' .. tostring(who == 'self' and ctx.character or who) .. ' is in V\'s party, so she is not placed at ' .. tostring(spec.at) .. ' and goes there with V')
+                    return nil
+                end
+            end
             if who == 'extra' and type(spec.record) ~= 'string' and type(spec.archetype) ~= 'string' then log('cast ' .. id .. ': an extra needs a record'); return nil end
             local at
             if type(spec.at) == 'string' then
@@ -228,6 +238,16 @@ function M.new(options)
                 if not point(vpos) or flat(vpos, state.at) > M.SPAWN_DISTANCE then return end
                 local profileKey = state.who == 'self' and ctx.character or (state.who ~= 'extra' and state.who or nil)
                 if state.ifAbsent and profileKey and world('copyOf', profileKey) ~= nil then return end   -- she is with V after all: no second copy
+                if profileKey then
+                    local member = world('copyOf', profileKey)
+                    if type(member) == 'table' and member.kind == 'party' then
+                        -- She joined V's party since the stage began: she is not moved (see arm).
+                        state.tries = M.SPAWN_TRIES
+                        log('cast ' .. state.id .. ': ' .. profileKey .. ' joined V\'s party, so she is not placed and goes with V')
+                        return
+                    end
+                    log('cast ' .. state.id .. ': placing ' .. profileKey .. ' at ' .. string.format('%.0f,%.0f', state.at.x, state.at.y) .. ' (her copy now: ' .. (type(member) == 'table' and tostring(member.kind) or 'none') .. ')')
+                end
                 state.tries, state.nextTry = state.tries + 1, now + M.SPAWN_RETRY
                 local handle, why = world('castSpawn', {id = ctx.pack .. ':' .. state.id, who = state.who, profileKey = profileKey, record = state.record,
                     x = state.at.x, y = state.at.y, z = state.at.z, facing = state.facing, tag = ctx.tag})

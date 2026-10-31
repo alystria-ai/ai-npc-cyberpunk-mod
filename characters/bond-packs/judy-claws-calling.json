@@ -12,7 +12,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone"],
+    "channels": ["phone"],
     "chance": 0.5,
     "bringUp": "The Tyger Claws sent a message that they are coming to wreck Lizzie's tonight. Bring up, in your own way, that you are scared and you need V there, and that you are not leaving your workshop."
   },

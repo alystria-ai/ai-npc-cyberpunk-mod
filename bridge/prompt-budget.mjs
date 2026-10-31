@@ -369,6 +369,7 @@ function planFor() {
     {name: 'summary:drop', apply: args => args.memory ? {...args, memory: ''} : null},
     blockStep('journal', 'half'), blockStep('journal', 'drop'),
     blockStep('knowledge', 'half'),
+    {name: 'retrieved', apply: args => (String(args.contextParts?.retrieved ?? '') ? withParts(args, {retrieved: ''}) : null)},
     {name: 'notes', apply: args => {
       const volatile = String(args.contextParts?.volatile ?? '');
       return volatile.length > 2400 ? withParts(args, {volatile: capContext(volatile, 2400)}) : null;

@@ -65,7 +65,7 @@ test('the first sentence is what is said again right before V\'s words, and it d
   const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages.at(-1).content;
   assert.match(last, /YOU, RIGHT NOW: You are with V in person, right next to V, even though V is texting you on the phone instead of talking out loud\. That is all you are doing; never claim to be anywhere else\./);
-  assert.doesNotMatch(last, /cannot see V/);
+  assert.doesNotMatch(last.slice(last.indexOf('[YOU, RIGHT NOW')), /cannot see V/);
 });
 
 test('the Dynamic info company switch drops the party, and the flag with it', async () => {

@@ -44,7 +44,7 @@ const GEMINI_NOTICES = {
   'gemini-daily': 'Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.',
   'gemini-limit': 'Google Gemini is rate limiting you. Wait a minute, then try again.',
   'gemini-region': 'Google Gemini is not available in your region. Use Convai or Local AI.',
-  'gemini-server': 'Google Gemini is busy or had an error. Wait a minute, then try again.',
+  'gemini-server': 'Google Gemini is busy right now. Try again in a moment.',
   'gemini-unreachable': 'Google Gemini could not be reached. Check your internet connection, then try again.',
   'gemini-model': 'The Gemini model is not available right now. Try again later or use Local AI.',
 };

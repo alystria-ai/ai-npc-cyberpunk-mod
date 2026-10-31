@@ -12,7 +12,7 @@ const NOTICES = [
   'Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.',
   'Google Gemini is rate limiting you. Wait a minute, then try again.',
   'Google Gemini is not available in your region. Use Convai or Local AI.',
-  'Google Gemini is busy or had an error. Wait a minute, then try again.',
+  'Google Gemini is busy right now. Try again in a moment.',
   'Google Gemini could not be reached. Check your internet connection, then try again.',
   'The Gemini model is not available right now. Try again later or use Local AI.',
 ];

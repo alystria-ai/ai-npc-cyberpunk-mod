@@ -25,6 +25,7 @@ M.catalog = {
     ['party-joined'] = {class = PLAYER},               -- a joined outcome, merged into the board
     ['party-failed'] = {class = PLAYER},               -- could not prepare / could not join
     ['party-dismiss-failed'] = {class = PLAYER},
+    ['quest-started'] = {class = PLAYER, repeatS = 5},        -- a story pack just started: its title and first objective, so the start cannot be missed (mod/quest-journal.lua)
     ['phone-invite-reply'] = {class = PLAYER, repeatS = 20},
     ['phone-dismiss-reply'] = {class = PLAYER, repeatS = 20},
     ['phone-not-in-group'] = {class = PLAYER, repeatS = 20},
@@ -81,7 +82,7 @@ M.catalog = {
     ['gemini-daily'] = {class = PLAYER, repeatS = 60},      -- the free allowance for the day is used up (resets at midnight Pacific); says when it resets on this computer's clock
     ['gemini-limit'] = {class = PLAYER, repeatS = 60},      -- the per-minute limit of the free plan is reached
     ['gemini-region'] = {class = PLAYER, repeatS = 60},     -- the free plan is not offered in the player's country
-    ['gemini-server'] = {class = PLAYER, repeatS = 60},     -- Google's servers are busy or had an error
+    ['gemini-server'] = {class = PLAYER, repeatS = 60},     -- Google's servers are busy or had an error (a busy answer is asked again twice first)
     ['gemini-unreachable'] = {class = PLAYER, repeatS = 60}, -- Google could not be reached (no connection)
     ['gemini-model'] = {class = PLAYER, repeatS = 60},      -- Google does not know the model (it was retired or renamed)
     ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket always, Voxtral for the languages it does not list): shown as text, OmniVoice speaks it; once per game session

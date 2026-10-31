@@ -48,6 +48,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/companion-expressions.mjs',
   'bridge/companion-invitations.mjs',
   'bridge/companion-vision.mjs',
+  'bridge/context-units.mjs',
   'bridge/continuous-face-file.mjs',
   'bridge/convai-audio-rates.mjs',
   'bridge/convai-bridge.mjs',
@@ -127,6 +128,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/language-clips.mjs',
   'bridge/language-english-vocab.mjs',
   'bridge/language-lexicon.mjs',
+  'bridge/language-names.mjs',
   'bridge/language-ui-vocab.mjs',
   'bridge/last-reply-capture.mjs',
   'bridge/last-talk.mjs',
@@ -167,11 +169,13 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/mistral-memory.mjs',
   'bridge/mistral-prompt.mjs',
   'bridge/mistral-rate.mjs',
+  'bridge/mod-languages.mjs',
   'bridge/mod-state.mjs',
   'bridge/mouth-cues.mjs',
   'bridge/multilingual.mjs',
   'bridge/named-places-data.mjs',
   'bridge/named-places.mjs',
+  'bridge/narration-strip.mjs',
   'bridge/natural-speech-talk.mjs',
   'bridge/natural-speech.mjs',
   'bridge/nearby-warm.mjs',
@@ -185,10 +189,12 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/omni-pcm.mjs',
   'bridge/omni-remote.mjs',
   'bridge/omni-runway.mjs',
+  'bridge/other-languages.mjs',
   'bridge/outfit-choices.mjs',
   'bridge/parsed-snapshot.mjs',
   'bridge/party-connections.mjs',
   'bridge/pcm-edges.mjs',
+  'bridge/pet-names.mjs',
   'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',
   'bridge/phone-failure.mjs',
@@ -231,6 +237,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/quest-poller.mjs',
   'bridge/quest-primitives.mjs',
   'bridge/quest-rendezvous.mjs',
+  'bridge/quest-start.mjs',
   'bridge/rdar.mjs',
   'bridge/reach-outs.mjs',
   'bridge/realtime-host.mjs',
@@ -277,13 +284,16 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/story-knowledge.mjs',
   'bridge/story-packs-gate.mjs',
   'bridge/stt-activity.mjs',
+  'bridge/subtitle-translation.mjs',
   'bridge/support-report.mjs',
   'bridge/system-browser.mjs',
+  'bridge/talk-retrieval.mjs',
   'bridge/text-action-words.mjs',
   'bridge/text-actions.mjs',
   'bridge/text-emotion.mjs',
   'bridge/text-provider-host.mjs',
   'bridge/threat-screen.mjs',
+  'bridge/topic-material.mjs',
   'bridge/topic-words.mjs',
   'bridge/transport-pool.mjs',
   'bridge/turn-clock.mjs',
@@ -535,6 +545,9 @@ export async function resolveRuntimeLayout({appDirectory, developmentProject, ga
     bridgeControlPath: resolve(stateRoot, 'bridge-control.json')});
 }
 
+// The most Convai character ids one installation may hold: the same bound as the bridge's registries (bridge/relationship-routing.mjs MAX_PROFILES, player memory).
+export const MAX_CHARACTER_IDS = 4096;
+
 export async function inspectSetup(layout) {
   const needed = [];
   let key;
@@ -545,8 +558,9 @@ export async function inspectSetup(layout) {
   } catch { needed.push('convai-key'); }
   if (key !== undefined && !/^api-key\s*=\s*\S+\s*$/i.test(key.trim())) needed.push('convai-key');
   const ids = await readJson(resolve(layout.stateRoot, 'characters.json'));
+  // MAX_CHARACTER_IDS: the shipped map holds about 770 ids since the side characters (it held under 256 before), and 256 here made a full map read as "no character profiles".
   if (!object(ids) || !Object.keys(ids).length
-      || Object.keys(ids).length > 256
+      || Object.keys(ids).length > MAX_CHARACTER_IDS
       || Object.entries(ids).some(([name, id]) => !/^[a-z0-9][a-z0-9-]{0,79}$/.test(name)
         || ['__proto__', 'constructor', 'prototype'].includes(name)
         || typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(id))) needed.push('character-profiles');

@@ -243,10 +243,18 @@ local ctx2 = stageCtx('panam-palmer')
 local insts2 = drive(ctx2, {{p = 'pin', at = 'sunset', ifAbsent = true}, {p = 'cast', id = 'rendezvous', who = 'self', at = 'sunset', ifAbsent = true}})
 assert(#insts2 == 0 and game.pinAdds == 0, 'no pin, no cast state')
 advance(ctx2, insts2, 5); assert(#game.spawnCalls == 0)
--- Without the flag a pack's own cast and pin are made whatever copies there are.
+-- Without the flag a pack's own pin is made whatever copies there are, but a cast never moves a member of V's party away (live 31 Oct 2026: Judy stopped following V):
+-- no cast state, no spawn call (the party queue's appointment form would take her out of the party), and a line in the log. A visiting copy is not a party member.
 local ctx3 = stageCtx('panam-palmer')
 local insts3 = drive(ctx3, {{p = 'pin', at = 'sunset'}, {p = 'cast', id = 'own', who = 'self', at = 'sunset'}})
-assert(#insts3 == 2 and game.pinAdds == 1)
+assert(#insts3 == 1 and game.pinAdds == 1, 'the pin only: ' .. #insts3)
+game.vpos = {x = 100, y = 200 + 120, z = 10}; advance(ctx3, insts3, 6)
+assert(#game.spawnCalls == 0, 'a party member is not placed')
+assert(logged('party, so she is not placed'), 'and it says so')
+game.copy = {profileKey = 'panam-palmer', kind = 'visitor', position = {x = 1, y = 1, z = 1}}
+local ctx3b = stageCtx('panam-palmer')
+local insts3b = drive(ctx3b, {{p = 'cast', id = 'own', who = 'self', at = 'sunset'}})
+assert(#insts3b == 1, 'a visiting copy is still cast as before')
 -- A cast that was armed while she was away is not made once a copy of hers shows up (an invitation arrived first).
 game.copy = nil
 local ctx4 = stageCtx('panam-palmer')

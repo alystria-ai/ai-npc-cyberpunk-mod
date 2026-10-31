@@ -17,6 +17,7 @@ import {analyseReply, planSignal, createPlanner, baselineFromSignal} from './emo
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {personKey} from './protocol.mjs';
 import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
+import {pocketRefusal} from './other-languages.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
 // future shared batching path accidentally processing remote Convai speech.
@@ -41,6 +42,8 @@ function fixture({local = false, available = true, continuous = false, voiceSele
     languagePacks: {installed: false}, pocketLanguages: {speaks: () => false, packMissing: () => false, has: () => false, model: () => null, entry: () => null}, pocketLanguageNotice: {note() {}}, replyCapture: {enabled: false}, recordDevTurn: () => {}, beginOmniCapture: () => {}, referenceOf: () => null, cloudReferenceOf: () => null,
     localVoice: selectedVoice, multilingual, speechLanguage: {evidence: null}, planTurnVoice, replyVoice, variantSeed, paceOf: () => null, omniPace: null,
     ownedPocketFace:()=>{},
+    // Subtitle language off: a written reply does not wait and nothing is translated (bridge/subtitle-translation.mjs).
+    subtitleTranslations: {wait: async (_id, text) => text, release() {}, show: (_id, text) => text, active: false}, writtenSubtitleWait: () => 0, pocketRefusal,
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,baselineFromSignal,
     emotionSelection:new EmotionSelection(),waitLateEmotion,personKey,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},streaming:0,waitUntil,BufferedPcm,delivered,

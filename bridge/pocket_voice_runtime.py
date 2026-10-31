@@ -5,6 +5,7 @@ can exercise identity and cancellation without loading a neural model.
 """
 from __future__ import annotations
 
+from array import array
 from collections import OrderedDict
 import copy
 import hashlib
@@ -14,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import struct
+import sys
 import time
 
 PROTOCOL_VERSION = 1
@@ -932,3 +934,215 @@ def cpu_environment(threads):
     for key in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "KAGGLE_API_TOKEN"):
         environment.pop(key, None)
     return environment
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# Short lines (31 Oct 2026). A line of one to five words came out grainy for V and the side characters and better when it was longer. The
+# model has little text to condition on, and upstream treats such a line as a special case (spaces in front of it, five frames after the
+# end-of-speech mark instead of three). So a short line is said as the same line followed by a neutral carrier sentence, which puts it on
+# the path of a long line, and the carrier is cut off the audio again. Everything below is plain Python on lists and arrays of float
+# samples (no Torch, no numpy), so it is tested without the model. docs/POCKET_TTS_RUNTIME.md, "Short lines".
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+SAMPLE_RATE = 24000
+# At most this many words make a short line.
+SHORT_LINE_MAX_WORDS = 5
+# The carrier by language tag (None is the English student). A language without an entry has no carrier and its short lines go out as before:
+# a carrier is only added where a native speaker has heard it (a wrong carrier is trimmed away, but it changes how the line itself is said).
+SHORT_LINE_CARRIERS = {None: "Anyway, that is what I wanted to say."}
+# How long the line itself is expected to run, from its letters: a silent lead-in, then the longer of a rate per letter and a floor per word
+# (a one word line is slow per letter). Only a guess where to look for the cut: the cut itself is the quietest place near it.
+LEAD_IN_MS = 100
+MS_PER_LETTER = 65
+MIN_WORD_MS = 200
+# The cut is searched between these shares of the estimate (the model may say the line faster or slower than the guess): the first pause that
+# starts after the lower one is the end of the line, and the upper one is how far the audio is held when there is no pause at all.
+CUT_SEARCH_FROM = 0.6
+CUT_SEARCH_TO = 1.8
+# Audio is looked at this much beyond the end of the search window, so a pause that straddles its end is seen whole.
+CUT_LOOKAHEAD_MS = 120
+# A hop of this length (10 ms) is one step of the loudness curve.
+HOP_FRAMES = 240
+# A pause is a run of hops this quiet against the loudest sound so far (and never under an absolute floor), at least this long.
+QUIET_SHARE = 0.06
+QUIET_FLOOR = 0.002
+MIN_PAUSE_MS = 80
+# Of a pause the cut keeps this much (the sound dies away by itself), then the fade ends at the cut.
+PAUSE_KEEP_MS = 40
+FADE_MS = 12
+# A fade at a cut inside a held tail of near silence.
+TRIM_FADE_MS = 10
+
+
+def frames_of(milliseconds):
+    return int(round(SAMPLE_RATE * milliseconds / 1000))
+
+
+def word_count(text):
+    """Words of a line: runs of letters, digits, apostrophes and hyphens."""
+    return len(re.findall(r"[^\W_](?:[^\W_]|['’-])*", text or ""))
+
+
+def letter_count(text):
+    return len(re.findall(r"[^\W_]", text or ""))
+
+
+def plan_short_line(text, language=None, carriers=None, max_words=None):
+    """For a short line returns {"text": the line and its carrier, "estimateFrames": where the line is expected to end}. None for any
+    other line (so nothing changes for it), and for a language with no carrier. The line is ended with a full stop when it has no end mark,
+    which also starts the carrier as its own sentence in the same chunk."""
+    carriers = SHORT_LINE_CARRIERS if carriers is None else carriers
+    limit = SHORT_LINE_MAX_WORDS if max_words is None else max_words
+    carrier = carriers.get(language)
+    if not carrier or not isinstance(text, str):
+        return None
+    line = " ".join(text.split())
+    words = word_count(line)
+    if not 1 <= words <= limit:
+        return None
+    line = re.sub(r"[\s,;:\-–—]+$", "", line)
+    if not re.search(r"[.!?…]$", line):
+        line += "."
+    return {"text": f"{line} {carrier}", "estimateFrames": estimate_line_frames(line), "words": words}
+
+
+def estimate_line_frames(line):
+    speech = max(letter_count(line) * MS_PER_LETTER, word_count(line) * MIN_WORD_MS)
+    return frames_of(LEAD_IN_MS + speech)
+
+
+def pcm_samples(payload):
+    """Little endian float32 PCM bytes as an array of floats."""
+    samples = array("f")
+    samples.frombytes(payload)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    return samples
+
+
+def pcm_bytes(samples):
+    values = samples if isinstance(samples, array) and samples.typecode == "f" else array("f", samples)
+    if sys.byteorder != "little":
+        values = array("f", values)
+        values.byteswap()
+    return values.tobytes()
+
+
+def loudness_curve(samples, hop=HOP_FRAMES):
+    """The loudest absolute sample of each hop (the last hop may be shorter)."""
+    return [max(map(abs, samples[begin:begin + hop])) for begin in range(0, len(samples), hop)]
+
+
+def fade_out(samples, frames):
+    """The samples with the last `frames` of them faded to zero (raised cosine, so it ends at exactly zero and has no slope there). A copy."""
+    result = list(samples)
+    count = min(max(int(frames), 0), len(result))
+    for step in range(count):
+        result[len(result) - count + step] *= 0.5 * (1 + math.cos(math.pi * (step + 1) / count))
+    return result
+
+
+def fade_out_pcm(payload, frames):
+    return pcm_bytes(fade_out(pcm_samples(payload), frames))
+
+
+def find_cut(samples, estimate, loudest, start=0, final=True, hop=HOP_FRAMES):
+    """Where the line ends in `samples`: an index into them, or None when they say nothing yet (or, with `final`, nothing at all).
+
+    `estimate` is the expected end of the line, in frames of the whole audio, `start` is the index of samples[0] in it, and `loudest` is the
+    loudest sample heard so far. The line ends at the first pause (hops quiet against `loudest`, at least MIN_PAUSE_MS long, followed by
+    sound) that starts at or after CUT_SEARCH_FROM of the estimate, and the cut keeps PAUSE_KEEP_MS of it. Pauses before that are the
+    line's own (a comma). A pause is only known once the sound after it has begun, so the cut can be chosen as soon as the carrier starts
+    and nothing waits for the end of the search window. `final` says the audio will not grow (the search window has been passed or the
+    model is done): with no pause then, the quietest hop of the window is the cut, at its start. The cut is never closer than one fade to the
+    start of the audio given."""
+    if not samples:
+        return None
+    low = max(int(estimate * CUT_SEARCH_FROM) - start, frames_of(FADE_MS))
+    high = min(int(estimate * CUT_SEARCH_TO) - start, len(samples))
+    if high <= low:
+        return None
+    curve = loudness_curve(samples, hop)
+    limit = max(QUIET_FLOOR, QUIET_SHARE * loudest)
+    need = max(1, frames_of(MIN_PAUSE_MS) // hop)
+    begin = None
+    for number in range(len(curve)):
+        if curve[number] <= limit:
+            if begin is None:
+                begin = number
+            continue
+        if begin is not None:
+            if number - begin >= need and low <= begin * hop < high:
+                return min(begin * hop + frames_of(PAUSE_KEEP_MS), (begin + number) * hop // 2)
+            begin = None
+    if not final:
+        return None
+    quietest = None
+    for number in range(low // hop, (high + hop - 1) // hop):
+        if number >= len(curve):
+            break
+        cost = (curve[number], abs(number * hop - (estimate - start)))
+        if quietest is None or cost < quietest[0]:
+            quietest = (cost, number)
+    return None if quietest is None else max(quietest[1] * hop, low)
+
+
+class CarrierTrimmer:
+    """Cuts the carrier off the audio of a short line while it streams.
+
+    Feed it the samples as they are made. Everything before the start of the search window goes out at once (the first sound of a line is
+    not delayed). What lies in the window waits until the pause after the line is seen (find_cut), or until the audio has passed the end of
+    the window, or the audio ends. Then the audio up to the cut is released with a fade at its end and the rest is dropped. `done` says
+    nothing more is needed, so the caller can stop the model. If the audio is too short to hold the window, all of it is released as it is."""
+
+    def __init__(self, estimate_frames):
+        self.estimate = max(int(estimate_frames), 1)
+        self.release_to = max(int(self.estimate * CUT_SEARCH_FROM), frames_of(FADE_MS))
+        self.decide_at = int(self.estimate * CUT_SEARCH_TO) + frames_of(CUT_LOOKAHEAD_MS)
+        self.held = array("f")
+        self.released = 0
+        self.received = 0
+        self.loudest = 0.0
+        self.done = False
+        self.cut = None
+
+    def feed(self, samples):
+        """The samples to send now (possibly none)."""
+        if self.done:
+            return []
+        self.received += len(samples)
+        if samples:
+            self.loudest = max(self.loudest, max(map(abs, samples)))
+        self.held.extend(samples)
+        out = []
+        if self.released < self.release_to:
+            count = min(len(self.held), self.release_to - self.released)
+            out = self.held[:count].tolist()
+            del self.held[:count]
+            self.released += count
+        if self.received >= self.decide_at:
+            out.extend(self._decide())
+        elif self.received > self.release_to + HOP_FRAMES:
+            # The line may already be over: its pause is seen once the carrier has begun to sound.
+            out.extend(self._decide(final=False))
+        return out
+
+    def finish(self):
+        """The samples still held when the model has no more audio."""
+        if self.done:
+            return []
+        return self._decide()
+
+    def _decide(self, final=True):
+        held = self.held.tolist()
+        cut = find_cut(held, self.estimate, self.loudest, start=self.released, final=final)
+        if cut is None and not final:
+            return []
+        self.done = True
+        self.held = array("f")
+        if cut is None:
+            # Too short to hold the window: nothing says where the carrier is, so nothing is cut.
+            self.released += len(held)
+            return held
+        self.cut = self.released + cut
+        self.released = self.cut
+        return fade_out(held[:cut], frames_of(FADE_MS))

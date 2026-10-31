@@ -9,7 +9,7 @@ import {realpathSync} from 'node:fs';
 import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
 import {readGpuProcessMemory} from './gpu-memory.mjs';
 import {markBridgeStage} from './stage-marker.mjs';
-import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
+import {SLOT_OWNED_FAILURE, SLOT_WAIT_TOTAL_MS, SLOT_WAIT_VARIABLE, awaitModelSlot, checkModelSlot, killProcessTree, pidAlive, recoverExit, slotLine, slotOwnerFile} from './worker-process.mjs';
 import {describeExitCode, stderrReason} from './voice-failures.mjs';
 import {nodePriority, priorityGate, PRIORITY_VARIABLE} from './process-priority.mjs';
 
@@ -58,9 +58,13 @@ export class ResidentVoice {
     gate = priorityGate,
     // gpuMemory(pid) -> {dedicatedMiB, sharedMiB} | null: one reading of the worker's graphics-memory counters when a generation or a preparation runs out of time
     // (diagnostics only). A test that supplies its own spawn gets none unless it passes this.
-    gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null} = {}) {
+    gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null,
+    // The model slot's owner record (bridge/worker-process.mjs, "The OmniVoice model slot after a fast game restart"): {file, now, alive, read, wait, staleMs} override where it is
+    // read and how time and pids are told (tests); the default reads the record beside the worker's lock.
+    slot = {}} = {}) {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
     this.workerEnvironment = omniRuntimeOverrides({modelDirectory, adapterDirectory, referenceDirectory, cacheDirectory});
+    this.slot = {file: slotOwnerFile({project, cacheDirectory: this.workerEnvironment?.[OMNI_RUNTIME_PATHS.cacheDirectory]}), ...slot};
     this.registry = createVoiceProfileRegistry(config);
     // The voices the worker holds: the configuration's at its start (`baseRegistry`, what its start is checked against), then what a player
     // changed while it runs (setVoices), which `registry` follows once the worker confirms it.
@@ -276,6 +280,26 @@ export class ResidentVoice {
     let skipWarm = false;
     try { skipWarm = this.skipStartupWarm?.() === true; } catch { /* the default start: warm them */ }
     this.startupProfiles = skipWarm ? [] : this.registry.preparation.startupProfiles;
+    // The GPU slot is one worker's at a time. A slot still owned by a worker of the run before (a game restarted fast) is waited for here, a few seconds at most, before
+    // anything is started; an owner that is gone or stopped beating is taken over at once. A worker that is started is only ever started into a slot nobody owns.
+    const slotOptions = {...this.slot, log: text => this.onLog(text)};
+    const first = this.slot.file ? checkModelSlot(slotOptions) : {state: 'free'};
+    if (first.state === 'live' || first.state === 'exiting') {
+      awaitModelSlot({...slotOptions, first, sleep: ms => new Promise(done => this.setTimer(done, ms)), cancelled: () => !!(this.closing || this.failure)}).then(result => {
+        if (this.closing || this.failure) return;
+        if (!result.ok) { this.fail(Object.assign(Error(`${SLOT_OWNED_FAILURE} (pid ${result.verdict.pid}, still running after ${Math.round(result.waitedMs / 1000)} s)`), {slotOwner: result.verdict.pid})); return; }
+        this.launch(skipWarm, result.waitedMs);
+      }, error => this.fail(error));
+      return this.ready;
+    }
+    const line = slotLine(first);
+    if (line) this.onLog(`${line}\n`);
+    this.launch(skipWarm);
+    return this.ready;
+  }
+  // Starts the worker process (the slot was checked by start()) and wires its pipes.
+  // `waitedMs`: how long the slot was waited for already; the worker's own wait for the slot's lock (a last guard, normally instant) gets only what is left of the window.
+  launch(skipWarm, waitedMs = 0) {
     let child;
     this.cancelRaise?.(); this.cancelRaise = null;
     this.fixedLevel = this.wantedLevel; this.heldHigh = this.wantedLevel === 'high' && this.gate.level('high') !== 'high';
@@ -289,6 +313,7 @@ export class ResidentVoice {
       for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];
       Object.assign(environment, this.workerEnvironment, this.extraEnvironment);
       if (this.workerEnvironment) environment.PYTHONDONTWRITEBYTECODE = '1';
+      environment[SLOT_WAIT_VARIABLE] = String(Math.max(2, Math.round((SLOT_WAIT_TOTAL_MS - waitedMs) / 1000)));
       // The worker takes its own 'high' from its environment (the launcher's pid is not its own): not while the title screen holds it back (it is told once the gate opens),
       // always once it is open, whatever the caller's extra variables said when the gate was still closed.
       if (this.heldHigh) { if (environment[PRIORITY_VARIABLE] === 'high') delete environment[PRIORITY_VARIABLE]; }
@@ -299,7 +324,7 @@ export class ResidentVoice {
         [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath, ...(skipWarm ? ['--skip-startup-warm'] : [])],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
           env: environment});
-    } catch (error) { this.fail(error); return this.ready; }
+    } catch (error) { this.fail(error); return; }
     let buffer = '';
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', part => {
@@ -343,7 +368,6 @@ export class ResidentVoice {
       this.capTimer = null;
       this.fail(Error('Local voice startup timed out (took too long to load)'));
     }, VOICE_WORKER_LIMITS.startupMaxMs);
-    return this.ready;
   }
   /**
    * The gate opened (the game has a world): the worker that started at normal takes the level it was asked for, once. The child by pid and the Python process itself by

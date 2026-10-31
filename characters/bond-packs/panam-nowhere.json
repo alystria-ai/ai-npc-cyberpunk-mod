@@ -13,7 +13,7 @@
     "after": ["panam-convoy-home"]
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.3,
     "bringUp": "Panam has never driven anywhere without a reason, and tonight she wants to try. Bring up, in your own way, that she is tired of having a plan and asks V to come get her from camp with no destination."
   },

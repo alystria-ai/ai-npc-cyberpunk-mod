@@ -50,11 +50,32 @@ Every spawn now asks for the character's own look. `mod/companions.lua` `ownLook
 
 A look from the outfit module, a world character's adopted look, a fast travel receipt and the spawn record of Kerry and Johnny all still come first. Nothing runs per frame.
 
-With Developer mode on, `probe.log` gets one line per spawn: `Companion look: record Character.x, appearance y (roster|curated|remembered|outfit|adopted original|returning|spawn record|none)`. A first copy of an unknown person logs `none (the game picks one)`, and one more line with `learned` when the game's pick was read back and kept.
+With Developer mode on, the `Companion spawn:` line of every spawn (see "A record with no visible body" below) says which look was asked for and where it came from: `look asked for <name> (roster|curated|remembered|outfit|adopted original|returning|spawn record|look that made the body show)`, or `none (the template default) (the game picks)` for a first copy of an unknown person. When the game's pick is read back and kept, one more line says `Companion look: record ... was given ... by the game, kept for the next copy`. The look that made a body show in the body check (`rememberLook`) comes before the others, the body check compares against the look now asked for, and a look repaired by it replaces the remembered one. A record with no visible body forgets its remembered look.
 
 ### Where the names come from
 
 The repo holds no game appearance lists for the side cast (no tweakdb appearance names, no extracted templates). Only the 19 records of the outfit table are proven against the installed game (`characters/companion-outfit-evidence.json`), and `node scripts/cast-sweep/spawn-looks.mjs` writes their base look into the roster rows (`--check` verifies, `--report` counts the rest), then `node scripts/Build-GameRoster.mjs`. Result of 31 Oct: 19 rows have a name. **663 invitable rows still have none** (557 side characters and 106 of the shipped cast, `--report` lists the keys). Those rows are pinned at runtime by the learned look (step 3): the first copy shows whatever the game picks, and from then on that record is always that person. To remove even the first pick, add `appearanceName` to the row with a name the record's own template lists (WolvenKit, as `scripts/Extract-CompanionOutfitEvidence.mjs` does for the outfit table) and rerun the two scripts.
+
+## A record with no visible body
+
+Owner live test of 31 Oct 2026 (game 2.5): Aiko Harada (`aiko-harada`, records `Character.q307_fia_reception` and `Character.q307_nurse`, both Phantom Liberty quest records) came out with no body to see.
+
+What the code does, in `mod/companions.lua` and `mod/companion-records.lua`. A copy is created from one record with `DynamicEntitySystem:CreateEntity`, and the look is whatever the template gives when the spawn asks for none (`spec.appearanceName` stays empty unless an outfit, an adoption or a private spawn record decides one). The invite check in `scripts/cast-sweep/invite-check.py` only proves the record and its `entityTemplatePath` flat exist. It does not prove the record resolves a look outside its quest, and before this change only the first record of a profile was ever tried (`mod/manager.lua` `definitionFor`).
+
+What is not known without the game: why this record gives no mesh. The likely causes are a template whose default look is a placeholder of the quest scene (so no look is resolved outside the quest), a body controlled by the quest streaming (`gamePhantomEntityComponent`, which `mod/companion-appearance.lua` already switches off), or a record that needs its quest world. Only a log from the game can tell them apart, so the code does not guess. It looks, repairs what it can and falls back safely.
+
+What happens now:
+
+* **Spawn log (Developer mode only).** Every spawn writes one `probe.log` line: `Companion spawn: <name> (<key>) record <record> (<n> of <m>), spawn record <private clone or the record itself>, look asked for <name or none (the template default)>, the record names <its own appearanceName flat or none>`. A report of the next invisible character needs this line and the `Companion body:` lines below.
+* **Order of records.** A profile with several records is now registered with all of them (`records` in the definition). A copy is made from the first one that the game has and that this session has not seen without a body. A roster row can list `badRecords`: those go to the end of the order (they are still tried when nothing else is left, so a character is never left with no record). `badRecords` is carried into `characters/game-roster.json` by `scripts/Build-GameRoster.mjs`. Nothing is marked in the data yet, because no record is proven bad.
+* **Body check.** Two seconds after a fresh copy attaches, the code reads her components (`entMeshComponent`, `entSkinnedMeshComponent`, enabled or not). A mesh shown means a body, and the check ends. No components at all means nothing to judge by, and the check ends with no action. No mesh shown gets one more look three seconds later, because the look may still be loading.
+* **Repair.** If there is still no mesh and the record names a look of its own (its `appearanceName` flat) that she does not wear, that look is applied once with `ScheduleAppearanceChange`. If a mesh shows afterwards the look is remembered for the session and the next copy of that record asks for it from the start.
+* **Fallback.** If there is still no mesh, the record is set aside for the session. When the profile has another record the game has, the bodyless copy is dismissed and the character is invited again through the same doors as the phone's Invite (`companions.onBodyMissing` in `mod/init.lua`: an immersive appointment when that setting is on, else the party queue), and the new copy takes the next record. With no other record she stays where she is and the log says so. A visiting copy (Immersive invitations) is only looked at and her record set aside while she walks. She is judged again once she joins V. A copy made again after fast travel is not looked at.
+* **Log lines.** `Companion body: <name> record <record> (appearance ..., N components, N meshes, N shown): shown` or `no mesh shown yet, looking again` or `trying the look the record names, <look>` or `NO VISIBLE BODY, the record is set aside ...`. These are written in Developer mode only. The hook line `Companion body: ... inviting again with <record>` is always written (it is rare).
+
+To mark a record that the owner has seen fail: add `"badRecords": ["Character.q307_fia_reception"]` to the roster row, run `node scripts/Build-GameRoster.mjs`, and the order changes at the next start. The marks of a session are not saved. They start again empty at every start, so a record that works in another save is not lost.
+
+Tests: `bridge/companion-body.test.mjs` (fake components, the order, the repair, the fallback, the visitor, no Developer mode, no components).
 
 ## Voice
 
@@ -68,3 +89,13 @@ Each invitable side character has a Convai original and a multilingual twin, cre
 running it again resumes. Ids land in `runtime/characters.json` and `runtime/multilingual-profiles.json`. `node packaging/Refresh-ReleaseData.mjs`
 copies them to `packaging/release-data/`, which the package installs. A twin is used by the router only once its language box is off
 (`languageBoxOff: true`, a signed-in dashboard step, `docs/MULTILINGUAL_PROFILES.md`), and until then the original answers every language.
+
+## The Runtime setup check allows the whole id map (31 Oct, evening)
+
+Talking to an invited side character on Convai failed while Local AI worked. The Runtime's setup check (`inspectSetup` in `packaging/runtime-layout.mjs`) still refused a `characters.json` of more than 256 ids and answered `character-profiles` ("setup required"), so the supervisor never started the bridge. The shipped map holds 766 ids (the 703 roster rows and the archetypes), so the bound is now `MAX_CHARACTER_IDS` = 4096, the same as the routing, the player memory registry and the Chat reset journal. `packaging/runtime-bootstrap.test.mjs` checks the shipped map itself.
+
+The data is complete. All 557 invitable side characters have a Convai original and a verified twin in `packaging/release-data/`. The 17 side rows with no ids are children and cannot be invited.
+
+If an install still says a side character "does not have a conversation profile configured yet", look for `Kept the edited characters.json` in the Runtime's start log. `packaging/runtime/prepare-state.mjs` installs the shipped id map only over an unedited copy, so a state `characters.json` changed by hand or by `scripts/Provision-Characters.mjs` keeps its older, shorter list.
+
+Bounds on counts that stay, all above what is used today: world knowledge packs 1024 profiles (703 used), the local voice registry 1024, the phone reset epochs 2048 (766 used).

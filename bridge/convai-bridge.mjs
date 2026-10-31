@@ -39,6 +39,8 @@ import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor} from './quest-context.mjs';
+import {retrievalSources, attachRetrieval} from './quest-context.mjs';
+import {TalkRetrieval, Corpus} from './talk-retrieval.mjs';
 import {dynamicOn, dynamicOff} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
@@ -57,6 +59,9 @@ import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
+import {pocketRefusal, otherLanguageName} from './other-languages.mjs';
+import {SubtitleTranslations, subtitleLanguageFrom, WRITTEN_WAIT_MS, LOCAL_WRITTEN_WAIT_MS} from './subtitle-translation.mjs';
+import {spokenLanguage} from './reply-language.mjs';
 import {PocketLanguageModels, PocketLanguageNotice} from './pocket-language-models.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {DevTranscript, TRANSCRIPT_FILE} from './dev-transcript.mjs';
@@ -130,15 +135,16 @@ import {createFactsReader} from './quest-facts.mjs';
 import {syncAllowlist} from './gift-tables.mjs';
 import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext, romanceReminder} from './romance-context.mjs';
+import {petNameNote, rememberReply} from './pet-names.mjs';
 import {RomanceBond} from './romance-bond.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
-import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
+import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet, MIC_PLACEHOLDER} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow, vVoiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, chainRecovery, credentialRecovery, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
@@ -1071,9 +1077,14 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, limit: con
     const kind = quota.observe(error);
     if (kind === 'speaker') void adoptOrBlockMemory(); // a path that cannot retry (a voice turn): its next turn uses the account's memory user
     else if (kind === 'memory' && keys.unblockMemory()) void ownKeyControl.publishStatus().catch(() => {});
+    // A path that cannot retry (a voice turn) met a shared credential Convai refused: its next turn gets a fresh one (rate limited; never for a player's own key).
+    else if (kind === 'rejected' && keys.source === 'shared' && keys.usesBackend) void keys.backend.refreshRejected().catch(() => {});
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
-  recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
+  // A shared credential Convai refused (the owner rotated the key) is fetched anew once and the turn asked once more; then the memory-user recovery of a player's key.
+  recover: chainRecovery(
+    credentialRecovery({keys, classify: classifyFailure, log: line => console.error('[CyberpunkConvai] ' + line)}),
+    memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()}))});
 const phoneRealtime = new RealtimeHost({browserPriority: turnPriority, transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
@@ -1150,6 +1161,13 @@ const phoneFailures = new PhoneFailureLog({
   provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
+  // The Subtitle language: a chat line has no sound to keep in step, so it waits for its translation for a moment at most (bridge/subtitle-translation.mjs).
+  localize: async (text, {signal}) => {
+    if (!subtitleTranslations.active || !mistral.active) return text;
+    const id = `phone:${randomUUID()}`;
+    subtitleTranslations.begin(id, text, {speech: speechLanguageOf(text), signal});
+    try { return await subtitleTranslations.wait(id, text, writtenSubtitleWait()); } finally { subtitleTranslations.release(id); }
+  },
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom|gemini)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
   contacts: phoneContacts, ids, custom: key => customCharacters.has(key),
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
@@ -1357,8 +1375,32 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
 // The text providers' personas carry the player's rules and then the content packs' (a view of the same store); the editor and Convai below read the store itself.
+// Retrieval for a turn's background (bridge/talk-retrieval.mjs, docs/NATURAL_TALK_RESEARCH_2026-10-30.md section 15): the character's topic views and the quest, journal and world
+// facts reach the prompt as the few units that bear on V's words, not as whole blocks on every turn. CYBERPUNK_CONVAI_TALK_RETRIEVAL=off puts the whole blocks back (a comparison, or a fault).
+const talkRetrievalOn = String(process.env.CYBERPUNK_CONVAI_TALK_RETRIEVAL ?? '').trim().toLowerCase() !== 'off';
 const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions,
-  worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
+  worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules, topics: talkRetrievalOn});
+// One embedder for the memory search and for this: V's words are embedded once per turn (MemoryStore.queryVector), the units' vectors are made ahead and kept in <state>/talk-vectors.json.
+// The roster's topic text is the corpus the rarity of a word is judged by. Convai's provisioned characters carry the roster's own text, so they get the roster's wording of the items.
+const talkRetrieval = new TalkRetrieval({embedder: localEmbedder, queryVector: (text, options) => mistralMemory.queryVector(text, options),
+  topicFor: key => personaBook.topicMaterial(key, {raw: !mistral.active}),
+  corpus: new Corpus(roster.flatMap(row => personaBook.topicMaterial(row.key, {raw: true})?.items.map(item => item.text.split('\n')[0]) ?? [])),
+  vectorsPath: resolve(stateDirectory, 'talk-vectors.json'), read: file => readFile(file, 'utf8'), write: (file, text) => atomic(file, text),
+  quiet: () => Date.now() - lastFightingAt > 30000,
+  log: message => console.error('[Retrieval] ' + message)});
+// The units' vectors for every character are made once, in the background, when a text provider answers and the machine is quiet; a talk with a character makes hers at once.
+let talkFillScheduled = false;
+function scheduleTalkFill() {
+  if (talkFillScheduled || stopped || !talkRetrievalOn || !mistral.active || !localEmbedder.available()) return;
+  talkFillScheduled = true;
+  const timer = setTimeout(() => {
+    const keys = roster.filter(row => personaBook.topicMaterial(row.key)?.items.length).map(row => row.key);
+    void talkRetrieval.fillAll(keys, {gate: memoryQuiet, stop: () => stopped || !mistral.active})
+      .then(made => { if (made) console.error(`[Retrieval] made the vectors of ${made} topic items in the background`); })
+      .catch(() => {}).finally(() => { if (!mistral.active) talkFillScheduled = false; });   // done once; started again only when it was cut short by a change of provider
+  }, 45_000);
+  timer.unref?.();
+}
 // The same edits for a Convai turn (bridge/convai-character-edits.mjs): one context block per edited character, built when the edit changes and kept, so a turn is a map lookup.
 const convaiCharacterEdits = new ConvaiCharacterEdits({overrides: characterOverrides, personas: personaBook});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
@@ -1527,7 +1569,20 @@ voiceChoice = createVoiceChoice({speech: mistralSpeech, tap: micTap, readHub: re
 const warmTurnConnections = options => options?.provider === 'custom' || options?.provider === 'gemini'
   ? (() => { const endpoint = options.provider === 'gemini' ? geminiEndpoint : customEndpoint; return endpoint.warmOrigin ? warmConnection({...options, provider: 'custom', origin: endpoint.warmOrigin, connections: 2}) : Promise.resolve(false); })()
   : warmConnection({...options, connections: 2});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
+// Subtitle language (Settings > Interface, bridge/subtitle-translation.mjs): one extra short request to the player's own text provider, started the moment a reply text is
+// complete and never awaited by the voice. The table holds a turn's translation until that turn ends. With Convai answering there is no text provider and nothing is asked.
+const subtitleTranslations = new SubtitleTranslations({translate: options => mistralHost.translate(options), log: line => console.error('[SubtitleLanguage] ' + line)});
+// The language a finished reply is spoken in, when it is known (a fixed Voice language, else what the text itself says): a reply already in the subtitle language is not translated.
+const speechLanguageOf = text => multilingual.fixed ?? spokenLanguage(text) ?? (multilingual.lastLanguage || null);
+function beginSubtitleTranslation(config, result) {
+  const id = config?.subtitleTurn;
+  if (!subtitleTranslations.active || !mistral.active || typeof id !== 'string' || typeof result?.text !== 'string') return;
+  subtitleTranslations.begin(id, result.text, {speech: speechLanguageOf(result.text)});
+}
+// How long a reply with no sound waits for its translation: Local AI answers slower than a cloud model.
+const writtenSubtitleWait = () => mistral.route === 'local' ? LOCAL_WRITTEN_WAIT_MS : WRITTEN_WAIT_MS;
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections,
+  onReplyText: beginSubtitleTranslation});
 // Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
 // local AI, whatever the player's conversation provider is: one text host per route (the local AI never falls back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
@@ -1902,7 +1957,13 @@ const packTurn = (input, prepared, admitted) => {
   const facts = bondFacts(input, prepared, admitted);
   return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
 };
+// A character's own last replies, by profile (bridge/pet-names.mjs): a pet name for V is rare, so the next turn's closing note says when one was used lately. Kept in memory, a restart starts empty.
+const ownReplyMemory = new Map();
+function noteOwnReply(input, result) {
+  try { if (!input?.reaction && !input?.group && typeof input?.profileKey === 'string') rememberReply(ownReplyMemory, input.profileKey, result?.text); } catch { /* a note never affects a reply */ }
+}
 function publishBonds(input, result, proposal = null) {
+  noteOwnReply(input, result);
   // V's words to a quest's cast member are read once for an amount, yes or no, after the reply is out (bridge/quest-pay.mjs).
   if (input?.quest && bondPacks.afterPay(input, result?.userText)) questSync();
   if (!input?.bonds) return;
@@ -1954,6 +2015,8 @@ const conversationBlocks = input => {
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
     // The partner tone again, right after V's words (the closing tier: bridge/mistral-prompt.mjs); '' unless the affectionate delivery is on for a private or phone turn.
     block('closing', admitted && !input.reaction ? romanceReminder(prepared.relationship, prepared.route.channel) : ''),
+    // The pet name rule (bridge/pet-names.mjs): when V was called a pet name lately the note says none now, or which ones to leave out. '' when none was used, and for a group round.
+    block('closing', admitted && !input.reaction && prepared.route.channel !== 'group' ? petNameNote(ownReplyMemory.get(input.profileKey)) : ''),
     // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
     // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
     block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
@@ -1993,8 +2056,25 @@ const contextPartsOf = blocks => {
 const textProviderContext = input => {
   noteTurn(input);
   const blocks = conversationBlocks(input);
-  return {context: joinedContext(blocks), ...(mistral.active ? {contextParts: contextPartsOf(blocks)} : {})};
+  return {context: joinedContext(blocks), ...(mistral.active ? {contextParts: contextPartsOf(blocks), ...retrievalFor(input)} : {})};
 };
+// What the text host needs to choose the turn's background once V's words are known (a typed line now, a transcript later: bridge/text-provider-host.mjs). Cheap until it is called:
+// the sources are read from the turn's knowledge only then.
+const retrievalFor = input => talkRetrievalOn && input && !isAmbientProfile(input.profileKey)
+  ? {retrieval: {run: ({text, reaction, signal}) => talkRetrieval.prepare({profileKey: input.profileKey, requestId: input.requestId, text, reaction}, {sources: retrievalSources(input), signal})}}
+  : {};
+// A typed Convai turn (Convai has the persona on its own side, so only the context shrinks): the same choice, made before the context is built and attached to the turn's input.
+// A spoken turn has no words yet when its context is built, so it keeps the whole blocks.
+function startConvaiRetrieval(input, signal) {
+  if (!talkRetrievalOn || mistral.active || !input || input.reaction || input.event || isAmbientProfile(input.profileKey) || input.source === 'microphone'
+    || !String(input.text ?? '').trim() || String(input.text).trim() === MIC_PLACEHOLDER) return Promise.resolve();
+  return talkRetrieval.prepare({profileKey: input.profileKey, requestId: input.requestId, text: input.text, reaction: false}, {sources: retrievalSources(input), signal})
+    .then(result => {
+      attachRetrieval(input, result);
+      markStage('retrieved');
+      console.error(`[Retrieval] Convai profile=${input.profileKey} ${result.reason ? `none (${result.reason})` : `${result.detail ?? ''} via=${result.via}`} chars=${result.text.length} ms=${result.ms}`);
+    }, error => { if (!signal?.aborted) console.error(`[Retrieval] failed (${String(error?.message ?? error).slice(0, 80)}); the whole context is used`); });
+}
 const boundaryFor = input => ({entity: input?.entity,
   worldToken: input?.worldKnowledge?.worldToken || worldSession?.token,
   generation: input?.worldKnowledge?.generation || worldSession?.generation});
@@ -2012,6 +2092,8 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   // A line prepared beside another (startAhead): the text route sends it as the lowest-priority work and never starts it ahead of a turn of V's.
   ...(preparedRequests.has(input.requestId) ? {prepared: true} : {}),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
+  // The turn the subtitle translation belongs to (bridge/subtitle-translation.mjs): only named while a subtitle language is set.
+  ...(subtitleTranslations.active && typeof input.requestId === 'string' ? {subtitleTurn: input.requestId} : {}),
   ttsEnabled: convaiSpeaks(input),
   // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice is
   // the only case where it speaks), and a fault in the format of any audio it does send leaves the written reply instead of failing the turn
@@ -2102,7 +2184,11 @@ function warmTalkTargets(profileKeys, {persona = true} = {}) {
   let personaDone = false;
   // A private talk starts: the memory embedder is started now (only when this character has memories stored, a text route answers and the embedder is not running), so the first line
   // does not meet it cold. It exits by itself 300 s after its last use.
-  if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
+  if (persona && profileKeys.length === 1 && mistral.active && typeof profileKeys[0] === 'string') {
+    mistralMemory.warmFor(memoryNamespace.keyFor(profileKeys[0]));
+    // The same embedder serves the topic views: it is started for this talk, and her topic vectors are made (or read from the disk cache) while V is still typing.
+    if (talkRetrievalOn) { talkRetrieval.warmFor(profileKeys[0]); scheduleTalkFill(); }
+  }
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
     void wantVoiceClips(key, 'talk');
@@ -2367,6 +2453,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: unavailable ? 'The selected voice is unavailable right now; showing the written reply.'
         : voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
+        : voice.reason === 'other-language-pocket' ? pocketRefusal(voice.language)
         : voice.reason === 'pocket-language-pack-missing' ? 'The multilingual pack for this language is missing; showing the written reply.'
         : 'The selected voice speaks English only; showing the written reply.'};
   }
@@ -2567,12 +2654,15 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // V's typed line, when it is audible, holds the reply the same way: it is published to the game shortly before V's line ends (the
     // game's round trip overlaps V's last moments, V_HANDOFF_LEAD_MS) and its sound starts when V has ended (bridge/v-voice.mjs).
     hold: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublish() === true,
+    // The subtitle language: the translation takes the original's place the moment it is here (it is a lookup, never a wait).
+    subtitle: (text, complete) => subtitleTranslations.show(input.requestId, text, complete),
     holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
     holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     pace,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
     onEnded: info => {
+      subtitleTranslations.release(input.requestId);
       void measure(input, {playback: info}).catch(() => {});
       if (info.underruns > 0) console.error(`[Speech] profile=${input.profileKey} the voice broke ${info.underruns} time(s): ${info.seconds.toFixed(1)} s of audio`
         + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '')
@@ -2805,8 +2895,11 @@ async function publishResult(input, profile, result, current = async () => true,
   if (result.timing?.convaiVoiceTimedOut === true) console.error(`[Convai] voice did not arrive in ${Math.round((result.timing.textWithoutAudioMs ?? 5000) / 1000)} s; the reply is shown as text (profile=${input.profileKey})`);
   // The next group speaker may be prepared from this reply's text from now on.
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
+  // A written reply has no sound to keep in step: it waits for the subtitle translation for a short moment at most, then shows the original (bridge/subtitle-translation.mjs).
+  const writtenText = await subtitleTranslations.wait(input.requestId, result.text, writtenSubtitleWait());
+  subtitleTranslations.release(input.requestId);
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-    entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
+    entity: input.entity, profile: profile.key, text: writtenText, userText: result.userText, audioError,
     // A scripted line whose prepared audio was missing or could not be played: the game shows the subtitle and adds a Phone Chat line (bridge/quest-lines.mjs scriptedResult).
     ...(result.missingAudio === true ? {missingAudio: true} : {}),
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -3672,6 +3765,8 @@ async function runInput(request, prepared, clock) {
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
     // A turn the admission refuses ends here without a reply: its reason goes to the log, or the turn would vanish without a trace.
     if (!knowledgeTurn.sendAllowed) console.error(`[Turn] ${profile.key} was not sent: ${knowledgeTurn.memoryReason ?? 'unavailable'}`);
+    // Beside the memory admission below (which waits on files and the network): the Convai turn's background is chosen from V's words while it runs.
+    const retrieving = startConvaiRetrieval(input, controller.signal);
     if (!await current()) return;
     // No speculative user turn may enter identified character memory.
     if (knowledgeTurn.remoteConfig?.endUserId) { prepared?.cancel(); prepared = undefined; }
@@ -3699,6 +3794,7 @@ async function runInput(request, prepared, clock) {
     // stale and skip the connection hand-over (the group look-ahead tests caught it).
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
+    await retrieving;
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
     const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
     // The speaker being heard already holds this round's group connections.
@@ -4314,6 +4410,7 @@ async function adoptProviderSetting(settings) {
   return true;
 }
 let speechCheckedAt = 0;
+let otherNoted = false, subtitleNoted = false;
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
@@ -4333,8 +4430,18 @@ async function pollSettings(checkShutdown = true) {
     // Reply language (Settings > Voices): a fixed language skips the detection while Voice playback is on; Automatic detects (bridge/multilingual.mjs).
     // The game's own text language is the detection's weakest prior (read from runtime/ui-language.txt at most once in a few seconds, off this path).
     if (settings) {
-      const reply = replyLanguageFrom(settings);
-      if (multilingual.setFixed(reply.fixed)) console.error(`[ReplyLanguage] ${reply.fixed ? 'fixed to ' + reply.fixed : 'automatic'}`);
+      // Other language (bridge/other-languages.mjs) needs a text provider that writes it: with Convai answering it is not applied, and the log says so once.
+      const reply = replyLanguageFrom(settings, {textProvider: mistral.active ? mistral.route : null});
+      if (multilingual.setFixed(reply.fixed)) console.error(`[ReplyLanguage] ${reply.fixed ? 'fixed to ' + reply.fixed : 'automatic'}${reply.setting === 'other' && reply.fixed ? ` (${otherLanguageName(reply.fixed)})` : ''}`);
+      if (reply.note === 'other-needs-text-provider' && !otherNoted) { otherNoted = true; console.error('[ReplyLanguage] Other language needs a text provider (Mistral, Gemini, Custom or Local AI): not applied while Convai answers'); }
+      else if (!reply.note) otherNoted = false;
+      speechLanguage.setChosen(reply.setting === 'other' ? reply.fixed : null);
+      // Subtitle language (bridge/subtitle-translation.mjs): the target of the extra translation request. It needs the player's text provider as well.
+      const subtitle = subtitleLanguageFrom(settings);
+      if (subtitleTranslations.setTarget(subtitle.target)) console.error(`[SubtitleLanguage] ${subtitle.target ? 'subtitles in ' + subtitle.target : 'same as speech'}`);
+      if (subtitle.target && !mistral.active && !subtitleNoted) { subtitleNoted = true; console.error('[SubtitleLanguage] needs a text provider (Mistral, Gemini, Custom or Local AI): the subtitles stay in the speech language while Convai answers'); }
+      else if (!subtitle.target || mistral.active) subtitleNoted = false;
+      multilingual.setPinEnglish(multilingual.fixed === 'en' && !!subtitle.target && subtitle.target !== 'en' && mistral.active);
       void speechLanguage.refreshUi().then(code => multilingual.setPrior(code)).catch(() => {});
     }
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
@@ -4674,6 +4781,7 @@ async function shutdown() {
   await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
+  await talkRetrieval.flush().catch(() => {});
   await lastTalk.flush().catch(() => {});
   await bondStore.flush().catch(() => {});
   await bondPacks.flush().catch(() => {});

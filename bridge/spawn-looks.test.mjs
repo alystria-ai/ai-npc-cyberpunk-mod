@@ -44,7 +44,6 @@ const fixture = `
     return nil
   end
   companions.developerMode=function() return devMode==true end
-  companions.devLog=function(line) logLines[#logLines+1]=line end
   local system=Game.GetDynamicEntitySystem()
   local create=system.CreateEntity
   function system:CreateEntity(spec)
@@ -113,17 +112,69 @@ test('a saved look is read from runtime/spawn-looks.json once and a bad file ask
   assert(other.spec.appearanceName==nil)
 `));
 
-test('Developer mode logs the record and the appearance of every spawn, and nothing with it off', () => run(`
+test('Developer mode logs the record, the look asked for and where it came from, in main\'s one spawn line, and nothing with it off', () => run(`
+  spawnRecords_probe = {}
+  local plainOpen = io.open
+  io.open = function(path, mode)
+    if path == 'runtime/probe.log' then return {write = function(_, ...) spawnRecords_probe[#spawnRecords_probe + 1] = table.concat({...}) end, close = function() end} end
+    return plainOpen(path, mode)
+  end
+  local function spawnLine()
+    for _, text in ipairs(spawnRecords_probe) do if text:find('Companion spawn:', 1, true) then return text end end
+  end
   spawn('named-person')
-  assert(#logLines==0,'Developer mode is off, nothing is logged')
+  assert(spawnLine() == nil, 'Developer mode is off, nothing is logged')
   companions.dismissAll(); tick(6)
-  devMode=true
+  devMode = true
   spawn('named-person')
-  assert(logLines[1]=='Companion look: record Character.sts_named_person, appearance named_person_look_2 (roster)',logLines[1])
+  assert(spawnLine():find('look asked for named_person_look_2 (roster)', 1, true), spawnLine())
   companions.dismissAll(); tick(6)
+  spawnRecords_probe = {}
   spawn('side-person')
-  assert(logLines[2]=='Companion look: record Character.sts_side_person, appearance none (the game picks one) (none)',logLines[2])
-  assert(logLines[3] and logLines[3]:find('learned',1,true),'the learned look is logged once, at attach')
+  assert(spawnLine():find('look asked for none (the template default) (the game picks)', 1, true), spawnLine())
+  local learned
+  for _, text in ipairs(spawnRecords_probe) do if text:find('Companion look:', 1, true) then learned = text end end
+  assert(learned and learned:find('Character.sts_side_person was given', 1, true), 'the learned look is logged once, at attach')
+`));
+
+test('the body check works with the look that is asked for: a repaired look replaces the kept one, a record with no body keeps none, and the roster look is only for its own record', () => run(`
+  local function mesh(on) return {IsA = function(_, kind) return kind == 'entSkinnedMeshComponent' end, IsEnabled = function() return on end} end
+  files['runtime/spawn-looks.json'] = 'J1'; stash[1] = {looks = {['Character.sts_side_person'] = 'old_look'}}
+  -- a bodyless copy of a record that names its own look: that look is tried, and when it works it is the record's look from then on
+  local flatRecord = TweakDB.GetFlat
+  function TweakDB:GetFlat(path) if path == 'Character.sts_side_person.appearanceName' then return 'repair_look' end return flatRecord(self, path) end
+  local npc = spawn('side-person')
+  assert(npc.spec.appearanceName == 'old_look', 'the kept look is asked for: ' .. tostring(npc.spec.appearanceName))
+  local other = {IsA = function() return false end}
+  npc.components = {other, other}
+  function npc:ScheduleAppearanceChange(name) npc.shown = name; npc.components = {other, mesh(true)} end
+  for _ = 1, 40 do companions.update(player, 0.5) end
+  assert(npc.shown == 'repair_look', 'the own look of the record was tried: ' .. tostring(npc.shown))
+  assert(stash[#stash].looks['Character.sts_side_person'] == 'repair_look', 'and it replaces the kept look')
+  assert(companions.list()[1].state == 'ready')
+`));
+
+test('a record with no visible body keeps no look, and the roster look is not given to another record of the profile', () => run(`
+  -- a copy that comes out with no body: the look the game gave it is not kept for the record
+  local ghost = spawn('side-person')
+  assert(stash[#stash].looks['Character.sts_side_person'] == ghost:GetCurrentAppearanceName(), 'learned at attach')
+  local blank = {IsA = function() return false end}
+  ghost.components = {blank, blank}
+  for _ = 1, 40 do companions.update(player, 0.5) end
+  assert(stash[#stash].looks['Character.sts_side_person'] == nil, 'forgotten when the record gave no visible body')
+  companions.dismissAll(); tick(6)
+  companions.registerDefinition('two-records', {id = 'Character.sts_first', records = {'Character.sts_first', 'Character.sts_second'}, name = 'Two', profileKey = 'two-records', appearance = 'first_look'})
+  local first = spawn('two-records')
+  assert(first.spec.appearanceName == 'first_look')
+  local definition = companions.definition('two-records')
+  assert(definition.appearanceRecord == 'Character.sts_first' and definition.appearance == 'first_look')
+  -- the look belongs to the first record only
+  local other = {}
+  for field, value in pairs(definition) do other[field] = value end
+  other.id = 'Character.sts_second'
+  companions.dismissAll(); tick(6)
+  companions.registerDefinition('only-second', {id = 'Character.sts_second', name = 'Second', profileKey = 'only-second'})
+  assert(spawn('only-second').spec.appearanceName == nil, 'another record is not given the look of the first')
 `));
 
 test('Kerry keeps the look his spawn record asks for, ahead of any roster or remembered look', () => run(`
@@ -162,9 +213,12 @@ test('the spawn-looks script is idempotent, keeps the file as it is and counts t
 
 test('the manager passes the roster look to the definition and the spawn path uses it before the outfit rows', () => {
   const manager = read('../mod/manager.lua');
-  assert.match(manager, /appearance = type\(profile\.appearanceName\) == 'string'/);
+  assert.match(manager, /appearance = look/);
+  assert.match(manager, /record ~= \(type\(profile\.records\) == 'table' and profile\.records\[1\] or nil\) then look = nil/);
   const companions = read('../mod/companions.lua');
   assert.match(companions, /appearance, lookSource = ownLook\(definition\)/);
   const outfitAt = companions.indexOf('M.spawnOutfit,definition.id');
-  assert(outfitAt > 0 && outfitAt < companions.indexOf('appearance, lookSource = ownLook(definition)'), 'the outfit module still decides first');
+  const knownAt = companions.indexOf('spawnRecords.knownLook(definition.id');
+  const ownAt = companions.indexOf('appearance, lookSource = ownLook(definition)');
+  assert(outfitAt > 0 && outfitAt < knownAt && knownAt < ownAt, 'the outfit module decides first, then the look that made a body show, then the character\'s own look');
 });

@@ -14,7 +14,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Songbird calls in a controlled voice. A young netrunner is being held in the Longshore Stacks by a crew that sells runners to whoever pays, and she can still hear the channels. She cannot reach him. You can. She is not asking a favour, and for once it is not about herself."
   },

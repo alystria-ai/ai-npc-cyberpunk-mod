@@ -79,7 +79,8 @@ test('a reach-out V answers (its note rides on the next turns) carries the rule 
 test('the partner tone has one source: the bond line carries none, relationshipContext and the closing reminder do', () => {
   for (const row of LEVELS) assert.doesNotMatch(bondLine(row.level, 0), /pet name|couple|missed V/);
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-  assert.equal((source.match(/block\('closing'/g) ?? []).length, 1, 'one closing block, the partner reminder, never a second one from the bond');
+  assert.equal((source.match(/block\('closing'/g) ?? []).length, 2, 'two closing blocks, the partner reminder and the pet name note (bridge/pet-names.mjs), never one from the bond');
+  assert.match(source, /block\('closing', admitted && !input\.reaction && prepared\.route\.channel !== 'group' \? petNameNote\(ownReplyMemory\.get\(input\.profileKey\)\) : ''\)/);
   assert.match(source, /block\('closing', admitted && !input\.reaction \? romanceReminder\(prepared\.relationship, prepared\.route\.channel\) : ''\)/);
   assert.match(source, /return \{romance, near: besideV\(input\)\}/);
 });

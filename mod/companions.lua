@@ -23,6 +23,8 @@ local passage = dofile('companion-passage.lua')
 local clearance = dofile('companion-clearance.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
+-- Developer mode names the record and look of every spawn and what the body check finds (companion-records.lua devLog).
+spawnRecords.developer = function() return M.developerMode ~= nil and M.developerMode() == true end
 local equipment = dofile('companion-equipment.lua')
 -- A combat-start weapon draw writes one 'Companion recovery weapon-draw' probe line per step (never per frame).
 equipment.report = function(kind, fields) if M.recoveryLog then pcall(M.recoveryLog, kind, fields) end end
@@ -137,10 +139,13 @@ function M.registerDefinition(key, definition)
     end
     -- custom: a character the player made (mod/manager.lua setCustomCharacters). Its copy is a model-only invitation, like a Model browser entry of that record; the
     -- conversation profile comes afterwards, from the record (settleProfiles). The flag only lets a Chat row carrying the character's key invite it (phoneContactKey).
-    records[key] = {id = id, recordID = definition.recordID,
+    -- records: every record of the profile in the order to try (the first is id). A copy is made from the first one not seen without a body.
+    local list = type(definition.records) == 'table' and #definition.records > 1 and definition.records or nil
+    records[key] = {id = id, recordID = definition.recordID, records = list,
         name = tostring(definition.name or id or key),
         profileKey = definition.profileKey, profileName = definition.profileName, custom = definition.custom == true or nil,
-        appearance = type(definition.appearance) == 'string' and definition.appearance ~= '' and definition.appearance or nil}
+        appearance = type(definition.appearance) == 'string' and definition.appearance ~= '' and definition.appearance or nil,
+        appearanceRecord = id}
     return true
 end
 
@@ -154,8 +159,8 @@ end
 function M.definition(key)
     local value = records[key]
     if not value then return nil end
-    return {id = value.id, recordID = value.recordID, name = value.name,
-        profileKey = value.profileKey, profileName = value.profileName, custom = value.custom, appearance = value.appearance}
+    return {id = value.id, recordID = value.recordID, records = value.records, name = value.name,
+        profileKey = value.profileKey, profileName = value.profileName, custom = value.custom, appearance = value.appearance, appearanceRecord = value.appearanceRecord}
 end
 
 function M.phoneContactKey(contactId)
@@ -445,18 +450,15 @@ end
 local function ownLook(definition)
     local recordId = definition.id
     if type(recordId) ~= 'string' then return nil end
-    if type(definition.appearance) == 'string' and definition.appearance ~= '' then return definition.appearance, 'roster' end
+    -- The roster look is the look of the record it was written for: a profile with several records that tries another one (the body check) does not give it that look.
+    if type(definition.appearance) == 'string' and definition.appearance ~= '' and (definition.appearanceRecord == nil or definition.appearanceRecord == recordId) then
+        return definition.appearance, 'roster'
+    end
     local base = curatedBase(recordId)
     if base then return base, 'curated' end
     local seen = looksMemory()[recordId]
     if seen then return seen, 'remembered' end
     return nil
-end
--- One Developer mode line per spawn: the record and the appearance it was asked for.
-local function lookLine(recordId, name, source)
-    if not (M.developerMode and M.developerMode() == true and M.devLog) then return end
-    pcall(M.devLog, 'Companion look: record ' .. tostring(recordId) .. ', appearance '
-        .. (name or 'none (the game picks one)') .. ' (' .. source .. ')')
 end
 -- At attach, once: a copy made without a named look reads the look the game gave it, so a fast travel recreation and the next invitation of this
 -- person are the same person. A look that was asked for is kept as it is.
@@ -469,7 +471,15 @@ local function learnLook(entry, npc)
     if type(recordId) ~= 'string' or looksMemory()[recordId] == name then return end
     rememberedLooks[recordId] = name
     saveLooks()
-    lookLine(recordId, name, 'learned')
+    pcall(spawnRecords.devLog, 'Companion look: record ' .. tostring(recordId) .. ' was given ' .. name .. ' by the game, kept for the next copy')
+end
+-- The body check (bodyStep) found the look that made a body show: it is the look of this record from now on. Or found no body at all: nothing is kept for the record.
+local function keepOwnLook(recordId, name)
+    if type(recordId) ~= 'string' or recordId == '' then return end
+    local memory = looksMemory()
+    if memory[recordId] == name then return end
+    memory[recordId] = name
+    saveLooks()
 end
 
 local function attachFollower(entry, player)
@@ -531,6 +541,8 @@ local function attachFollower(entry, player)
     entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
     entry.lane = entry.lane or entry.slot
+    -- One look at the body a moment after attach (M.bodyTick): a copy made again after fast travel was seen before and is not looked at.
+    if not entry.transitRecreated then entry.bodyCheck = {at = runtimeClock + 2.0, step = 1} end
     -- The formation decision below chooses the first command. Starting an
     -- unconditional follow here makes a correctly placed spawn walk into V.
     return true
@@ -540,6 +552,19 @@ local function spawnCopy(key, invitation, returning)
     local definition = returning and {id=returning.record,recordID=returning.modelRecordID,
         name=returning.name,profileKey=returning.profileKey,profileName=returning.profileName} or records[key]
     if not definition then return nil, 'Unknown companion' end
+    -- A profile with several records (a quest person such as Aiko Harada) is made from the first one not seen without a body this session
+    -- (companion-records.lua pick); a copy made again after fast travel keeps the record it was made from.
+    local recordIndex, recordCount = 1, 1
+    if not returning and definition.records then
+        local picked
+        picked, recordIndex, recordCount = spawnRecords.pick(definition)
+        if picked and picked ~= definition.id then
+            local own = {}
+            for field, value in pairs(definition) do own[field] = value end
+            own.id = picked
+            definition = own
+        end
+    end
     -- Production installs a preparation guard. Keep the engine mutation behind
     -- the exact invitation even if an older menu or diagnostic calls spawn.
     if not returning and M.canSpawn then
@@ -622,10 +647,15 @@ local function spawnCopy(key, invitation, returning)
         if okOutfit and type(outfit)=='string' and outfit~='' then appearance=outfit end
     end
     local lookSource = appearance and (returning and 'returning' or adoption and 'adopted original' or 'outfit') or nil
+    -- A record whose own look made a body show after an earlier copy came out without one asks for that look from the start (companion-records.lua, the body check).
+    if not appearance and not spawnAppearance and not returning then
+        appearance = spawnRecords.knownLook(definition.id or tostring(recordID))
+        if appearance then lookSource = 'look that made the body show' end
+    end
+    -- Otherwise the character's own look (ownLook above).
     if not appearance and not spawnAppearance then appearance, lookSource = ownLook(definition) end
     if appearance then spec.appearanceName = CName.new(appearance)
     elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance); lookSource = 'spawn record' end
-    lookLine(definition.id or tostring(recordID), appearance or spawnAppearance, lookSource or 'none')
     -- The navmesh stands up to 30 cm above the real floor in some interiors; the AI undoes any later transform
     -- teleport, so a fresh copy is created on the floor itself when one ray finds it just below the navmesh point.
     local floorZ=floorBelow(spawnPosition, placeDrop)
@@ -674,9 +704,15 @@ local function spawnCopy(key, invitation, returning)
         -- Housemates (mod/housemates.lua): the module that owns this visiting copy and the flat she lives in. nil: an immersive visitor.
         owner = appointment and appointment.owner or nil, home = appointment and appointment.home or nil,
     }
+    entry.recordIndex, entry.recordCount = recordIndex, recordCount
     if returning then
         for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
     else entries[#entries + 1] = entry end
+    -- Developer mode: which record and which look this copy was made from, so a copy that shows no body can be reported (one line per spawn).
+    pcall(spawnRecords.devLog, string.format('Companion spawn: %s (%s) record %s (%d of %d)%s, spawn record %s, look asked for %s (%s), the record names %s',
+        tostring(definition.name), tostring(assignedKey or key), tostring(entry.record), recordIndex, recordCount, returning and ' again after fast travel' or '',
+        tostring(spawnRecordName or 'the record itself'), tostring(appearance or spawnAppearance or 'none (the template default)'), tostring(lookSource or 'the game picks'),
+        tostring(spawnRecords.recordLook(entry.record) or 'none')))
     -- The outfit module learns which look this copy was created in (nil: the game's default or companion-records.lua's choice).
     if M.outfitCreated then pcall(M.outfitCreated, entry.serial, assignedKey, entry.record, appearance) end
     if convaiLocomotion then convaiLocomotion.active=true end
@@ -980,6 +1016,8 @@ function M.joinVisitor(serial)
     end)
     if not ok then return false,tostring(err) end
     entry.visitor,entry.appointmentId,entry.owner,entry.home=nil,nil,nil,nil
+    -- A visiting copy was only looked at; now that she is V's she is judged (a body that showed is not looked at again).
+    if not entry.bodyOk then entry.bodyCheck = {at = runtimeClock + 2.0, step = 1} end
     entry.state='ready'
     if not groupFrame then
         groupFrame=travel.new(space.copy(player:GetWorldPosition()),player:GetWorldForward())
@@ -3183,6 +3221,72 @@ function M.changeAppearance(serial,name,mode)
     error('the copy is gone')
 end
 
+-- A copy whose record gave no body (docs/SIDE_CHARACTERS.md, "A record with no visible body"). Called from M.update for the few copies that still
+-- have a body check pending (a table field and a clock comparison each, nothing once the check is over). Steps: 1 the look 2 s after attach (a
+-- body that has not loaded yet gets one more look 3 s later), 2 the record's own look is applied once when it names one, 3 the verdict. A record
+-- with no mesh shown after that is marked for the session. If the profile has another record that is not marked, the copy is dismissed and
+-- M.onBodyMissing asks for the character again, which then takes that record. A visiting copy (immersive invitations) is only looked at and
+-- repaired; she is checked again when she joins V. Nothing is judged without components to read, and a copy is never removed without another record to try.
+local function bodyStep(entry, check)
+    local attached = entry.npc:IsAttached()
+    if not attached then entry.bodyCheck = nil; return end
+    local state = spawnRecords.bodyState(entry.npc)
+    local shown = spawnRecords.bodyShown(state)
+    local label = string.format('%s record %s (%s)', tostring(entry.name), tostring(entry.record), spawnRecords.bodyText(state))
+    if shown ~= false then
+        entry.bodyCheck, entry.bodyOk = nil, shown == true or nil
+        if shown == true and check.repaired then
+            spawnRecords.rememberLook(entry.record, check.repaired)
+            entry.appearance = check.repaired
+            keepOwnLook(entry.record, check.repaired)
+        end
+        spawnRecords.devLog('Companion body: ' .. label .. (shown == true and (check.repaired and ': shown after the look ' .. check.repaired or ': shown') or ': nothing to judge by'))
+        return
+    end
+    if check.step == 1 then
+        check.step, check.at = 2, runtimeClock + 3.0
+        spawnRecords.devLog('Companion body: ' .. label .. ': no mesh shown yet, looking again')
+        return
+    end
+    if check.step == 2 then
+        check.step, check.at = 3, runtimeClock + 3.0
+        local look = spawnRecords.recordLook(entry.record)
+        if look and look ~= state.appearance then
+            local asked = pcall(function() entry.npc:ScheduleAppearanceChange(CName.new(look)) end)
+            if asked then
+                check.repaired = look
+                spawnRecords.devLog('Companion body: ' .. label .. ': no mesh shown, trying the look the record names, ' .. look)
+                return
+            end
+        end
+    end
+    -- No mesh shown after the repair (or nothing to repair with).
+    entry.bodyCheck = nil
+    spawnRecords.markBad(entry.record, 'no visible body')
+    -- A look kept for a record that gave no body is not kept (companions.lua keepOwnLook).
+    if looksMemory()[entry.record] then looksMemory()[entry.record] = nil; saveLooks() end
+    local definition = records[entry.key]
+    local nextId = definition and definition.records and spawnRecords.nextRecord(definition) or nil
+    local again = nextId ~= nil and entry.state == 'ready' and M.onBodyMissing ~= nil
+    spawnRecords.devLog('Companion body: ' .. label .. ': NO VISIBLE BODY, the record is set aside' .. (again and ' and she is invited again with ' .. nextId
+        or (nextId and ', the next invitation takes ' .. nextId or ', no other record to try')))
+    if not again then return end
+    if M.dismiss(entry.serial) == false then return end
+    pcall(M.onBodyMissing, {serial = entry.serial, key = entry.key, profileKey = entry.profileKey, name = entry.name, record = entry.record, nextRecord = nextId})
+end
+function M.bodyTick()
+    for _,entry in ipairs(entries) do
+        local check = entry.bodyCheck
+        if check and runtimeClock >= check.at and entry.npc and (entry.state == 'ready' or entry.state == 'visiting') then
+            local ok, problem = pcall(bodyStep, entry, check)
+            if not ok then
+                entry.bodyCheck = nil
+                spawnRecords.devLog('Companion body: the check of ' .. tostring(entry.name) .. ' failed (' .. tostring(problem):sub(1, 120) .. ')')
+            end
+        end
+    end
+end
+
 function M.update(player,delta,focusEntity)
     if not externalSpatialFrame then spatialFrame() end
     -- The MoveTo observer (companion-locomotion.lua) skips all work without a managed copy.
@@ -3221,6 +3325,7 @@ function M.update(player,delta,focusEntity)
             end
         end
     end
+    M.bodyTick()
     -- A failed copy that is still standing (a recovery that could not finish, a delete the game had not confirmed) is retired again every
     -- two seconds, at most five refusals: one clock comparison per failed entry, and nothing once it is gone.
     for _,entry in ipairs(entries) do

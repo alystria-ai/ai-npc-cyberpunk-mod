@@ -26,7 +26,7 @@ export const COMPACT = Object.freeze({
   minRatio: 3.8,       // the ratio the target is counted with is kept inside these (the whole prompt's ratio, ids and slang included, runs a little under the persona text's own 4.4)
   maxRatio: 4.6,
   targetTokens: 1900,  // ... and this is what it aims at: with the model's own characters-a-token ratio (the budget's TokenMeter) the target in characters follows it
-  floorChars: 2600,    // the persona's own text keeps at least this much when the Mature layer and the world rules leave less room
+  floorChars: 2450,    // the persona's own text keeps at least this much when the Mature layer and the world rules leave less room (2,600 until 2026-10-31: the output rules grew by about 150 characters with the narration line, and a head at the floor must stay under 2,300 tokens)
   minPiece: 160,       // a block that would be cut to less than this is left out
   minSaving: 800,      // a persona that would lose less than this (an everyday resident) is left whole: a cut that small is not worth a different prompt
   samples: 2,          // example lines kept

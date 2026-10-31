@@ -189,3 +189,29 @@ game.files[Play.PLAY] = nil
 play.restore()
 eq(said(), '', 'no file, nothing held: nothing asked')
 `));
+
+test('a pack that starts cannot be missed: a notice names it (title and first objective), once per start, never at a session start or a load, and the journal entry and map pin are made too', () => lua(`
+local notices = {}
+local j = Journal.new({world = world, read = function(path) return files[path] end, decode = decode, log = log,
+  notice = function(r) notices[#notices + 1] = r.title .. '|' .. r.objective end})
+-- The start: the journal entry is made with the tracker offer and the pin, and the notice is shown.
+eq(j.apply({row()}), 1)
+eq(said(), 'set,panam-sunset-coffee,active,Meet Panam at the Sunset Motel,2,true', 'entry, tracker and pin')
+eq(#notices, 1, 'one notice')
+eq(notices[1], 'Coffee at the Sunset|Meet Panam at the Sunset Motel')
+-- The same block again, a later stage and an ending are not starts.
+j.apply({row()}); j.apply({row({objective = 'Walk around Rocky Ridge with Panam', serial = 2})}); j.apply({row({state = 'succeeded'})})
+eq(#notices, 1, 'only the start')
+-- A hangout played again starts again.
+j.apply({row({state = 'active', serial = 3, since = 900})})
+eq(#notices, 2)
+-- A session start or a load finds quests that are already running: no notice.
+local again = Journal.new({world = world, read = function(path) return files[path] end, decode = decode, log = log, notice = function(r) notices[#notices + 1] = r.title end})
+again.apply({row()}, {startup = true})
+eq(#notices, 2, 'a quest found at a session start is not new')
+-- A notice that raises an error never stops the entry.
+local broken = Journal.new({world = world, read = function(path) return files[path] end, decode = decode, log = log, notice = function() error('boom') end})
+calls = {}
+eq(broken.apply({row({pack = 'judy-door-duty', title = 'Door Duty'})}), 1)
+eq(broken.holding(), true)
+`));

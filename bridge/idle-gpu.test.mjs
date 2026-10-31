@@ -120,8 +120,10 @@ function warmTalkTargetsWith(stand) {
   }
   const source = bridge.slice(start, end);
   return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual', 'mistralMemory', 'memoryNamespace', 'wantVoiceClips',
+    'talkRetrievalOn', 'talkRetrieval', 'scheduleTalkFill',
     `${source}\nreturn warmTalkTargets;`)(stand.stopped ?? false, stand.ids, stand.localVoice, stand.mistral, stand.mistralHost,
-    stand.profileFor, [], stand.multilingual ?? {fixed: null}, stand.mistralMemory ?? {warmFor: () => false}, {keyFor: key => key}, stand.wantVoiceClips ?? (() => null));
+    stand.profileFor, [], stand.multilingual ?? {fixed: null}, stand.mistralMemory ?? {warmFor: () => false}, {keyFor: key => key}, stand.wantVoiceClips ?? (() => null),
+    stand.talkRetrievalOn ?? false, stand.talkRetrieval ?? {warmFor: () => false}, stand.scheduleTalkFill ?? (() => {}));
 }
 
 test('warmTalkTargets prepares an OmniVoice voice and a local persona for the people V talks to, and nothing otherwise', () => {
@@ -155,10 +157,22 @@ test('warmTalkTargets prepares an OmniVoice voice and a local persona for the pe
   log.length = 0;
   warmWithMemory(['judy-alvarez'], {persona: false});
   assert.equal(log.some(item => item[0] === 'memory'), false);
+  // The topic retrieval (bridge/talk-retrieval.mjs) starts with the same private talk on a text route, and schedules the one-time background fill of the roster's vectors.
+  const topics = [];
+  const warmTopics = warmTalkTargetsWith({...stand, talkRetrievalOn: true, talkRetrieval: {warmFor: key => topics.push(['warm', key])}, scheduleTalkFill: () => topics.push(['fill'])});
+  warmTopics(['judy-alvarez']);
+  assert.deepEqual(topics, [['warm', 'judy-alvarez'], ['fill']]);
+  topics.length = 0;
+  warmTopics(['judy-alvarez', 'panam-palmer']); warmTopics(['judy-alvarez'], {persona: false});
+  assert.deepEqual(topics, [], 'not for a group and not for a turn that has begun');
+  warmTalkTargetsWith({...stand, talkRetrieval: {warmFor: key => topics.push(['warm', key])}})(['judy-alvarez']);
+  assert.deepEqual(topics, [], 'and not with the retrieval switched off');
   stand.mistral.active = false;
   log.length = 0;
   warmWithMemory(['judy-alvarez']);
   assert.equal(log.some(item => item[0] === 'memory'), false, 'Convai answering keeps its own memory');
+  warmTopics(['judy-alvarez']);
+  assert.deepEqual(topics, [], 'and starts no embedder for the topic views');
   stand.mistral.active = true;
   log.length = 0;
   stand.localVoice.preparesOnGpu = false; stand.mistral.route = 'mistral';

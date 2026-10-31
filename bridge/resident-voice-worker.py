@@ -18,6 +18,7 @@ import os
 import re
 import stat
 import sys
+import threading
 import time
 import wave
 
@@ -878,10 +879,139 @@ def cached_profiles(adapter, registry):
 
 
 # A game restarted fast ends the old bridge's whole process tree and starts the new bridge a second later: the old worker's lock is released by the OS
-# only when that process has really gone, so a slot that is owned right at the start is polled for a few seconds before it counts as owned.
-# A real second worker stays alive and still gets the error after the wait.
-MODEL_SLOT_WAIT_S = 9.0
-MODEL_SLOT_POLL_S = 1.0
+# only when that process has really gone. The bridge (bridge/worker-process.mjs, awaitModelSlot) reads the owner record below before it starts a worker, takes over from
+# an owner that has exited or stopped beating at once and waits for a live one, so a worker normally finds the slot free. The wait here is the last guard: a slot that is
+# owned right at the start is tried again after 1, 2, 4 and 8 s (15 s in all), every 0.1 s while its owner has exited or is exiting, and only a live worker that
+# is still there at the end is reported as owning it. Nothing is ever started into a slot another process holds: the OS lock is the only thing that admits a worker.
+MODEL_SLOT_STEPS_S = (1.0, 2.0, 4.0, 8.0)
+MODEL_SLOT_WAIT_S = sum(MODEL_SLOT_STEPS_S)
+MODEL_SLOT_SLICE_S = 0.25
+MODEL_SLOT_EXIT_POLL_S = 0.1
+SLOT_WAIT_VARIABLE = 'CYBERPUNK_CONVAI_SLOT_WAIT_S'
+# The owner record beside the lock: {version, pid, startedAt, heartbeatAt (ms since 1970), state: running | exiting}. The holder refreshes it every
+# SLOT_HEARTBEAT_S and removes it when it lets go; one older than SLOT_STALE_S has stopped beating (the same limits as SLOT_WAIT in bridge/worker-process.mjs).
+SLOT_OWNER_FILE = 'resident-model.owner.json'
+SLOT_HEARTBEAT_S = 2.0
+SLOT_STALE_S = 10.0
+
+
+def slot_wait_seconds(environ=None):
+    """How long the worker may wait for the slot: the bridge's figure (what is left of its window), else the whole window."""
+    environ = os.environ if environ is None else environ
+    try:
+        value = float(environ.get(SLOT_WAIT_VARIABLE, ''))
+    except ValueError:
+        return MODEL_SLOT_WAIT_S
+    return value if 0 <= value <= 60 else MODEL_SLOT_WAIT_S
+
+
+def pid_alive(pid):
+    """Is a process running as `pid`? (Never os.kill: on Windows a signal other than Ctrl+C ends the process.)"""
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid < 1:
+        return False
+    if os.name == 'nt':
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return ctypes.GetLastError() == 5  # access denied: it exists
+        try:
+            code = ctypes.c_ulong()
+            return bool(kernel.GetExitCodeProcess(handle, ctypes.byref(code))) and code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def read_slot_owner(path):
+    """The owner record, or None when there is none or it is not one."""
+    try:
+        value = json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+    if (not isinstance(value, dict) or not isinstance(value.get('pid'), int) or isinstance(value.get('pid'), bool) or value['pid'] < 1
+            or not isinstance(value.get('heartbeatAt'), (int, float)) or isinstance(value.get('heartbeatAt'), bool)):
+        return None
+    return {'pid': value['pid'], 'heartbeatAt': float(value['heartbeatAt']), 'state': 'exiting' if value.get('state') == 'exiting' else 'running'}
+
+
+def judge_slot_owner(owner, *, now=None, alive=pid_alive, stale_s=SLOT_STALE_S):
+    """'free' (no owner), 'gone' (its process has exited), 'exiting', 'stale' (it stopped beating) or 'live'. The same verdicts as judgeSlot in bridge/worker-process.mjs."""
+    if owner is None:
+        return 'free'
+    if not alive(owner['pid']):
+        return 'gone'
+    if owner['state'] == 'exiting':
+        return 'exiting'
+    now = time.time() * 1000 if now is None else now
+    return 'stale' if now - owner['heartbeatAt'] > stale_s * 1000 else 'live'
+
+
+class SlotOwner:
+    """The record of who holds the slot, kept fresh by a thread while the slot is held. Every failure to write it is ignored: it only helps the next start to be quick."""
+
+    def __init__(self, path, *, pid=None, heartbeat_s=SLOT_HEARTBEAT_S):
+        self.path = Path(path)
+        self.pid = os.getpid() if pid is None else pid
+        self.started_at = time.time() * 1000
+        self.state = 'running'
+        self.heartbeat_s = heartbeat_s
+        self.stop = threading.Event()
+        self.lock = threading.Lock()
+        self.thread = None
+
+    def write(self):
+        with self.lock:
+            record = {'version': 1, 'pid': self.pid, 'startedAt': self.started_at, 'heartbeatAt': time.time() * 1000, 'state': self.state}
+            temporary = self.path.with_name(f'{self.path.name}.{self.pid}.tmp')
+            try:
+                temporary.write_text(json.dumps(record, separators=(',', ':')), encoding='utf-8')
+                os.replace(temporary, self.path)
+            except OSError:
+                try:
+                    temporary.unlink()
+                except OSError:
+                    pass
+
+    def begin(self):
+        self.write()
+        self.thread = threading.Thread(target=self.beat, name='slot-heartbeat', daemon=True)
+        self.thread.start()
+
+    def beat(self):
+        while not self.stop.wait(self.heartbeat_s):
+            self.write()
+
+    def exiting(self):
+        """The worker has been told to stop: the next start waits for its process to go instead of for a heartbeat."""
+        self.state = 'exiting'
+        self.write()
+
+    def release(self):
+        self.stop.set()
+        if self.thread is not None:
+            self.thread.join(timeout=2)
+        owner = read_slot_owner(self.path)
+        if owner is not None and owner['pid'] == self.pid:
+            try:
+                self.path.unlink()
+            except OSError:
+                pass
+
+
+_slot_owner = None
+
+
+def mark_slot_exiting():
+    """Called when the worker starts to shut down (its input ended or it was told to stop)."""
+    if _slot_owner is not None:
+        _slot_owner.exiting()
 
 
 def _lock_model_slot(handle):
@@ -910,11 +1040,13 @@ def _unlock_model_slot(handle):
 
 
 @contextmanager
-def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=MODEL_SLOT_POLL_S, sleep=time.sleep, clock=time.monotonic):
+def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=None, sleep=time.sleep, clock=time.monotonic, alive=pid_alive):
     """One OS-owned admission slot shared by bridge and audition workers.
 
-    `wait_s` is how long an owned slot is polled (every `poll_s`) before it is reported as owned; 0 reports it at once.
+    `wait_s` is how long an owned slot is tried again before it is reported as owned; 0 reports it at once. The pauses are MODEL_SLOT_STEPS_S (1, 2, 4, 8 s)
+    unless `poll_s` fixes one, and 0.1 s while the owner has exited or is exiting. Exactly one line on stderr says that the slot was taken after a wait.
     """
+    global _slot_owner
     root = root.resolve()
     relative = 'resident-model.lock' if cache_root is not None else 'runtime/voice-studio-data/resident-model.lock'
     candidate = cache_root if cache_root is not None else root
@@ -928,23 +1060,45 @@ def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=MODEL_SLOT
     if not candidate.parent.resolve().is_relative_to(approved.resolve()):
         raise ValueError('Model-admission path escaped the runtime')
     candidate.parent.mkdir(parents=True, exist_ok=True)
+    owner_path = candidate.with_name(SLOT_OWNER_FILE)
     with candidate.open('a+b') as handle:
         if os.fstat(handle.fileno()).st_size == 0:
             handle.write(b'0')
             handle.flush()
-        deadline = clock() + max(0.0, wait_s)
-        waited = False
+        started = clock()
+        deadline = started + max(0.0, wait_s)
+        steps = iter(MODEL_SLOT_STEPS_S)
+        last_owner = None
         while not _lock_model_slot(handle):
             if clock() >= deadline:
                 raise RuntimeError('Another resident voice worker owns the shared model slot')
-            if not waited:
-                waited = True
-                print('The shared model slot is still owned (a worker that is exiting?): waiting for it.', file=sys.stderr, flush=True)
-            sleep(max(0.0, min(poll_s, deadline - clock())))
+            owner = read_slot_owner(owner_path)
+            last_owner = owner['pid'] if owner else last_owner
+            verdict = judge_slot_owner(owner, alive=alive)
+            # A worker that has exited or is exiting gives the lock back within moments: look often. A live one is looked at on the 1, 2, 4, 8 s schedule, cut short as soon
+            # as its record says it is going.
+            fast = verdict in ('gone', 'exiting', 'free')
+            pause = MODEL_SLOT_EXIT_POLL_S if fast else (poll_s if poll_s is not None else next(steps, MODEL_SLOT_STEPS_S[-1]))
+            pause = max(0.0, min(pause, deadline - clock()))
+            while pause > 0:
+                piece = pause if fast else min(pause, MODEL_SLOT_SLICE_S)
+                sleep(piece)
+                pause -= piece
+                if not fast and judge_slot_owner(read_slot_owner(owner_path), alive=alive) in ('gone', 'exiting', 'free'):
+                    break
+        if last_owner is not None:
+            print(f'[OmniSlot] took over the voice slot from worker {last_owner} after {clock() - started:.1f} s', file=sys.stderr, flush=True)
+        record = SlotOwner(owner_path)
+        record.begin()
+        _slot_owner = record
         try:
             yield
         finally:
-            _unlock_model_slot(handle)
+            _slot_owner = None
+            try:
+                record.release()
+            finally:
+                _unlock_model_slot(handle)
 
 
 def main():
@@ -964,7 +1118,7 @@ def main():
     registry = validate_config(read_config(args.config), paths=paths)
     if args.skip_startup_warm:
         registry['startupProfiles'] = []
-    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None, wait_s=MODEL_SLOT_WAIT_S):
+    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None, wait_s=slot_wait_seconds()):
         run_worker(registry)
 
 
@@ -1110,6 +1264,7 @@ def run_worker(registry):
             if not session.handle(json.loads(line)):
                 break
     finally:
+        mark_slot_exiting()
         try:
             if graph:
                 graph.close()

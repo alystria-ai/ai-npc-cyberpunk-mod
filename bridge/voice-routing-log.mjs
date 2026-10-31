@@ -90,6 +90,7 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
   const requested = voice.requestedProvider;
   const multilingualWhy = plan?.reason === 'english-only-voice'
     ? 'Multilingual non-English reply: Pocket speaks English only'
+    : plan?.reason === 'other-language-pocket' ? 'Other language reply: Pocket speaks English only, the Voxtral voice or OmniVoice speak it'
     : plan?.reason === 'pocket-language-pack-missing' ? 'Multilingual non-English reply: the PocketTTS model for this language is installed but its multilingual pack is not'
     : plan?.reason === 'voice-language-unsupported' ? 'Multilingual non-English reply: the Voxtral voice does not speak this language' : null;
   // A written reply because the chosen local voice cannot run (or has no clip for this character) is explained by the checks below; any other

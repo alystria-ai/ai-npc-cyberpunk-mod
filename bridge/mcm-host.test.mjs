@@ -258,6 +258,38 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   assert(off.subtitles == false and off.subtitleStyle == 'overhead' and mcm.row('Subtitles').value == 1, tostring(off.subtitleStyle))
 `));
 
+test('Mod Configuration Menu shows Other language beside Voice language and Subtitle language beside Subtitles, and Apply saves them through the same rules', () => withScreen(`
+  settingsPage('Voice AI and microphone')
+  local voiceLabels = labels()
+  assert(voiceLabels:find('Voice language | Other language | Companion voice volume', 1, true), voiceLabels)
+  local before = manager.snapshot(player).settings
+  assert(before.replyLanguageOther == 'fi' and before.subtitleLanguage == 'same')
+  local other = mcm.row('Other language')
+  assert(other.value == 1, 'Finnish by default')
+  assert(mcm.row('Voice language').value == 1 and mcm.set('Voice language', 17) == true, 'Other language is the seventeenth choice')
+  assert(mcm.set('Other language', 3))
+  frames(4)
+  assert(manager.snapshot(player).settings.replyLanguage == 'en', 'nothing is saved before Apply')
+  assert(mcm.apply())
+  local saved = manager.snapshot(player).settings
+  assert(saved.replyLanguage == 'other' and saved.replyLanguageOther == 'no', tostring(saved.replyLanguage) .. tostring(saved.replyLanguageOther))
+  assert(mcm.row('Other language').value == 3 and mcm.row('Voice language').value == 17, 'the page shows what is saved')
+  press('Back to settings'); press('Interface')
+  local interfaceLabels = labels()
+  assert(interfaceLabels:find('Interface language | Subtitles | Subtitle language', 1, true), interfaceLabels)
+  assert(mcm.row('Subtitle language').value == 1, 'Same as speech by default')
+  assert(mcm.set('Subtitle language', 9))
+  frames(4)
+  assert(manager.snapshot(player).settings.subtitleLanguage == 'same', 'nothing is saved before Apply')
+  assert(mcm.apply())
+  assert(manager.snapshot(player).settings.subtitleLanguage == 'ru', manager.snapshot(player).settings.subtitleLanguage)
+  assert(mcm.row('Subtitle language').value == 9)
+  -- Subtitles Off keeps the language, and the language keeps the style.
+  assert(mcm.set('Subtitles', 1) and mcm.apply())
+  local off = manager.snapshot(player).settings
+  assert(off.subtitles == false and off.subtitleLanguage == 'ru')
+`));
+
 test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
   ${footer}
   settingsPage('Voice AI and microphone')
@@ -714,6 +746,34 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings-conversations|1|1' and mcm.row('Dynamic info'))
   press('Back to settings'); press('Back to Companion Manager')
+`));
+
+test('Dynamic info, owner state 31 Oct: both sets identical (all twelve on), Defaults on the page or on Conversations gives each set its own defaults', () => withScreen(`
+  ${footer}
+  local function allOn()
+    local person, phone = {}, {}
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do person[kind], phone[kind] = true, true end
+    assert(manager.applySettings(player, {dynamicInfo = person, dynamicInfoPhone = phone}))
+  end
+  local function check(why)
+    local settings = manager.snapshot(player).settings
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do
+      assert(settings.dynamicInfo[kind] == manager.dynamicInfoDefault(kind, false), why .. ': in person ' .. kind)
+      assert(settings.dynamicInfoPhone[kind] == manager.dynamicInfoDefault(kind, true), why .. ': phone ' .. kind)
+    end
+    assert(settings.dynamicInfoPhone.location == false and settings.dynamicInfoPhone.gear == false and settings.dynamicInfoPhone.time == true and settings.dynamicInfo.gear == true, why)
+  end
+  allOn(); core.refresh(); frames(4)
+  settingsPage('Conversations'); press('Dynamic info')
+  assert(mcm.row('dynamicPhone:location').value == true and mcm.row('dynamic:location').value == true, 'the identical lists of the report')
+  press('Defaults'); press('Defaults')
+  check('from the Dynamic info page')
+  assert(mcm.row('dynamicPhone:location').value == false and mcm.row('dynamicPhone:quest').value == true and mcm.row('dynamic:location').value == true)
+  -- A pending draft on the page does not stand in the way, and Conversations restores both sets as well.
+  allOn(); core.refresh(); frames(4)
+  press('Back to settings')
+  press('Defaults'); press('Defaults')
+  check('from Conversations')
 `));
 
 test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Conversations', () => withScreen(`
@@ -2034,7 +2094,8 @@ test('MCM: Restore defaults on Key bindings puts the five default keys back (and
 
 test('MCM: without Codeware the Set button says so and nothing waits; without the scripts it says that', () => withScreen(`
   press('Key bindings')
-  -- The fake player has no key methods at all: the mod's scripts did not load.
+  -- The fake player has no key methods at all: the mod's scripts did not load (the fixture's catch-all for the mod's methods is taken away).
+  setmetatable(player, nil)
   mcm.press('kb:set:voice'); frames(4)
   assert(mcm.status() == 'The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.', mcm.status())
   function player:ConvaiKeyBindsReady() return false end

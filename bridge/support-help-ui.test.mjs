@@ -477,6 +477,7 @@ test('a player with none of the scripts’ methods: the menu update and the mana
   ${setupWorld}
   -- every method this mod's scripts add is gone (they did not compile); the game's own methods stay
   for key in pairs(player) do if key:find('^Convai') then player[key] = nil end end
+  setmetatable(player, nil)
   assert(player.ConvaiManagerSetVoice == nil and player.ConvaiPhoneIsOpen == nil and player.ConvaiComposerOpen == nil)
   local written, menu = {}, true
   local board = {SetVariant = function(_, id, value) written[#written + 1] = value end, GetBool = function() return menu end}

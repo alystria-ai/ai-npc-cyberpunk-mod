@@ -12,7 +12,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone"],
+    "channels": ["phone"],
     "chance": 0.5,
     "bringUp": "Someone broke into the Mox storeroom and took the dolls' testimonies. Bring up, in your own way, that a courier is taking them across Watson right now and you need V to stop him."
   },

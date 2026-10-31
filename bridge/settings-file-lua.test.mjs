@@ -17,7 +17,7 @@ const luaString = text => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").r
 const customised = {
   ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 200, vVoiceVolume: 80,
   voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead',
-  naturalSpeech: true, replyLanguage: 'ja',
+  naturalSpeech: true, replyLanguage: 'ja', replyLanguageOther: 'sv', subtitleLanguage: 'ru',
 };
 
 test('a first start writes exactly the documented defaults, once; a second start from that file writes nothing', () => {
@@ -82,7 +82,7 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('writes', writes('runtime/settings.json.tmp'))
     `);
     for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'vVoiceVolume', 'voiceProvider', 'omniSteps',
-      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'replyLanguage']) {
+      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'replyLanguage', 'replyLanguageOther', 'subtitleLanguage']) {
       assert.deepEqual(out.settings[key], customised[key], `${key} came back from the backup`);
     }
     assert.equal(out.writes, 0, 'a normalized backup needs no rewrite just to be loaded');
@@ -139,7 +139,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
     johnnyRemarks: 5, companionSpeakUp: 'often', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
-    uiLanguage: 'klingon', replyLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
+    uiLanguage: 'klingon', replyLanguage: 'klingon', replyLanguageOther: 'klingon', subtitleLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
     errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes', keyBindings: 'F7', companionOutfits: 'yes', reachOuts: 'maybe', micDevice: 5,
   };
   const out = run(`${managerLua}
@@ -765,6 +765,32 @@ test('Dynamic info, phone defaults: an untouched phone set (missing, empty or th
   assert.equal(out.own.marker, 1);
   assert.deepEqual(out.marked.phone, {location: false, time: true, company: true, condition: true, money: true, gear: false, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: true}, 'with the marker the saved set is left alone');
   assert.deepEqual(out.markedEmpty.phone, PHONE, 'a missing kind takes the phone default');
+});
+
+test('Dynamic info, owner state 31 Oct: two identical sets with the marker are the player\'s own until Restore defaults, which saves each set\'s own defaults, and a restart keeps them apart', () => {
+  const out = run(`${managerLua}
+    local kinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
+    local allOn = {}
+    for _, kind in ipairs(kinds) do allOn[kind] = true end
+    files['runtime/settings.json'] = json.encode({version = 2, dynamicInfo = allOn, dynamicInfoPhone = allOn, dynamicInfoPhoneDefaults = 1})
+    local player, manager = newPlayer(), newManager()
+    report('before', manager.snapshot(player).settings.dynamicInfoPhone)
+    -- The batch Restore defaults sends (mod/manager-ui.lua M.defaults): every kind of each set at manager.dynamicInfoDefault.
+    local person, phone = {}, {}
+    for _, kind in ipairs(manager.dynamicInfoKinds()) do person[kind], phone[kind] = manager.dynamicInfoDefault(kind, false), manager.dynamicInfoDefault(kind, true) end
+    assert(manager.applySettings(player, {dynamicInfo = person, dynamicInfoPhone = phone}))
+    local again = newManager().snapshot(newPlayer()).settings
+    report('person', again.dynamicInfo)
+    report('phone', again.dynamicInfoPhone)
+    report('flags', convaiDynamicInfo)
+    report('marker', json.decode(settingsText()).dynamicInfoPhoneDefaults)
+  `);
+  assert.ok(Object.values(out.before).every(value => value === true), 'identical and the player\'s own while the marker is there');
+  assert.deepEqual(out.phone, PHONE, 'after Restore defaults and a restart the phone set is its own defaults');
+  assert.deepEqual(out.person, {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false});
+  assert.equal(out.marker, 1);
+  assert.equal(out.flags.location, true, 'the game is read for a kind either set wants');
+  assert.notDeepEqual(out.phone, out.person);
 });
 
 test('Dynamic info: a fresh settings file has the mods kind off and the other eleven on', () => {

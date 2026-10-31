@@ -172,12 +172,23 @@ function applyEnv()
     GetPlayer = function()
       if not env.player then return nil end
       -- env.requirements: nil is a scripts of 0.2.1 and older (no ConvaiRequirements); a string is what the new scripts answer
-      return {ConvaiPhoneIsOpen = env.scripts == true and function() return false end or nil,
+      local player = {ConvaiPhoneIsOpen = env.scripts == true and function() return false end or nil,
         ConvaiRequirements = env.scripts == true and (env.requirements ~= nil or env.requirementsError) and function()
           requirementCalls = requirementCalls + 1
           if env.requirementsError then error('ConvaiRequirements failed') end
           return env.requirements
         end or nil}
+      -- Scripts that compiled have every other method of this mod too; env.missingMethods = {ConvaiManagerSetVoice = true} takes some away
+      -- (an old compile kept, Scripts older than the Lua). ConvaiRequirements is the one method with its own rule above.
+      if env.scripts == true then
+        if env.missingMethods then for name in pairs(env.missingMethods) do player[name] = nil end end
+        setmetatable(player, {__index = function(_, key)
+          if type(key) == 'string' and key:find('^Convai') and key ~= 'ConvaiRequirements' and not (env.missingMethods and env.missingMethods[key]) then
+            return function() end
+          end
+        end})
+      end
+      return player
     end,
     GetSystemRequestsHandler = function()
       return {GetGameVersion = function() return env.gameVersion end,

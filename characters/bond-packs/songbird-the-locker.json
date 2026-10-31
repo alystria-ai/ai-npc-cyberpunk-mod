@@ -13,7 +13,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Before Reed brought her into Dogtown's mess, Songbird left a locker on a roof near the Black Sapphire. She calls you with a favour she is embarrassed to ask: go up and get what is in it. Her information about the patrols is seven weeks old, and she admits it, then forgets to account for it."
   },

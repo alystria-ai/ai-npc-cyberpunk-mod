@@ -34,7 +34,7 @@ local MISTRAL_STATUS = {
     ['gemini-daily'] = 'Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.',
     ['gemini-limit'] = 'Google Gemini is rate limiting you. Wait a minute, then try again.',
     ['gemini-region'] = 'Google Gemini is not available in your region. Use Convai or Local AI.',
-    ['gemini-server'] = 'Google Gemini is busy or had an error. Wait a minute, then try again.',
+    ['gemini-server'] = 'Google Gemini is busy right now. Try again in a moment.',
     ['gemini-unreachable'] = 'Google Gemini could not be reached. Check your internet connection, then try again.',
     ['gemini-model'] = 'The Gemini model is not available right now. Try again later or use Local AI.',
     ['local-fallback'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
@@ -824,6 +824,9 @@ function M.pushFootMoving(player, phoneOpen)
 end
 
 function M.update(player, delta, phoneOpen)
+    -- Scripts that compiled in part and lack the chat methods (setup-check.lua probeScripts): every call below would raise on every tick. One global read.
+    local gone = convaiScriptsMissing
+    if gone and gone.chat then return end
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     -- A reply due: the native plugin's revision of phone-chat-output.json is checked every 30 ms (one number, no disk access)

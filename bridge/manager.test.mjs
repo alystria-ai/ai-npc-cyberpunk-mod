@@ -544,7 +544,7 @@ test('the Voice language row: English by default, then Automatic and the mod lan
     assert(invoke('tab:settings').ok)
     local language=row('replyLanguage')
     assert(language and language.type=='select' and language.value==1 and language.defaultValue==1, 'English is the default')
-    local expected={'English','Automatic','German','French','Spanish','Italian','Portuguese','Polish','Russian','Ukrainian','Turkish','Czech','Hungarian','Japanese','Korean','Chinese'}
+    local expected={'English','Automatic','German','French','Spanish','Italian','Portuguese','Polish','Russian','Ukrainian','Turkish','Czech','Hungarian','Japanese','Korean','Chinese','Other language'}
     assert(#language.elements==#expected)
     for i,name in ipairs(expected) do assert(language.elements[i]==name, i..' '..tostring(language.elements[i])) end
     assert(manager.snapshot(player).settings.replyLanguage=='en')
@@ -565,13 +565,74 @@ test('the Voice language row: English by default, then Automatic and the mod lan
   `);
 });
 
+test('the Other language row (Voices) and the Subtitle language row (Interface): defaults, the bridge\'s choices in order, they save, survive a reload and refuse what is not listed', async () => {
+  const {OTHER_LANGUAGES} = await import('./other-languages.mjs');
+  const {SUBTITLE_LANGUAGES} = await import('./subtitle-translation.mjs');
+  const lua = names => `{${names.map(name => `'${name}'`).join(',')}}`;
+  const subtitleNames = SUBTITLE_LANGUAGES.map(code => code === 'same' ? 'Same as speech' : ({en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', pl: 'Polish',
+    ru: 'Russian', uk: 'Ukrainian', tr: 'Turkish', cs: 'Czech', hu: 'Hungarian', ja: 'Japanese', ko: 'Korean', zh: 'Chinese'}[code] ?? OTHER_LANGUAGES.find(item => item.code === code).name));
+  run(`${nsuiFixture}
+    -- Voices: Other language sits right under Voice language, Finnish by default, its words say what it needs and that Pocket cannot speak it.
+    assert(invoke('tab:settings').ok)
+    assert(invoke('settings:voice').ok)
+    loaded = registered.loadMod('manager')
+    local other = row('replyLanguageOther')
+    assert(other and other.type == 'select' and other.value == 1 and other.defaultValue == 1, 'Finnish is the default')
+    local expected = ${lua(OTHER_LANGUAGES.map(item => item.name))}
+    assert(#other.elements == #expected, #other.elements)
+    for i, name in ipairs(expected) do assert(other.elements[i] == name, i .. ' ' .. tostring(other.elements[i])) end
+    assert(other.description:find('Pocket speaks English only', 1, true) and other.description:find('Not available with Convai', 1, true), other.description)
+    assert(other.description:find('OmniVoice speaks all, Voxtral most', 1, true) and other.description:find('Mistral, Gemini, Custom or Local AI', 1, true))
+    local voice = row('replyLanguage')
+    assert(voice.elements[#voice.elements] == 'Other language', 'Other language is the last Voice language choice, so the others keep their places')
+    assert(manager.snapshot(player).settings.replyLanguageOther == 'fi' and manager.snapshot(player).settings.subtitleLanguage == 'same')
+    -- Choosing it: the Voice language 17 and the language 2 (Swedish) save, survive a reload, and nothing else moves.
+    assert(registered.applyBatch('manager', {{id = 'replyLanguage', value = 17}, {id = 'replyLanguageOther', value = 2}}).ok)
+    assert(saved.replyLanguage == 'other' and saved.replyLanguageOther == 'sv', tostring(saved.replyLanguage) .. tostring(saved.replyLanguageOther))
+    loaded = registered.loadMod('manager')
+    assert(row('replyLanguage').value == 17 and row('replyLanguageOther').value == 2, 'the saved choice is the one shown')
+    assert(registered.applyBatch('manager', {{id = 'replyLanguageOther', value = #expected}}).ok and saved.replyLanguageOther == 'he')
+    assert(not registered.applyBatch('manager', {{id = 'replyLanguageOther', value = #expected + 1}}).ok and saved.replyLanguageOther == 'he')
+    assert(not registered.applyBatch('manager', {{id = 'replyLanguageOther', value = 0}}).ok and not registered.applyBatch('manager', {{id = 'replyLanguageOther', value = 1.5}}).ok)
+    assert(not manager.applySettings(player, {replyLanguageOther = 'klingon'}) and not manager.applySettings(player, {replyLanguageOther = 3}))
+    assert(not manager.applySettings(player, {replyLanguageOther = 'cs'}), 'a language the Voice language row has is not an Other language')
+    assert(manager.snapshot(player).settings.replyLanguageOther == 'he')
+    -- The old rows are untouched by all that.
+    assert(registered.applyBatch('manager', {{id = 'replyLanguage', value = 1}}).ok and saved.replyLanguage == 'en' and saved.replyLanguageOther == 'he', 'the language is kept')
+    -- Interface: Subtitle language sits with Subtitles, Same as speech by default.
+    assert(invoke('settings-voice:back').ok)
+    assert(invoke('settings:interface').ok)
+    loaded = registered.loadMod('manager')
+    local subtitle = row('subtitleLanguage')
+    assert(subtitle and subtitle.type == 'select' and subtitle.value == 1 and subtitle.defaultValue == 1, 'Same as speech is the default')
+    local names = ${lua(subtitleNames)}
+    assert(#subtitle.elements == #names, #subtitle.elements)
+    for i, name in ipairs(names) do assert(subtitle.elements[i] == name, i .. ' ' .. tostring(subtitle.elements[i])) end
+    assert(subtitle.description:find('Same as speech shows what is said', 1, true) and subtitle.description:find('the AI provider you chat with', 1, true), subtitle.description)
+    assert(subtitle.description:find('not Convai', 1, true) and subtitle.description:find('the voice never waits', 1, true) and subtitle.description:find('The original shows first', 1, true), subtitle.description)
+    assert(#subtitle.description <= 420 and #other.description <= 420, 'both helps fit the Native Settings UI description box')
+    assert(row('uiLanguage') and row('subtitleStyle') and row('subtitleLanguage'))
+    local russian = 0
+    for i, name in ipairs(names) do if name == 'Russian' then russian = i end end
+    assert(russian > 1 and registered.applyBatch('manager', {{id = 'subtitleLanguage', value = russian}}).ok and saved.subtitleLanguage == 'ru', tostring(saved.subtitleLanguage))
+    loaded = registered.loadMod('manager')
+    assert(row('subtitleLanguage').value == russian and manager.snapshot(player).settings.subtitleLanguage == 'ru', 'the saved choice is the one shown')
+    assert(not registered.applyBatch('manager', {{id = 'subtitleLanguage', value = #names + 1}}).ok and saved.subtitleLanguage == 'ru')
+    assert(not manager.applySettings(player, {subtitleLanguage = 'klingon'}) and not manager.applySettings(player, {subtitleLanguage = 4}) and saved.subtitleLanguage == 'ru')
+    assert(manager.applySettings(player, {subtitleLanguage = 'fi'}) and saved.subtitleLanguage == 'fi', 'an Other language is a subtitle language too')
+    assert(registered.applyBatch('manager', {{id = 'subtitleLanguage', value = 1}}).ok and saved.subtitleLanguage == 'same')
+    -- The Subtitles row and Interface language still work beside it.
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 3}}).ok and saved.subtitleStyle == 'overhead' and saved.subtitleLanguage == 'same')
+  `);
+});
+
 test('the Voice language choices are the bridge\'s, in the same order', async () => {
   const {REPLY_LANGUAGES} = await import('./multilingual.mjs');
   const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
   const list = [...lua.match(/local replyLanguages = \{([^}]*)\}/)[1].matchAll(/'([a-z-]+)'/g)].map(match => match[1]);
   assert.deepEqual(list, [...REPLY_LANGUAGES]);
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
-  for (const code of list) assert.match(ui, new RegExp(`\\b${code} = '[A-Z][a-z]+'`), `${code} has a name in REPLY_LANGUAGE_NAMES`);
+  for (const code of list) assert.match(ui, new RegExp(`\\b${code} = '[A-Z][a-z]+(?: [a-z]+)?'`), `${code} has a name in REPLY_LANGUAGE_NAMES`);
 });
 
 const invitationFixture = `
@@ -4940,7 +5001,7 @@ test('Settings pages: the list holds only the Open rows, Relationships is a butt
     assert(invoke('settings-provider:back').ok)
     opened('voice', 'settings-voice', 'settings-voice:back')
     local voices = idsOf('voices')
-    assert(voices[1] == 'voiceProvider' and voices[2] == 'replyLanguage' and voices[3] == 'voiceVolume' and voices[4] == 'vVoice' and voices[#voices] == 'audioDelay', table.concat(voices, ','))
+    assert(voices[1] == 'voiceProvider' and voices[2] == 'replyLanguage' and voices[3] == 'replyLanguageOther' and voices[4] == 'voiceVolume' and voices[5] == 'vVoice' and voices[#voices] == 'audioDelay', table.concat(voices, ','))
     for _, id in ipairs(voices) do assert(id ~= 'voice-pack' and id ~= 'voice-status' and id ~= 'subtitleStyle', id .. ' is on the voice page') end
     assert(invoke('settings-voice:back').ok)
     opened('conversations', 'settings-conversations', 'settings-conversations:back')

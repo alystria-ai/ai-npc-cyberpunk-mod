@@ -461,3 +461,20 @@ step(20)
 assert(#game.phones == 1 and game.phones[1].text == 'Words.' and #game.subtitles == 0 and #game.started == 0)
 local e = events().events; assert(e[#e].name == 'line:P3.c:done' and e[#e].serial == 6, e[#e].name)
 `));
+
+test('a stage with no timeoutAt has no timer; when the bridge starts its clock later (its call was shown) the same stage gets the timer, once, and a new moment moves it', () => withGame(`
+-- The call has not been shown: the bridge sends no timeoutAt, so nothing times out however long the game runs.
+file({quest({stage = 'call'})}); play.restore()
+step(30)
+assert(not names():find('stage:timeout', 1, true), 'no timer before the call was shown')
+-- The call rang: the same stage, same serial, now with the moment its clock runs out (60 game seconds on). The stage is not restarted.
+file({quest({stage = 'call', timeoutAt = game.gameClock + 60})}); step(1.1)
+assert(count('stage:enter') == 1, 'the stage was not started again')
+assert(logged('timeout clock runs'), 'and the game says its clock runs')
+step(30); assert(not names():find('stage:timeout', 1, true), 'not yet')
+-- A later moment replaces the first one.
+local first = game.gameClock + 30
+file({quest({stage = 'call', timeoutAt = game.gameClock + 120})}); step(1.1)
+step(40); assert(not names():find('stage:timeout', 1, true), 'the earlier moment no longer fires')
+step(90); assert(count('stage:timeout') == 1, 'and the new moment fires once: ' .. names())
+`));

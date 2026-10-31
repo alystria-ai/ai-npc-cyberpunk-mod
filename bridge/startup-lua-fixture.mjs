@@ -240,7 +240,7 @@ export const managerLua = `
 // Every key a first start writes, with the value it gets when nothing is saved (mod/manager.lua loadSettings). The roster above gives
 // the seven enabledByKey entries. The legacy six-place "enabled" projection is written with them.
 export const freshSettings = {
-  version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', voiceVolume: 150, voiceVolume150Given: true, vVoiceVolume: 150,
+  version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', replyLanguageOther: 'fi', subtitleLanguage: 'same', voiceVolume: 150, voiceVolume150Given: true, vVoiceVolume: 150,
   relationshipModes: {'judy-alvarez': 'auto', 'panam-palmer': 'auto', 'river-ward': 'auto', 'kerry-eurodyne': 'auto', 'meredith-stout': 'auto'},
   dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false},
   // The phone set (holocalls and texts) has defaults of its own: a caller or texter does not see V. dynamicInfoPhoneDefaults marks that they were applied once.

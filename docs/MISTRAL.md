@@ -88,25 +88,23 @@ stops on a comma) gets one more try with a short reminder; reasoning twice is ne
 
 ### Prompt order (layout v2)
 
-When the bridge supplies the context in tiers (`contextParts`), the prompt is ordered from what never changes to what changes every turn, so
-a prefix cache keeps working on Mistral and the local model:
+When the bridge supplies the context in tiers (`contextParts`), the prompt is ordered from what never changes to what changes, and everything that can change comes after the history, so
+a prefix cache (llama.cpp's, Gemini's implicit one) keeps the persona and the history when a world fact, the summary or the knowledge changes. Changed on 2026-10-31
+(feat/natural-talk-retrieval, after a 30 turn Gemini run whose cache fell to nothing on 12 turns of 30 each time the world, knowledge or summary block of the system message changed, see
+`docs/NATURAL_TALK_RESEARCH_2026-10-30.md` section 15). Before that, the world, the summary, the knowledge and the right-now block were in the system message, in the order described by
+`worldBlocksInCacheOrder` and `knowledgeApart` (2026-10-19 and 2026-10-22), which kept the cache only while none of them changed.
 
-1. system: the persona and the output rules (the persona prefix; the local AI loads it ahead on an invitation);
-2. system: the format notes for tags (Expressive emotions), then the world and quest context (slow), then what the character
-   remembers (the summary). Inside the world context the blocks that only change on game events come first (recency, history, jobs,
-   journal, gear) and the world facts come after them (`worldBlocksInCacheOrder`, `bridge/mistral-prompt.mjs`): the facts are ranked by
-   the words V just said, so their text changes with every turn, and placed first they made the first changed token sit right after the
-   persona (first player reports, 2026-10-19: 2,350 cached and about 3,000 new tokens on every turn). The Convai context keeps its own
-   order. Since 2026-10-22 (perf/bridge-1022) the facts are not in the world context at all when the blocks are known (`knowledgeApart`): they follow the
-   remembered summary in a section of their own, "WORLD KNOWLEDGE FOR THIS TURN", so a turn no longer re-reads the summary (up to 1,400 characters, about 350
-   tokens, measured in `bridge/prompt-budget.test.mjs`: 5,184 to 5,503 shared tokens of a 6,900-token example). The world context is cut at the same place with
-   or without them (a cut that moved with the facts' length would move the cached text), and the facts have a cap of half the world's. Moving the facts into the
-   last user message, behind the history, would keep the history too; it changes how the model weighs them and needs `scripts/Eval-MistralPrompt.mjs` first;
-3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
-   system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
-4. the recent exchanges, verbatim, as alternating messages;
-5. the last user message: the volatile notes (language, Natural speech dice), up to four remembered facts found for this
-   message, then `V says: <text>`.
+1. system: the persona and the output rules (the persona prefix, which the local AI loads ahead on an invitation), the player's world rules, the format notes for tags (Expressive
+   emotions), and, when the quest, journal and world data is chosen per turn (`bridge/talk-retrieval.mjs`), the rules for reading that data (the framing sentences of its blocks and
+   the authority sentence), the same text every turn.
+2. the recent exchanges, verbatim, as alternating messages.
+3. the last user message, most stable first: the world context (the blocks that only change on game events first, the world facts after them, `worldBlocksInCacheOrder`, and when the blocks are known the world
+   facts are in a section of their own, `knowledgeApart`), what the character remembers (the summary), the "right now" block (the clock,
+   the place, who is with V) and the fresh facts. After them come the volatile notes (language, Natural speech dice), up to four remembered facts found for this message, the background
+   chosen for V's words, then `V says: <text>` and the closing line.
+
+Moving the world into the last message changes how a model weighs it (it is nearer V's words). The response audit (`scripts/Eval-MistralPrompt.mjs`) has not been run on this order, because it
+needs a model, and the first live check watches for recited context.
 
 Convai keeps its own order (dynamic information as before). A bridge that does not supply `contextParts` gets the old layout.
 

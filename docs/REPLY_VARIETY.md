@@ -25,3 +25,13 @@ Branch `fix/talk-repetition-gear`. Code: `bridge/reply-variety.mjs`, used by `br
 ## Measured
 
 See the captain's log entry in `TODO.md` of 31 Oct for the numbers (8 live turns each, Ministral 8B).
+
+## Pet names (31 Oct, evening)
+
+Judy and Panam called V "handsome" in nearly every reply (five of seven in a live Convai talk). The partner tone asked for a pet name in every reply: the closing reminder said "call V something fond", the cached tone said "not in every sentence". Now `bridge/pet-names.mjs` keeps the rule: at most one pet name in six replies of a character, at most one in a reply, and never the one she used last.
+
+- **Text**: the cached partner tone and the closing reminder (`bridge/romance-context.mjs`) say a pet name is rare and most replies have none.
+- **Before the reply** (`petNameNote`): the closing tier carries a note when one was used in the last five replies ("no pet name for V at all, say V, or nothing") or lately ("not ..."). The bridge keeps each character's last twelve replies in memory (`ownReplyMemory` in `bridge/convai-bridge.mjs`), so it works for every provider, Convai included. A restart starts empty.
+- **After the reply** (`limitPetNames`, text providers only, since Convai's own text cannot be edited): a pet name said to V that the rule does not allow is taken out of the finished reply ("Don't mention it, handsome." becomes "Don't mention it."). A first sentence that holds one is not given to the voice early (`headHasPetName`). Only a pet name said to V counts: "you look handsome" is left alone.
+- **Convai is asked, not forced**: Convai's own text cannot be edited, so for it the rule is the cached partner tone, the closing reminder and the note above, all in the turn's context. The text providers get the same words and the cut as well.
+- **Tests**: `bridge/pet-names.test.mjs` (the rule on the live Judy talk and a 60 reply simulation), `bridge/text-provider-host.test.mjs` (the cut inside a turn, with no second request), `bridge/romance-context.test.mjs` (the wording). `bridge/pet-names.mjs` is in the Runtime's bridge allowlist (`packaging/runtime-layout.mjs`), or a built Runtime would stop at start on the missing import.

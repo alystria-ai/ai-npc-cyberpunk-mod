@@ -14,7 +14,7 @@
     "eddies": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "The Wraiths have put a burned bus across the old highway south of Rocky Ridge and charge every Aldecaldo run to pass. You want to know how many there are and whether they bluff, without a clan war. Bring up, in your own way, that V should drive up and talk while you cover from the ridge."
   },

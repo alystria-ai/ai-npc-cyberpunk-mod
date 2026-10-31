@@ -5,6 +5,7 @@ import {INWORLD_LANGUAGES, INWORLD_TIER1_LANGUAGES, INWORLD_TIER2_LANGUAGES, inw
 import {voxtralSpeaks} from './voxtral-languages.mjs';
 import {MOD_LANGUAGES} from './speech-language.mjs';
 import {REPLY_LANGUAGES, LANGUAGE_NAMES} from './multilingual.mjs';
+import {OTHER_LANGUAGES} from './other-languages.mjs';
 
 // Inworld's multilingual page (docs.inworld.ai/tts/capabilities/multilingual, 2026-10-31): 15 Tier 1 and 79 Tier 2 languages for TTS-2 and TTS-2 Flash.
 test('the list is the Tier 1 and Tier 2 of the Inworld docs, without repeats', () => {
@@ -15,7 +16,9 @@ test('the list is the Tier 1 and Tier 2 of the Inworld docs, without repeats', (
 
 test('every language of the mod (interface languages and the Reply language choices) is spoken by Inworld, with the code the docs list', () => {
   for (const language of MOD_LANGUAGES) assert.equal(inworldSpeaks(language), true, language);
-  for (const language of REPLY_LANGUAGES.filter(code => code !== 'auto')) assert.equal(inworldSpeaks(language), true, language);
+  // 'auto' and 'other' are choices of the row, not languages: the Other languages themselves are checked one by one below.
+  for (const language of REPLY_LANGUAGES.filter(code => code !== 'auto' && code !== 'other')) assert.equal(inworldSpeaks(language), true, language);
+  for (const {code} of OTHER_LANGUAGES) assert.equal(inworldSpeaks(code), true, `Other language ${code}`);
   for (const language of MOD_LANGUAGES.filter(code => code !== 'en')) assert.equal(inworldRequestLanguage(language), language, language);
   // Every language the reply-language detector can name is spoken too.
   for (const language of Object.keys(LANGUAGE_NAMES)) assert.equal(inworldSpeaks(language), true, language);

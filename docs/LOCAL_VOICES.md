@@ -310,7 +310,7 @@ session ("A failed worker stays out of routing until the player chooses that pro
   worker is **adopted** (the model is not loaded a second time), and the Pocket worker is released. Nothing is announced.
 - **Memory.** Pocket runs on the CPU (`CUDA_VISIBLE_DEVICES=-1`, 0 VRAM), so the loading OmniVoice worker never shares VRAM with
   another model. While it loads, Pocket's CPU RAM (one 418 MiB student) and the loading worker are both resident; Pocket is
-  released at the switch. Only one OmniVoice worker exists at a time (the shared `resident-model.lock` still forbids two).
+  released at the switch. Only one OmniVoice worker exists at a time (the shared `resident-model.lock` still forbids two, see "The model slot after a fast restart" below).
 - **What the player sees.** One gameplay notice when Pocket starts serving: "OmniVoice · Balanced is not ready yet. Companions are
   using Pocket · Performance for now." (the same 600 s repeat window as the permanent text). Silence on the way back. If the retries
   run out, the permanent "is unavailable" text follows. The Settings status line reads "Using Pocket, OmniVoice not ready yet".
@@ -323,6 +323,36 @@ session ("A failed worker stays out of routing until the player chooses that pro
   flight and voice playback not Off (V's typed line counts), the failure is cleared and the normal start loads Pocket again; the route
   returns at the next idle poll. The failed worker is released when it fails. The story ends, and nothing loads, when the player chooses
   another voice or a cloud voice, or the service closes.
+
+### The model slot after a fast restart (October 31)
+
+One OmniVoice worker owns the GPU at a time. It holds an OS lock (`resident-model.lock`, in the portable cache folder or in
+`runtime/voice-studio-data`), and the OS lock stays the only thing that admits a worker. When the player restarts the game fast, the
+old bridge's tree is ending while the new bridge starts, so the new bridge often found the old worker still holding the slot. The
+worker waited 9 s, failed, an error report was filed and the voice was asked again only after 45 s. The triage of 2026-10-23 decided
+on a short wait instead.
+
+- **Owner record.** Beside the lock the holder keeps `resident-model.owner.json`: `pid`, `startedAt`, `heartbeatAt` (ms since 1970) and
+  `state` (`running`, or `exiting` once it has been told to stop and is releasing the card). A thread refreshes `heartbeatAt` every 2 s.
+  The holder removes the file when it lets go. A file that is missing or cannot be read counts as no owner (`resident-voice-worker.py`
+  `SlotOwner`, `bridge/worker-process.mjs` `readSlotOwner`).
+- **Before a worker is started** (`ResidentVoice.start`, `awaitModelSlot` in `bridge/worker-process.mjs`) the bridge reads the record.
+  No owner, or an owner whose process has exited, or a `running` owner whose heartbeat is older than 10 s: the worker starts in the same
+  call and one log line says so (`[OmniSlot] took over the voice slot from worker N (it had exited)`, or `(its heartbeat was N s old)`).
+  An owner that is `exiting` is looked at every 100 ms. A live owner is looked at on the 1, 2, 4 and 8 s schedule (15 s in all), in
+  slices of 250 ms so that its exit is seen at once. When it lets go, the worker starts and one line says `the voice slot was released by
+  worker N after X s`. An exiting owner is never called stale, because the slot is its until its process is gone.
+- **Nothing is filed for a slot freed in the window.** The start never fails then, so there is no failure for the voice service to
+  report and no 45 s retry. A live owner that is still there after 15 s fails the start once, with `Local voice slot is still owned by
+  another voice worker (pid N, ...)`. That is a real second worker, it is reported with the cause `slot-owned` (as is the worker's own
+  refusal, "owns the shared model slot") and it takes the normal retry waits.
+- **Two workers are never started on one slot.** The bridge starts a worker only into a slot nobody owns. The worker still tries the OS
+  lock itself (1, 2, 4, 8 s, every 0.1 s while the record says its owner has exited or is exiting), but only for what is left of the
+  window: the bridge passes it in `CYBERPUNK_CONVAI_SLOT_WAIT_S`. A stale heartbeat on a process that is in fact alive therefore cannot
+  put a second worker on the card: the lock refuses it.
+- **Tests.** `bridge/model-slot.test.mjs` (stale owner, live owner that frees soon, live owner that never frees, exiting owner, closed
+  while waiting, record reading, at the level of the wait and of `ResidentVoice`), and `scripts/test_resident_voice_paths.py` (the
+  worker's record, heartbeat, exiting mark, its lock wait and the single takeover line). The live check is in TODO.md.
 
 ## OmniVoice implementation and historical measurements
 

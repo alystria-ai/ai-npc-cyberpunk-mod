@@ -195,12 +195,15 @@ const reviewed = {
     'Reopen the manager; that action is no longer available.', 'Choose one of the listed subtitle displays.',
     'Choose one of the listed companion voices.', 'Requires the optional OmniVoice pack (GPU)', 'Choose 16 or 32 voice steps.',
     'Choose a short or a long voice reference.', 'That setting is read-only.',
-    'Choose one of the listed reply languages.',
+    'Choose one of the listed reply languages.', 'Choose one of the listed other languages.', 'Choose one of the listed subtitle languages.',
   ],
   // The choices of Settings > Voices > Voice language (mod/manager-ui.lua REPLY_LANGUAGE_NAMES; each goes through ui.t).
   'page.reply-language': [
     'English', 'Automatic', 'German', 'French', 'Spanish', 'Italian', 'Portuguese', 'Polish', 'Russian', 'Ukrainian', 'Turkish', 'Czech',
     'Hungarian', 'Japanese', 'Korean', 'Chinese',
+    // The last Voice language choice, the first Subtitle language choice, and the Other languages (bridge/other-languages.mjs).
+    'Other language', 'Same as speech', 'Finnish', 'Swedish', 'Norwegian', 'Danish', 'Dutch', 'Greek', 'Romanian', 'Bulgarian', 'Croatian', 'Serbian',
+    'Slovak', 'Slovenian', 'Estonian', 'Latvian', 'Lithuanian', 'Hindi', 'Indonesian', 'Vietnamese', 'Hebrew',
   ],
   'memory.feedback': [
     'all characters you have talked to', 'the selected character',

@@ -283,5 +283,5 @@ test('rule 7 leaves the weather, the time of day and the place unsaid unless V a
   const prompt = systemPrompt({persona: book.persona('judy-alvarez')});
   assert.doesNotMatch(prompt, /a few words of attitude about the place or the hour/);
   assert.match(prompt, /say nothing about the weather, the time of day or the place unless V asks about them/);
-  assert.match(prompt, /The "Right now" section at the end of this message is the plain truth/);
+  assert.match(prompt, /The "Right now" section in the last message, before V's words, is the plain truth/);
 });

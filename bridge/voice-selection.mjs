@@ -13,7 +13,8 @@ import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs'
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
-import {closeConfirmed} from './worker-process.mjs';
+import {closeConfirmed, slotOwnedFailed} from './worker-process.mjs';
+import {isExtraLanguage, pocketRefusal} from './other-languages.mjs';
 import {accessViolationFailed, endedFromOutsideFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
@@ -62,7 +63,7 @@ export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windo
   : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 // The cause of a voice failure as one word for the error report (bridge/error-events.mjs cleanVoice), so a triage can group them without reading the lines.
 export const voiceFailureCause = reason => blockedByWindows(reason) ? 'windows-blocked' : browserStartFailed(reason) ? 'browser-failed' : pagingFileFailed(reason) ? 'virtual-memory' : noCudaFailed(reason) ? 'no-cuda'
-  : outOfMemoryFailed(reason) ? 'out-of-memory' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
+  : outOfMemoryFailed(reason) ? 'out-of-memory' : slotOwnedFailed(reason) ? 'slot-owned' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';
@@ -1223,6 +1224,8 @@ export class VoiceSelection {
     utterance?.decide('pocket');
     // A reply in another language: the Pocket model of the language is made the resident one and the voice is the pack's clip of this character.
     if (options.language && options.language !== 'en') {
+      // A language the game does not have (Other language, bridge/other-languages.mjs) has no Pocket model and no pack: refused by name, never read by the English student.
+      if (isExtraLanguage(options.language) && !this.pocketLanguages?.speaks(options.language)) throw Object.assign(Error(pocketRefusal(options.language)), {reason: 'other-language-pocket'});
       const pocketLanguage = await this.pocketLanguageFor(profile, options.language);
       if (pocketLanguage) {
         try { return await client.synthesizeStream(profile, spoken, {...plain, pocketLanguage}); }

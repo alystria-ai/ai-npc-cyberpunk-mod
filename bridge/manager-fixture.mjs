@@ -143,6 +143,9 @@ export const managerFixture = `
   function player:ConvaiManagerSetSubtitles(value) self.subtitles = value end
   function player:ConvaiManagerSubtitles() return self.subtitles end
   function player:ConvaiManagerSetEnabled(index, value) self['legacy' .. index] = value end
+  -- Scripts that compiled have every other method of this mod too (mod/setup-check.lua looks them all up once and calls an install without some of them
+  -- a partial compile). A test that wants a player without the scripts clears this along with the methods.
+  setmetatable(player, {__index = function(_, key) if type(key) == 'string' and key:find('^Convai') then return function() end end end})
   local profiles = {{key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}},
     {key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}}}
   for index = 1, 20 do profiles[#profiles + 1] = {key = 'person-' .. index,

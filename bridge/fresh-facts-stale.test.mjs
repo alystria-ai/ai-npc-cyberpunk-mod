@@ -53,13 +53,13 @@ test('the live case rebuilt from Claire’s real memory file: her own earlier de
   const text = JSON.stringify(now.messages);
   assert.doesNotMatch(text, /wired|exhaust|drained|fumes/i);
   assert.match(now.messages.at(-1).content, /Thermal Mantis Blades feels like a comfort routine/, 'a remembered fact that says nothing contrary stays');
-  assert.ok(now.messages[0].content.trimEnd().endsWith('TRUE RIGHT NOW: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'));
+  assert.ok(now.messages.at(-1).content.includes('TRUE RIGHT NOW: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'));
   assert.ok(now.messages.at(-1).content.includes('[RIGHT NOW, TRUE: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.]\n\nV says: am i drunk'));
-  assert.equal(freshNote(now.messages), 'facts=drinks:3 placed=system-end,before-v asked=yes dropped=history:3,memory:2');
-  assert.equal(freshNote(before.messages), 'facts=drinks:3 placed=system-end,before-v asked=yes dropped=history:0,memory:0');
+  assert.equal(freshNote(now.messages), 'facts=drinks:3 placed=context-end,before-v asked=yes dropped=history:3,memory:2');
+  assert.equal(freshNote(before.messages), 'facts=drinks:3 placed=context-end,before-v asked=yes dropped=history:0,memory:0');
   assert.equal(CLAIRE_HISTORY.length, 3); assert.equal(CLAIRE_MEMORY.length, 3);
   // Nothing else says tired when no stage does (the block states what was read as fine).
-  assert.match(now.messages[0].content, /Otherwise V is fed, rested, not thirsty, not winded and steady\./);
+  assert.match(now.messages.at(-1).content, /Otherwise V is fed, rested, not thirsty, not winded and steady\./);
 });
 
 test('not asked about oneself: nothing is left out, and the log says so', () => {
@@ -73,7 +73,7 @@ test('freshNote: nothing for a message list with no note, the placement of a pro
   assert.equal(freshNote([]), '');
   assert.equal(freshNote(undefined), '');
   const messages = buildMessages({persona: new PersonaBook([]).persona('x', 'X'), history: [], context: 'c', contextParts: {now: '', notes: '', world: '', volatile: 'v', fresh: 'V is naked.', freshCodes: 'clothes:changed', freshAsked: true}, text: 'hi'});
-  assert.equal(freshNote(messages), 'facts=clothes:changed placed=system-end,before-v asked=yes dropped=history:0,memory:0');
+  assert.equal(freshNote(messages), 'facts=clothes:changed placed=context-end,before-v asked=yes dropped=history:0,memory:0');
 });
 
 test('the bridge log: one [FreshFacts] line per prompt of a text provider, codes and counts only, none for a reaction', async () => {
@@ -101,11 +101,11 @@ test('the bridge log: one [FreshFacts] line per prompt of a text provider, codes
     await host.reply(turn('Another round', {}));
     await host.reply(turn('do i seem drunk', {fresh: 'V is drunk: slurring.', freshDrop: String.raw`\bwired`, freshCodes: 'drinks:3', freshAsked: true}));
     const lines = logs.filter(line => line.startsWith('[FreshFacts]'));
-    assert.deepEqual(lines, ['[FreshFacts] profile=claire-russell facts=drinks:3 placed=system-end,before-v asked=yes dropped=history:0,memory:0'], 'the ordinary first turn writes nothing');
-    assert.ok(requests.at(-1).messages[0].content.trimEnd().endsWith('TRUE RIGHT NOW: V is drunk: slurring.'));
+    assert.deepEqual(lines, ['[FreshFacts] profile=claire-russell facts=drinks:3 placed=context-end,before-v asked=yes dropped=history:0,memory:0'], 'the ordinary first turn writes nothing');
+    assert.ok(requests.at(-1).messages.at(-1).content.includes('TRUE RIGHT NOW: V is drunk: slurring.'));
     // The exchange the character answered "You are drunk, choom." has no "wired" in it: kept. A pattern that matches it drops it, and the log counts it.
     await host.reply(turn('am i drunk', {fresh: 'V is drunk: slurring.', freshDrop: String.raw`\bchoom`, freshCodes: 'drinks:3', freshAsked: true}));
-    assert.equal(logs.filter(line => line.startsWith('[FreshFacts]')).at(-1), '[FreshFacts] profile=claire-russell facts=drinks:3 placed=system-end,before-v asked=yes dropped=history:2,memory:0');
+    assert.equal(logs.filter(line => line.startsWith('[FreshFacts]')).at(-1), '[FreshFacts] profile=claire-russell facts=drinks:3 placed=context-end,before-v asked=yes dropped=history:2,memory:0');
     assert.ok(logs.filter(line => line.startsWith('[FreshFacts]')).every(line => !/drunk|slurring|choom/.test(line.replace(/drinks:3/, ''))), 'no text in the log');
   } finally { host.close(); server.closeAllConnections?.(); await new Promise(done => server.close(done)); }
 });
