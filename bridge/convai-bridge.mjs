@@ -7,6 +7,7 @@ import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, personKey, profileFor} from './protocol.mjs';
+import {setCharacterRoster} from './character-type.mjs';
 import {configureKnowledgeParts, preloadKnowledgePart} from './knowledge-parts.mjs';
 import {audioReady, removeAudioDepot} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
@@ -241,6 +242,8 @@ const roster = [...await requiredJson('characters/roster.json'),
     if (error.code === 'ENOENT') return '[]';
     throw error;
   }))];
+// What kind of person each key is (story, side, stranger: bridge/character-type.mjs, docs/CONTEXT_BY_TYPE.md); an add-on voice or a character the player made is not in it and is a story character as before.
+setCharacterRoster(roster);
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
 // Add-on mods (docs/ADDON_API.md): each speaker an installed add-on brings becomes a roster row here. Add-on speakers never have a
 // Convai character (their text comes only from Mistral or the local AI, runAddonTurn). With no add-on installed the host is empty and adds nothing.

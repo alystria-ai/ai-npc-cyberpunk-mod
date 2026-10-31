@@ -174,6 +174,11 @@ const JOBS_FRAMING = 'V\'s open jobs from V\'s current-save journal, grouped as 
 export function availableQuestsContext(options = {}, maxChars = 2200) {
   const result = availableQuests(options);
   if (!result) return '';
+  // A side character (docs/CONTEXT_BY_TYPE.md) is told only the jobs tied to them: the quest catalog lists them in it. No such job, no block.
+  if (options.tied) {
+    result.candidates = result.candidates.filter(candidate => candidate.involvesYou);
+    if (!result.candidates.length) return '';
+  }
   const document = {}, counts = {}, notListed = {};
   let detailed = 0, other = 0;
   const render = () => JOBS_FRAMING + serialize({...Object.fromEntries(ORDER.filter(key => document[key]?.length)

@@ -5,14 +5,15 @@ import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
 import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.mjs';
 import {topicWords} from './topic-words.mjs';
-import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
+import {currentJournalHistory, parseJournalHistory, selectJournalHistory, related} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
 import {gearContext, visibleGearContext, gearChangeContext, gearFresh, asksAboutGear} from './player-gear.mjs';
 import {freshBlock} from './fresh-facts.mjs';
 import {asksAboutClothes, asksAboutSelf} from './scenery-memory.mjs';
 import {gearMemory} from './gear-memory.mjs';
-import {turnContext, describeTurnContext, sceneryFor, moneyNote, besideV} from './turn-context.mjs';
+import {turnContext, describeTurnContext, sceneryFor, moneyNote, besideV, parseTurnContext} from './turn-context.mjs';
+import {characterTypeOf, modeFor, typeLine, tieOf, placeWords} from './character-type.mjs';
 import {lastTalkSentence} from './last-talk.mjs';
 import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
@@ -144,14 +145,22 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
     ? String(trackedHash < 0 ? trackedHash + 4294967296 : trackedHash) : undefined;
   const bound = result.journalHistory === undefined ? null
     : currentJournalHistory({snapshot: result.journalHistory, generation, worldToken, now});
-  const history = bound === null ? '' : selectJournalHistory({snapshot: result.journalHistory, bound,
-    generation, worldToken, profileKey: result.profileKey, query: result.text, topics: topicWords.fold(result.profileKey, result.text, now), questCatalog, now, trackedQuestId}).context;
+  // What this type of character may be told (bridge/character-type.mjs POLICY): a stranger none of the journal, a side character only what is tied to them.
+  const type = characterTypeOf(result.profileKey);
+  const historyMode = modeFor(type, 'history'), jobsMode = modeFor(type, 'jobs'), journalMode = modeFor(type, 'journal');
+  const place = historyMode === 'tied' && result.turnContext !== undefined ? placeWords(parseTurnContext(result.turnContext)) : undefined;
+  const history = bound === null || historyMode === 'none' ? '' : selectJournalHistory({snapshot: result.journalHistory, bound,
+    generation, worldToken, profileKey: result.profileKey, query: result.text, topics: topicWords.fold(result.profileKey, result.text, now), questCatalog, now, trackedQuestId,
+    tied: historyMode === 'tied', place}).context;
   const inventory = bound?.status === 'ready' ? bound.history : undefined;
   // Shared events come from the resolver run on this same current snapshot.
   const recency = current && Array.isArray(sharedEvents) ? recentSharedContext({shared: sharedEvents,
     worldSeconds: snapshot.gameTimeSeconds, history: inventory, questPaths, questCatalog}) : '';
-  const jobs = inventory ? availableQuestsContext({history: inventory, age: bound.age, now,
-    profileKey: result.profileKey, questCatalog, trackedQuestId, shared: current ? sharedEvents : []}) : '';
+  const jobs = inventory && jobsMode !== 'none' ? availableQuestsContext({history: inventory, age: bound.age, now,
+    profileKey: result.profileKey, questCatalog, trackedQuestId, shared: current ? sharedEvents : [], tied: jobsMode === 'tied'}) : '';
+  // The tracked quest of a side character: tied when the quest catalog lists them in it (the words of it are judged per turn in conversationContextBlocks).
+  const trackedTied = journalMode === 'tied' && trackedJournal?.status === 'active'
+    ? related({id: trackedJournal.quest.id, title: trackedJournal.quest.title}, result.profileKey, questCatalog?.quests ?? questCatalog) : false;
   // A job briefing (bridge/quest-briefing.mjs): only when V's words ask about a job and this speaker gave it or knows it; '' for every other turn.
   const briefing = inventory && !result.reaction && !result.event ? questBriefingContext({text: result.text, profileKey: result.profileKey,
     history: inventory, age: bound.age, now}) : '';
@@ -160,7 +169,7 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   const story = inventory ? storyKnowledgeContext({profileKey: result.profileKey, history: inventory, age: bound.age, now,
     facts: current ? snapshot.facts : undefined, group: !!result.group}) : '';
   result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history,
-    recencyContext: recency, jobsContext: jobs, briefingContext: briefing, storyContext: story});
+    recencyContext: recency, jobsContext: jobs, briefingContext: briefing, storyContext: story, trackedTied});
   return result;
 }
 
@@ -184,6 +193,21 @@ export const dynamicOn = (kind, input) => !dynamicOff(input).has(kind);
 // `gap`: the time since V last talked to this character (Time since last talk; built once per turn id, so the several builds of one turn agree).
 export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicOff(input)), off: dynamicOff(input),
   gap: dynamicOn('lastTalk', input) && !ambient ? lastTalkSentence(input) : ''});
+// The tracked quest block for the type of the speaker (bridge/character-type.mjs POLICY.journal). 'all': as it is. 'none': nothing. 'tied': in the world part when the quest
+// catalog lists the speaker in it (`catalogTied`) or its words name the speaker, their faction or role, or the place they stand in; in this turn's notes when only V's
+// words are about it; nothing otherwise. A status line with no quest in it ("no active tracked quest") is tied to nobody.
+function journalByType(input, text, catalogTied) {
+  const mode = modeFor(characterTypeOf(input?.profileKey), 'journal');
+  if (!text || mode === 'all') return {tier: 'world', text};
+  if (mode === 'none') return {tier: 'world', text: ''};
+  const snapshot = parseJournal(input.journal);
+  if (snapshot?.status !== 'active') return {tier: 'world', text: ''};
+  const subject = [snapshot.quest.title, ...snapshot.quest.objectives.map(objective => objective.text)].join(' ');
+  const place = input.turnContext === undefined ? undefined : placeWords(parseTurnContext(input.turnContext));
+  const tie = catalogTied ? 'own' : tieOf(subject, {profileKey: input.profileKey, place, talk: input.text});
+  return tie === 'own' ? {tier: 'world', text} : tie === 'talk' ? {tier: 'volatile', text} : {tier: 'world', text: ''};
+}
+
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only, V's gear among it when V asks). A world block
@@ -210,8 +234,10 @@ export function conversationContextBlocks(input) {
   const gearWanted = on('gear') && (asked || asksAboutGear(input?.text));   // gearWantedFor(input) says the same
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
+  // What kind of person this is (bridge/character-type.mjs): stable per character, so it sits in the world part, never in this turn's notes.
+  const kindLine = typeLine(input?.profileKey);
   if (ambient) {
-    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory, {visible: true}) : ''},
+    return [{tier: 'now', text: now}, {tier: 'world', text: kindLine}, {tier: 'volatile', text: background}, {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory, {visible: true}) : ''},
       {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
       {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'volatile', text: gearWanted ? visibleGearContext(input) : ''},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
@@ -222,8 +248,11 @@ export function conversationContextBlocks(input) {
   // Quest and journal off: no journal history, and not even the line that says it is unavailable.
   const quest = on('quest');
   const history = !quest ? '' : trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
+  // The tracked quest by type (docs/CONTEXT_BY_TYPE.md): a story character has it, a side character only when it is tied to them (their name, faction or role, the place
+  // they stand in: stable, so it stays in the world part; or V's words this turn: for this turn only, after the history), a stranger never.
+  const journal = journalByType(input, quest ? journalContext(input.journal) : '', trusted?.trackedTied === true);
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
-  return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
+  return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: kindLine}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
     // What changed in V's gear since this character last saw it, as the current fact (bridge/gear-memory.mjs): in the turn's own notes, right before V's words, where the
     // history of the talk (an earlier answer about V's clothes) cannot outweigh the gear line far above it.
     {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory) : ''},
@@ -231,7 +260,7 @@ export function conversationContextBlocks(input) {
     // The main story as this speaker knows it from finished quests: stable for a save (it changes only when a quest finishes).
     {tier: 'world', key: 'story', text: quest ? trusted?.storyContext : ''},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
-    {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
+    {tier: journal.tier, ...(journal.tier === 'world' ? {key: 'journal'} : {}), text: journal.text},
     // The job briefing is for this turn only (volatile), so it never moves the stable blocks a prefix cache keeps.
     {tier: 'volatile', text: quest ? trusted?.briefingContext : ''}, {tier: 'volatile', text: dialogue},
     {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'volatile', text: gearWanted ? gearContext(input) : ''},
