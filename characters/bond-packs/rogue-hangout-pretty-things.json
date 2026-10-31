@@ -5,6 +5,7 @@
   "character": "rogue-amendiares",
   "title": "Pretty Things",
   "summary": "Rogue takes V to a Charter Hill gallery opening to look at what rich people buy, and asks which piece Johnny would hate.",
+  "description": "Rogue wants V at a Charter Hill gallery opening tonight to look at the art and the people buying it. She likes to see what rich people buy.",
   "requires": {
     "bond": 5,
     "questsFinished": [
@@ -105,6 +106,7 @@
       "id": "view",
       "type": "play",
       "label": "Rogue walks V past four works and asks about Johnny",
+      "objective": "Walk Rogue past the four works at the gallery",
       "know": "You are at a gallery opening with V. There are four works: a bright abstract canvas, a small framed portrait, a mid-price landscape and a sculpture on a plinth. A dealer pitches one piece to V, and you ask which work Johnny would hate.",
       "wants": "V to walk past the four works and answer the question about Johnny.",
       "do": [

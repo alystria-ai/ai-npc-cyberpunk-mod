@@ -5,6 +5,7 @@
   "character": "takemura",
   "title": "Stillness",
   "summary": "Takemura proposes a silence contest on a Wellsprings promenade bench, where the one who speaks first buys the tea.",
+  "description": "Takemura proposes a silence contest on a bench in the Wellsprings promenade. Whoever speaks first buys the tea.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
@@ -45,6 +46,7 @@
       "id": "meet",
       "type": "play",
       "label": "V and Takemura sit in silence on the promenade",
+      "objective": "Keep silent on the promenade bench with Takemura",
       "know": "You are on a promenade bench in Wellsprings with Takemura. You are keeping a silence, and a street performer is trying to make you both laugh.",
       "wants": "V to keep the silence and not speak first.",
       "meet": {"where": "waypoint", "inGameHours": 2},

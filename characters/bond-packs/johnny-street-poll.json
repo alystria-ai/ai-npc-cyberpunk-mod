@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "What They Say About Me",
   "summary": "Johnny bets V that nobody remembers him right, and V asks three strangers in three districts who he was.",
+  "description": "Johnny bets V that nobody remembers him right. V has to ask three strangers in three districts who Johnny Silverhand was, without saying who is asking.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
@@ -56,6 +57,7 @@
       "id": "bet",
       "type": "talk",
       "label": "Johnny lays out the bet",
+      "objective": "Listen to Johnny lay out the bet",
       "know": "Johnny is walking beside you with his arms folded, grumpy and sure of himself. He wants proof that the city remembers him wrong, and he has picked three kinds of people to ask. He is more interested in the answer than he will admit.",
       "wants": "V to take the bet and go ask the three strangers.",
       "script": [
@@ -76,6 +78,7 @@
       "id": "poll-watson",
       "type": "play",
       "label": "Ask a street resident in Watson",
+      "objective": "Ask a street resident in Watson who Johnny was",
       "know": "You bet V that nobody remembers you right. V is in Watson now, to ask a street resident who you were. V must not say who is asking.",
       "wants": "V to ask a street resident in Watson.",
       "do": [
@@ -92,6 +95,7 @@
       "id": "poll-city",
       "type": "play",
       "label": "Ask a corporate worker in City Center",
+      "objective": "Ask a corporate worker in City Center who Johnny was",
       "know": "You bet V that nobody remembers you right. The first answer from Watson is in. V is heading to City Center to ask a corporate worker who you were.",
       "wants": "V to ask a corporate worker at Corpo Plaza.",
       "do": [
@@ -108,6 +112,7 @@
       "id": "poll-westbrook",
       "type": "play",
       "label": "Ask a nightlife person in Westbrook",
+      "objective": "Ask a nightlife person in Westbrook who Johnny was",
       "know": "You bet V that nobody remembers you right. Two answers are in. V is heading to Westbrook to ask a nightlife person, the kind who bought the records and paid the tab.",
       "wants": "V to ask a nightlife person in Westbrook.",
       "do": [
@@ -121,6 +126,7 @@
       "id": "tally",
       "type": "talk",
       "label": "Johnny scores the three answers",
+      "objective": "Score the three answers with Johnny",
       "know": "V has asked all three kinds of people. You score their answers like a critic. You are bad at winning a bet and worse at losing one, and you want to hear which answer came closest.",
       "wants": "V to say which answer was closest to the truth, or that all three were wrong in the same way.",
       "script": [
@@ -137,6 +143,7 @@
       "id": "close",
       "type": "play",
       "label": "Johnny waits for V at the Kabuki wall",
+      "objective": "Meet Johnny at the Kabuki wall",
       "know": "The poll is over and you are still angry about the moustache. Next time V is at the Kabuki wall, you want V to see your own face on it.",
       "wants": "V to pass the Kabuki wall set.",
       "do": [
@@ -149,6 +156,7 @@
       "id": "close-fair",
       "type": "play",
       "label": "Johnny waits for V at the Kabuki wall",
+      "objective": "Meet Johnny at the Kabuki wall",
       "know": "The poll is over. One of the answers had you right, and you admitted it to V. You want V to see the wall where the poll started.",
       "wants": "V to pass the Kabuki wall set.",
       "do": [

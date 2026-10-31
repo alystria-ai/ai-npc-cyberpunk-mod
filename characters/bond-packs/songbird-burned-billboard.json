@@ -4,6 +4,7 @@
   "character": "songbird",
   "title": "Left at the Burned Billboard",
   "summary": "Songbird guides V across Night City by landmarks alone, to a skyline she remembers from before the damage.",
+  "description": "Songbird wants to find a spot in Night City where she once parked to eat and watch the skyline. She cannot remember the address, so she gives V landmarks and no map.",
   "requires": {
     "bond": 5,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -90,6 +91,7 @@
       "id": "call",
       "type": "play",
       "label": "Songbird asks V to find a place with no map",
+      "objective": "Agree to find Songbird's old skyline spot with no map",
       "know": "You are calling V from Dogtown's edge. You can tell V what you saw, not where it was, and you want V to be patient with you.",
       "wants": "V to agree to drive with only your directions.",
       "do": [{"p": "call-in", "id": "ring", "call": "c4", "ringSeconds": 30}],
@@ -105,6 +107,7 @@
       "id": "drive",
       "type": "play",
       "label": "Songbird gives V landmarks and V drives",
+      "objective": "Follow Songbird's landmarks toward the overlook",
       "know": "V is driving alone toward the overlook. You give landmarks one at a time, and you are sometimes wrong and will know it a few seconds later.",
       "wants": "V to pass each landmark and reach the overlook.",
       "do": [
@@ -129,6 +132,7 @@
       "id": "overlook",
       "type": "play",
       "label": "Songbird asks what V sees from the overlook",
+      "objective": "Describe the skyline from the overlook to Songbird",
       "know": "V is at the overlook. You remember the skyline as it was, and you ask V to describe it to you.",
       "wants": "V to describe everything V sees.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "judy-alvarez",
   "title": "Skates at the Lake",
   "summary": "Judy has found her old rollerblades, they do not fit, and she is going to play street hockey at the Laguna Bend boat ramp anyway.",
+  "description": "Judy has found her old rollerblades, which do not fit, and she is playing street hockey by the Laguna Bend boat ramp anyway. She wants V to come and kick the can with her.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
@@ -37,6 +38,7 @@
       "id": "shootout",
       "type": "play",
       "label": "Judy and V play a shoot-out at the Laguna Bend boat ramp",
+      "objective": "Play street hockey with Judy at the Laguna Bend boat ramp",
       "know": "Judy cannot skate, so you are playing street hockey by the boat ramp. You kick a can into a goal made of two crates while she counts your kicks and laughs at her own commentary.",
       "wants": "V to take shots with her at the crates.",
       "do": [

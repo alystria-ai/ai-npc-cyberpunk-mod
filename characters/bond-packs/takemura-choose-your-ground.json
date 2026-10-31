@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "Choose Your Ground",
   "summary": "Word of Takemura's hideout has leaked, freelancers come in three waves, and he asks you to choose a position and hold it with him.",
+  "description": "Word of Takemura's hideout has leaked to freelancers who still hope the old bounty on a traitor pays. He calls from a dim room, says he will not move, and asks whether V will stand with him.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
@@ -116,6 +117,7 @@
       "id": "warning",
       "type": "play",
       "label": "Takemura warns V that the hideout is known",
+      "objective": "Answer Takemura's holocall about the leaked hideout",
       "know": "Takemura calls on a live holocall from a dim room with a lamp being moved. He says his address is known, that freelancers will come tonight, and that he will not move.",
       "wants": "V to come to the hideout within forty minutes and stand with him.",
       "do": [{"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}],
@@ -131,6 +133,7 @@
       "id": "ground",
       "type": "play",
       "label": "V reaches the hideout and chooses a position",
+      "objective": "Reach Takemura's hideout and pick a position",
       "know": "You are at the hideout with Takemura. He explains the three positions, the door, the stair window and the roof edge, and takes the front post himself.",
       "wants": "V to reach the hideout and choose a position.",
       "do": [
@@ -161,6 +164,7 @@
       "id": "waves",
       "type": "play",
       "label": "Two waves of freelancers come at the hideout",
+      "objective": "Hold the door and the stair window with Takemura",
       "know": "The first wave of four comes to the door and the second pair comes with a marksman on the opposite roof. A negotiator walks up with his hands open, and Takemura waits for your answer.",
       "wants": "V to hold the position through the first two waves.",
       "do": [
@@ -189,6 +193,7 @@
       "id": "wave3-refuse",
       "type": "play",
       "label": "The last wave comes from behind after V refused the money",
+      "objective": "Hold the roof edge with Takemura against the two heavies",
       "know": "You refused the negotiator's money in front of Takemura. Two heavies come from behind, and the back is his.",
       "wants": "V to hold the last wave with Takemura.",
       "do": [{"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true}],
@@ -203,6 +208,7 @@
       "id": "wave3-listen",
       "type": "play",
       "label": "The last wave comes after V heard the negotiator out",
+      "objective": "Hold the roof edge with Takemura against the two heavies",
       "know": "You heard the negotiator out and stayed. Two heavies come from behind, and the back is Takemura's.",
       "wants": "V to hold the last wave with Takemura.",
       "do": [{"p": "squad", "id": "wave3", "at": "roof", "faction": "freelancers", "count": 2, "hostile": true}],
@@ -214,6 +220,7 @@
       "id": "wave3-take",
       "type": "play",
       "label": "V took the money and Takemura holds the last wave alone",
+      "objective": "Get to the roof edge where Takemura holds the back",
       "know": "You took the negotiator's money and left. Takemura is holding the back alone against two heavies, and he will not say anything for a full minute.",
       "wants": "V to watch Takemura hold the back alone.",
       "do": [
@@ -228,6 +235,7 @@
       "id": "quiet-refuse",
       "type": "play",
       "label": "The room after the fight, with tea and a key",
+      "objective": "Share tea with Takemura in the quiet room",
       "know": "The fight is over and the room is quiet. Takemura makes tea on a small stove and has one cup, which he will share with you.",
       "wants": "V to share the tea and answer him.",
       "do": [
@@ -251,6 +259,7 @@
       "id": "quiet-listen",
       "type": "play",
       "label": "The room after the fight, with tea and a key",
+      "objective": "Share tea with Takemura in the quiet room",
       "know": "The fight is over and the room is quiet. Takemura makes tea on a small stove and has one cup, which he will share with you.",
       "wants": "V to share the tea.",
       "do": [

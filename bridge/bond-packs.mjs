@@ -14,7 +14,7 @@ export const PACK_FORMAT = 1;
 /** Format 2 adds places, lines, gaps, images, the play stage type with `do` and `script`, event choices and an ending's history (bridge/quest-format.mjs, docs/QUEST_PRIMITIVES.md). */
 export const PACK_FORMATS = Object.freeze([1, 2]);
 export const PACK_LIMITS = Object.freeze({stages: 8, choices: 4, effects: 4, know: 600, wants: 300, bringUp: 400, memory: 300, line: 240,
-  title: 80, summary: 200, label: 80, alt: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
+  title: 80, summary: 200, description: 300, label: 80, objective: 80, alt: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
 export const CHANNELS = Object.freeze(['own', 'phone', 'holocall']);
 export const RELATIONSHIPS = Object.freeze(['any', 'partner', 'not-partner']);
 export const EFFECTS = Object.freeze(['vehicleBlocked', 'vehicleReturned', 'outfit', 'giveItem', 'takeItem']);
@@ -93,6 +93,8 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
   else if (characters && !characters.has(pack.character)) fail(`character ${pack.character} is not on the roster`);
   if (!text(pack.title, PACK_LIMITS.title)) fail(`title must be 1 to ${PACK_LIMITS.title} characters`);
   if (pack.summary !== undefined && !text(pack.summary, PACK_LIMITS.summary)) fail(`summary must be 1 to ${PACK_LIMITS.summary} characters`);
+  // The quest's journal text (docs/REAL_QUESTS.md): shown in the game's journal, the summary when it is missing.
+  if (pack.description !== undefined && !text(pack.description, PACK_LIMITS.description)) fail(`description must be 1 to ${PACK_LIMITS.description} characters`);
 
   // Format 2: the places, lines, gaps and pictures the stages refer to.
   const quest = pack.format === 2 ? checkPackExtras(pack, fail, message => warnings.push(message)) : {places: new Set(), lines: new Map(), gaps: new Map(), images: new Map()};
@@ -144,6 +146,8 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
     if (!text(stage.know, PACK_LIMITS.know)) fail(`${where}: know must be 1 to ${PACK_LIMITS.know} characters`);
     if (stage.wants !== undefined && !text(stage.wants, PACK_LIMITS.wants)) fail(`${where}: wants must be 1 to ${PACK_LIMITS.wants} characters`);
     if (stage.label !== undefined && !text(stage.label, PACK_LIMITS.label)) fail(`${where}: label must be 1 to ${PACK_LIMITS.label} characters`);
+    // The line of the HUD objective tracker while the stage is current (docs/REAL_QUESTS.md), the label when it is missing.
+    if (stage.objective !== undefined && !text(stage.objective, PACK_LIMITS.objective)) fail(`${where}: objective must be 1 to ${PACK_LIMITS.objective} characters`);
     if (stage.type !== undefined) {
       if (typeof stage.type !== 'string' || !STAGE_TYPE.test(stage.type)) fail(`${where}: type must be lowercase letters, digits or hyphens`);
       else if (!KNOWN_STAGE_TYPES.includes(stage.type)) warnings.push(`${where}: type ${stage.type} is not played yet and will be skipped`);
@@ -219,6 +223,8 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
   for (const [id, ending] of Object.entries(endings ?? {})) {
     if (!plain(ending) || !text(ending.memory, PACK_LIMITS.memory)) fail(`ending ${id}: memory must be 1 to ${PACK_LIMITS.memory} characters`);
     if (pack.format === 2) checkEndingPlay(ending, id, quest, `ending ${id}`, fail);
+    // How the journal files the ending (docs/REAL_QUESTS.md): left out, a loss of bond or a stand-up is a failure, anything else a success.
+    if (ending?.outcome !== undefined && !['succeeded', 'failed'].includes(ending.outcome)) fail(`ending ${id}: outcome must be succeeded or failed`);
     if (ending?.bond !== undefined && !(Number.isInteger(ending.bond) && Math.abs(ending.bond) <= PACK_LIMITS.bondReward)) fail(`ending ${id}: bond must be a whole number from -${PACK_LIMITS.bondReward} to ${PACK_LIMITS.bondReward}`);
   }
   if (pack.unfinishedWhen !== undefined) {

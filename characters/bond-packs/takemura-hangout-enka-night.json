@@ -5,6 +5,7 @@
   "character": "takemura",
   "title": "Enka Night",
   "summary": "Takemura takes you to a karaoke bar in Japantown, where he insists on singing one enka verse with total dignity.",
+  "description": "Takemura takes V to a small karaoke bar in Japantown. The machine has only pop songs, and he has decided to sing enka anyway.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
@@ -45,6 +46,7 @@
       "id": "meet",
       "type": "play",
       "label": "V and Takemura sing at the karaoke bar",
+      "objective": "Sing with Takemura at the Japantown karaoke bar",
       "know": "You are at a small karaoke bar in Japantown with Takemura. The machine has only pop, and he has decided to sing enka.",
       "wants": "V to sing and to keep a straight face.",
       "meet": {"where": "waypoint", "inGameHours": 4},

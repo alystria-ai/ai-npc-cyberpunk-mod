@@ -4,6 +4,7 @@
   "character": "viktor-vektor",
   "title": "The Third Card",
   "summary": "Viktor needs V to keep Misty at her card table long enough for him to finish a windchime for her.",
+  "description": "Viktor is building a windchime from retired implant casings and brass, and it is not finished. He asks V to keep Misty busy at her card table for fifteen minutes.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/minor_quest/mq033_tarot", "quests/minor_quest/mq045_victor_debt"],
@@ -48,6 +49,7 @@
       "id": "plot",
       "type": "play",
       "label": "Viktor asks V to keep Misty busy",
+      "objective": "Hear Viktor's favour about keeping Misty busy at your flat",
       "know": "Viktor is at your flat, explaining the chime sheepishly. He wants you to keep Misty in her chair for fifteen minutes while he finishes it, and he expects you to say no to a favour he has never asked for before.",
       "wants": "V to take the job, or at least to try it with him.",
       "do": [
@@ -71,6 +73,7 @@
       "id": "reading",
       "type": "play",
       "label": "Misty reads three cards for V at the night market",
+      "objective": "Keep Misty talking at her card table for Viktor in the night market",
       "know": "Misty is at her card table in the Little China night market, giving you a three-card reading, one card for each third. Viktor works out of sight in a courtyard a few hundred metres away. Every few minutes she could remember something at the shop, and you have to keep her in her chair by talk.",
       "wants": "V to keep Misty in her chair for fifteen minutes.",
       "do": [
@@ -95,6 +98,7 @@
       "id": "scene",
       "type": "play",
       "label": "Viktor arrives with the chime in a paper bag",
+      "objective": "Stand with Misty while Viktor brings the chime",
       "know": "The reading is over and Viktor walks up with the chime in a paper bag. He says it badly. Misty's reaction is the heart of this, and you are standing at her table watching it.",
       "wants": "Viktor to say it, and Misty to say both words, ugly and beautiful.",
       "do": [
@@ -111,6 +115,7 @@
       "id": "hang",
       "type": "play",
       "label": "Misty hangs the chime at her door",
+      "objective": "See Misty hang the chime at her door, with Viktor nearby",
       "know": "The chime is hung in her doorframe. Misty will mention it later, and you will hear about it from Viktor when she does.",
       "wants": "Misty to keep the chime.",
       "do": [

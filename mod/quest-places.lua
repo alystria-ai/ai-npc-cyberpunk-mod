@@ -166,7 +166,14 @@ function M.new(options)
     end
 
     -- ---- the pin ------------------------------------------------------------------------------------------------------------------------
+    -- A place the quest's journal entry already marks (mod/quest-journal.lua: the stage's waypoint, a quest pin of QuestLog.reds) gets no second pin: the
+    -- record stands for it (pinned() is true) and nothing is registered or removed for it here.
+    local JOURNAL = {}
     local function register(rec)
+        if type(options.journalPin) == 'function' then
+            local okJournal, marked = pcall(options.journalPin, rec.ctx, rec.id)
+            if okJournal and marked == true then rec.handle = JOURNAL; return true end
+        end
         local ok, handle = call('pinAdd', rec.place.x, rec.place.y, rec.place.z)
         if ok and handle ~= nil and handle ~= false then rec.handle = handle; return true end
         return false
@@ -193,7 +200,7 @@ function M.new(options)
         if rec.handle ~= nil then
             local handle = rec.handle
             rec.handle = nil
-            call('pinRemove', handle)
+            if handle ~= JOURNAL then call('pinRemove', handle) end
         elseif rec.tries < M.PIN_TRIES then
             pinRetry = math.max(0, pinRetry - 1)
         end

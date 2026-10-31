@@ -5,6 +5,7 @@
   "character": "takemura",
   "title": "Polite Trespass",
   "summary": "Takemura asks you to talk your way into a closed corporate garden in Vista del Rey, to stand under a cherry tree for five minutes.",
+  "description": "Takemura wants to see the cherry tree in a closed corporate garden in Vista del Rey, and he wants to see it politely. He asks V to do the talking.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
@@ -45,6 +46,7 @@
       "id": "meet",
       "type": "play",
       "label": "V and Takemura stand under the cherry tree",
+      "objective": "Stand under the cherry tree with Takemura in Vista del Rey",
       "know": "You are on the closed garden terrace in Vista del Rey with Takemura. A corporate guard has let you stay under the tree for five minutes.",
       "wants": "V to stay under the tree and be polite.",
       "meet": {"where": "waypoint", "inGameHours": 2},

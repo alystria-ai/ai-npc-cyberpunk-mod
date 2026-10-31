@@ -5,6 +5,7 @@
   "character": "johnny-silverhand",
   "title": "Wardrobe Veto",
   "summary": "Johnny vetoes V's clothes in an arcade near Corpo Plaza and asks why V dresses the way V does.",
+  "description": "Johnny has opinions about V's jacket. He wants V to try on three looks in a bright arcade near Corpo Plaza, and he judges every one.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
@@ -41,6 +42,7 @@
       "id": "shopping",
       "type": "play",
       "label": "Try on three looks for Johnny",
+      "objective": "Try on three looks for Johnny in the Corpo Plaza arcade",
       "know": "Johnny judges three looks V puts on: nothing with a corporate logo, something he would wear on stage, and the worst thing V owns. Any Arasaka item makes him furious.",
       "wants": "V to try on the looks and answer Johnny's question about the clothes.",
       "do": [

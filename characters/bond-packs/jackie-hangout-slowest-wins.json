@@ -5,6 +5,7 @@
   "character": "jackie-welles",
   "title": "Slowest Wins",
   "summary": "Jackie challenges you to a reversed race through the Northside back roads, where the slowest car to the finish wins.",
+  "description": "Jackie challenges V to a reversed race through the Northside back roads, where the slowest car to the finish wins. He says he will beat V at going slow.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -38,6 +39,7 @@
       "id": "race",
       "type": "play",
       "label": "The reversed race through Northside",
+      "objective": "Race Jackie to the Northside finish line, slowest car wins",
       "know": "The race is on. Jackie rides his bike and waves at strangers, and he speeds up whenever he sees a food truck.",
       "wants": "V to drive slowly and win.",
       "do": [

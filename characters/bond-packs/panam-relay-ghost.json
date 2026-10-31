@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "Ghost on the Wire",
   "summary": "Someone is listening to the family's radio. Panam wants Carol's device planted on the Raffen relay above Vasquez Pass, unseen.",
+  "description": "Someone is listening to the family's radio. Panam has traced a Raffen relay mast above Vasquez Pass that hears every run, and she wants Carol's device planted on it unseen.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq027_01_basilisk_convoy"],
@@ -95,6 +96,7 @@
       "id": "call",
       "type": "play",
       "label": "Panam calls about the relay",
+      "objective": "Answer Panam's call about the Raffen relay at the camp",
       "know": "Panam has traced a Raffen relay above Vasquez Pass that hears every family run. She wants to plant Carol's device on it and has a question for V.",
       "wants": "V to say yes, say loud, or refuse.",
       "do": [
@@ -112,6 +114,7 @@
       "id": "brief",
       "type": "play",
       "label": "Panam briefs V on the plant",
+      "objective": "Listen to Panam's briefing on the plant at the camp",
       "know": "Carol's device goes on the junction box in the hut at the relay foot. Five Raffen patrol the ridge and one netrunner works the hut.",
       "wants": "V calm and ready to go up.",
       "do": [
@@ -133,6 +136,7 @@
       "id": "approach",
       "type": "play",
       "label": "Panam drives V to the ridge foot",
+      "objective": "Drive Panam to the foot of the ridge above Vasquez Pass",
       "know": "V drives to the foot of the ridge. Panam takes the getaway seat in the truck, lights off, and V climbs alone.",
       "wants": "V to climb.",
       "do": [
@@ -151,6 +155,7 @@
       "id": "plant",
       "type": "play",
       "label": "V climbs to the relay hut and plants the device",
+      "objective": "Climb to the relay hut and plant Carol's device unseen with Panam",
       "know": "The relay mast sits on the ridge above Vasquez Pass. Five Raffen patrol two spots, and a netrunner works the hut at the mast's foot. V must reach the hut's junction box unseen and stay ten seconds.",
       "wants": "V to plant the box and get out unseen.",
       "do": [
@@ -179,6 +184,7 @@
       "id": "exfil-planted",
       "type": "play",
       "label": "Panam drives V off the ridge, lights off",
+      "objective": "Get out with Panam, lights off, down to the highway",
       "know": "The device is planted and nobody saw. Panam drives V down to the highway with the lights off.",
       "wants": "V to pick the first lie for the Raffen to hear.",
       "do": [
@@ -200,6 +206,7 @@
       "id": "exfil-burned",
       "type": "play",
       "label": "Panam pulls V out after the Raffen spot the car",
+      "objective": "Get out with Panam down the highway below Vasquez Pass",
       "know": "The Raffen spotted V at the relay. The device is useless. Panam is driving V out with the lights off.",
       "wants": "V to get clear.",
       "do": [

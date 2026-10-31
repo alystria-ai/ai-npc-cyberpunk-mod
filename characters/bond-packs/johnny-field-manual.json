@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "Field Manual",
   "summary": "Johnny gives V three soldier's rules and takes V to a scav depot in the Badlands to use them.",
+  "description": "Johnny wants to say what kept him alive in the army, so he gives V three soldier's rules. He takes V to the old scav depot at Jackson Plains in the Badlands to put them to use.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
@@ -61,6 +62,7 @@
       "id": "brief",
       "type": "talk",
       "label": "Johnny gives V the three rules",
+      "objective": "Listen to Johnny's three rules in the car",
       "know": "You are in the car beside V and you want to hand over three rules in your own words, short and cold, with none of the usual swagger.",
       "wants": "V to hear the three rules and say whether V will drive out with you.",
       "script": [
@@ -80,6 +82,7 @@
       "id": "approach",
       "type": "play",
       "label": "Drive out to the depot at Jackson Plains",
+      "objective": "Drive Johnny out to the depot at Jackson Plains",
       "know": "V drives you out to the depot at Jackson Plains. You sit in the passenger seat and read the road like a soldier would.",
       "wants": "V to drive to the depot.",
       "do": [
@@ -96,6 +99,7 @@
       "id": "rules",
       "type": "play",
       "label": "Clear the depot with the three rules",
+      "objective": "Clear the Jackson Plains depot with Johnny's three rules",
       "know": "The depot holds six scavs in two groups of three. The first group is relaxed. The second group patrols and goes to alert after ninety seconds inside. You want V to clear the first group quietly, take the water tower and keep the road out open.",
       "wants": "V to use the three rules: read the ground, count before the trigger, leave a door.",
       "do": [
@@ -121,6 +125,7 @@
       "id": "walk-clean",
       "type": "play",
       "label": "Sit on the tailgate and talk about counting",
+      "objective": "Sit on the tailgate with Johnny and talk about counting",
       "know": "The depot is clear and you are sitting on the tailgate with V. You talk about soldiers who stopped counting, and about your own mistakes, which were arithmetic as much as anger.",
       "wants": "V to answer honestly about counting.",
       "do": [
@@ -145,6 +150,7 @@
       "id": "walk-loud",
       "type": "play",
       "label": "Sit on the tailgate after a loud fight",
+      "objective": "Sit on the tailgate with Johnny after the fight",
       "know": "The depot fight went loud and you are sitting on the tailgate with V. You talk about soldiers who stopped counting, and about your own mistakes, which were arithmetic as much as anger.",
       "wants": "V to answer honestly about counting.",
       "do": [

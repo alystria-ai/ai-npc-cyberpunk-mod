@@ -5,6 +5,7 @@
   "character": "rogue-amendiares",
   "title": "Last Light",
   "summary": "At sunset in a high-rise bar Rogue keeps for herself, V picks the cheapest of three glasses and tells one small true story.",
+  "description": "Rogue has a bar for the evening, a high-rise in City Center Downtown, and she will buy. She asks V to come at sunset and tell one small true story.",
   "requires": {
     "bond": 8,
     "questsFinished": [
@@ -89,6 +90,7 @@
       "id": "tasting",
       "type": "play",
       "label": "V picks the cheapest of three glasses at sunset",
+      "objective": "Pick the cheapest of three glasses with Rogue at the high-rise bar",
       "know": "You are at the bar at sunset with V. The bartender pours three glasses. You buy, and you want V to pick the cheapest glass by tag. You will then tell a short story and ask V for one.",
       "wants": "V to pick the cheapest of the three glasses, and then tell a small true story.",
       "do": [

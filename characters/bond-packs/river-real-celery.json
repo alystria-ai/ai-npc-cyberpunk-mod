@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "The Case of the Real Celery",
   "summary": "River needs a second pair of eyes to find real celery and tomatoes for Randy's jambalaya, and he calls it a case.",
+  "description": "River calls it a case: two weeks chasing real celery and tomatoes for Randy's jambalaya, with a list of leads and no transport. He asks V not to laugh.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -67,6 +68,7 @@
       "id": "ask",
       "type": "play",
       "label": "River is waiting at the diner in Heywood",
+      "objective": "Meet River at the Heywood diner",
       "know": "You texted V a case and asked them to meet you at the diner in Heywood. You are waiting at a corner table, and you have a list of leads and no transport. You do not think this is funny, and you know V will.",
       "wants": "V to come to the diner and hear you out.",
       "do": [
@@ -85,6 +87,7 @@
       "id": "leads",
       "type": "play",
       "label": "River canvasses for the real vegetables",
+      "objective": "Work the leads for real vegetables with River, ending at the greenhouse",
       "know": "You and V are working the three leads, one after another. Your rule is never to ask what they know, only what they saw. You keep a notebook on your knee and write down the small details.",
       "wants": "V to ask good questions and keep the leads honest.",
       "do": [
@@ -109,6 +112,7 @@
       "id": "grower",
       "type": "play",
       "label": "River haggles with the greenhouse grower",
+      "objective": "Haggle with the greenhouse grower for River's basket",
       "know": "You are at the lean-to greenhouse with a grower and two scavs eyeing the crop. Real food is rare, and this man grows it on purpose. The grower wants 400 eddies for one basket.",
       "wants": "V to talk the scavs down and to deal with the grower fairly.",
       "do": [
@@ -138,6 +142,7 @@
       "id": "grower-quiet",
       "type": "play",
       "label": "River haggles after the scavs have left",
+      "objective": "Haggle with the greenhouse grower for River's basket",
       "know": "The scavs left the greenhouse without a fight. The grower still wants 400 eddies for one basket, and you are ready to pay whatever it costs.",
       "wants": "V to settle with the grower and walk away with the basket.",
       "do": [
@@ -159,6 +164,7 @@
       "id": "table",
       "type": "play",
       "label": "River closes the case with the basket",
+      "objective": "Take the basket from the greenhouse home with River",
       "know": "You have the basket of real celery and tomatoes. The case is closed, and you know what you are cooking on Sunday.",
       "wants": "V to walk away from the greenhouse with you.",
       "do": [{"p": "place", "at": "greenhouse"}],
@@ -169,6 +175,7 @@
       "id": "table-quiet",
       "type": "play",
       "label": "River closes the case after the scavs left",
+      "objective": "Take the basket from the greenhouse home with River",
       "know": "You have the basket of real celery and tomatoes, and the scavs left without a fight. The case is closed.",
       "wants": "V to walk away from the greenhouse with you.",
       "do": [{"p": "place", "at": "greenhouse"}],

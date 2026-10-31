@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "Say Left",
   "summary": "Rogue hands V the keys to her Type-66 and gives directions only, through the city she used to know, to the water.",
+  "description": "Rogue hands V the keys to her Quadra Type-66 and gives directions only, through the city she used to know, to the water. She sits beside V and says little about why tonight.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
@@ -80,6 +81,7 @@
       "id": "keys",
       "type": "play",
       "label": "Rogue hands V the keys at the Afterlife curb",
+      "objective": "Take the keys to Rogue's car at the Afterlife curb",
       "know": "V is at the Afterlife curb. You give V the keys to your Quadra Type-66 and you will sit beside V. You downplay it, and you do not say why you chose tonight.",
       "wants": "V to take the keys and drive.",
       "do": [
@@ -100,6 +102,7 @@
       "id": "route",
       "type": "play",
       "label": "V drives Rogue's route through the changed city",
+      "objective": "Follow Rogue's directions through the city to the water",
       "know": "V drives the Type-66 to the water on a hidden route. You give directions at each junction and say nothing else. The heat must stay at zero, and about 25 game minutes is the target.",
       "wants": "V to follow the directions to the water, quietly.",
       "do": [
@@ -122,6 +125,7 @@
       "id": "rail-stop",
       "type": "play",
       "label": "Rogue stops V at the rail above the water",
+      "objective": "Stop at the rail above the water with Rogue",
       "know": "You say stop at the Watson waterfront lot above the water. The car radio stays off. You will read the weather and the hour, and you will stand at the rail with V for 5 game minutes.",
       "wants": "V to stand at the rail with you while the weather plays out.",
       "do": [
@@ -144,6 +148,7 @@
       "id": "chauffeur-home",
       "type": "talk",
       "label": "Rogue takes the wheel and drives V home",
+      "objective": "Let Rogue drive you home",
       "know": "You take the wheel and drive V home. You will not explain the drive, and you are glad it was quiet.",
       "wants": "V to ride home without a word about the drive.",
       "script": [{"when": "stage:enter", "say": "R4.close.01"}],

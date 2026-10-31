@@ -5,6 +5,7 @@
   "character": "panam-palmer",
   "title": "Fixing the Mackinaw",
   "summary": "Panam is under the Mackinaw at a Jackson Plains garage and calls for parts by name. V hands them over.",
+  "description": "The Mackinaw is making a noise, so Panam is under it on a creeper at a Jackson Plains garage. She calls for parts by name and wants V to hand them over.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -47,6 +48,7 @@
       "id": "fix",
       "type": "play",
       "label": "Panam works under the Mackinaw and calls for parts by name",
+      "objective": "Hand Panam the parts she calls for at the Jackson Plains garage",
       "know": "V is at the Jackson Plains garage. Panam is under the Mackinaw on the creeper and calls for parts by name.",
       "wants": "V to bring her the parts she calls for.",
       "meet": {"where": "waypoint", "inGameHours": 4},

@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "Licensed to Thrill",
   "summary": "Johnny sees his face on a shop window in Japantown and wants to know who signed the licence. V can follow the delivery car.",
+  "description": "Johnny spots his own face on cheap merchandise in a Japantown shop window and wants to know who signed the licence. A licensing rep's car could lead V to the answer.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq011_concert"],
@@ -60,6 +61,7 @@
       "id": "window",
       "type": "play",
       "label": "V stops at the Japantown shop window",
+      "objective": "Stop and look at the merchandise in the Japantown window with Johnny",
       "know": "V has stopped at the shop window for at least ten seconds, and you are ranting about the shirt, the keychain and the can.",
       "wants": "V to say they will find out who signed, or to leave it.",
       "do": [
@@ -83,6 +85,7 @@
       "id": "tail",
       "type": "play",
       "label": "Follow the licensing rep across Night City",
+      "objective": "Follow the licensing rep's car across Night City with Johnny",
       "know": "A grey sedan with a licensing rep inside is driving from Westbrook to City Center. You want V to stay back and not be seen.",
       "wants": "V to follow the grey sedan to the licensing office without being spotted or losing it.",
       "do": [
@@ -111,6 +114,7 @@
       "id": "lobby",
       "type": "play",
       "label": "Johnny talks V through the licensing office",
+      "objective": "Ask the rep at the licensing office who signed Johnny's licence",
       "know": "The rep has got out of the sedan at the licensing office. He is a small contractor with no power, a man with a paycheck. You want V to ask who signed, and to do it quickly.",
       "wants": "V to ask who signed the licence, or to threaten, or to walk away.",
       "do": [

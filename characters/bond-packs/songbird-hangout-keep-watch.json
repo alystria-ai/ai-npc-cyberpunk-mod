@@ -5,6 +5,7 @@
   "character": "songbird",
   "title": "Keep Watch",
   "summary": "Songbird asks V to keep watch on a Dogtown water tower roof while she sleeps, and to say honestly what she said.",
+  "description": "Songbird has not slept in two days. She asks V to keep watch from a water tower roof in Dogtown so she can finally rest.",
   "requires": {
     "bond": 8,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -49,6 +50,7 @@
       "id": "hangout",
       "type": "play",
       "label": "Songbird sleeps while V keeps watch",
+      "objective": "Keep watch on the water tower roof while Songbird sleeps",
       "know": "V is on the water tower roof in Dogtown. You are going to sleep for the first time in two days, and you are glad it is V who is watching.",
       "wants": "V to keep watch quietly and tell you honestly what you said.",
       "meet": {"where": "waypoint", "inGameHours": 3},

@@ -220,6 +220,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/quest-context.mjs',
   'bridge/quest-facts.mjs',
   'bridge/quest-format.mjs',
+  'bridge/quest-journal.mjs',
   'bridge/quest-lines.mjs',
   'bridge/quest-link.mjs',
   'bridge/quest-overview.mjs',

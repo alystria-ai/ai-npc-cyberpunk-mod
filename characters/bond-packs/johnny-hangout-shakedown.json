@@ -5,6 +5,7 @@
   "character": "johnny-silverhand",
   "title": "Shakedown",
   "summary": "Three ganger types lean on a cart vendor in Heywood, and V decides whether to talk them off or fight.",
+  "description": "Three ganger types are leaning on a cart vendor in Heywood. Johnny thinks it is V's call what happens next, and he says so bluntly.",
   "requires": {
     "bond": 7,
     "questsFinished": ["quests/side_quest/sq011_concert"],
@@ -35,6 +36,7 @@
       "id": "cart",
       "type": "play",
       "label": "Deal with the three punks at the cart",
+      "objective": "Help Johnny deal with the three punks at the Vista del Rey cart",
       "know": "Three ganger types lean on a cart vendor for money. They are relaxed until someone starts a fight, and the vendor is frightened but unhurt.",
       "wants": "V to talk the punks off or fight them, with the vendor unhurt.",
       "do": [

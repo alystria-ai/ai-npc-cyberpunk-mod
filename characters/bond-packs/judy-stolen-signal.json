@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "Stolen Signal",
   "summary": "Someone stole the dolls' testimonies from Judy's storeroom, and a courier is carrying them across Watson right now.",
+  "description": "Someone broke into the Mox storeroom and took the dolls' testimonies. A courier on a red bike is carrying the case across Watson right now, and Judy wants V to stop him.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq026_02_maiko"],
@@ -67,6 +68,7 @@
       "id": "alarm",
       "type": "play",
       "label": "Judy's holocall: the case is moving across Watson",
+      "objective": "Answer Judy's holocall about the stolen testimonies at the Kabuki roundabout",
       "know": "Someone broke into the Mox storeroom and took raw testimonies from the dolls. A courier on a red bike is taking the case across Watson right now.",
       "wants": "V to get to the roundabout and catch the courier.",
       "do": [
@@ -81,6 +83,7 @@
       "id": "chase",
       "type": "play",
       "label": "V chases the courier across Watson",
+      "objective": "Chase the courier's red bike across Watson with Judy",
       "know": "The courier's bike is on a fixed route from the Kabuki roundabout through Little China to a Northside warehouse. Judy is watching the ping from her workshop.",
       "wants": "V to stop the bike before it reaches the warehouse.",
       "do": [
@@ -105,6 +108,7 @@
       "id": "buyer",
       "type": "play",
       "label": "The courier's buyers are at the warehouse",
+      "objective": "Find the courier's buyers at the Northside warehouse with Judy",
       "know": "Three scav buyers are taking the case at a Northside warehouse. They are the people who would sell the women's identities.",
       "wants": "V to stop the buyers and take the case back.",
       "do": [
@@ -124,6 +128,7 @@
       "id": "burn",
       "type": "talk",
       "label": "Judy decides what to do with the testimonies",
+      "objective": "Decide what to do with the testimonies with Judy",
       "know": "You have the case back. The testimonies are yours to finish or destroy, and you are not sure which you should do.",
       "wants": "V's opinion on whether to finish the edit or burn the chips.",
       "tags": [{"id": "keep", "kind": "yes"}, {"id": "burn", "kind": "no"}],

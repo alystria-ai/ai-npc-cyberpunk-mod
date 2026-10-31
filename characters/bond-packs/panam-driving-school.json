@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "Nomad Driving School",
   "summary": "Panam bets V cannot run the clan kids' route through the Badlands under her time, then rides shotgun and grades the run.",
+  "description": "Panam bets V cannot run the clan kids' route through the Badlands under her time. She plans to ride shotgun and grade the run, and she has her own line to show V.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -58,6 +59,7 @@
       "id": "dare",
       "type": "play",
       "label": "Panam bets V cannot beat the kids' route",
+      "objective": "Hear Panam's bet at the Rocky Ridge camp",
       "know": "You are at the camp by the trucks. Panam thinks V drives like a city driver and wants to see the kids' route run under her time.",
       "wants": "V to take the bet or refuse it.",
       "do": [
@@ -79,6 +81,7 @@
       "type": "play",
       "meetAt": "meet",
       "label": "V drives the kids' route with Panam in the passenger seat",
+      "objective": "Drive the kids' route with Panam, ending at the Sunset Motel",
       "know": "V is at the wheel of the car and Panam is in the passenger seat. The route runs through the riverbed, the turbines, the ramp and the old rail bridge, back to the Sunset Motel. The time limit is six game minutes.",
       "wants": "V to run the route under Panam's time.",
       "do": [
@@ -103,6 +106,7 @@
       "id": "her-turn",
       "type": "play",
       "label": "Panam shows V her line",
+      "objective": "Watch Panam take her own line at the Sunset Motel",
       "know": "V finished the kids' route. Panam wants to show V how it is done.",
       "wants": "V to watch and learn the line.",
       "do": [

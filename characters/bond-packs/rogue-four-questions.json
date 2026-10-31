@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "Four Questions",
   "summary": "Rogue talks V through an extraction of a nervous accountant from a Northside drop house, on foot, in her ear.",
+  "description": "Rogue has an accountant who wants out of a Northside drop house. She wants V to walk him out on foot with her voice in V's ear, and she has a job to offer.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
@@ -64,6 +65,7 @@
       "id": "brief",
       "type": "play",
       "label": "Rogue briefs the extraction in the booth",
+      "objective": "Hear Rogue's four questions in the Afterlife booth",
       "know": "V is in the Afterlife's private booth upstairs. You sit there and talk V through the four questions. You have a nervous accountant in a Northside drop house, and you want V to walk him out on foot.",
       "wants": "V to take the extraction, on foot, with your voice in V's ear.",
       "do": [
@@ -89,6 +91,7 @@
       "id": "recon",
       "type": "play",
       "label": "V reaches the Northside drop house",
+      "objective": "Get to the Northside drop house with Rogue in your ear",
       "know": "V is on the way to the drop house in Northside. You talk V through the four questions over the ear: reach, backup and the route out. The accountant is inside, and he is afraid.",
       "wants": "V to answer the questions and pick the way out.",
       "do": [
@@ -110,6 +113,7 @@
       "id": "extract",
       "type": "play",
       "label": "V walks the accountant to the Afterlife side door",
+      "objective": "Walk the accountant to the Afterlife side door for Rogue",
       "know": "The accountant follows V on foot. Six contractors patrol the alley route. You are in V's ear, and you want the client alive at the side door. If the contractors spot V, the walk becomes a fight.",
       "wants": "The client alive at the Afterlife side door, and V unseen if possible.",
       "do": [
@@ -131,6 +135,7 @@
       "id": "door-clean",
       "type": "play",
       "label": "Rogue pays and asks the fifth question",
+      "objective": "Get paid by Rogue at the Afterlife side door",
       "know": "The client went through the side door unseen. You pay V, and you have the fifth question ready. You ask it as a rule, not as a joke.",
       "wants": "V to answer the fifth question, or to be silent.",
       "do": [{"p": "place", "at": "side-door"}],
@@ -149,6 +154,7 @@
       "id": "door-loud",
       "type": "play",
       "label": "Rogue pays and asks the fifth question, after a fight",
+      "objective": "Get paid by Rogue at the Afterlife side door",
       "know": "The client came out alive, after a fight. You pay V, and you have the fifth question ready. You ask it as a rule, not as a joke.",
       "wants": "V to answer the fifth question, or to be silent.",
       "do": [

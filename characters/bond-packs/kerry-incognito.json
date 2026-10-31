@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Incognito",
   "summary": "Kerry wants one street food meal in Japantown without anyone lifting a phone, so he asks you to run interference in a hat and scarf.",
+  "description": "Kerry wants one street food meal in Japantown without anyone lifting a phone. He asks V to run interference in a hat and scarf while he crosses the night food street.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq011_concert"],
@@ -62,6 +63,7 @@
     {
       "id": "plan",
       "label": "Kerry asks V to keep an eye out",
+      "objective": "Agree to run interference for Kerry in Japantown",
       "know": "You have asked V to run interference for one meal on the Japantown night food street. You have a hat, a scarf and glasses. You need V to take it seriously.",
       "wants": "V to say yes and mean it.",
       "script": [
@@ -79,6 +81,7 @@
       "id": "crowd",
       "type": "play",
       "label": "Kerry crosses the food street in a hat and scarf",
+      "objective": "Walk Kerry across the Japantown night food street",
       "know": "You are walking the Japantown night food street with V in a hat and scarf. A teenage fan is near the lanterns, a guard by the noodle bar can lift a phone, and a drone hangs over the square. If the phone goes up, the route is over.",
       "wants": "V to get you to the stall without anyone seeing.",
       "do": [
@@ -109,6 +112,7 @@
       "id": "stall",
       "type": "play",
       "label": "Kerry eats at the stall with V",
+      "objective": "Eat at the food stall at the end of the street with Kerry",
       "know": "You are sitting at the food stall at the end of the street with a bowl. You are relaxed, and a small kid nearby is about to recognize you.",
       "wants": "V to answer you honestly.",
       "do": [
@@ -129,6 +133,7 @@
       "id": "kid",
       "type": "play",
       "label": "A small kid recognizes Kerry at the stall",
+      "objective": "Talk to the small kid who recognizes Kerry at the food stall",
       "know": "You are leaving the stall and a small kid has seen you. You can still say something to the kid, or let it happen.",
       "wants": "The kid to get a signature.",
       "do": [

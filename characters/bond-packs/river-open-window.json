@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "Open Window",
   "summary": "A plate led River to a Westbrook flat where the ring keeps its list of families, and he needs V to go in through the window while he holds the super.",
+  "description": "A plate led River to a Westbrook tower flat where the ring keeps its list of families. He cannot go through the front, so he will hold the building's super on the street while V goes in by the fire escape.",
   "requires": {
     "bond": 5,
     "after": ["river-cold-coffee"],
@@ -65,6 +66,7 @@
       "id": "plan",
       "type": "play",
       "label": "River plans the Westbrook flat from the car",
+      "objective": "Plan the Westbrook flat with River from the car",
       "know": "You are in V's car across the street from the Westbrook tower. You have the plan: you hold the super on the street, and V goes in by the fire escape. You want the list and nothing else.",
       "wants": "V to decide whether to go in.",
       "do": [
@@ -90,6 +92,7 @@
       "id": "distract",
       "type": "play",
       "label": "River holds the super on the street",
+      "objective": "Get in by the fire escape while River holds the super",
       "know": "You are on the street, and your copy has walked into the lobby to keep the super talking. You speak to V only while the super is looking away.",
       "wants": "V to get to the fire escape.",
       "do": [
@@ -105,6 +108,7 @@
       "id": "search-list",
       "type": "play",
       "label": "V searches the flat for the list",
+      "objective": "Search the Westbrook flat for River's list",
       "know": "V is inside the Westbrook flat, past the fire escape. A lookout sleeps by the window and a guard dozes in the kitchen. The super has about eight game minutes before he comes up to check the noise.",
       "wants": "V to find the list and get out before the super comes up.",
       "do": [
@@ -134,6 +138,7 @@
       "id": "search-drawer",
       "type": "play",
       "label": "V searches the drawer and the calendar",
+      "objective": "Search the drawer and calendar in the flat for River",
       "know": "The list is in your hands and the drawer of burner phones is open. A calendar with every Thursday ringed is on the wall, and the window is the way out.",
       "wants": "V to check the drawer and the calendar before leaving.",
       "do": [
@@ -155,6 +160,7 @@
       "id": "out-all",
       "type": "play",
       "label": "River reads the list in the car",
+      "objective": "Bring the list and phones back to River's car across from the tower",
       "know": "V has the list, the phones and the calendar. You are back in the car on the street and the super is still downstairs.",
       "wants": "V to sit with you a minute before you drive off.",
       "do": [{"p": "place", "at": "street"}],
@@ -169,6 +175,7 @@
       "id": "out-two",
       "type": "play",
       "label": "River reads the list in the car",
+      "objective": "Bring the list and phones back to River's car across from the tower",
       "know": "V has the list and the phones, but the calendar was never checked. You are back in the car on the street.",
       "wants": "V to sit with you a minute before you drive off.",
       "do": [{"p": "place", "at": "street"}],

@@ -5,6 +5,7 @@
   "character": "river-ward",
   "title": "Cover Story",
   "summary": "River gives you an alias at a Santo Domingo night market and bets you cannot get a free coffee with it.",
+  "description": "River has given V an alias for the night market in Santo Domingo. He bets V cannot get a free coffee with it from the vendor behind the stall.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -47,6 +48,7 @@
       "id": "market",
       "type": "play",
       "label": "V tries the alias on a night market vendor",
+      "objective": "Try River's alias on the night market vendor",
       "know": "You are at the night market in Santo Domingo with River. He has given you an alias, and a vendor is behind the coffee stall.",
       "wants": "V to get a free coffee with the story.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "viktor-vektor",
   "title": "Roadwork",
   "summary": "Viktor runs the courtyard loop around Megabuilding H10 at dawn, then sprints for the last checkpoint.",
+  "description": "Viktor runs a loop around the courtyard by Megabuilding H10 in Little China at dawn. He sprints for the last checkpoint, and V has to keep up.",
   "requires": {"bond": 4, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
   "start": {
     "channels": ["phone", "own"],
@@ -43,6 +44,7 @@
       "id": "run",
       "type": "play",
       "label": "V runs the courtyard loop with Viktor and sprints the last stretch",
+      "objective": "Run the courtyard loop with Viktor and chase his sprint",
       "know": "You run the courtyard loop around Megabuilding H10 with Viktor, staying within five metres of him for eight game minutes. At the last checkpoint he sprints, and you chase him down if you can.",
       "wants": "V to keep up for the loop and to reach the finish.",
       "do": [

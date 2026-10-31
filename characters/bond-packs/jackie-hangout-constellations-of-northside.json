@@ -5,6 +5,7 @@
   "character": "jackie-welles",
   "title": "Constellations of Northside",
   "summary": "Jackie takes you to a Northside rooftop to name stars, where he invents three constellations and asks you for one of your own.",
+  "description": "Jackie takes V up to a Northside rooftop to name stars. He has already invented his own constellations, and he asked V to bring a jacket.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -37,6 +38,7 @@
       "id": "roof",
       "type": "play",
       "label": "Jackie and V name constellations from a Northside rooftop",
+      "objective": "Name constellations with Jackie on a Northside rooftop",
       "know": "You are on a rooftop in Northside with Jackie. He is naming constellations after food and tools, and a drone has just flown across the sky.",
       "wants": "V to name a constellation and tell its story.",
       "do": [

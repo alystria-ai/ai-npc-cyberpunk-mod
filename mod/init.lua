@@ -7092,6 +7092,8 @@ end
 -- with Character bonds and Story packs On, nothing is loaded otherwise. The tick is one nil check while no quest is armed. Globals and one do-block, as for
 -- Eddies and bonds: the main chunk is near Lua's limit of locals.
 convaiQuestPlay, convaiQuestLines, convaiQuestWorld, convaiQuestSpeaker = nil, nil, nil, nil
+-- The real quests of the packs (mod/quest-journal.lua): built with the quest module.
+convaiQuestJournal = nil
 -- Characters text first (mod/quest-reach.lua, built with the quest module): a character texts, calls or Johnny speaks up first at a calm moment.
 convaiReach, convaiQuestMissingSeen = nil, nil
 -- The primitive registry (the pay stage lookup of a turn) and the facts reader (mod/quest-facts.lua, built the first time the play file wants a fact).
@@ -7187,7 +7189,9 @@ do
         local built, play = pcall(function()
             local world = modules[1].new({companions = companions, queue = function() return managerUi.party and managerUi.party() end,
                 seating = function() return convaiSeating end, district = function() return currentDistrict() end, log = log})
-            local places = modules[2].new({world = world, clock = os.clock, log = log})
+            local places = modules[2].new({world = world, clock = os.clock, log = log,
+                -- A place the quest's journal entry already marks gets no second pin (mod/quest-journal.lua waypoint).
+                journalPin = function(ctx, id) return convaiQuestJournal ~= nil and convaiQuestJournal.waypoint(ctx and ctx.pack, id) == true end})
             local prims = modules[3].new({places = places, world = world, clock = os.clock, gameTime = gameClock, log = log})
             if type(prims.env) == 'table' then prims.env.companions = companions end   -- the scene primitives find the mod's copies through it
             -- The line player is in prims.env.lines: the call primitives (quest-prims-calls.lua) and the sounds (quest-audio.lua, prims.sounds) read it from there.
@@ -7207,7 +7211,16 @@ do
                 emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
                 onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
             if type(prims.env) == 'table' then prims.env.lines = lines end
-            local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log,
+            -- The real quests (mod/quest-journal.lua, docs/REAL_QUESTS.md): the journal entry, the tracker and the waypoint of each pack. Loaded on its own: a
+            -- failure there leaves the quests playing as talk and texts.
+            local journal = nil
+            local journalLoaded, journalModule = pcall(dofile, 'quest-journal.lua')
+            if journalLoaded and type(journalModule) == 'table' and type(journalModule.new) == 'function' then
+                local journalBuilt, made = pcall(journalModule.new, {world = journalModule.gameWorld(function() return convaiPlayer() end), log = log})
+                if journalBuilt then journal = made else convaiLogOnce('quest-journal', 'The quest journal is unavailable: ' .. tostring(made)) end
+            else convaiLogOnce('quest-journal', 'The quest journal is unavailable: ' .. tostring(journalModule)) end
+            convaiQuestJournal = journal
+            local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log, journal = journal,
                 -- The play file's reach block (mod/quest-reach.lua): handed over whenever a play file is applied, or nil when it is gone.
                 onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end,
                 near = function(profileKey) return convaiQuestNear(profileKey) end})
@@ -7281,11 +7294,26 @@ do
     end
     -- The bridge says the play file changed (runtime/bonds-status.json, mod/bonds.lua): read it now.
     function convaiQuestPlayRevision()
-        if not settingOn() then return end
+        if not settingOn() then
+            if convaiQuestPlay then pcall(convaiQuestPlay.settingOff) end
+            return
+        end
         local play = build()
         if not play then return end
         local ok, problem = pcall(play.onPlayRevision)
         if not ok then convaiLogOnce('quest-revision', 'Bond quests could not read the play file: ' .. tostring(problem)) end
+    end
+    -- Settings > Companions changed Character bonds or Story packs (mod/manager-ui.lua, after the settings were saved). Off: the stages are reaped and the
+    -- journal entries, the tracker line and the waypoints go. On: the quests are built and read at the next tick, as at a session start.
+    function convaiQuestSettingChanged()
+        if not settingOn() then
+            if convaiQuestPlay then
+                local ok, problem = pcall(convaiQuestPlay.settingOff)
+                if not ok then convaiLogOnce('quest-off', 'Bond quests could not stop: ' .. tostring(problem)) end
+            end
+            return
+        end
+        if convaiQuestPlay then pcall(convaiQuestPlay.restore) else convaiQuestDue = true end
     end
     -- The world ended (a load, a detach, a fast travel): nothing is asked of it, the stage is read again once the next world is ready.
     function convaiQuestReset(reason)

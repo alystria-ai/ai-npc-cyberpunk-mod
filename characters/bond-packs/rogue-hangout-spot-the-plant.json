@@ -5,6 +5,7 @@
   "character": "rogue-amendiares",
   "title": "Spot the Plant",
   "summary": "Rogue has V sit on a Charter Hill terrace and name the one passer-by who is carrying something they should not.",
+  "description": "Rogue has V sit on a Charter Hill cafe terrace with coffee and watch the people walk past. One of them is carrying something they should not.",
   "requires": {
     "bond": 3,
     "questsFinished": [
@@ -89,6 +90,7 @@
       "id": "spot",
       "type": "play",
       "label": "Rogue has V name the plant on the terrace",
+      "objective": "Name the passer-by hiding something on the terrace with Rogue",
       "know": "You and V sit on the Charter Hill terrace with coffee. Five passers-by walk the path. One carries a concealed item, and two are decoys. You give hints only if V asks.",
       "wants": "V to name the one carrying the concealed item, and to say why.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "songbird",
   "title": "Shared Radio",
   "summary": "Songbird picks a station by memory from V's car by the Dogtown Wall market, and is often wrong.",
+  "description": "Songbird wants to tune a radio by memory while V sits in the car by the Dogtown Wall market. She has already decided she will be wrong about the station.",
   "requires": {
     "bond": 2,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -49,6 +50,7 @@
       "id": "hangout",
       "type": "play",
       "label": "Songbird picks a station by memory",
+      "objective": "Listen to Songbird pick a station by memory at the Dogtown Wall market",
       "know": "V is parked by the market with the radio on. You picked the station by memory and you expect to be wrong.",
       "wants": "V's ear for the station, and V's honest take on the song.",
       "meet": {"where": "waypoint", "inGameHours": 3},

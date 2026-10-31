@@ -5,6 +5,7 @@
   "character": "kerry-eurodyne",
   "title": "Garden Party Crashers",
   "summary": "Kerry has talked his way into a neighbour's garden party in North Oak as your cousin, and asks you to commit to the story while the host watches for famous faces.",
+  "description": "Kerry has talked his way into a neighbour's garden party in North Oak as plus-ones, and he needs V to play his cousin. The host is watching for famous faces.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -46,6 +47,7 @@
       "id": "party",
       "type": "play",
       "label": "Kerry and V mingle at a North Oak garden party",
+      "objective": "Mingle with Kerry at the North Oak garden party",
       "know": "You are in the back garden of a neighbour's party in North Oak, where you are not invited. Kerry has a drink in his hand, and the host is watching for famous faces.",
       "wants": "V to keep the cover story and stay away from the host.",
       "do": [

@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "A Name for the Plaque",
   "summary": "Takemura asks V to be his witness at a small Japantown shrine, where he walks the stories, hangs plaques for Saburo Arasaka and the boys of Chiba-11, and hands V a charm.",
+  "description": "Takemura asks V to be his witness, not his guard, at a small rite at a Japantown shrine at dusk. He walks the stories and hangs plaques for Saburo Arasaka and the boys of Chiba-11.",
   "requires": {
     "bond": 10,
     "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
@@ -98,6 +99,7 @@
       "id": "ask",
       "type": "play",
       "label": "Takemura asks V to be his witness at the shrine",
+      "objective": "Meet Takemura at the shrine gate in Japantown",
       "know": "Takemura has texted you asking for a witness. He wants you at the shrine gate in Japantown at dusk, and he is not asking for a guard.",
       "wants": "V to come to the shrine gate.",
       "do": [
@@ -112,6 +114,7 @@
       "id": "path",
       "type": "play",
       "label": "Takemura walks V along the shrine path, telling the stories",
+      "objective": "Walk the shrine path with Takemura and hear the stories",
       "know": "You are at the shrine gate with Takemura. He will walk you along the path and tell three stories, at the foxes, the canal bridge and the wall.",
       "wants": "V to walk beside him and listen.",
       "do": [
@@ -141,6 +144,7 @@
       "id": "rites",
       "type": "play",
       "label": "Three stations at the shrine, then the plaques",
+      "objective": "Follow Takemura through the shrine stations to the plaques",
       "know": "You are at the shrine. Takemura shows you the water basin, a stick of incense and the writing table, where he hangs one plaque for Saburo Arasaka and one for the boys of Chiba-11.",
       "wants": "V to stand at each station and give a name, or none.",
       "do": [
@@ -167,6 +171,7 @@
       "id": "sit-name",
       "type": "play",
       "label": "V sits on the steps with Takemura while the incense burns",
+      "objective": "Sit on the shrine steps with Takemura while the incense burns",
       "know": "The plaques are hung and the incense is burning. You gave Takemura a name, and he will remember it with you.",
       "wants": "V to sit with him until the incense is finished.",
       "do": [
@@ -191,6 +196,7 @@
       "id": "sit-none",
       "type": "play",
       "label": "V sits on the steps with Takemura while the incense burns",
+      "objective": "Sit on the shrine steps with Takemura while the incense burns",
       "know": "The plaques are hung and the incense is burning. You chose not to give a name, and Takemura hangs a blank plaque for you until you are ready.",
       "wants": "V to sit with him until the incense is finished.",
       "do": [
@@ -215,6 +221,7 @@
       "id": "charm-name",
       "type": "play",
       "label": "Takemura gives V a small charm, and asks how V wants to be remembered",
+      "objective": "Take the charm from Takemura and answer how you want to be remembered",
       "know": "Takemura has bought a small charm at the shrine stall and is wrapping it in his handkerchief. He is about to give it to you.",
       "wants": "V to take the charm and answer how they want to be remembered.",
       "do": [{"p": "seat"}],
@@ -230,6 +237,7 @@
       "id": "charm-none",
       "type": "play",
       "label": "Takemura gives V a small charm, and asks how V wants to be remembered",
+      "objective": "Take the charm from Takemura and answer how you want to be remembered",
       "know": "Takemura has bought a small charm at the shrine stall and is wrapping it in his handkerchief. He is about to give it to you, and the blank plaque still hangs on the rack.",
       "wants": "V to take the charm and answer how they want to be remembered.",
       "do": [{"p": "seat"}],

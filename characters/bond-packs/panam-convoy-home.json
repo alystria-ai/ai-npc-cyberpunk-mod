@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "The Long Way Home",
   "summary": "Saul trusts Panam with a supply run from the border. She asks V to ride along, and the column has to get through a Raffen ambush.",
+  "description": "Saul trusts Panam with a supply run of medicine and parts from the border to camp. She asks V to ride along as a friend, not as a gun.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
@@ -84,6 +85,7 @@
       "id": "ask",
       "type": "play",
       "label": "Panam asks V to ride with her on the supply run",
+      "objective": "Agree to ride with Panam on the supply run from the border",
       "know": "Saul has asked Panam to lead a supply run of medicine and parts from the border to camp. She has never been trusted with the clan's people before.",
       "wants": "V to say yes or no.",
       "do": [
@@ -107,6 +109,7 @@
       "id": "pickup",
       "type": "play",
       "label": "V meets Panam at the border crossing",
+      "objective": "Meet Panam at the border crossing",
       "know": "Two Aldecaldo drivers, Bodhi and Jen, wait at the border with their cars. Panam is at the wheel of the Mackinaw.",
       "wants": "V to get in.",
       "do": [
@@ -127,6 +130,7 @@
       "id": "run",
       "type": "play",
       "label": "The supply column drives to camp",
+      "objective": "Drive the supply column to camp with Panam",
       "know": "Panam leads the column of two clan cars from the border. Two Raffen cars wait where the canyon road narrows, and the column is stopped short of them. The salt flats are the long way round.",
       "wants": "The column to reach camp, and V's call on the canyon.",
       "do": [
@@ -165,6 +169,7 @@
       "id": "camp",
       "type": "play",
       "label": "The column reaches the Aldecaldo camp",
+      "objective": "Stand with Panam at the Aldecaldo camp",
       "know": "Every car has reached camp. Panam is standing with V by the trucks, and Saul is across the camp, watching.",
       "wants": "V to sit with her for a minute and give an honest answer.",
       "do": [
@@ -186,6 +191,7 @@
       "id": "camp-lost",
       "type": "play",
       "label": "The column reaches camp a car short",
+      "objective": "Stand with Panam at the Aldecaldo camp",
       "know": "A clan car was lost on the canyon road. Panam has brought the rest of the column to camp.",
       "wants": "V to be there for her.",
       "do": [

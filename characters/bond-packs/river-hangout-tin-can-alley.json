@@ -5,6 +5,7 @@
   "character": "river-ward",
   "title": "Tin Can Alley",
   "summary": "River takes you to a dry gulch off the Red Peaks road to knock down tin cans and keep score, and he is a bad loser about it.",
+  "description": "River invites V to shoot tin cans at a dry gulch off the Red Peaks road. He keeps score, and he asks for a rematch if V wins.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -50,6 +51,7 @@
       "id": "rounds",
       "type": "play",
       "label": "River and V shoot tin cans at the gulch",
+      "objective": "Shoot the tin cans at the gulch while River keeps score",
       "know": "You are at the dry gulch off the Red Peaks road with eight tin cans on the rail and two guns. You are shooting for score, and River is keeping count.",
       "wants": "V to knock the cans down and tell River a story.",
       "do": [

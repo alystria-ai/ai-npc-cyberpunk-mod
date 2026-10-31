@@ -4,6 +4,7 @@
   "character": "songbird",
   "title": "The Mirror",
   "summary": "Songbird asks V to go into a shielded container in the Longshore Stacks for a young netrunner held there.",
+  "description": "A young netrunner is held in the Longshore Stacks by a crew that sells runners to whoever pays. Songbird can still hear his channels but cannot reach him, so she asks V to go in.",
   "requires": {
     "bond": 7,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -95,6 +96,7 @@
       "id": "call",
       "type": "play",
       "label": "Songbird asks V to go into the Stacks",
+      "objective": "Answer Songbird's call about the netrunner in the Stacks",
       "know": "You are calling V about a young netrunner held in the Longshore Stacks. You cannot promise anything, and you want V to say yes freely.",
       "wants": "V to say yes to going into the Stacks.",
       "do": [{"p": "call-in", "id": "ring", "call": "c5", "ringSeconds": 30}],
@@ -110,6 +112,7 @@
       "id": "scout",
       "type": "play",
       "label": "Songbird counts the lane guards for V",
+      "objective": "Work toward the last container in the Stacks with Songbird",
       "know": "V is in the Stacks, working toward the last container. You count the lane guards through V's ear, and you stay calm while the count holds.",
       "wants": "V to reach the last container without being seen.",
       "do": [
@@ -135,6 +138,7 @@
       "id": "dead-zone",
       "type": "play",
       "label": "Songbird goes silent at the last container",
+      "objective": "Go into the shielded container where Songbird's voice cuts out",
       "know": "V is at the shielded container. Your voice cuts out at its door, and you can only wait for V to come back out.",
       "wants": "V to get inside, get the boy out and come back to the signal.",
       "do": [{"p": "dead-zone", "id": "dz", "at": "last-container"}],
@@ -148,6 +152,7 @@
     {
       "id": "rescue",
       "label": "Songbird asks whether the boy is out",
+      "objective": "Check with Songbird whether the boy is out",
       "know": "V has been inside the container and back. You want to know whether he is out, alive and breathing, and what you would have wanted someone to say to you.",
       "wants": "V to say whether the boy is out and alive.",
       "script": [
@@ -165,6 +170,7 @@
       "id": "out",
       "type": "play",
       "label": "V drives the boy to a contact in Dogtown",
+      "objective": "Drive the boy to the Dogtown contact, with Songbird on the radio",
       "know": "V has the boy and is driving him out. Some of the squad is behind V. You will hold the road, and you will tell V where to go.",
       "wants": "V to get the boy to the contact and not to be caught.",
       "do": [
@@ -187,6 +193,7 @@
     {
       "id": "after",
       "label": "Songbird talks about the rescue",
+      "objective": "Talk with Songbird about the rescue",
       "know": "The boy is with the contact. You say the thing you have not said before: what it is to be on the other end of a rescue.",
       "wants": "V to hear what you did not get, and to be honest about the boy.",
       "script": [

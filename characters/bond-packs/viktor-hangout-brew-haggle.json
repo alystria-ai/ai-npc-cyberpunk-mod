@@ -5,6 +5,7 @@
   "character": "viktor-vektor",
   "title": "Brew and Haggle",
   "summary": "V haggles with a tea stall owner by the canal bridge in Little China while Viktor sits and says nothing.",
+  "description": "Viktor invites V to a tea stall by the canal bridge in Little China, where the prices are a matter of opinion. He sits and says nothing while V haggles.",
   "requires": {"bond": 6, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true, "eddies": true},
   "start": {
     "channels": ["phone", "own"],
@@ -29,6 +30,7 @@
       "id": "haggle",
       "type": "play",
       "label": "V haggles over the price of two cups of tea",
+      "objective": "Haggle for two cups of tea with Viktor at the canal bridge stall",
       "know": "Viktor sits at the stall and stays silent. The stall owner is a boxing fan. You haggle for a price at or under sixty percent of the asking price.",
       "wants": "V to get the tea for at or under sixty percent of the asking price, or at least to make a deal.",
       "do": [

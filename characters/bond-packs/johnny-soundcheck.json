@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "Soundcheck",
   "summary": "Johnny asks V to stand on an empty club stage at dawn, say one word into the mic, and give him one line in V's own voice.",
+  "description": "Johnny wants to stand on a stage once more with nobody watching. He asks V to meet him at the empty Totentanz stage in Westbrook at five in the morning.",
   "requires": {
     "bond": 10,
     "questsFinished": ["quests/side_quest/sq031_rogue"],
@@ -82,6 +83,7 @@
       "id": "call",
       "type": "talk",
       "label": "Johnny asks V for a soundcheck",
+      "objective": "Answer Johnny's request for a soundcheck",
       "know": "Johnny is asking V for a soundcheck on the Totentanz stage at five in the morning. He is asking, not taking, and V can say no.",
       "wants": "V to say yes or no.",
       "script": [
@@ -101,6 +103,7 @@
       "id": "venue",
       "type": "play",
       "label": "Stand by the mic on the Totentanz stage",
+      "objective": "Go to the Totentanz stage in Westbrook with Johnny before dawn",
       "know": "V is going to the Totentanz stage in Westbrook, empty at five in the morning. Johnny is waiting, and the mic stand is where it always was.",
       "wants": "V to stand on the stage within reach of the mic stand.",
       "do": [
@@ -118,6 +121,7 @@
       "id": "check",
       "type": "play",
       "label": "Stand on the stage during the soundcheck",
+      "objective": "Stand by the mic on the Totentanz stage with Johnny",
       "know": "V is on the Totentanz stage at five in the morning, near the mic stand. Johnny walks the edge of the stage and tells V what the room used to sound like. He is a little afraid of the quiet.",
       "wants": "V to say one word into the mic, or to stay silent and let him hear the room.",
       "do": [
@@ -144,6 +148,7 @@
       "id": "wheel",
       "type": "talk",
       "label": "Johnny asks for one line in V's own voice",
+      "objective": "Answer Johnny's request for one line in V's voice",
       "know": "Johnny has used V's body for weeks and never asked. Now he asks for one line, spoken by V's mouth. V may say yes, say no, or take turns with him. Alt's name may come up in the answer to yes.",
       "wants": "V to decide: yes, no, or together.",
       "script": [
@@ -167,6 +172,7 @@
       "id": "out-yes",
       "type": "play",
       "label": "Walk out to the street at dawn",
+      "objective": "Walk out to the Westbrook street at dawn with Johnny",
       "know": "The soundcheck is over and V has given Johnny the line. The lights are coming on soon, and he is quiet.",
       "wants": "V to walk out by the front onto the street.",
       "do": [
@@ -184,6 +190,7 @@
       "id": "out-together",
       "type": "play",
       "label": "Walk out to the street at dawn",
+      "objective": "Walk out to the Westbrook street at dawn with Johnny",
       "know": "The soundcheck is over and you and Johnny have traded the line in turns. The lights are coming on soon, and he is quiet.",
       "wants": "V to walk out by the front onto the street.",
       "do": [
@@ -201,6 +208,7 @@
       "id": "out-no",
       "type": "play",
       "label": "Walk out to the street at dawn",
+      "objective": "Walk out to the Westbrook street at dawn with Johnny",
       "know": "The soundcheck is over and V has told Johnny no. The lights are coming on soon, and he is quiet.",
       "wants": "V to walk out by the front onto the street.",
       "do": [

@@ -3502,6 +3502,8 @@ function M.apply(changes)
     local ok, err, notice, reload
     if addonChanges > 0 and addonChanges == #applied then ok = true
     else ok, err, notice, reload = manager.applySettings(currentPlayer, values) end
+    -- The story packs' quests follow Character bonds and Story packs at once (mod/init.lua convaiQuestSettingChanged): off takes their journal entries away.
+    if ok and (values.storyPacks ~= nil or values.characterBonds ~= nil) and type(convaiQuestSettingChanged) == 'function' then pcall(convaiQuestSettingChanged) end
     if addonChanges > 0 then
         if ok then convaiAddons.commitSettings() else convaiAddons.discardSettings() end
     end

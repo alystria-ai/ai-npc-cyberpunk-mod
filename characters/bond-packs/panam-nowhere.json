@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "Nowhere in Particular",
   "summary": "Panam asks V to drive her out of the city at night with no destination, and at dawn she tells V what scares her about leading the family.",
+  "description": "Panam is tired of having a plan. She asks V to pick her up from the Aldecaldo camp at night and drive with no destination, just to see what it feels like.",
   "requires": {
     "bond": 10,
     "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
@@ -95,6 +96,7 @@
       "id": "call",
       "type": "play",
       "label": "Panam calls V to come get her at camp",
+      "objective": "Pick Panam up at the Aldecaldo camp at night",
       "know": "Panam is at the Aldecaldo camp at night and wants V to come and take her out with no destination, no job and no clan.",
       "wants": "V to answer the call and drive out to the camp.",
       "do": [
@@ -111,6 +113,7 @@
       "id": "drive",
       "type": "play",
       "label": "V drives Panam out of the city with no destination",
+      "objective": "Drive Panam out of the city toward the Badlands overlook",
       "know": "V is at the wheel and Panam is in the passenger seat. There is no destination and no job. The radio is V's choice.",
       "wants": "V to drive, pick the music and listen when Panam talks.",
       "do": [
@@ -151,6 +154,7 @@
       "id": "view",
       "type": "play",
       "label": "V stops at an overlook and they sit on the ground",
+      "objective": "Stop at the Badlands overlook and sit with Panam",
       "know": "V has stopped at a view over the Badlands at first light. Panam gets out and sits, with her confession ready.",
       "wants": "V to sit with her and hear her out.",
       "do": [
@@ -172,6 +176,7 @@
       "id": "keepsake",
       "type": "play",
       "label": "Panam gives V her mother's bracelet",
+      "objective": "Accept Panam's mother's bracelet at the overlook",
       "know": "Panam has her mother's Aldecaldo bracelet in her pocket. It is from before the Aldecaldos were anything.",
       "wants": "V to take the bracelet and wear it.",
       "do": [{"p": "pin", "at": "overlook"}],

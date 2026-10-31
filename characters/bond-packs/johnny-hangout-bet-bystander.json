@@ -5,6 +5,7 @@
   "character": "johnny-silverhand",
   "title": "Bet on the Bystander",
   "summary": "Johnny bets how strangers in Arroyo will react to three requests V makes, and V picks one reaction to back.",
+  "description": "Johnny wants a game about how strangers react. He bets on three small requests V makes to ordinary people in an Arroyo street market in Santo Domingo.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
@@ -35,6 +36,7 @@
       "id": "bets",
       "type": "play",
       "label": "Make three requests in the Arroyo market",
+      "objective": "Make three requests at the Arroyo market while Johnny bets",
       "know": "Johnny bets how each stranger will react before V asks. V asks a food vendor for a free taste for a famous man, a loiterer to move on, and a mechanic to admire the sign. One stranger may react in a way nobody bets on.",
       "wants": "V to make the three requests and commit to a bet on the next reaction.",
       "do": [

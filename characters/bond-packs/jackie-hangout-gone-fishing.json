@@ -5,6 +5,7 @@
   "character": "jackie-welles",
   "title": "Gone Fishing",
   "summary": "Jackie takes you fishing off a pier on the Arasaka Waterfront, where the catch is mostly junk and the gonk next to you bets he will do better.",
+  "description": "Jackie brought a line and a bad attitude to the pier on the Arasaka Waterfront. He asked V to bring patience, because the catch is mostly junk.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -37,6 +38,7 @@
       "id": "pier",
       "type": "play",
       "label": "Jackie and V fish off the Arasaka pier",
+      "objective": "Fish with Jackie off the pier on the Arasaka Waterfront",
       "know": "You are fishing from the pier on the Arasaka Waterfront with Jackie. A gonk on the next post bets Jackie he will catch more. Dawn and dusk give better odds, and the catch is mostly junk.",
       "wants": "V to stay on the pier for the full twenty minutes.",
       "do": [

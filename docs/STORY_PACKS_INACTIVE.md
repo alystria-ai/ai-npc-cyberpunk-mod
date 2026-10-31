@@ -1,5 +1,8 @@
 # Story packs are inactive in 0.4.0
 
+**Real quests (branch `feat/real-quests`, 31 Oct 2026):** the packs now show as quests of the game's journal, HUD tracker and map (docs/REAL_QUESTS.md).
+They stay behind the same development switch below until the owner's live test.
+
 Owner decision, 31 Oct 2026: release 0.4.0 ships **without** the story packs (the character quests and hangouts in `characters/bond-packs/`, the reach-outs in `characters/reach-outs/`). They are not ready. The plan is to rebuild them as real game quests (a journal entry, an objective tracker, waypoints) in a later update.
 
 Everything else of the quest update ships and works: bonds and bond levels, the bond line in talk, romance with side characters, the Relationships and Romantic relationships pages, side characters, Chat search.

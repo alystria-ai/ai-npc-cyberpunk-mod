@@ -5,6 +5,7 @@
   "character": "songbird",
   "title": "Colour Hunt",
   "summary": "Songbird asks V to find five colours around Pacifica and describe what each one feels like.",
+  "description": "Songbird says Dogtown is grey, so she asks V to find five colours around Pacifica and say what each one feels like.",
   "requires": {
     "bond": 6,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -53,6 +54,7 @@
       "id": "hangout",
       "type": "play",
       "label": "Songbird sends V to find five colours",
+      "objective": "Find five colours around Pacifica for Songbird",
       "know": "V is in Pacifica looking for five colours. You picked the list, and the fifth colour is the one you chose first.",
       "wants": "V to find the colours, describe them, and say one honest thing about the last one.",
       "meet": {"where": "waypoint", "inGameHours": 3},

@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "The Count",
   "summary": "Johnny asks V to walk him to a quiet shrine above Corpo Plaza, where a stranger sits who hated him.",
+  "description": "Johnny asks V to walk him to a quiet memorial lookout above Corpo Plaza. He wants to hear the number of people the tower took said out loud.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq031_rogue"],
@@ -67,6 +68,7 @@
       "id": "ask",
       "type": "talk",
       "label": "Johnny asks V to walk him to the shrine",
+      "objective": "Agree to walk Johnny to the shrine above Corpo Plaza",
       "know": "You ask V for something plain, with no jokes. You want to be walked to a shrine above Corpo Plaza that you have never visited.",
       "wants": "V to say yes or no.",
       "script": [
@@ -86,6 +88,7 @@
       "id": "walk",
       "type": "play",
       "label": "Walk to the shrine above Corpo Plaza",
+      "objective": "Walk Johnny from the transit stop to the Corpo Plaza shrine",
       "know": "V is walking with you from the transit stop to the shrine. It is a long way and a quiet one, and you do not want to talk yet.",
       "wants": "V to keep walking with you in silence.",
       "do": [
@@ -114,6 +117,7 @@
       "id": "elder",
       "type": "play",
       "label": "Sit at the shrine beside an old man",
+      "objective": "Sit at the Corpo Plaza shrine with Johnny beside the old man",
       "know": "An old man with a candle is on the bench at the shrine. He lost someone in 2023 and hates the rockerboy. He does not know V. You can hear all of it, and you cannot be heard.",
       "wants": "V to let the old man have his night, and not to defend you.",
       "do": [
@@ -134,6 +138,7 @@
       "id": "count",
       "type": "talk",
       "label": "Say the number out loud with Johnny",
+      "objective": "Say the number out loud with Johnny",
       "know": "The old man has gone or not. You ask V to say the number out loud with you, for a count you never made. You will not narrate the day, and no figure is given.",
       "wants": "V to say the number with you, or to just sit.",
       "script": [

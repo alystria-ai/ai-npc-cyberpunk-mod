@@ -5,6 +5,7 @@
   "character": "johnny-silverhand",
   "title": "What Do I Know About You",
   "summary": "Johnny makes four claims about V at a Heywood bar, one of them false, and V has to say which.",
+  "description": "Johnny wants to play a game about V. At a Heywood bar, he will make four claims about V, and one of them is false.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq011_concert"],
@@ -35,6 +36,7 @@
       "id": "bar",
       "type": "play",
       "label": "Name the lie among Johnny's four claims",
+      "objective": "Name the lie among Johnny's four claims at the Heywood bar",
       "know": "V is at a Heywood bar with a drink. Johnny makes four claims about V, built from live reads, and one of them is false. A stranger at the next stool starts talking to V.",
       "wants": "V to pick which of the four claims is the lie.",
       "do": [

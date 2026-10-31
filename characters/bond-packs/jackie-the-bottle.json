@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "The Bottle",
   "summary": "The night before the big job, Jackie wants to see Misty, call his mother, and sit on a Little China roof with you while a sealed bottle waits between you.",
+  "description": "The night before the big job, Jackie texts V late and asks them to meet at Misty's Esoterica in Little China. He has kept a sealed bottle for a big win and does not plan to open it tonight.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q004_braindance"],
@@ -87,6 +88,7 @@
       "id": "ask",
       "type": "play",
       "label": "Jackie texts V to come to Misty's shop",
+      "objective": "Meet Jackie at Misty's Esoterica in Little China",
       "know": "Jackie texted you late at night. He wants you at Misty's shop in Little China, and he says he is not afraid.",
       "wants": "V to say yes and come to the shop.",
       "do": [
@@ -110,6 +112,7 @@
       "id": "shop",
       "type": "play",
       "label": "V has tea with Misty at her shop",
+      "objective": "Have tea with Misty and Jackie at her shop",
       "know": "You are at Misty's Esoterica in Little China. Misty is pouring tea and reading cards, and Jackie is hanging a pendant on his bike.",
       "wants": "V to sit with Jackie and Misty.",
       "do": [
@@ -132,6 +135,7 @@
       "id": "call",
       "type": "play",
       "label": "Jackie calls his mother outside the shop",
+      "objective": "Wait outside the shop while Jackie calls his mother",
       "know": "Outside the shop you hear only Jackie's half of the call. He is short, loud and loving with his mother, and his lie about the plan is not very good.",
       "wants": "V to wait or to give him room.",
       "do": [
@@ -155,6 +159,7 @@
       "id": "roof",
       "type": "play",
       "label": "V and Jackie sit on a Little China rooftop",
+      "objective": "Sit with Jackie on the Little China rooftop by the bottle",
       "know": "You are on a Little China rooftop with a view of the bay. The bottle stands unopened between you. Jackie lays out the plan: the Afterlife, a house, a lock on his mother's door.",
       "wants": "V to sit with him and make a promise about the bottle.",
       "do": [
@@ -186,6 +191,7 @@
       "id": "walk-promise",
       "type": "play",
       "label": "Jackie walks V back after the promise",
+      "objective": "Walk back to the corner of your lane with Jackie",
       "know": "You promised Jackie you would open the bottle together when you have won. He is walking you back to the corner of your lane.",
       "wants": "V to walk back with him.",
       "do": [
@@ -204,6 +210,7 @@
       "id": "walk-maybe",
       "type": "play",
       "label": "Jackie walks V back after a maybe",
+      "objective": "Walk back to the corner of your lane with Jackie",
       "know": "You said maybe to the promise, and Jackie said he would hold you to it anyway. He is walking you back to the corner of your lane.",
       "wants": "V to walk back with him.",
       "do": [

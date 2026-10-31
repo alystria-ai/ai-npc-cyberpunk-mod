@@ -5,6 +5,7 @@
   "character": "jackie-welles",
   "title": "Grease Monkeys",
   "summary": "Jackie's bike is coughing, so he asks you to hold the light in a Kabuki back-alley garage while you both listen for the fault.",
+  "description": "Jackie's bike is coughing, so he asks V to come to his back-alley garage in Kabuki. V is to hold the light and help him listen for the fault.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -37,6 +38,7 @@
       "id": "garage",
       "type": "play",
       "label": "Jackie listens to the bike in the Kabuki garage",
+      "objective": "Listen for the fault in Jackie's bike in the Kabuki garage",
       "know": "You are in a back-alley garage in Kabuki with Jackie and his bike on a lift. He has revved the engine, and you are listening for the fault.",
       "wants": "V to stay close and help him find the fault.",
       "do": [

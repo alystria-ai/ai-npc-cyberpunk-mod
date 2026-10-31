@@ -16,6 +16,8 @@
 --                             (block nil when the file is gone or the world ended). P.refresh() reads the play file now (the reach tick, while it has items to watch)
 --   P.emitReach(id, data)     the event `reach:<id>` of a delivered reach-out, with pack "reach" and serial 0 (it belongs to no quest), written to the events file at once
 --   P.status()                what the module holds
+--   options.journal           the real quests (mod/quest-journal.lua, docs/REAL_QUESTS.md): handed the play file's journal block whenever a play file is applied,
+--                             cleared when the file is gone or the setting is off, reset when the world ends. Nothing of it runs on the tick
 --
 -- Event data: an event may carry `data`, a flat table of at most 6 keys whose values are numbers, booleans or strings of at most 80 characters (anything else is
 -- dropped). It goes to the bridge in runtime/quest-events.json with the event, and a bridge command may carry it too (it reaches the listeners).
@@ -128,6 +130,7 @@ function M.new(options)
     local places, lines, prims = options.places, options.lines, options.prims
     local wantedFacts = nil      -- the play file's factsWanted, cleaned (mod/quest-facts.lua reads them), nil when there are none
     local reachBlock = nil       -- the play file's reach block, cleaned (mod/quest-reach.lua reads it), nil when there is none
+    local journal = options.journal   -- the real quests (mod/quest-journal.lua), or nil
 
     -- ---- the game's calls, all guarded --------------------------------------------------------------------------------------------------
     local function clock()
@@ -174,6 +177,13 @@ function M.new(options)
             local ok, err = pcall(options.onReach, block)
             if not ok then logOnce('reach', 'the reach block could not be handed over: ' .. tostring(err)) end
         end
+    end
+
+    -- The real quests (mod/quest-journal.lua): every call guarded, a failure there never stops a quest stage.
+    local function journalCall(name, ...)
+        if journal == nil or type(journal[name]) ~= 'function' then return end
+        local ok, err = pcall(journal[name], ...)
+        if not ok then logOnce('journal:' .. name, 'the journal could not be updated: ' .. tostring(err)) end
     end
 
     local function rearm()
@@ -502,6 +512,8 @@ function M.new(options)
     local function apply(value, startup)
         wantedFacts = cleanFacts(value.factsWanted)
         setReach(cleanReach(value.reach))
+        -- The journal, the tracker and the waypoints first: they only show what the bridge holds, whatever a stage below does.
+        journalCall('apply', type(value.journal) == 'table' and value.journal or {}, {startup = startup == true, fresh = fresh})
         local wanted, fresh_ = {}, {}
         for _, q in ipairs(list(value.quests)) do
             if #fresh_ >= M.MAX_QUESTS then break end
@@ -552,7 +564,7 @@ function M.new(options)
     local function readPlay(startup)
         local raw = read(M.PLAY)
         if type(raw) ~= 'string' or raw == '' or #raw > M.MAX_FILE then
-            if raw == nil and lastRaw ~= nil then lastRaw, wantedFacts = nil, nil; setReach(nil); if next(quests) ~= nil then reapAll() end end   -- the file is gone: no quest, no facts, no reach-outs
+            if raw == nil and lastRaw ~= nil then lastRaw, wantedFacts = nil, nil; setReach(nil); journalCall('clear', 'play file gone'); if next(quests) ~= nil then reapAll() end end   -- the file is gone: no quest, no facts, no reach-outs, no journal
             return
         end
         if raw == lastRaw then return end
@@ -568,6 +580,7 @@ function M.new(options)
         if not enabled() then
             if next(quests) ~= nil then reapAll() end
             if lines then lines.reset() end
+            journalCall('clear', 'off')
             rearm()
             return
         end
@@ -595,8 +608,17 @@ function M.new(options)
     end
 
     function P.onPlayRevision()
-        if not enabled() then return end
+        if not enabled() then journalCall('clear', 'off'); return end
         readPlay(false)
+        rearm()
+    end
+
+    -- Story packs (or Character bonds) went off: nothing of the quests is shown any more. The stages are reaped as on the tick.
+    function P.settingOff()
+        if next(quests) ~= nil then reapAll() end
+        if lines then lines.reset() end
+        journalCall('clear', 'off')
+        lastRaw = nil
         rearm()
     end
 
@@ -620,6 +642,7 @@ function M.new(options)
         seenCommands, seenCount, queue, draining, closingScopes = {}, 0, {}, false, {}
         lastRaw, acc = nil, 0
         setReach(nil)
+        journalCall('reset')
         rearm()
     end
 
@@ -688,7 +711,7 @@ function M.new(options)
         end
         table.sort(rows, function(a, b) return a.pack < b.pack end)
         return {armed = armed, session = session, seq = seq, quests = rows, events = #events, facts = wantedFacts and #wantedFacts or 0,
-            lines = lines and lines.status() or nil, places = places and places.status() or nil}
+            lines = lines and lines.status() or nil, places = places and places.status() or nil, journal = journal and journal.status() or nil}
     end
 
     return P

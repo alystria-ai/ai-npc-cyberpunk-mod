@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "Grandpa's Recording",
   "summary": "Judy's grandfather sent her a recorder from Oregon, and she has cut his last recording of Laguna Bend into a braindance for V.",
+  "description": "Judy's grandfather sent her a recorder from Oregon, and she has cut his last recording of Laguna Bend into a braindance. She wants V to come over and see it.",
   "requires": {
     "bond": 10,
     "questsFinished": ["quests/side_quest/sq030_judy_romance"],
@@ -84,6 +85,7 @@
       "id": "gift",
       "type": "play",
       "label": "Judy asks V to come to her flat",
+      "objective": "Go to Judy's flat to see her grandfather's recording",
       "know": "Your grandfather sent you a recorder from Oregon, and you made something out of it for V. You want V to come over and sit down.",
       "wants": "V to come to your flat.",
       "do": [
@@ -99,6 +101,7 @@
       "id": "bd",
       "type": "talk",
       "label": "Judy shows V the braindance of Laguna Bend",
+      "objective": "Watch the Laguna Bend braindance with Judy at her flat",
       "know": "You cut the braindance from your grandfather's recording of Laguna Bend, the week before the flood. Each image is one of his frames, and you talk V through them.",
       "wants": "V's eye on each image, and V's answer about what V sees.",
       "script": [
@@ -127,6 +130,7 @@
       "id": "drive",
       "type": "play",
       "label": "Judy drives V out to Laguna Bend",
+      "objective": "Drive Judy out to the old town of Laguna Bend",
       "know": "You are driving your van out to the old town. You are talking about your grandparents, not your ghosts.",
       "wants": "V to ride along and see where he stood.",
       "do": [
@@ -146,6 +150,7 @@
       "id": "frame",
       "type": "play",
       "label": "Judy lines V up with her grandfather's frame",
+      "objective": "Stand with Judy on the hill where her grandfather stood",
       "know": "You walked V up the hill above the reservoir to the spot where your grandfather stood. You are lining up the same frame fifty years later.",
       "wants": "V to stand still on the spot for half a minute while you line it up.",
       "do": [
@@ -171,6 +176,7 @@
       "id": "stay",
       "type": "play",
       "label": "Judy and V sit together at the view",
+      "objective": "Sit with Judy on the hill above the reservoir",
       "know": "The sun is setting over the water where the town was. You are sitting on the hill beside V.",
       "wants": "V to stay and watch the sunset with you.",
       "do": [

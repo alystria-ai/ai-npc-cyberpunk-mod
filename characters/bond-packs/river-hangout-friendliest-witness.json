@@ -5,6 +5,7 @@
   "character": "river-ward",
   "title": "The Friendliest Witness",
   "summary": "River takes you to a Santo Domingo diner where a tip jar has gone missing and four witnesses have a story each.",
+  "description": "A tip jar has gone missing from a Santo Domingo diner, and four witnesses sit at the counter with a story each. River asks V to come and question them with him.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -48,6 +49,7 @@
       "id": "statements",
       "type": "play",
       "label": "River and V question the diner witnesses",
+      "objective": "Question the four diner witnesses with River",
       "know": "You are in the Santo Domingo diner with River. Four witnesses sit at the counter and each has given a statement about the stolen tip jar.",
       "wants": "V to question the witnesses and name the thief.",
       "do": [

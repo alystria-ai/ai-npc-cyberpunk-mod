@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "Off the Clock",
   "summary": "River asks you to take his phone for one day off, drive him past three temptations to the water tower, and cook a pot of jambalaya with him.",
+  "description": "River has not taken a day off since the badge. He hands V his phone for one day and asks V to drive him to the water tower near Joss's place, where he will cook.",
   "requires": {
     "bond": 10,
     "after": ["river-until-dawn"],
@@ -112,6 +113,7 @@
       "id": "ask",
       "type": "play",
       "label": "River hands V his phone for one day",
+      "objective": "Take River's phone for one day at V's flat",
       "know": "You texted V about one day off, with no phone and no cases. You are waiting for V at V's flat, and you will hand over your phone there.",
       "wants": "V to take the phone and keep you from reaching for it.",
       "do": [
@@ -132,6 +134,7 @@
       "id": "roadside-a",
       "type": "play",
       "label": "V drives River past the smoking car",
+      "objective": "Drive River past the smoking car on the roadside",
       "know": "V is driving toward the water tower with no phone for River. The first temptation is a motorist at the roadside with a smoking car.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
@@ -153,6 +156,7 @@
       "id": "street-a",
       "type": "play",
       "label": "V drives River past the man on the street",
+      "objective": "Drive River past the man standing on the street",
       "know": "You stayed in the seat past the smoking car. The next temptation is a man on the street whom you recognize from a wanted list.",
       "wants": "V to keep driving and hold River in the seat again.",
       "do": [
@@ -175,6 +179,7 @@
       "id": "street-b",
       "type": "play",
       "label": "V drives River past the man on the street after a let",
+      "objective": "Drive River past the man standing on the street",
       "know": "You went after the smoking car for two minutes and came back. The next temptation is a man on the street whom you recognize from a wanted list.",
       "wants": "V to keep driving and hold River in the seat this time.",
       "do": [
@@ -197,6 +202,7 @@
       "id": "stop-a",
       "type": "play",
       "label": "V drives River past the cruiser",
+      "objective": "Drive River past the cruiser at the roadside stop",
       "know": "You stayed in the seat through two temptations. The last one is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
@@ -218,6 +224,7 @@
       "id": "stop-b",
       "type": "play",
       "label": "V drives River past the cruiser after a let",
+      "objective": "Drive River past the cruiser at the roadside stop",
       "know": "You went off the clock twice already. The last temptation is an officer from your old precinct, waving you over from a cruiser at a roadside stop.",
       "wants": "V to keep driving and hold River in the seat.",
       "do": [
@@ -239,6 +246,7 @@
       "id": "ridge-whole",
       "type": "play",
       "label": "River cooks at the water tower",
+      "objective": "Cook jambalaya with River at the water tower",
       "know": "You have reached the water tower near Joss's place. You are cooking jambalaya on a camp stove, and V is sitting with you.",
       "wants": "V to sit with you through the meal.",
       "do": [
@@ -267,6 +275,7 @@
       "id": "ridge-slip",
       "type": "play",
       "label": "River cooks at the water tower after a slip",
+      "objective": "Cook jambalaya with River at the water tower",
       "know": "You have reached the water tower near Joss's place. You slipped off the clock on the drive, and you are cooking jambalaya on a camp stove with V.",
       "wants": "V to sit with you through the meal.",
       "do": [

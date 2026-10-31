@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Bootleg",
   "summary": "A collector who calls himself Kerry's biggest fan has taken Kerry's guitar tech to a private museum, and Kerry calls you to get him out.",
+  "description": "A collector who calls himself Kerry's biggest fan has taken his guitar tech to a private museum. Kerry does not want police or the news, so he calls V to get the tech out.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq017_02_lounge"],
@@ -94,6 +95,7 @@
       "id": "call",
       "type": "play",
       "label": "Kerry calls you about his guitar tech",
+      "objective": "Answer Kerry's call about his guitar tech",
       "know": "Kerry has called you from his villa in North Oak. His guitar tech has been taken to a private museum, and he wants you to come to the villa gate within the hour.",
       "wants": "V to answer him.",
       "do": [
@@ -110,6 +112,7 @@
       "id": "meet",
       "type": "play",
       "label": "Kerry is waiting at the villa gate",
+      "objective": "Meet Kerry at the villa gate in North Oak",
       "know": "You are at the villa gate in North Oak, and Kerry is waiting with you to drive out to Westbrook. You need to get to the gate within the hour.",
       "wants": "V at the gate.",
       "do": [
@@ -126,6 +129,7 @@
       "id": "ride",
       "type": "play",
       "label": "You drive Kerry to the theatre in Westbrook",
+      "objective": "Drive Kerry to the closed theatre in Westbrook",
       "know": "You are driving Kerry to a closed theatre in Westbrook where the collector has his museum. He is going in the front, and he is nervous about it.",
       "wants": "V to get there in one piece.",
       "do": [
@@ -146,6 +150,7 @@
       "id": "museum",
       "type": "play",
       "label": "Kerry walks into the museum to draw the guards",
+      "objective": "Slip around the side of the theatre while Kerry draws the guards",
       "know": "Kerry is at the front door of the theatre and the collector's guards, who are fans, are staring at him. You are going around the side while they hesitate. The tech is on the second floor in the display room.",
       "wants": "V to reach the tech before the guards turn.",
       "do": [
@@ -179,6 +184,7 @@
       "id": "out",
       "type": "play",
       "label": "Kerry's tech follows you out of the museum",
+      "objective": "Take the tech back to Kerry's villa gate",
       "know": "The tech is out of the room and following you. You are taking him back to the villa gate in Kerry's car.",
       "wants": "To get out of the museum.",
       "do": [
@@ -198,6 +204,7 @@
       "id": "out-loud",
       "type": "play",
       "label": "You get the tech out with the guards shouting",
+      "objective": "Get Kerry's tech out through the side while the guards shout",
       "know": "The guards turned on you. Kerry is behind a column shouting instructions, and you are getting the tech out through the side.",
       "wants": "To get the tech out of the museum.",
       "do": [
@@ -213,6 +220,7 @@
     {
       "id": "after",
       "label": "Kerry asks you to stay at the villa gate",
+      "objective": "Stay at the villa gate with Kerry for a while",
       "know": "You are back at the villa gate with Kerry. The tech has gone in. Kerry wants you to stay a while.",
       "wants": "V to stay.",
       "script": [

@@ -29,6 +29,7 @@ import {resolveGive, likesFor, giftBond, TIERS} from './gift-tables.mjs';
 import {screenGift, giftWords} from './gift-intent.mjs';
 import {payNote, readPay, payData} from './quest-pay.mjs';
 import {inPerson, rendezvousSpecs, travelGrace} from './quest-rendezvous.mjs';
+import {journalBlock} from './quest-journal.mjs';
 
 const DAY = 86400, HOUR = 3600;
 /** Game seconds of slack before an entry counts as later than the loaded save (the clock read and the stamp are a moment apart). */
@@ -1006,8 +1007,10 @@ export class BondPacks {
     }
     const closing = this.closing.map(item => ({pack: item.pack, character: item.character, ending: item.ending, serial: item.serial, script: item.script, lines: item.lines, images: item.images}));
     const known = new Set(quests.map(quest => quest.pack));
+    // The real quests (docs/REAL_QUESTS.md): every pack in progress, talk stages included, and the newest finished ones, for the journal, the tracker and the map.
+    const journal = journalBlock({packs: this.packs, entries: this.entries, stageOf: (pack, entry) => this.#stageOf(pack, entry), doFor: (pack, entry, stage) => this.#doFor(pack, entry, stage)});
     return {version: 1, revision: this.playRev, quests, closing, commands: this.commands.filter(command => known.has(command.pack)),
-      factsWanted: wantedFacts([...requiresList, ...(this.reach?.requiresList?.() ?? [])]), reach: this.#reachBlock()};
+      factsWanted: wantedFacts([...requiresList, ...(this.reach?.requiresList?.() ?? [])]), reach: this.#reachBlock(), journal};
   }
 
   /** Bumps the play file's revision when what the game should be told changed. */

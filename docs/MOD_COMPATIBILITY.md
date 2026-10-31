@@ -32,14 +32,16 @@ Added fields and methods (all prefixed, none saved):
 | `NPCPuppet` | 26 (face state and helpers) | `m_convai…`, `Convai…` |
 | `NewHudPhoneGameController`, `PhoneMessagePopupGameController`, `MessengerDialogViewController`, `MessangerItemRenderer`, `PhoneDialerLogicController`, `PhoneDialerSelectionController`, `PhoneContactItemVirtualController`, `HoloAudioCallLogicController`, `HudPhoneAvatarController`, `ContactData`, `JournalNotificationData` | phone Chat tab, holocall, key handling | `m_convai…`, `convai…`, `Convai…` |
 | `AIMoveToCommand`, `AIMoveToCommandHandler` | the companion movement filter | `m_convaiOwned`, `ConvaiMarkOwned`, `ConvaiOwnedMoveUpdate` |
+| `QuestTrackerGameController`, `questLogGameController`, `QuestListItemData`, `SimpleQuestListItemController`, `QuestDetailsPanelController`, `QuestDetailsObjectiveController`, `UpdateTrackedObjectiveEvent` | the story packs as real quests (`QuestLog.reds`) | `m_convai…`, `Convai…`, `OnConvai…` |
 
 Script classes declared by the mod: all `Convai…` (`ConvaiFaceService`, `ConvaiManagerPopup`, `ConvaiPhoneChatInput`,
 `ConvaiBarkGate`, and so on). Global functions: `ConvaiCallbackSystem`, `ConvaiKeyTarget`, `ConvaiKeyTargetsByAction`, `ConvaiKeyNotifyInEvent`,
 `ConvaiServiceContainer`, `ConvaiHasCodeware`, `ConvaiHasCodewareUi`, `ConvaiHasCodewareTextInput`. Files with a `module` line use `module CyberpunkConvai`.
 `Face.reds`, `FaceFeature.reds`, `GameVariant.reds` and `Speech.reds` have none (global module); their names are `Convai…` as well.
 
-Wrapped game methods (43). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with two kinds of exception listed
-below the table: calls skipped only while the mod's own AI chat page is open, and `NewHudPhoneGameController.SelectOtherTab`, which never runs it.
+Wrapped game methods (63). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with three kinds of exception listed
+below the table: calls skipped only while the mod's own AI chat page is open, calls skipped only for a row of the mod's own quests in the journal screen, and
+`NewHudPhoneGameController.SelectOtherTab`, which never runs it.
 
 <!-- wrapped-methods:start -->
 ```
@@ -86,6 +88,26 @@ PhoneMessagePopupGameController.SetFocus
 PhoneMessagePopupGameController.SetupData
 PlayerPuppet.OnDetach
 PlayerPuppet.OnGameAttached
+QuestDetailsObjectiveController.OnRelease
+QuestDetailsObjectiveController.OnUpdateTrackedObjectiveEvent
+QuestListItemData.GetDistances
+QuestListItemData.GetEntryHash
+QuestListItemData.GetFirstObjective
+QuestListItemData.GetTrackedOrNearest
+QuestListItemData.QuestLastUpdateTime
+QuestListItemData.SetVisited
+QuestListItemData.isVisited
+QuestTrackerGameController.OnTrackedMappinSpawned
+QuestTrackerGameController.UpdateTrackerData
+SimpleQuestListItemController.OnDataChanged
+SimpleQuestListItemController.OnPress
+SimpleQuestListItemController.OnToggledOn
+SimpleQuestListItemController.OnTrackBtnRelease
+SimpleQuestListItemController.OnUpdateTrackedObjectiveEvent
+questLogGameController.BuildQuestList
+questLogGameController.OnQuestListItemSelected
+questLogGameController.OnReleaseInput
+questLogGameController.OnRequestChangeTrackedObjective
 ```
 <!-- wrapped-methods:end -->
 
@@ -96,6 +118,13 @@ A phone-overhaul mod that wraps the same methods therefore still runs for every 
 Always skipped: `NewHudPhoneGameController.SelectOtherTab` (the phone's Tab key). The mod makes it cycle Unread, Contacts and Chat through its own
 `ConvaiSelectPhoneTab`, so a phone mod that wraps `SelectOtherTab` beneath ours never runs while this mod is installed. It is the one wrapper that behaves like
 a replace; `bridge/redscript-compat.test.mjs` names it so a second one cannot appear unnoticed.
+Skipped for the mod's own quests only (the story packs as real quests, `QuestLog.reds`, docs/REAL_QUESTS.md): the journal screen's list rows, details
+objective and list data (`SimpleQuestListItemController`, `QuestDetailsObjectiveController`, `QuestListItemData`) run the original for every game quest and
+draw a row of the mod's own from its text instead (the original would ask the journal about an entry that does not exist). `OnRequestChangeTrackedObjective`
+drops a request that names neither a quest nor an objective (only the mod's rows can send one) and runs the original for every other. `OnReleaseInput` handles
+the track key itself only while one of the mod's quests is open in the details panel. `UpdateTrackerData`, `BuildQuestList`, `OnTrackedMappinSpawned` and
+`OnQuestListItemSelected` always run the original first. A quest-log or HUD-tracker mod that wraps or replaces these keeps working for the game's quests; one
+that replaces `UpdateTrackerData` or `BuildQuestList` and reads its own data hides the mod's quests from the tracker or the list.
 Elsewhere: `GameObject.PlayVoiceOver` (declared with the game's own `-> DelayID`, so other mods' wrappers stacked on it compile) returns an empty `DelayID` early for four ambient contexts (`greeting`, `fear_foll`, `stlh_curious_grunt`, `bump`) within 15 m of V
 while a mod conversation is open. `AIMoveToCommandHandler.UpdateCommand` runs for every walking NPC each AI tick: one type test and one Bool read.
 
@@ -133,6 +162,10 @@ Default install, default settings: **nothing.** Details:
 | Persistent fields of a `ScriptableSystem` | `KnowledgeState.reds` | never: in `retiredRedscript`, never in any released Scripts zip (checked against the release builder's first commit, 2026-10-08) | n/a | n/a |
 | Entities spawned (companions, copies, cars, holocall actors) | `DynamicEntitySpec` with `persistState=false`, `persistSpawn=false` in every spawn | at runtime | not kept by the save | gone on the next load |
 | TweakDB records `CyberpunkConvai.*` (clones) | `mod/companion-records.lua` | every load, in memory | no | gone |
+
+The story packs as real quests (`QuestLog.reds`, only with the development switch of docs/STORY_PACKS_INACTIVE.md) are runtime only as well: a script system
+that holds no persistent field, quest map pins registered at runtime (the map keeps none over a load), and the journal screen and HUD tracker drawing the
+mod's quests next to the game's. The game's tracked quest is never changed (no `TrackEntry`, no `UntrackEntry`): a pack shows in the tracker over it and lets go.
 
 Everything else the mod does to the game is runtime only: UI widgets, blackboard values for UI (`HideDialogLine`, `WarningMessage`, `ScannerName`), AI events
 on its own copies, stat modifiers on its own copies. Journal, phone and contacts are only READ (`GetEntry`, `GetContactDataArray`, `GetQuests`). The Chat tab

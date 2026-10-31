@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "The Drink with My Name",
   "summary": "Jackie rehearses his entrance to the Afterlife, poses for a photo, and asks you to help name the drink he will one day order.",
+  "description": "Jackie wants to rehearse the entrance he will make once he is a legend at the Afterlife in Little China. He asks V to play the crowd, pose for a photo and help name the drink he will one day order.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q004_braindance"],
@@ -76,6 +77,7 @@
       "id": "meet",
       "type": "play",
       "label": "Jackie waits at the Afterlife door",
+      "objective": "Meet Jackie at the front door of the Afterlife",
       "know": "You are meeting Jackie at the front door of the Afterlife in Little China, at night. He wants to rehearse his entrance and asks you to be the crowd.",
       "wants": "V to come to the door and be the crowd.",
       "do": [
@@ -101,6 +103,7 @@
       "id": "entrance",
       "type": "play",
       "label": "Jackie walks through the Afterlife to the bar",
+      "objective": "Be the crowd as Jackie walks through the Afterlife to the bar",
       "know": "Jackie is walking slowly through the Afterlife, chin up, past the booths and up to the bar. Three regulars are watching him from the bar.",
       "wants": "V to walk with him and play the crowd.",
       "do": [
@@ -126,6 +129,7 @@
       "id": "photo",
       "type": "play",
       "label": "V frames the shot of Jackie at the Afterlife",
+      "objective": "Frame the photo of Jackie in the Afterlife",
       "know": "Jackie is posing for a photo in the Afterlife, with the neon behind him. V is framing the shot.",
       "wants": "V to take the shot.",
       "do": [
@@ -146,6 +150,7 @@
       "id": "drink",
       "type": "play",
       "label": "Jackie orders a drink with his name on it",
+      "objective": "Help Jackie name his drink at the Afterlife bar",
       "know": "You are at the bar of the Afterlife. Claire is the bartender, and Jackie wants to know what goes in a legend's drink.",
       "wants": "V's pick for the flourish.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "panam-palmer",
   "title": "Diner Rules",
   "summary": "Panam buys V a meal at a roadside diner and orders for both of them. V has to guess what she ordered.",
+  "description": "Panam is hungry, and she is buying. She wants V to come to the roadside diner at the Old Turbine Farm road junction and let her order for both of them.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -45,6 +46,7 @@
       "id": "order",
       "type": "play",
       "label": "Panam orders for both of you at the diner counter",
+      "objective": "Guess what Panam ordered at the diner counter",
       "know": "V is at the roadside diner. Panam has ordered for both of you, and V must guess what she ordered from her description.",
       "wants": "V to guess the order, once.",
       "meet": {"where": "waypoint", "inGameHours": 4},

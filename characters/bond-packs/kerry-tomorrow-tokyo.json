@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Tomorrow in Tokyo",
   "summary": "Kerry's kids are in Tokyo, where it is already tomorrow, and he asks you to keep your distance on his boat while he makes the call.",
+  "description": "Kerry has a call to Tokyo tonight, where it is already tomorrow. He wants V on his boat at the marina while he takes it, close by but not listening.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq028_kerry_romance"],
@@ -78,6 +79,7 @@
       "id": "ask",
       "type": "play",
       "label": "Kerry asks V to come to the marina",
+      "objective": "Go to the marina pier where Kerry's boat is moored",
       "know": "You are at the marina pier at dusk, where Kerry's boat is moored. Kerry has asked you to stay near him while he takes a call to Tokyo.",
       "wants": "V to come to the pier.",
       "do": [
@@ -101,6 +103,7 @@
       "id": "deck",
       "type": "play",
       "label": "Kerry and V sit on the deck with coffee",
+      "objective": "Have coffee with Kerry on the deck of his boat",
       "know": "You are sitting on the deck of Kerry's boat with him. He is preparing for the call, drinking his coffee and checking the time.",
       "wants": "V to sit with him until the call.",
       "do": [
@@ -124,6 +127,7 @@
       "id": "call",
       "type": "play",
       "label": "Kerry takes the call at the stern, and V keeps their distance",
+      "objective": "Keep your distance while Kerry takes his call at the stern",
       "know": "Kerry has gone to the stern of the boat to take his call to Tokyo. You must stay outside 5 metres and inside 15 metres for 10 game minutes. Coming closer ends the call.",
       "wants": "V to stay in the ring and not listen.",
       "do": [
@@ -146,6 +150,7 @@
       "id": "after",
       "type": "play",
       "label": "Kerry comes back quiet and asks V a question",
+      "objective": "Talk with Kerry when he comes back from his call",
       "know": "The call is done and its content was never shown to you. Kerry is back beside you on the deck, quiet, and he asks what you would say to someone far away.",
       "wants": "V's honest answer, or silence.",
       "do": [
@@ -170,6 +175,7 @@
       "id": "water",
       "type": "play",
       "label": "V and Kerry sit with feet over the pier",
+      "objective": "Sit with Kerry on the marina pier with your feet over the water",
       "know": "You are sitting on the edge of the marina pier with Kerry, feet over the water, waiting for the lights to come on across the marina.",
       "wants": "To watch the lights come on together.",
       "do": [

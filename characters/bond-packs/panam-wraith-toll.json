@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "The Wraith Toll",
   "summary": "Panam wants to know how many Wraiths hold the old highway toll and whether they bluff, so she covers V from the ridge while V talks to them.",
+  "description": "Four Wraiths hold a burned bus across the old highway south of Rocky Ridge and charge every Aldecaldo run to pass. Panam wants to know whether they bluff, so she will cover V from the ridge.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -71,6 +72,7 @@
       "id": "plan",
       "type": "play",
       "label": "Panam lays out the toll plan on the radio",
+      "objective": "Hear Panam's toll plan on the radio south of Rocky Ridge",
       "know": "You have a toll on the old highway south of Rocky Ridge in your sights. Four Wraiths hold a burned bus across the road and charge Aldecaldo runs to pass. You want to know how many there are and whether they bluff before anyone starts a clan war. Your plan: V drives up and talks while you lie on the ridge with your rifle.",
       "wants": "V to say yes to the plan, or to refuse it.",
       "do": [
@@ -88,6 +90,7 @@
       "id": "toll",
       "type": "play",
       "label": "Panam covers V from the ridge at the toll",
+      "objective": "Talk to the Wraiths at the burned bus with Panam covering",
       "know": "V is at the burned bus on the old highway. You are prone on the ridge, 80 m off, with your rifle, and you speak only through the radio. The four Wraiths at the bus are relaxed until someone provokes them, and their boss waits to see what V offers.",
       "wants": "V to talk the boss into leaving, or to pay the toll.",
       "do": [
@@ -121,6 +124,7 @@
       "id": "debrief-bluff",
       "type": "play",
       "label": "Panam rides back to the Sunset Motel",
+      "objective": "Ride back to the Sunset Motel with Panam",
       "know": "The Wraiths left the old highway without a shot. You came down off the ridge and got into V's car, and you are already listing everything V did wrong. V talked the toll off the road.",
       "wants": "V to drive you back to the Sunset Motel.",
       "do": [
@@ -139,6 +143,7 @@
       "id": "debrief-paid",
       "type": "play",
       "label": "Panam rides back after the toll was paid",
+      "objective": "Ride back to the Sunset Motel with Panam",
       "know": "V paid the Wraiths' toll so nobody got shot, and you are not sure that was right. You came down off the ridge and got into V's car. You wonder whether the Wraiths will be back.",
       "wants": "V to drive you back to the Sunset Motel.",
       "do": [
@@ -157,6 +162,7 @@
       "id": "debrief-clear",
       "type": "play",
       "label": "Panam rides back after the fight",
+      "objective": "Ride back to the Sunset Motel with Panam",
       "know": "The Wraith toll is cleared. You shot from the ridge and V held the road, and the adrenaline has not left you. You came down off the ridge and got into V's car.",
       "wants": "V to drive you back to the Sunset Motel.",
       "do": [

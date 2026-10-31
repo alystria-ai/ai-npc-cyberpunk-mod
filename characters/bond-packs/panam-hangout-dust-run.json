@@ -5,6 +5,7 @@
   "character": "panam-palmer",
   "title": "Dust Run",
   "summary": "Panam challenges V to a short sprint across the dry lakebed, side by side, with no checkpoints.",
+  "description": "Panam challenges V to a short sprint across the dry lakebed east of the dam road, side by side, with no checkpoints. The loser buys the fuel.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -35,6 +36,7 @@
       "id": "run",
       "type": "play",
       "label": "V races Panam across the dry lakebed",
+      "objective": "Race Panam across the dry lakebed to the finish line",
       "know": "V and Panam line up side by side on the dry lakebed. Panam is on her bike and has her own idea of a head start.",
       "wants": "V to beat Panam to the finish line.",
       "meet": {"where": "waypoint", "inGameHours": 4},

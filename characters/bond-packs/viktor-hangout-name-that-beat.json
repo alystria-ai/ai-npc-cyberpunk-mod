@@ -5,6 +5,7 @@
   "character": "viktor-vektor",
   "title": "Name That Beat",
   "summary": "On a rooftop in the Glen at dusk, V tunes a radio and Viktor guesses the decade and genre of each song before the title shows.",
+  "description": "Viktor invites V to a rooftop in the Glen at dusk, with a portable radio and an opinion about music. He guesses the decade and genre of each song before the title shows.",
   "requires": {"bond": 5, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
   "start": {
     "channels": ["phone", "own"],
@@ -39,6 +40,7 @@
       "id": "beat",
       "type": "play",
       "label": "V tunes the radio on the Glen rooftop",
+      "objective": "Guess each song's decade and genre with Viktor on the Glen rooftop",
       "know": "Viktor sits on the ledge with a portable radio while the city haze turns orange. He guesses the decade and the genre of each song before the title shows, and so do you.",
       "wants": "V to match the songs with Viktor and to defend a walkout song.",
       "do": [

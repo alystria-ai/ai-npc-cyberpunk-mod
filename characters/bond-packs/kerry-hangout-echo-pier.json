@@ -5,6 +5,7 @@
   "character": "kerry-eurodyne",
   "title": "Echo Pier",
   "summary": "Kerry takes you to an old pier at Pacifica with a great echo, and asks what word you would shout if you did not care who heard.",
+  "description": "Kerry knows an old pier at Pacifica with a great echo. He asks V to come along and bring their voice, not for singing.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -46,6 +47,7 @@
       "id": "echo",
       "type": "play",
       "label": "Kerry asks V to shout on the old pier",
+      "objective": "Shout from the old Pacifica pier with Kerry",
       "know": "You are at the old pier at Pacifica, where the echo is good. Kerry is leaning on a rail beside you, waiting to hear what you shout.",
       "wants": "V to shout a word and mean it.",
       "do": [

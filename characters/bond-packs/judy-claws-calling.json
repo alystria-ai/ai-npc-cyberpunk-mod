@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "The Claws Come Calling",
   "summary": "After Pisces, the Tyger Claws come for Lizzie's, and Judy calls V to hold the street with her.",
+  "description": "The Tyger Claws have sent word that they are coming to wreck Lizzie's Bar tonight. Judy is scared, she will not leave her workshop, and she calls V to hold the street with her.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/side_quest/sq026_04_hiromi"],
@@ -79,6 +80,7 @@
       "id": "call",
       "type": "play",
       "label": "Judy calls V: the Claws are coming for Lizzie's",
+      "objective": "Answer Judy's call about the Tyger Claws at Lizzie's Bar",
       "know": "Susie Q got a message that the Tyger Claws are coming to Lizzie's tonight, because of the Clouds and because of what happened at Pisces.",
       "wants": "V to get to Lizzie's street before the Claws do.",
       "do": [
@@ -93,6 +95,7 @@
       "id": "hold",
       "type": "play",
       "label": "Hold Lizzie's street against the Tyger Claws",
+      "objective": "Hold the street outside Lizzie's Bar with Judy",
       "know": "Three waves of Tyger Claws are coming: three on foot, three from a car, then two with a heavier fighter. Judy is inside the door with a pistol, and two Mox fighters are with you.",
       "wants": "V to hold the street and keep the Claws out of Lizzie's.",
       "do": [
@@ -121,6 +124,7 @@
       "id": "after",
       "type": "play",
       "label": "Judy and V walk the street after the fight",
+      "objective": "Walk the street outside Lizzie's with Judy",
       "know": "The Claws are gone. You and V are walking the street to look at the damage, and the workshop is fine.",
       "wants": "V to walk with you and see what the Claws did.",
       "do": [

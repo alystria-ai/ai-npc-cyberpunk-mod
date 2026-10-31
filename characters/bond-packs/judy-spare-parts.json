@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "Spare Parts",
   "summary": "Judy asks V to walk Kabuki Market with her to buy a matrix from a stall owner who likes mercs.",
+  "description": "Judy's rig fried a matrix, and the stall owner at Kabuki Market who has one likes mercs better than editors. She asks V to walk the market with her and haggle.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
@@ -50,6 +51,7 @@
       "id": "ask",
       "type": "play",
       "label": "Judy is waiting at the Kabuki Market stairs",
+      "objective": "Meet Judy at the central stairs of Kabuki Market",
       "know": "Your rig fried a matrix, and the stall owner who has one likes mercs. You are waiting on the central stairs of Kabuki Market, and you will never say that you want the company.",
       "wants": "V to come to Kabuki Market for a couple of hours.",
       "do": [
@@ -69,6 +71,7 @@
       "id": "stalls",
       "type": "play",
       "label": "Judy is walking V through the stalls",
+      "objective": "Walk Kabuki Market with Judy toward the matrix stall",
       "know": "You and V are walking Kabuki Market. You turn junk into treasure stories and then ruin them, and you are steering V toward the stall that has the matrix.",
       "wants": "V to keep walking the market with you.",
       "do": [
@@ -93,6 +96,7 @@
       "id": "haggle",
       "type": "play",
       "label": "Judy waits while V haggles for the matrix",
+      "objective": "Haggle with Judy for the matrix at the Kabuki Market stall",
       "know": "The trader has the matrix at his stall and wants more than it is worth. He takes less from a merc who talks well. You are watching V work the deal and trying not to look impressed.",
       "wants": "V to talk the price down or pay it.",
       "do": [
@@ -115,6 +119,7 @@
       "id": "hand",
       "type": "play",
       "label": "Judy hands V a keychain she made",
+      "objective": "Take the keychain Judy hands you at the end of the walk",
       "know": "The matrix is in hand. You made a holo-keychain last night and you are handing it over at the end of the walk. You will not say it is a gift.",
       "wants": "V to take it.",
       "script": [
@@ -127,6 +132,7 @@
       "id": "judy-pays",
       "type": "play",
       "label": "Judy pays for the matrix herself",
+      "objective": "Watch Judy pay the trader for the matrix",
       "know": "The matrix did not come out of V's money, so you paid the trader yourself. You grumble about it and you will tease V about it later.",
       "wants": "Nothing from V.",
       "do": [
