@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fengari from 'fengari';
 
 function arg(name, fallback) {
     const index = process.argv.indexOf(`--${name}`);
@@ -437,6 +438,52 @@ for (const [key, depot] of Object.entries(seatWorkspots)) {
 }
 const seatPlayable = (depot) => seatCopies.get(depot) ?? fail(`no endless copy of ${depot}`);
 
+// Romance animations (docs/ROMANCE_ANIMATIONS.md): the pair table mod/romance-pairs.lua names the game's own two person workspots, one per half
+// (V and the partner). Each half that is in the archive listing and was extracted becomes a device component, `convai_romance_<id>_v` or `_n`, on
+// a copy with the plain neutral face (a workspot face would fight the speech layer, like the seat copies above). The table is a candidate list
+// until its rows are verified: a half that is not in the listing, or was not extracted, skips its whole row with a warning, never a failure, and
+// the controller refuses a row whose component the device lacks. Nothing here guesses a path.
+function readPairTable() {
+    const source = fs.readFileSync(path.join(project, 'mod', 'romance-pairs.lua'), 'utf8');
+    const { lua, lauxlib, lualib, to_luastring, to_jsstring } = fengari;
+    const vm = lauxlib.luaL_newstate();
+    lualib.luaL_openlibs(vm);
+    const encoder = `local function enc(v) local t=type(v) if t=='table' then local n=0 for _ in pairs(v) do n=n+1 end local isArray=n==#v local out={} if isArray then for _,x in ipairs(v) do out[#out+1]=enc(x) end return '['..table.concat(out,',')..']' end for k,x in pairs(v) do out[#out+1]=string.format('%q',tostring(k))..':'..enc(x) end return '{'..table.concat(out,',')..'}' elseif t=='string' then return (string.format('%q',v):gsub('\\\n','\\n')) elseif t=='number' or t=='boolean' then return tostring(v) end return 'null' end\n`;
+    const code = `${encoder}local table_=(function()\n${source}\nend)()\nreturn enc(table_)`;
+    if (lauxlib.luaL_dostring(vm, to_luastring(code)) !== lua.LUA_OK) fail(`romance-pairs.lua: ${to_jsstring(lua.lua_tostring(vm, -1))}`);
+    const text = to_jsstring(lua.lua_tostring(vm, -1));
+    lua.lua_close(vm);
+    return JSON.parse(text);
+}
+const romanceTable = readPairTable();
+const romanceComponents = [];
+const romanceBuilt = [];
+const romanceSkipped = [];
+const romanceCopies = new Map();
+for (const row of romanceTable.rows ?? []) {
+    if (row.offer === false) continue;
+    const halves = [['v', row.v?.workspot], ['n', row.n?.workspot]];
+    const missing = halves.filter(([, depot]) => !depot || !listing.has(depot.toLowerCase()) || !jsonFor(depot));
+    if (missing.length > 0) {
+        romanceSkipped.push(row.id);
+        report.push(`romance ${row.id}: skipped, ${missing.map(([half, depot]) => `${half} ${depot ?? '(no workspot)'}`).join(' and ')} is not in the listing or was not extracted`);
+        continue;
+    }
+    for (const [half, depot] of halves) {
+        if (!romanceCopies.has(depot)) {
+            const copy = clone(jsonFor(depot));
+            if (!faceNeutral(copy)) neutralFace(copy, `romance ${row.id} ${half}`);
+            const target = `cyberpunk_convai\\gestures\\convai_romance_${base(depot)}`;
+            copy.Header.ArchiveFileName = target;
+            outputs.push([`convai_romance_${base(depot)}.json`, copy]);
+            romanceCopies.set(depot, target);
+        }
+        romanceComponents.push([`convai_romance_${row.id}_${half}`, romanceCopies.get(depot)]);
+    }
+    romanceBuilt.push(row.id);
+}
+console.log(`gesture build: romance rows built ${romanceBuilt.length}, skipped ${romanceSkipped.length}`);
+
 function collectHandles(node, into) {
     if (Array.isArray(node)) { node.forEach((item) => collectHandles(item, into)); return; }
     if (!node || typeof node !== 'object') return;
@@ -595,7 +642,8 @@ function cruid(name) {
 const componentList = [
     ...Object.values(source.families).map((family) => [family.component, family.workspot]),
     ...Object.entries(source.idleWorkspots).map(([key, depot]) => [`convai_idle_${key}`, playable(depot)]),
-    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, seatPlayable(depot)])];
+    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, seatPlayable(depot)]),
+    ...romanceComponents];
 const components = componentList.map(([name, depot]) => {
     const component = clone(componentShape);
     component.id = cruid(name);
@@ -653,6 +701,8 @@ const catalog = {
         .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })),
             ...(row.hideComponents ? { hideComponents: row.hideComponents } : {}) }])),
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
+    // Rows of mod/romance-pairs.lua whose two halves were built into the device (the others have no component and are never played).
+    romance: { built: romanceBuilt, skipped: romanceSkipped },
     characters: source.characters,
     // Fallback for records not in 'characters': body type -> rig -> talk family and idle (mod/companion-gestures.lua).
     generic: source.generic ? { bodyTypes: source.generic.bodyTypes, rigs: source.generic.rigs, mix: source.generic.mix === true,

@@ -202,6 +202,76 @@ function M.setComponentsVisible(npc, names, visible)
     end)
 end
 
+-- ---- Paired romance animations (docs/ROMANCE_ANIMATIONS.md, mod/romance-anim.lua) -----------------------------------------------------
+-- Everything below runs once per request (entry, a re-jump, exit), never per frame. Every call is pcall-wrapped like the rest of the file.
+
+-- Does the spawned device carry this workspot component? A name the device lacks is not a quiet no-op in the engine, so the
+-- controller asks first and skips the row when the answer is not a clear yes. ok, true|false.
+function M.hasComponent(device, name)
+    return call(function()
+        if device == nil or device:FindComponentByName(CName.new(name)) == nil then return false end
+        return true
+    end)
+end
+
+-- 'resource' plays each half at the position its workspot was authored for (gameWorkspotSlidingBehaviour.PlayAtResourcePosition), 'offset' stays where
+-- the actor stands (DontPlayAtResourcePosition) and the controller places the actor itself.
+local function slidingFor(mode)
+    local name = mode == 'resource' and 'PlayAtResourcePosition' or 'DontPlayAtResourcePosition'
+    local ok, value = pcall(function() return Enum.new('gameWorkspotSlidingBehaviour', name) end)
+    return ok and value or (mode == 'resource' and 0 or 1)
+end
+M.slidingFor = slidingFor
+
+-- PlayInDeviceSimple: enter one actor (V or the partner) into one component of the device. ok, result.
+function M.playSimple(device, actor, component, mode)
+    local none = CName.new('None')
+    return call(function()
+        return Game.GetWorkspotSystem():PlayInDeviceSimple(device, actor, false, CName.new(component), none, none, 0.0, slidingFor(mode))
+    end)
+end
+
+-- A teleport to a world position and a yaw in degrees (the device, the partner, and V back where V stood). ok.
+function M.teleport(object, position, yaw)
+    return call(function()
+        Game.GetTeleportationFacility():Teleport(object, Vector4.new(position.x, position.y, position.z, 1), EulerAngles.new(0, 0, yaw or 0))
+    end)
+end
+
+-- The game's own short screen blink on the player (the effect the game plays for an eye blink between two moments); it ends by itself.
+function M.blink(player, effect)
+    return call(function()
+        local name = CName.new(effect or 'blink_slow')
+        GameObjectEffectHelper.StopEffectEvent(player, name)
+        GameObjectEffectHelper.StartEffectEvent(player, name, false, worldEffectBlackboard.new())
+    end)
+end
+
+-- 'Male' / 'Female' / nil for V, and the body type of V as 'player_man' / 'player_woman' (the player rigs of the pair table).
+function M.playerRig(player)
+    local ok, value = call(function() return player:GetResolvedGenderName() end)
+    if not ok or value == nil then return nil end
+    local text
+    if type(NameToString) == 'function' then
+        local okName, name = pcall(NameToString, value)
+        if okName then text = name end
+    end
+    text = tostring(text or value):lower()
+    if text:find('female', 1, true) then return 'player_woman' end
+    if text:find('male', 1, true) then return 'player_man' end
+    return nil
+end
+
+-- {x, y, z, yaw} of an entity, or nil. One native read.
+function M.pose(object)
+    local ok, value = call(function()
+        local position = object:GetWorldPosition()
+        return {x = position.x, y = position.y, z = position.z, yaw = object:GetWorldOrientation():ToEulerAngles().yaw}
+    end)
+    if ok then return value end
+    return nil
+end
+
 function M.stopInDevice(npc)
     return call(function()
         return Game.GetWorkspotSystem():StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1))
