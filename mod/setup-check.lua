@@ -112,7 +112,7 @@ local SCRIPT_METHODS = {
     {'chat', 'ConvaiPhoneChatContact ConvaiPhoneChatTick ConvaiPhoneChatTyping ConvaiPhoneChatDraft ConvaiPhoneChatTakeSubmission ConvaiPhoneChatPresent '
         .. 'ConvaiPhoneChatClearContacts ConvaiPhoneChatRegisterContact ConvaiPhoneChatClearFavorites ConvaiPhoneChatAddFavorite '
         .. 'ConvaiPhoneChatTakeFavoriteRequest ConvaiPhoneChatClearParty ConvaiPhoneChatAddParty ConvaiPhoneChatTakeTrace '
-        .. 'ConvaiPhoneChatSearchSeq ConvaiPhoneChatSearchQuery ConvaiPhoneChatSearchJournal ConvaiPhoneChatSearchResult'},
+        .. 'ConvaiPhoneChatSearchSeq ConvaiPhoneChatSearchQuery ConvaiPhoneChatSearchJournal ConvaiPhoneChatSearchResult ConvaiPhoneChatFootMoving'},
     {'composer', 'ConvaiComposerOpen ConvaiOpenComposer ConvaiTakeDraft ConvaiDraftText ConvaiClearDraft ConvaiForgetComposer ConvaiComposerClosedInfo '
         .. 'ConvaiFrameFlags ConvaiMoveHeld ConvaiMoveForget ConvaiOpenSearchBox ConvaiSearchBoxState ConvaiTakeSearchText ConvaiForgetSearchBox'},
     {'holocall', 'ConvaiHolocallBegin ConvaiHolocallConnect ConvaiHolocallEnd ConvaiHolocallHasBacking ConvaiHolocallTakeEvent ConvaiHolocallTakeRequest'},
