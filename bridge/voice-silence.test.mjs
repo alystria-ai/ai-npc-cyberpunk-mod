@@ -121,7 +121,7 @@ test('a turn that never gets a playbackObserved mark and whose clock has no list
 
 test('the bridge wires it: the clock learns the voice plan, every turn is watched, playback off is not a failure, and nothing runs per frame', async () => {
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /const voiceSilence = new VoiceSilenceWatch\(\{onSilent: data => errorEvents\.voiceSilent\(data\), wanted: \(\) => !localVoice\.closed && !localVoice\.silent,/);
+  assert.match(bridge, /const voiceSilence = new VoiceSilenceWatch\(\{onSilent: data => errorEvents\.voiceSilent\(data\), wanted: \(\) => !localVoice\.closed && !localVoice\.silent && !localVoice\.baseOld,/);
   assert.match(bridge, /silenceEnded = voiceSilence\.track\(clock\);/);
   assert.match(bridge, /turnClocks\.get\(input\?\.requestId\)\?\.annotate\(\{voicePlan: plan\.engine, voiceReason: plan\.reason\}\)/);
   assert.match(bridge, /errorEvents\.voiceFailed\(\{engine: 'v-line'/);

@@ -818,6 +818,7 @@ local function bridgeLines(out)
         elseif code == 'mature-off' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Only Mature models found. Turn on Mature content to use them.'))
         elseif code == 'no-gpu' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'))
         elseif code == 'start-failed' and localAi.cause == 'blocked' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Choose a cloud conversation provider in Settings.'))
+        elseif code == 'start-failed' and localAi.cause == 'low-ram' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Not enough free system memory to start Local AI. Close other programs, try a smaller model in Settings, or use the Custom provider.'))
         else out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI could not start. Generate a report below and send it, or choose another conversation provider.')) end
     end
     local internet = bridgeCheck('internet')

@@ -61,6 +61,17 @@ The page has one row: the key (Add or Remove).
 
 The free plan has a daily and a per-minute cap per key. Measured with the owner's key: 15 requests a minute. Google does not publish the exact daily number, but its 429 names it: on 30 Oct 2026 a used-up key answered `limit: 500` with quotaId `GenerateRequestsPerDayPerProjectPerModel-FreeTier` for `gemini-flash-lite-latest` (the same for `gemini-3.5-flash-lite`). So the player documents say about 500 replies a day, up to 15 a minute, and that Google sets the exact number. The allowance is per model: `gemini-3.5-flash` still answered on the same key. The plan is not offered in every country (Russia is not on Google's list), and Google may use free-plan chats to improve its products. Replies start in about 1 to 1.5 s, with an occasional slow one. Research and numbers: [FREE_CLOUD_OPTION_RESEARCH.md](FREE_CLOUD_OPTION_RESEARCH.md), "Update 2026-10-30".
 
+### Slow replies: the hedged request (`bridge/hedged-request.mjs`)
+
+Google's free plan sometimes holds a request for 20 s or more without a first word (0.4.0 report 931d4563: attempt 1 silent for 20.0 s, attempt 2 answered after 20.3 s). Owner decision of 31 Oct 2026: a reply that has given no first word **4 s** after it was sent is sent once more with the same messages, and whichever gives a word first is the answer. The other request is cancelled at once (its connection is closed) and nothing it says is heard.
+
+- Only the **Google Gemini route** (`customRoute`, name `gemini`) wraps its chat in this. The Custom provider, Local AI, Convai and every other provider send one request, however long it is silent.
+- Only the **reply stream** (a request with `onDelta`) is hedged. The action decision, the summary and the facts are never.
+- **At most one extra request per call**, so per turn. A turn whose first word comes within 4 s sends nothing extra and costs one timer.
+- Both requests use the same key and endpoint, so Google counts **both** against the same allowance (the 500 a day and 15 a minute above). The mod keeps no count of its own: the allowance is Google's, and the mod's handling of it is unchanged. A failure that is about the account (key, per-minute or daily limit, region, model) from **either** request ends the call at once with that failure, cancels the other and goes through `provider.noteLimit` and the `gemini-*` notices exactly as before, so a used-up day is never worked around by a second request. A failure of the network (no answer in time, a closed connection) of one request waits for the other. If neither answers, the call fails with the first request's error.
+- The service log gets **one line per hedge** when it is decided, all starting `[TextProvider] Google Gemini: `: `no first word after 4.0 s, the same request is sent once more and the first to answer wins`, then `hedged request: the first|second request gave the first word at N s and won, the other was cancelled` (or `answered first`, or `failed (<kind>), the call ends with it`, or `neither request answered (<kinds>)`).
+- Tests: `bridge/hedged-request.test.mjs` (fake clock and requests, and the route test that only `gemini` hedges).
+
 ## Moving earlier setups (`migrateEarlierSetups`)
 
 Run once when the service starts. Each move is idempotent and never overwrites something the player set up.
@@ -75,6 +86,7 @@ Run once when the service starts. Each move is idempotent and never overwrites s
 |---|---|
 | `bridge/gemini-provider.mjs` | the fixed endpoint, the key file, the active-endpoint view, the migration |
 | `bridge/custom-endpoint.mjs` | `CustomEndpoint` and the `PRESETS` table (`gemini` and `mistral`), the commands `preset-gemini`, `clear-preset-gemini`, `preset-mistral`, `clear-preset-mistral` |
-| `bridge/text-provider-host.mjs` | `customRoute`, named `gemini` for this provider |
+| `bridge/text-provider-host.mjs` | `customRoute`, named `gemini` for this provider (wraps its chat in the hedge) |
+| `bridge/hedged-request.mjs` | the 4 s hedged request, Gemini only |
 | `bridge/mature-content.mjs` | `MATURE_PROVIDERS` has no `gemini` |
 | `mod/custom-provider.lua` | the page logic for both the Custom page and the Gemini page (`kind`) |

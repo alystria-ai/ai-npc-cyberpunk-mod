@@ -412,6 +412,10 @@ test('local AI: not used, ready, warming, and every way it can be unavailable', 
   const failedStart = {...installed, status: 'failed', reason: 'start-failed'};
   assert.equal(localAiCheck(selected, {...failedStart, blocked: true}).cause, 'blocked');
   assert.equal(localAiCheck(selected, failedStart).cause, undefined);
+  // Not enough free system memory for the part that runs on the processor: the Help row names what helps (0.4.0 reports 014a3be6 and 316c6d2b).
+  assert.equal(localAiCheck(selected, {...failedStart, lowRam: true}).cause, 'low-ram');
+  assert.equal(localAiCheck(selected, {...failedStart, lowRam: true, blocked: true}).cause, 'blocked', 'a blocked file is the cause to name');
+  assert.equal(localAiCheck(selected, {...installed, status: 'failed', reason: 'crashed', lowRam: true}).cause, undefined);
   assert.equal(localAiCheck(selected, {...installed, status: 'failed', reason: 'crashed', blocked: true}).cause, undefined);
   // Mature-only install with Mature content off: blocked before any start is tried (the server still reads 'stopped', so the status says 'ready').
   const matureOnly = {packInstalled: true, tiers: {standard: null, lite: null}, matureOnly: true, models: [{tier: 'good', name: 'M', file: 'm.gguf', present: true}], status: 'ready'};

@@ -199,6 +199,9 @@ export class VoiceSelection {
     this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniMemoryFailed=false;this.omniCardNoted=false;
     // Windows ran out of memory it can promise (pagingFileFailed): for OmniVoice, then Pocket takes its place; for Pocket, the reply is written. Neither is started again until the player chooses it again.
     this.omniPagingFailed=false;this.pocketPagingFailed=false;
+    // The Runtime base is older than the Scripts need (`runtimeBaseOld()` -> null | {runtime, required}, bridge/runtime-base.mjs): no local voice worker is started on it, because the new code
+    // on the old Python and torch ended in access violations (0.4.0 reports 1478846d, 22c04416, 814af683). Replies are written, the game says once to install the Full file, the log says why.
+    this.baseOldSource=typeof options.runtimeBaseOld==='function'?options.runtimeBaseOld:()=>null;this.baseOldCache=undefined;this.baseOldNoted=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.heldPocketFailure=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
@@ -393,8 +396,28 @@ export class VoiceSelection {
   // A local voice that failed earlier stays out of routing, except for a cloud voice: it runs no worker, so the failure is not its.
   // Only local voices are usable backends: the Convai voice is a route the player chooses, never a stand-in (see resolve).
   backendUsable(backend){
-    return !!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
+    return !this.blockedByBase(backend)&&!!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
       &&(!this.failedBackends.has(backend)||(backend==='pocket'&&this.cloudWanted));
+  }
+  // {runtime, required} while the Runtime base is older than the Scripts need, else null. Read once (the files only change with an install, and an install restarts the service).
+  get baseOld(){
+    if(this.baseOldCache===undefined){
+      try{this.baseOldCache=this.baseOldSource()??null;}catch{this.baseOldCache=null;}
+      if(this.baseOldCache&&!this.baseOldNoted){
+        this.baseOldNoted=true;
+        this.log(`not starting the local voices: the Runtime base is ${this.baseOldCache.runtime} and these Scripts need ${this.baseOldCache.required} or newer. Replies show as text until the Full file from Nexus Mods is installed.`,'Voice');
+      }
+    }
+    return this.baseOldCache;
+  }
+  // A local worker would run on that old base: none is started. OmniVoice on a server of the network (remote) and a cloud voice load nothing of the base's, so they are not held.
+  // V's own Pocket helper is a local worker whatever voice the companions have.
+  blockedByBase(backend,{helper=false}={}){
+    if(!this.baseOld)return false;
+    if(helper)return true;
+    if(backend==='omni'&&this.remoteWanted)return false;
+    if(backend==='pocket'&&this.cloudWanted)return false;
+    return backend==='omni'||backend==='pocket';
   }
   // The engine is loaded, ready and healthy right now: the only way a voice other than the chosen one may take over (it is never loaded for that).
   loadedBackend(backend){
@@ -461,7 +484,8 @@ export class VoiceSelection {
     // `reason: 'omni-memory'`: it ran out of its time without enough graphics memory beside the game; Pocket speaks (the game says so once).
     // `reason: 'virtual-memory'`: Windows ran out of memory for the voice (the paging file is too small), for OmniVoice (Pocket speaks or the reply is written) or for Pocket itself.
     const paging=!this.requestedCloud&&((this.requestedProvider==='omni'&&(this.omniPagingFailed||this.pocketPagingFailed))||(this.requestedProvider==='pocket'&&this.pocketPagingFailed));
-    const reason=this.requestedCloud?null:paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.remoteWanted?'omni-remote':this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
+    // `reason: 'runtime-old'`: the Runtime base is older than the Scripts need, so no local voice is started (blockedByBase); the game says once to install the Full file.
+    const reason=this.requestedCloud?null:this.blockedByBase(this.requestedProvider)?'runtime-old':paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.remoteWanted?'omni-remote':this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
     const value={from:this.requestedCloud??this.requestedProvider,to:want,...(reason?{reason}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
@@ -591,7 +615,7 @@ export class VoiceSelection {
     const committed=this.cloudWanted?[]:[this.resolvedProvider,this.provider];
     const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),
       ...(this.silent?committed.filter(candidate=>candidate==='pocket'&&this.vHelperWanted):committed)];
-    return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
+    return candidates.find(candidate=>local(candidate)&&!this.blockedByBase(candidate)&&this.configuredByBackend[candidate]
       &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate)&&!(candidate==='omni'&&this.omniCardPending))||null;
   }
   // Voice playback is Off: the companions' local voice has no use for a loaded worker.
@@ -1117,7 +1141,7 @@ export class VoiceSelection {
   /** The committed companion voice is the Pocket worker itself (not a cloud voice borrowing Pocket's route). */
   get pocketRoute() { return this.provider === 'pocket' && !this.cloudActive; }
   get vHelperDue() {
-    if(!(this.vHelperWanted&&!this.closed&&!!this.configuredByBackend.pocket))return false;
+    if(!(this.vHelperWanted&&!this.closed&&!!this.configuredByBackend.pocket)||this.blockedByBase('pocket',{helper:true}))return false;
     // The Pocket route speaks V itself, and a Pocket worker that exists (a settings preview warms one) holds the work folder's lock.
     if(this.pocketRoute||this.clientBackend==='pocket')return false;
     // Not at the title screen (see startHold). A helper that already runs is never held: only its first load waits.

@@ -1676,3 +1676,33 @@ test('the MIOpen choice changes nothing for a CUDA worker', async () => {
   assert.equal(Object.hasOwn(first.hooks.extraEnvironment, 'CYBERPUNK_CONVAI_ROCM_MIOPEN'), false);
   await h.voice.close();
 });
+
+// 0.4.0 reports 1478846d, 22c04416, 814af683: Scripts 0.4.0 over a Runtime base 0.3.2, and the Pocket worker died with an access violation three times. A base older than the
+// Scripts need starts no local voice worker at all: the replies are written, the game says once to install the Full file, the log says why, and no error report is made.
+test('a Runtime base older than the Scripts need starts no Pocket or OmniVoice worker: replies are text, told once as runtime-old, logged once, no failure report', async () => {
+  const h = retryFixture({options: {runtimeBaseOld: () => ({runtime: '0.3.2', required: '0.3.3'})}});
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 0, 'no Pocket worker');
+  assert.equal(h.omniWorkers().length, 0, 'no OmniVoice worker');
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.textOnly, true);
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text', reason: 'runtime-old'});
+  assert.equal(h.failures.length, 0, 'nothing failed, so no error report');
+  assert.equal(h.logs.filter(line => /not starting the local voices: the Runtime base is 0\.3\.2 and these Scripts need 0\.3\.3 or newer/.test(line)).length, 1, 'said once in the log');
+  assert.ok(!h.logs.some(line => /bat|antivirus/i.test(line)));
+  // V's own Pocket helper is a local worker too.
+  h.voice.setVHelperWanted(true); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 0, 'not for V either');
+  // OmniVoice chosen: the same, and the same reason.
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 0);
+  assert.equal(h.voice.fallback?.reason, 'runtime-old'); assert.equal(h.voice.fallback?.from, 'omni');
+  await h.voice.close();
+  // A base that is new enough changes nothing.
+  const fine = retryFixture({options: {runtimeBaseOld: () => null}});
+  fine.voice.update({voiceProvider: 'pocket'}, null, false); await fine.settle();
+  fine.voice.update({}, null, false); await fine.voice.start(); await fine.settle();
+  assert.equal(fine.pocketWorkers().length, 1); assert.equal(fine.voice.provider, 'pocket'); assert.equal(fine.voice.fallback, null);
+  await fine.voice.close();
+});

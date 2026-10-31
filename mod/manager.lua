@@ -1539,6 +1539,10 @@ function M.takeVoiceFallbackNotice()
     -- OmniVoice cannot run on this PC at all (it needs an NVIDIA graphics card): said once, and not as a retry or a plain "unavailable".
     -- OmniVoice did not get the graphics memory it needs next to the game (timed out on a small card or with memory spilled into shared memory): Pocket speaks, said once.
     -- Windows ran out of memory it can promise (the paging file is too small, error 1455) for the voice: OmniVoice then Pocket, or Pocket itself. Said once, with what helps.
+    -- The Runtime base is older than these Scripts need: no local voice is started on it (bridge/runtime-base.mjs). Said once, with what to do.
+    if pending.reason == 'runtime-old' then
+        return ui.t('The Runtime is too old for voices. Install the Full file from Nexus Mods.')
+    end
     if pending.reason == 'virtual-memory' then
         return ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.')
     end
@@ -1906,7 +1910,9 @@ local function updateLocalVoice()
         -- 'omni-no-nvidia' (OmniVoice needs an NVIDIA card) is its own notice, whatever the lower voice is.
         -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
         -- 'virtual-memory' (Windows ran out of memory: the paging file is too small) is its own notice for OmniVoice or Pocket, whatever the lower voice is.
-        local reason = fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
+        -- 'runtime-old' (the Runtime base is older than the Scripts need) is its own notice for OmniVoice or Pocket.
+        local reason = fallback.reason == 'runtime-old' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
+            or fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
             or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or fallback.reason == 'omni-remote' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
