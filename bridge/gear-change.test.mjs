@@ -151,7 +151,7 @@ test('GearMemory: first sight is silent, order is ignored, the least recently us
 test('the bridge tells the memory only when a reply is published, clears it with the other conversation memory, and logs what changed', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.equal([...bridge.matchAll(/commitExchange\(input\); gearTold\(\);/g)].length, 2, 'both publish paths');
-  assert.match(bridge, /const gearTold = \(\) => \{ try \{ if \(!input\.reaction && !voice && dynamicInfo\.on\('gear'\)\) gearSeen\(input, gearMemory/);
+  assert.match(bridge, /const gearTold = \(\) => \{ try \{ if \(!input\.reaction && !voice && dynamicOn\('gear', input\)\) gearSeen\(input, gearMemory/);
   assert.equal([...bridge.matchAll(/sceneryMemory\.clear\(\); gearMemory\.clear\(\);/g)].length, 4);
   assert.match(bridge, /gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\), told: gearWantedFor\(input\)\}\)/);
   assert.ok(bridge.indexOf('[PlayerGear]') < bridge.indexOf('commitExchange(input); gearTold();'), 'the log line compares against the memory before the commit');

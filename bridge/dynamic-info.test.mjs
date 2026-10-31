@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {DynamicInfo, KINDS, NO_KINDS, dynamicInfo, offKinds, stripSnapshot} from './dynamic-info.mjs';
+import {DynamicInfo, KINDS, NO_KINDS, dynamicInfo, offKinds, phoneTurn, stripSnapshot} from './dynamic-info.mjs';
 import {parseInput, archetypeContext} from './protocol.mjs';
 import {conversationContext, conversationContextBlocks, voiceConversationBlocks} from './quest-context.mjs';
 import {describeTurnContext, parseTurnContext, turnContext} from './turn-context.mjs';
@@ -99,10 +99,12 @@ async function route(name) {
     }};
 }
 // The context builders ask the shared instance; a test sets it for the length of one build and puts it back.
-function withInfo(info, build) {
-  const before = dynamicInfo.off;
+// `phoneInfo` is the phone set (holocalls and Phone Chat); without it the phone set is the same as the in-person one.
+function withInfo(info, build, phoneInfo = info) {
+  const before = [dynamicInfo.off, dynamicInfo.offPhone];
   dynamicInfo.off = info ? info.off : NO_KINDS;
-  try { return build(); } finally { dynamicInfo.off = before; }
+  dynamicInfo.offPhone = phoneInfo ? phoneInfo.off : NO_KINDS;
+  try { return build(); } finally { [dynamicInfo.off, dynamicInfo.offPhone] = before; }
 }
 
 test('the kinds are the twelve of the page, in page order, and every kind has a marker in this test turn', () => {
@@ -239,6 +241,65 @@ test('a phone chat and an add-on voice honour the switches too', () => {
   assert.doesNotMatch(voiceText(withOff('company', 'dialogue')), /Panam|Meet me at the Afterlife/);
 });
 
+// ---- two sets of switches: in person, and holocalls and Phone Chat texts -----------------------------------------------------------------------------
+test('the phone set is saved beside the in-person set: a file without it (before the phone set existed) follows the in-person choices, kind by kind', () => {
+  assert.deepEqual(offKinds({dynamicInfo: {location: false, gear: false, mods: true}}, true), ['location', 'gear'], 'no phone set: a copy of the in-person set');
+  assert.deepEqual(offKinds({dynamicInfo: {money: false}}, true), ['money', 'mods'], 'the default of a fresh file is the in-person default (Other mods state off)');
+  assert.deepEqual(offKinds({}, true), ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {location: false}, dynamicInfoPhone: 'x'}, true), ['location', 'mods'], 'a malformed phone set is ignored');
+  assert.deepEqual(offKinds({dynamicInfo: {location: false, mods: true}, dynamicInfoPhone: {location: true, time: false, gear: 'no'}}, true), ['time'],
+    'a saved boolean wins over the in-person choice, anything else follows it');
+  assert.deepEqual(offKinds({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: false}}, true), ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {location: false}, dynamicInfoPhone: {location: true, mods: true}}), ['location', 'mods'], 'the in-person set never reads the phone set');
+  const info = new DynamicInfo();
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false}}), true);
+  assert.deepEqual([...info.off], []); assert.deepEqual([...info.offPhone], ['gear']);
+  assert.equal(info.on('gear'), true); assert.equal(info.on('gear', true), false); assert.equal(info.offFor(true), info.offPhone); assert.equal(info.offFor(false), info.off);
+  assert.equal(info.onAny('gear'), true, 'the game is read for a kind that either set wants');
+  assert.equal(info.describe(), 'in person all on, phone off: gear');
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false}}), false);
+  assert.equal(info.update({dynamicInfo: {mods: true}, dynamicInfoPhone: {mods: true, gear: false, money: false}}), true, 'a change of only the phone set is a change');
+  assert.equal(info.update({dynamicInfo: {mods: true, money: false}, dynamicInfoPhone: {mods: true, gear: false, money: false}}), true, 'and so is a change of only the in-person set');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}, dynamicInfoPhone: {mods: true, location: false, time: false}}), true);
+  assert.equal(info.onAny('time'), false); assert.equal(info.describe(), 'off: location, time');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, time: false}}), false, 'a phone set that vanished follows the in-person set (here the same)');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false}}), true); assert.deepEqual([...info.offPhone], ['location']);
+  assert.equal(new DynamicInfo().update({dynamicInfo: {mods: true, money: false}}), true);
+});
+
+test('a phone turn is a Phone Chat text or a one-to-one holocall, in either mode, never a group round', () => {
+  assert.equal(phoneTurn({channel: 'phone'}), true);
+  assert.equal(phoneTurn({holocall: {version: 1, contact: 'Judy', mode: 'audio'}}), true);
+  assert.equal(phoneTurn({holocall: {version: 1, contact: 'Judy', mode: 'holo'}}), true);
+  assert.equal(phoneTurn({holocall: {mode: 'audio'}, group: {index: 1, total: 2}}), false);
+  assert.equal(phoneTurn({holocall: {mode: 'video'}}), false); assert.equal(phoneTurn({holocall: 'audio'}), false);
+  assert.equal(phoneTurn({}), false); assert.equal(phoneTurn(null), false); assert.equal(phoneTurn(undefined), false);
+});
+
+test('a holocall and a Phone Chat text use the phone set, every other turn the in-person set, whatever the other set says', () => {
+  const personOff = withOff('location', 'gear'), phoneOff = withOff('time', 'quest');
+  const call = extra => parsed({holocall: {version: 1, contact: 'Judy', mode: 'audio'}, ...extra});
+  const text = () => ({...parsed(), channel: 'phone'});
+  const marked = (input, kind, info, phoneInfo) => MARKERS[kind].test(withInfo(info, () => conversationContext(input), phoneInfo));
+  const turns = {person: () => parsed(), call, text};
+  // In person: the in-person set applies and the phone set does not.
+  assert.equal(marked(turns.person(), 'location', personOff, phoneOff), false); assert.equal(marked(turns.person(), 'time', personOff, phoneOff), true);
+  assert.equal(marked(turns.person(), 'quest', personOff, phoneOff), true);
+  // A holocall and a text: the phone set applies and the in-person set does not.
+  for (const [name, make] of [['call', turns.call], ['text', turns.text]]) {
+    assert.equal(marked(make(), 'location', personOff, phoneOff), true, `${name}: Location is only off in person`);
+    assert.equal(marked(make(), 'time', personOff, phoneOff), false, `${name}: Time and weather is off for the phone`);
+    assert.equal(marked(make(), 'quest', personOff, phoneOff), false, `${name}: Quest and journal is off for the phone`);
+  }
+  // A player who never touched the phone set: the two sets are the same, so a phone turn keeps what the in-person set turned off.
+  for (const make of [turns.call, turns.text]) assert.equal(marked(make(), 'location', personOff), false);
+  // A character standing beside V is talked to in person even on the phone (the party row says near).
+  const near = make => make({turnContext: {...rawTurn().turnContext, party: [{key: 'judy-alvarez', name: 'Judy', near: true}, {key: 'panam-palmer', name: 'Panam'}]}});
+  assert.equal(marked(near(turns.call), 'location', personOff, phoneOff), false, 'a call to a companion beside V uses the in-person set');
+  assert.equal(marked(near(turns.call), 'time', personOff, phoneOff), true);
+  assert.equal(marked(near(() => ({...parsed({turnContext: {...rawTurn().turnContext, party: [{key: 'judy-alvarez', name: 'Judy', near: true}]}}), channel: 'phone'})), 'location', personOff, phoneOff), false);
+});
+
 // ---- where V is: modest and precise -------------------------------------------------------------------------------------------------------------
 const place = (district, area, indoors) => ({version: 1, status: 'ready', hour: 14, minute: 5, district, area, ...(indoors === undefined ? {} : {indoors})});
 const companion = turnContextValue => describeTurnContext(parsed({turnContext: turnContextValue}), {split: true}).text;
@@ -286,7 +347,7 @@ test('changing a Dynamic info switch drops the replies the bridge prepared ahead
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /const dynamicInfoChanged = dynamicInfo\.update\(settings\);/);
   assert.match(bridge, /if \(speechChanged \|\| emotionsChanged \|\| dynamicInfoChanged\) \{ dropPrefetch\(\); prefetchObserved = ''; \}/);
-  assert.match(bridge, /\{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\}/, 'the add-on voice log line follows the switches');
+  assert.match(bridge, /\{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicOff\(input\)\}/, 'the add-on voice log line follows the switches');
 });
 
 test('the guidance tells every form to mention a place or the time only when it matters, in one short sentence', () => {

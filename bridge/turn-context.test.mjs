@@ -165,7 +165,7 @@ test('the per-turn diagnostic says whether the block was in the context, or why 
   assert.doesNotMatch(turnContextDiagnostic(input), /Judy|Watson/, 'counts only');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{turnContextDiagnostic(?:, turnContextWhere)?(?:, modsProbeLine)?(?:, vixenProbeLines)?\} from '\.\/turn-context\.mjs'/);
-  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
+  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicOff\(input\)\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
 });
 
 // ---------------------------------------------------------------- ordinary NPCs are strangers

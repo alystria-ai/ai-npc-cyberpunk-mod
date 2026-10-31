@@ -12,12 +12,12 @@ import {gearContext, visibleGearContext, gearChangeContext, gearFresh, asksAbout
 import {freshBlock} from './fresh-facts.mjs';
 import {asksAboutClothes, asksAboutSelf} from './scenery-memory.mjs';
 import {gearMemory} from './gear-memory.mjs';
-import {turnContext, describeTurnContext, sceneryFor, moneyNote} from './turn-context.mjs';
+import {turnContext, describeTurnContext, sceneryFor, moneyNote, besideV} from './turn-context.mjs';
 import {lastTalkSentence} from './last-talk.mjs';
 import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
-import {dynamicInfo} from './dynamic-info.mjs';
+import {dynamicInfo, phoneTurn} from './dynamic-info.mjs';
 import {questBriefingContext} from './quest-briefing.mjs';
 import {storyKnowledgeContext} from './story-knowledge.mjs';
 
@@ -165,12 +165,25 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 }
 
 /** Is V's gear line part of this turn's prompt? Only when V's words are about clothes, V or gear (the change note and the nudity note come on their own). The bridge log says so (bridge/player-gear.mjs gearDiagnostic). */
-export const gearWantedFor = input => dynamicInfo.on('gear') && (asksAboutClothes(input?.text) || asksAboutSelf(input?.text) || asksAboutGear(input?.text));
+export const gearWantedFor = input => dynamicOn('gear', input) && (asksAboutClothes(input?.text) || asksAboutSelf(input?.text) || asksAboutGear(input?.text));
+
+// Settings > Dynamic info has two sets of switches: a holocall or a Phone Chat text uses the phone set, anything else the in-person set. A character standing
+// within a few metres of V (besideV) is talked to in person even when V uses the phone.
+// Whether a turn is a phone turn is worked out once per input (a turn asks about every kind several times).
+const phoneKinds = new WeakMap();
+const usesPhoneSet = input => {
+  if (!input || typeof input !== 'object') return false;
+  let phone = phoneKinds.get(input);
+  if (phone === undefined) { phone = phoneTurn(input) && !besideV(input); phoneKinds.set(input, phone); }
+  return phone;
+};
+export const dynamicOff = input => dynamicInfo.offFor(usesPhoneSet(input));
+export const dynamicOn = (kind, input) => !dynamicOff(input).has(kind);
 
 // The options the right-now block of a turn is built (and logged) with. `off`: the kinds Settings > Dynamic info turned off (bridge/dynamic-info.mjs).
 // `gap`: the time since V last talked to this character (Time since last talk; built once per turn id, so the several builds of one turn agree).
-export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicInfo.off), off: dynamicInfo.off,
-  gap: dynamicInfo.on('lastTalk') && !ambient ? lastTalkSentence(input) : ''});
+export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicOff(input)), off: dynamicOff(input),
+  gap: dynamicOn('lastTalk', input) && !ambient ? lastTalkSentence(input) : ''});
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only, V's gear among it when V asks). A world block
@@ -182,7 +195,7 @@ export function conversationContextBlocks(input) {
   const ambient = isAmbientProfile(input?.profileKey);
   // Settings > Dynamic info: a kind the player turned off is left out here, whichever provider the context is for. A fight reaction's own subject
   // (input.reaction) is not "info" and always stays.
-  const on = kind => dynamicInfo.on(kind);
+  const on = kind => dynamicOn(kind, input);
   const fight = on('condition') || input?.reaction ? battleContext(input) : '';
   const dialogue = on('dialogue') ? gameDialogueContext(input) : '';
   // The weather and the part of the day are scenery, stated only when new to the conversation (bridge/scenery-memory.mjs), as a short

@@ -1878,4 +1878,7 @@ return {
     ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Sua placa AMD Radeon pode rodar o OmniVoice. Configure em Configurações > IA de voz e microfone > OmniVoice para AMD: um download e depois ele inicia sozinho. Até lá, o Pocket fala.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Seu endpoint Custom não aceita visão, então usa apenas suas palavras.",
     ["Type a name to search"] = "Digite um nome para buscar",
+    ["In person"] = "Pessoalmente",
+    ["Phone calls and texts"] = "Chamadas e mensagens",
+    ["The same switches for a character V is only calling or texting: holocalls and Phone Chat. A companion standing beside V is still treated as in person, even when V uses the phone."] = "Os mesmos interruptores valem para um personagem com quem V só fala por ligação ou mensagem: holochamadas e o Chat do telefone. Um companheiro parado ao lado de V continua sendo tratado como presencial, mesmo quando V usa o telefone.",
 }

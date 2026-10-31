@@ -557,6 +557,13 @@ function M.new(options)
                 table.sort(infoOff)
             end
             copy.dynamicInfoOff = infoOff
+            -- The same for the phone set (holocalls and Phone Chat texts).
+            local phoneOff = {}
+            if type(settings.dynamicInfoPhone) == 'table' then
+                for kind, on in pairs(settings.dynamicInfoPhone) do if on == false then phoneOff[#phoneOff + 1] = tostring(kind) end end
+                table.sort(phoneOff)
+            end
+            copy.dynamicInfoPhoneOff = phoneOff
             render(copy, 'settings', 1, out)
         else out[#out + 1] = 'settings: not available' end
         section(out, 'party')

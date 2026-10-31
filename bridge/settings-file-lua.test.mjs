@@ -176,9 +176,12 @@ test('Dynamic info: every kind is on unless saved as the boolean false (the mods
     local notTable = {manager.applySettings(newPlayer(), {dynamicInfo = true})}
     report('badTable', {notTable[1]})
     report('after', settingsText())
+    report('phone', snapshot.settings.dynamicInfoPhone)
   `);
   const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
   assert.deepEqual(out.info, {...all, location: false, gear: false});
+  assert.deepEqual(out.phone, {...all, location: false, gear: false}, 'an older file has no phone set: it starts as a copy of the in-person choices, so nothing changes on update');
+  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, {...all, location: false, gear: false}, 'and the copy is saved');
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, {...all, location: false, gear: false}, 'the file is rewritten clean');
   assert.deepEqual(out.flags, {...all, location: false, gear: false}, 'the table the per-frame collectors read');
   assert.deepEqual(out.answers.slice(0, 3), [false, true, false]); assert.equal(out.answers[3], true, 'an unknown kind counts as on');
@@ -187,6 +190,45 @@ test('Dynamic info: every kind is on unless saved as the boolean false (the mods
   assert.deepEqual(out.restart, {...all, gear: false, money: false}, 'the saved choice survives a restart');
   assert.equal(out.badValue[0], false); assert.equal(out.badKind[0], false); assert.equal(out.badTable[0], false);
   assert.deepEqual(JSON.parse(out.after).dynamicInfo, {...all, gear: false, money: false}, 'a refused batch saves nothing');
+});
+
+test('Dynamic info, two sets: the phone set is its own saved table, applied and validated like the in-person one, and the game is read for a kind either set has on', () => {
+  const out = run(`${managerLua}
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, dynamicInfo: {location: false, gear: false, mods: true}, dynamicInfoPhone: {location: true, time: false, gear: 'no', bogus: true}}))}
+    local manager = newManager()
+    local snapshot = manager.snapshot(newPlayer())
+    report('person', snapshot.settings.dynamicInfo)
+    report('phone', snapshot.settings.dynamicInfoPhone)
+    report('flags', convaiDynamicInfo)
+    -- Location: off in person, on for the phone. Time: on in person, off for the phone. Gear: off in both. Either set on means the game is read.
+    report('read', {manager.dynamicInfo('location'), manager.dynamicInfo('time'), manager.dynamicInfo('gear'), manager.dynamicInfo('mods')})
+    report('sets', {manager.dynamicInfoSet('location', false), manager.dynamicInfoSet('location', true), manager.dynamicInfoSet('time', false), manager.dynamicInfoSet('time', true)})
+    report('text', settingsText())
+    local ok = manager.applySettings(newPlayer(), {dynamicInfoPhone = {money = false, gear = true}})
+    report('applied', ok)
+    local again = newManager()
+    local restarted = again.snapshot(newPlayer()).settings
+    report('restartPhone', restarted.dynamicInfoPhone)
+    report('restartPerson', restarted.dynamicInfo)
+    report('flagsAfter', convaiDynamicInfo)
+    local bad = {manager.applySettings(newPlayer(), {dynamicInfoPhone = {money = 'off'}})}
+    local unknown = {manager.applySettings(newPlayer(), {dynamicInfoPhone = {bogus = false}})}
+    local notTable = {manager.applySettings(newPlayer(), {dynamicInfoPhone = true})}
+    report('refused', {bad[1], unknown[1], notTable[1]})
+    report('after', settingsText())
+  `);
+  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
+  assert.deepEqual(out.person, {...all, location: false, gear: false, mods: true});
+  assert.deepEqual(out.phone, {...all, time: false, gear: false, mods: true}, 'a saved boolean stays; a missing or malformed kind takes the in-person choice; an unknown kind is dropped');
+  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, out.phone);
+  assert.deepEqual(out.flags, {...all, gear: false, mods: true}, 'the per-frame table: a kind is read when either set has it on');
+  assert.deepEqual(out.read, [true, true, false, true]);
+  assert.deepEqual(out.sets, [false, true, true, false]);
+  assert.equal(out.applied, true);
+  assert.deepEqual(out.restartPhone, {...out.phone, money: false, gear: true}); assert.deepEqual(out.restartPerson, out.person, 'the in-person set is untouched');
+  assert.equal(out.flagsAfter.gear, true, 'a kind only the phone set wants is still read');
+  assert.deepEqual(out.refused, [false, false, false]);
+  assert.deepEqual(JSON.parse(out.after).dynamicInfoPhone, out.restartPhone, 'a refused batch saves nothing');
 });
 
 test('out-of-range and over-long values are replaced: model ids over 80 characters, a voice volume of 5000, a negative delay', () => {
@@ -699,6 +741,7 @@ test('Dynamic info: a fresh settings file has the mods kind off and the other el
     report('flags', convaiDynamicInfo)
     report('mods', {manager.dynamicInfo('mods'), manager.dynamicInfo('location')})
     report('text', settingsText())
+    report('phone', manager.snapshot(newPlayer()).settings.dynamicInfoPhone)
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, dynamicInfo: {mods: 'yes'}}))}
     report('malformed', newManager().snapshot(newPlayer()).settings.dynamicInfo.mods)
   `);
@@ -707,6 +750,8 @@ test('Dynamic info: a fresh settings file has the mods kind off and the other el
   assert.deepEqual(out.flags, expected);
   assert.deepEqual(out.mods, [false, true]);
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, expected);
+  assert.deepEqual(out.phone, expected, 'a fresh install: the phone set starts the same as the in-person set');
+  assert.deepEqual(JSON.parse(out.text).dynamicInfoPhone, expected);
   assert.equal(out.malformed, false);
 });
 
