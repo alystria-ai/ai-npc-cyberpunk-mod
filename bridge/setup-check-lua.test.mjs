@@ -483,6 +483,8 @@ test('the browser, Local AI and the internet: every state has its own line and f
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true, cause = 'blocked'}}); check.run()
   assert(lineOf('local-ai').state == 'problem' and lineOf('local-ai').description:find('blocks the files of the model server', 1, true)
     and lineOf('local-ai').description:find('Choose a cloud conversation provider in Settings', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
+  answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true, cause = 'low-ram'}}); check.run()
+  assert(lineOf('local-ai').description == 'Not enough free system memory to start Local AI. Close other programs, try a smaller model in Settings, or use the Custom provider.', tostring(lineOf('local-ai').description))
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true}}); check.run()
   assert(lineOf('local-ai').description:find('Local AI could not start', 1, true), 'without the cause the generic line stays')
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()

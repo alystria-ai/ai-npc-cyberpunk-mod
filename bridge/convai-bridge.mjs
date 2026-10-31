@@ -98,6 +98,7 @@ import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
 import {gpuVendors, nvidiaCardMiB, amdRoute} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
+import {runtimeBaseOld} from './runtime-base.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterOptions} from './character-options.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
@@ -147,7 +148,7 @@ import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
-import {BLOCKED as LOCAL_AI_BLOCKED, LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
+import {BLOCKED as LOCAL_AI_BLOCKED, LOW_RAM as LOCAL_AI_LOW_RAM, LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, localAiAvailable, matureOffBlocks, normalisePin, ownFileModels} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
@@ -604,6 +605,7 @@ function helperHolds() { return titleHolds() && !loadBegun; }
 setTimeout(() => { endTitle('the title hold ran out'); }, TITLE_HOLD_MAX_MS).unref?.();
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: helperHolds, workerPriority: turnPriority, pythonCacheDirectory: resolve(stateDirectory, 'python-cache'),
   omniRemoteAddress: () => remoteOmniAddress.endpoint, omniReferenceRoots: referenceRoots,
+  runtimeBaseOld: () => runtimeBaseOld({project, modRoot: resolve(runtime, '..')}),
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
@@ -1559,7 +1561,7 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
       background: {warmConnections: warm.ready, connectingConnections: warm.connecting, turnsInFlight: [...turnClocks.values()].filter(clock => !clock.has('published')).length}};
   }});
 // Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.
-const voiceSilence = new VoiceSilenceWatch({onSilent: data => errorEvents.voiceSilent(data), wanted: () => !localVoice.closed && !localVoice.silent,
+const voiceSilence = new VoiceSilenceWatch({onSilent: data => errorEvents.voiceSilent(data), wanted: () => !localVoice.closed && !localVoice.silent && !localVoice.baseOld,
   context: () => ({engine: localVoice.provider, requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: localVoice.resolvedProvider,
     // OmniVoice is the chosen voice and it is rendered by a server of the player's network (the setting `remoteOmni`): its silence is not reported (bridge/error-events.mjs voiceSilent).
     remote: localVoice.remoteWanted === true && localVoice.requestedProvider === 'omni',
@@ -4515,7 +4517,9 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         // The start failed because the server the player runs does not answer, is blocked, refuses the key or is no OpenAI-style address: their setup, so no error report (error-events.mjs setupChecked).
         playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail),
         // Windows blocked a file of the model server (Smart App Control / Application Control): the Help row names it.
-        blocked: state === 'failed' && reason === 'start-failed' && detail === LOCAL_AI_BLOCKED};
+        blocked: state === 'failed' && reason === 'start-failed' && detail === LOCAL_AI_BLOCKED,
+        // The model would have to run partly on the processor and the free system memory is too small for its part: the Help row says what helps (0.4.0 reports 014a3be6, 316c6d2b).
+        lowRam: state === 'failed' && reason === 'start-failed' && detail === LOCAL_AI_LOW_RAM};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
     // The player's own Python for OmniVoice (only with omni-python.txt): a light run reports what is known, the Help page's run tests it (again after a refusal).

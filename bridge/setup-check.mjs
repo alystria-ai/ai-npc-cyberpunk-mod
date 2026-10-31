@@ -455,7 +455,9 @@ export function localAiCheck(settings, info = {}) {
   else code = LOCAL_REASONS[info.reason] ?? 'failed';
   return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {}),
     // Windows refused to run a file of the model server (Smart App Control or an Application Control policy): the Help row says so and what to do.
-    ...(code === 'start-failed' && info.blocked === true ? {cause: 'blocked'} : {})};
+    ...(code === 'start-failed' && info.blocked === true ? {cause: 'blocked'} : {}),
+    // The model cannot stay on the card beside the game and the free system memory is too small for the part that runs on the processor: the Help row names the way out.
+    ...(code === 'start-failed' && info.blocked !== true && info.lowRam === true ? {cause: 'low-ram'} : {})};
 }
 
 const text = (value, size) => clip(value, size) ?? '';

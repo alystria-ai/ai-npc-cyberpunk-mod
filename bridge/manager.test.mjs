@@ -1486,6 +1486,30 @@ test('Windows running out of memory for the voice (the paging file is too small)
   `);
 });
 
+test('a Runtime base older than the Scripts need is its own notice, once, for OmniVoice and for Pocket, and says to install the Full file', () => {
+  run(`${nsuiFixture}${managerPopupFixture}
+    popupStep = 1
+    local expected = 'The Runtime is too old for voices. Install the Full file from Nexus Mods.'
+    local state = {state = 'ready', provider = 'text', requestedProvider = 'pocket', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', routedProfiles = {},
+      fallback = {from = 'pocket', to = 'text', reason = 'runtime-old'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one notice')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == expected, popups[1])
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 1, 'the same fallback was announced again')
+    popupClock = popupClock + 700
+    state.requestedProvider = 'omni'
+    state.fallback, state.updated = {from = 'omni', to = 'text', reason = 'runtime-old'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == expected, popups[#popups])
+    assert(not expected:find('bat', 1, true) and not expected:lower():find('antivirus', 1, true))
+  `);
+});
+
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end

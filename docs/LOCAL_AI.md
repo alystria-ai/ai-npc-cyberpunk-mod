@@ -49,6 +49,11 @@ again by the next turn; a missing pack or a Mature-only install with Mature cont
 (the mod notices either within a few seconds), and a new model choice, or turning Mature content on or off, tries the start again at once. Choosing
 Mistral, Convai or Custom in Settings is your own choice to make; the mod never makes it for you.
 
+When the start failed for want of free system memory (the model would have to run partly on the processor and the free RAM is smaller than its part and cache,
+`start-failed` with the detail `low-ram`), the Help page's Local AI row says so and what helps: "Not enough free system memory to start Local AI. Close other
+programs, try a smaller model in Settings, or use the Custom provider." (`cause: 'low-ram'` of the setup check, `bridge/setup-check.mjs` `localAiCheck`, all 15
+languages). The game's own notice for a turn carries the same advice in English in its reason.
+
 The game can also take the graphics memory after the model is loaded (a big scene, high textures). The card then moves the model into shared
 system memory, where it reads a prompt at a crawl. When two requests in a row get no usable answer (a turn or a persona warm-up with no reply, a
 prompt read that stops, a reply that goes quiet) and none was answered in between, the mod steps down for the rest of the session, in the same
