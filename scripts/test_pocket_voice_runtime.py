@@ -1036,9 +1036,61 @@ class Producer(unittest.TestCase):
         result=worker.stream_request(model,{'cached':'prompt'},'One full reply. Another sentence.',commands,send,1,'johnny-silverhand',encode)
         self.assertEqual(model.options[1],'One full reply. Another sentence.')
         self.assertTrue(model.options[2]['copy_state']);self.assertIs(model.options[2]['stop'],commands.stop)
+        # Short lines ended while still speaking (31 Oct 2026): the tail after the end-of-speech mark is upstream's own guess per sentence
+        # (None: five frames for four words or fewer, three for longer), never the one frame it used to be.
+        self.assertIsNone(worker.FRAMES_AFTER_EOS);self.assertIn('frames_after_eos',model.options[2]);self.assertIsNone(model.options[2]['frames_after_eos'])
         self.assertEqual([frame['offsetFrames'] for frame in sent],[0,3]);self.assertEqual(result['frames'],5)
         values=struct.unpack('<3f',base64.b64decode(sent[0]['pcm']));self.assertGreater(values[2],1)
         self.assertTrue(model.finished);self.assertGreaterEqual(result['firstPcmCopiedReadyMs'],result['firstPcmYieldMs'])
+
+    def _stream(self,chunks,**patches):
+        """Runs stream_request on chunks of (value, frames) and returns the packets' frames and values in the order they were sent."""
+        class Model:
+            def __init__(self):
+                self.options=None
+            def generate_audio_stream(self,state,text,**options):
+                self.options=options
+                for chunk in chunks:
+                    yield chunk
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1);sent=[]
+        def send(frame):
+            sent.append(frame);commands.ack.set()
+        def encode(chunk):
+            value,count=chunk
+            return struct.pack('<f',value)*count,count
+        with patch.multiple(worker,**{'SILENT_PEAK':worker.SILENT_PEAK,**patches}):
+            result=worker.stream_request(Model(),{},'Hey.',commands,send,1,'barry-lewis',encode)
+        values=[struct.unpack('<f',base64.b64decode(frame['pcm'])[:4])[0] for frame in sent]
+        return result,[frame['frames'] for frame in sent],values,[frame['offsetFrames'] for frame in sent]
+
+    def test_the_silence_the_model_ends_in_is_cut_to_forty_milliseconds_and_the_speech_before_it_is_untouched(self):
+        # 31 Oct 2026: the tail after the end-of-speech mark is now upstream's own guess (3 to 5 frames) so a line is not cut while it speaks.
+        # Those frames decode to digital silence, which would only hold the next sentence, the reply after V's line and the next speaker back.
+        silent=0.0
+        result,frames,values,offsets=self._stream([(silent,1920),(silent,1920),(.3,1920),(.2,1920),(1e-5,1920),(silent,1920),(silent,1920),(silent,1920)])
+        # The two lead-in chunks are the model's own start and go out as they are, then the speech, then 40 ms of the silent tail.
+        self.assertEqual(frames,[1920,1920,1920,1920,960])
+        self.assertEqual(values[:4],[0.0,0.0,struct.unpack('<f',struct.pack('<f',.3))[0],struct.unpack('<f',struct.pack('<f',.2))[0]])
+        self.assertEqual(offsets,[0,1920,3840,5760,7680]);self.assertEqual(result['frames'],8640)
+        self.assertEqual(result['chunks'],5)
+
+    def test_a_pause_inside_the_line_is_kept_whole_and_in_order(self):
+        result,frames,values,offsets=self._stream([(.3,1920),(0.0,1920),(0.0,1920),(.2,1920),(0.0,1920)])
+        self.assertEqual(frames,[1920,1920,1920,1920,960])
+        self.assertEqual(offsets,[0,1920,3840,5760,7680]);self.assertEqual(result['frames'],8640)
+
+    def test_silence_before_the_first_sound_is_not_held_and_a_silent_reply_still_goes_out_whole(self):
+        result,frames,values,offsets=self._stream([(0.0,1920),(0.0,1920)])
+        self.assertEqual(frames,[1920,1920]);self.assertEqual(result['frames'],3840)
+        # Nothing waits for the first chunk of sound: it is sent before the generator is asked for the next one.
+        result,frames,values,offsets=self._stream([(.3,1920)])
+        self.assertEqual(frames,[1920])
+
+    def test_the_trim_is_off_when_the_switch_says_so_and_the_tail_length_is_the_modules(self):
+        result,frames,values,offsets=self._stream([(.3,1920),(0.0,1920),(0.0,1920)],TRIM_TRAILING_SILENCE=False)
+        self.assertEqual(frames,[1920,1920,1920])
+        result,frames,values,offsets=self._stream([(.3,1920),(0.0,1920),(0.0,1920)],TAIL_SILENCE_FRAMES=2400)
+        self.assertEqual(frames,[1920,1920,480])
 
     def test_a_long_decoder_chunk_goes_out_as_ordered_packets_instead_of_ending_the_voice(self):
         # 0.2.4 reports: on a busy computer the decoder batches every queued latent frame into one chunk; five seconds of audio used to

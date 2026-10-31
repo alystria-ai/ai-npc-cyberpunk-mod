@@ -6,6 +6,7 @@ This entry point never finds a development model or downloads missing assets.
 from __future__ import annotations
 
 import argparse
+from array import array
 import base64
 from collections import OrderedDict
 from contextlib import redirect_stdout
@@ -370,6 +371,24 @@ def require_cpu_float32(torch, model):
 # The longest single PCM packet (one second at 24 kHz); the bridge accepts up to four seconds in a packet.
 PACKET_FRAMES = 24000
 
+# Frames generated after the end-of-speech mark: None lets the pinned upstream choose per sentence (5 for four words or fewer, 3 otherwise).
+FRAMES_AFTER_EOS = None
+# A chunk whose loudest sample is under this (about -60 dBFS, speech peaks at 0.2 to 0.6) counts as silent. The frames after the end-of-speech mark
+# decode to digital silence (-85 dB under the speech level, measured), and a model's own pauses inside a line stay far above this.
+SILENT_PEAK = 0.001
+# Silence after the last sound that is still sent (40 ms: the line does not stop on its last sample). Everything after it is not.
+TAIL_SILENCE_FRAMES = 960
+TRIM_TRAILING_SILENCE = True
+
+
+def peak_amplitude(payload):
+    """The loudest sample of little endian float32 PCM bytes (host order is little endian on every platform the Runtime ships for)."""
+    samples = array("f")
+    samples.frombytes(payload)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    return max(map(abs, samples)) if samples else 0.0
+
 
 def stream_request(model, state, text, commands, send, request_id, key, encode_pcm,
                    now=time.perf_counter):
@@ -381,10 +400,35 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     started = now()
     total, index = 0, 0
     first_yield = first_ready = None
-    # Match the public-stream samples used to accept/select the student. Letting
-    # upstream guess this tail from text gives live replies different endings.
-    generator = model.generate_audio_stream(state, text, frames_after_eos=1,
+    # The tail after the model's end-of-speech mark is upstream's own guess per sentence (FRAMES_AFTER_EOS = None: five frames for four words
+    # or fewer, three for longer ones). It was one frame (to match the samples the student was selected on) until 31 Oct 2026, and that
+    # cut every line while it was still speaking: the mark comes a few frames before the sound has ended, so a short line lost 50 to 320
+    # ms of its last sound and ended at 4 to 29 dB under the speech level (a click and a chopped word, worst on Barry Lewis, whose clip
+    # starts late). The audio before the cut is the same sample for sample, only the ending changes (docs/POCKET_TTS_RUNTIME.md, "The end
+    # of every line"). The extra frames come after the speech, so the first audio is not later, and the silence they end in is not sent
+    # (below), so the line is not longer either.
+    generator = model.generate_audio_stream(state, text, frames_after_eos=FRAMES_AFTER_EOS,
                                             copy_state=True, stop=commands.stop)
+    # Chunks that are silent after the voice has started wait here. Silence inside the line (a pause) is sent in order when more speech
+    # follows it. Silence at the end is the model's tail after the last sound and is cut to TAIL_SILENCE_FRAMES: it only held the companion's
+    # next sentence, the reply after V's line and the next speaker back. Nothing waits for the first sound, which goes out as it is made.
+    held, held_frames, spoken = [], 0, False
+
+    def publish(payload, frames, yielded_ms, copied_ms):
+        nonlocal total, index
+        for begin in range(0, frames, PACKET_FRAMES):
+            piece = min(PACKET_FRAMES, frames - begin)
+            index += 1
+            commands.expect_ack(index)
+            send({"op": "pcm", "id": request_id, "profile": key, "index": index,
+                  "offsetFrames": total, "frames": piece, "sampleRate": 24000,
+                  "channels": 1, "format": "f32le",
+                  "pcm": base64.b64encode(payload[begin * 4:(begin + piece) * 4]).decode("ascii"),
+                  "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
+            total += piece
+            commands.await_ack()
+            commands.touch()
+
     try:
         for chunk in generator:
             yielded_ms = (now() - started) * 1000
@@ -398,23 +442,29 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             # limit, is refused.
             if (not isinstance(payload, bytes) or type(frames) is not int
                     or frames < 1 or len(payload) != frames * 4
-                    or total + frames > 24000 * MAX_AUDIO_SECONDS):
+                    or total + held_frames + frames > 24000 * MAX_AUDIO_SECONDS):
                 raise ValueError("Pocket returned PCM outside its frame limit")
             copied_ms = (now() - started) * 1000
             first_yield = yielded_ms if first_yield is None else first_yield
             first_ready = copied_ms if first_ready is None else first_ready
-            for begin in range(0, frames, PACKET_FRAMES):
-                piece = min(PACKET_FRAMES, frames - begin)
-                index += 1
-                commands.expect_ack(index)
-                send({"op": "pcm", "id": request_id, "profile": key, "index": index,
-                      "offsetFrames": total, "frames": piece, "sampleRate": 24000,
-                      "channels": 1, "format": "f32le",
-                      "pcm": base64.b64encode(payload[begin * 4:(begin + piece) * 4]).decode("ascii"),
-                      "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
-                total += piece
-                commands.await_ack()
-                commands.touch()
+            silent = TRIM_TRAILING_SILENCE and peak_amplitude(payload) < SILENT_PEAK
+            if silent and spoken:
+                held.append((payload, frames, yielded_ms, copied_ms))
+                held_frames += frames
+                continue
+            for item in held:
+                publish(*item)
+            held, held_frames = [], 0
+            publish(payload, frames, yielded_ms, copied_ms)
+            spoken = spoken or not silent
+        # The silence the model ended in: only the first TAIL_SILENCE_FRAMES of it go out.
+        keep = TAIL_SILENCE_FRAMES
+        for payload, frames, yielded_ms, copied_ms in held:
+            if keep < 1:
+                break
+            piece = min(frames, keep)
+            publish(payload[:piece * 4], piece, yielded_ms, copied_ms)
+            keep -= piece
     except BaseException:
         # Closing the upstream generator at a yield skips its decoder.join().
         # Set the native stop event and drain to its real EOF first. The owned
@@ -867,8 +917,9 @@ def main():
                 if not text_valid(text):
                     raise ValueError("Invalid Pocket reply text")
                 # Pocket owns its necessary acoustic decoding. There is no
-                # sentence splitter here and no gain, denoising, silence trim,
-                # speed adjustment, resampling, fade or crossfade of output.
+                # sentence splitter here and no gain, denoising, speed adjustment,
+                # resampling, fade or crossfade of output, and the only silence
+                # trim is the end of the line (stream_request).
                 def encode_pcm(chunk):
                     if chunk.device.type != "cpu" or chunk.dtype != torch.float32:
                         raise ValueError("Pocket PCM did not preserve CPU float32")
