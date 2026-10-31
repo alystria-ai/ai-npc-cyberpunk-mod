@@ -805,6 +805,24 @@ function M.takeSearch(player)
     if not sent then M.searchMissing = true end
 end
 
+-- V moving on foot, for the phone's text boxes (r6 PhoneChatSearch.reds ConvaiPhoneChatFootMoving). The Chat list's search keys (O and /) do nothing while it is
+-- true, a click on the search bar waits to give the box the keyboard, and the chat box does not take it, so a movement key that is down cannot lose its release to a
+-- box (a mod that lets V walk with the phone open). Asked on the 10 Hz tick while the phone is open, and sent only when the answer changes; false when the phone
+-- closes. M.footMoving(player) is set by init.lua (the talk gate's own reading: a movement axis held, or V still moving from one, and never in a vehicle).
+-- Scripts without the method are given up on once.
+function M.pushFootMoving(player, phoneOpen)
+    if M.footMovingMissing then return end
+    local moving = false
+    if phoneOpen == true and type(M.footMoving) == 'function' then
+        local ok, answer = pcall(M.footMoving, player)
+        moving = ok and answer == true
+    end
+    if M.footMovingSent == moving then return end
+    local sent = pcall(function() player:ConvaiPhoneChatFootMoving(moving) end)
+    if not sent then M.footMovingMissing = true; return end
+    M.footMovingSent = moving
+end
+
 function M.update(player, delta, phoneOpen)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
@@ -857,6 +875,7 @@ function M.update(player, delta, phoneOpen)
     end
     local supported, contact = pcall(function() return player:ConvaiPhoneChatContact() end)
     if not supported then return end -- staged Lua remains safe before native install
+    M.pushFootMoving(player, phoneOpen)
     player:ConvaiPhoneChatTick()
     -- The redscript's account of opening a chat (a few lines per opening, none otherwise): handed to the probe log by init.lua. A missing method
     -- (older scripts) is asked about once.

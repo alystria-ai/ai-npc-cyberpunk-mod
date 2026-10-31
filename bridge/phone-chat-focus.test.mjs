@@ -14,14 +14,16 @@ test('the box is focused by the chat page\'s own paint, once per opening, and ne
   // Only the chat page itself (the list is NewHudPhoneGameController and has no box), a chat that can be written to, and the armed opening.
   assert.match(focus, /^\s*if !this\.m_convaiChatAutoFocus \{ return; \};/);
   assert.match(focus, /!this\.m_data\.convaiChat \|\| !this\.m_isFocused \|\| !this\.m_convaiChatEnabled \|\| !IsDefined\(this\.m_convaiChatInput\) \{ return; \};/);
-  // One attempt per opening, spent before anything can fail.
-  assert.match(focus, /this\.m_convaiChatAutoFocus = false;\s*let player = /);
+  // One attempt per opening, spent before anything can fail. The one exception (31 Oct, Discord: phone mods that let V walk): while V moves on foot the ask is kept, so no movement
+  // key that is down can lose its release to the box, and it is given on the first Lua tick where V is not moving.
+  assert.match(focus, /let player = this\.m_player as PlayerPuppet;\s*if IsDefined\(player\) && player\.ConvaiPhoneChatIsFootMoving\(\) \{ return; \};\s*this\.m_convaiChatAutoFocus = false;\s*if /);
   // Texting must be allowed, and the player must be on keyboard and mouse: a pad has no Esc to leave a box that swallows every action.
   assert.match(focus, /!this\.m_phoneSystem\.IsTextingEnabled\(\) \|\| !this\.m_player\.PlayerLastUsedKBM\(\)/);
   assert.match(focus, /this\.m_convaiChatInput\.GuardEnter\(0\.5\);\s*this\.RequestSetFocus\(this\.m_convaiChatInput\.GetRootWidget\(\)\);/);
   // Called from the paint Lua asks for, after the lines are set: nothing per frame, nothing on a timer.
   assert.match(body('ConvaiChatPresent'), /ConvaiChatSetLines\(lines\);\s*this\.ConvaiChatAutoFocus\(\);\s*$/);
-  assert.equal([...code.matchAll(/this\.ConvaiChatAutoFocus\(\)/g)].length, 1, 'no other caller');
+  assert.equal([...code.matchAll(/this\.ConvaiChatAutoFocus\(\)/g)].length, 2, 'the paint, and Lua\'s 10 Hz tick for an ask that waited for V to stop moving');
+  assert.match(body('ConvaiChatAdvanceGuard'), /if this\.m_convaiChatAutoFocus \{ this\.ConvaiChatAutoFocus\(\); \};\s*$/);
   assert.doesNotMatch(code, /ConvaiChatAutoFocus[^]*?(?:DelayCallback|DelaySystem|OnUpdate|OnTick)/);
 });
 

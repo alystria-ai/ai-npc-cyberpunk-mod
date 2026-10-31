@@ -3889,6 +3889,13 @@ local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
     end)
     if not ok then cancelVoice('microphone-error'); groupChat.cancel(); log('Microphone failed: ' .. tostring(err)) end
 end
+-- The phone's text boxes ask this on the phone tick (mod/phone-chat.lua pushFootMoving): the talk gate's own reading, so the two agree. Never in a vehicle.
+phoneChat.footMoving = function(player)
+    local okCar, car = pcall(function() return player:GetMountedVehicle() end)
+    if okCar and car ~= nil then return false end
+    local busy, speed = talkBusy(player)
+    return busy == 'moving' or (busy == 'axis' and speed ~= nil and speed > TALK_MOVING_SPEED)
+end
 
 local function sendRequest(context)
     local owner = attachKnowledge(context)

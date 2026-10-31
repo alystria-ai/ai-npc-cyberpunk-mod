@@ -455,6 +455,9 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
     };
     if !this.m_data.convaiChat || !this.m_isFocused || !this.m_convaiChatEnabled || !this.m_phoneSystem.IsTextingEnabled()
         || !IsDefined(this.m_convaiChatInput) || this.m_convaiChatInput.IsFocused() { return; };
+    // Enter while V moves on foot does not open the box (see ConvaiChatAutoFocus): the key is not consumed, the page waits for Enter once V has stopped.
+    let mover = this.m_player as PlayerPuppet;
+    if IsDefined(mover) && mover.ConvaiPhoneChatIsFootMoving() { return; };
     // Set focus is queued by ink. Consume this opening Enter immediately so it
     // cannot also activate an authored reply choice in the same input frame.
     this.m_convaiChatEscape = true;
@@ -481,8 +484,11 @@ public final func ConvaiChatNow() -> Float {
 private final func ConvaiChatAutoFocus() -> Void {
     if !this.m_convaiChatAutoFocus { return; };
     if !this.m_data.convaiChat || !this.m_isFocused || !this.m_convaiChatEnabled || !IsDefined(this.m_convaiChatInput) { return; };
-    this.m_convaiChatAutoFocus = false;
     let player = this.m_player as PlayerPuppet;
+    // V is moving on foot (a mod that lets V walk with the phone open): the box does not take the keyboard while a movement key may be down, so that key cannot lose its
+    // release to the box. The ask stays and Lua's 10 Hz tick (ConvaiChatAdvanceGuard) tries again; the page itself is open and readable meanwhile.
+    if IsDefined(player) && player.ConvaiPhoneChatIsFootMoving() { return; };
+    this.m_convaiChatAutoFocus = false;
     if this.m_convaiChatInput.IsFocused() || !this.m_phoneSystem.IsTextingEnabled() || !this.m_player.PlayerLastUsedKBM() {
         if IsDefined(player) { player.ConvaiPhoneChatTrace("autofocus skipped contact=" + this.m_convaiChatId + (this.m_convaiChatInput.IsFocused() ? " (already typing)" : this.m_phoneSystem.IsTextingEnabled() ? " (pad)" : " (texting off)")); };
         return;
@@ -530,6 +536,8 @@ public final func ConvaiChatAdvanceGuard() -> Void {
         this.m_convaiChatEscapeFrames -= 1;
         if this.m_convaiChatEscapeFrames == 0 { this.m_convaiChatEscape = false; };
     };
+    // A focus that waited for V to stop moving (ConvaiChatAutoFocus) is given now.
+    if this.m_convaiChatAutoFocus { this.ConvaiChatAutoFocus(); };
 }
 
 @addMethod(PhoneMessagePopupGameController)
