@@ -124,7 +124,7 @@ export function parseModelId(text) {
   let value = text.replace(/^﻿/, '').trim();
   const labelled = /^(?:model(?:[-_ ]?id)?)\s*[=:]\s*(\S+)$/i.exec(value);
   if (labelled) value = labelled[1];
-  value = unquote(value);
+  value = unquote(value).replace(/\/+$/, '');   // a trailing slash comes from a pasted page address (openrouter.ai/vendor/name/), never from an id
   return /^[A-Za-z0-9@][A-Za-z0-9._:/@+-]{0,119}$/.test(value) && !/^https?:\/\//i.test(value) && !looksLikeKey(value) ? value : null;
 }
 

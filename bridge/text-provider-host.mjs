@@ -725,7 +725,7 @@ export class TextProviderHost {
     // The memory key is taken once here (a content pack with a separate memory may be switched while the turn runs); the persona and everything else keep the profile key.
     const memoryKey = {profileKey: this.memoryKeyFor ? this.memoryKeyFor(local.profileKey) : local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
-    const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
+    const feed = stream ?? new ReplyStream({name: persona.name, aliases: persona.aliases, isTag, speak: false});
     // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
@@ -1157,7 +1157,7 @@ export class TextProviderHost {
       const plain = splitActions(soFar, {streaming: true}).text;
       let shown = plain;
       if (!reaction) {
-        const cleanedSoFar = cleanReply(plain, {name: persona.name, isTag});
+        const cleanedSoFar = cleanReply(plain, {name: persona.name, aliases: persona.aliases, isTag});
         const cut = stripEchoOpener(cleanedSoFar, text, {streaming: true});
         // What remains starting with a quotation mark is held back: the stream cleans it once more and would take a quote pair off a reply that is not wholly quoted, so the voice's head and the finished reply would differ.
         if (cut !== cleanedSoFar) shown = QUOTED_START.test(cut) ? '' : cut;
@@ -1171,11 +1171,13 @@ export class TextProviderHost {
     // tokens, and is cut at its last sentence end. Ordinary replies and battle barks carry no such limit and are unchanged.
     const wordLimit = reaction && Number.isInteger(config.reaction?.maxWords) && config.reaction.maxWords > 0 ? config.reaction.maxWords : 0;
     const shouldStop = soFar => {
-      const clean = cleanReply(visible(soFar), {name: persona.name, isTag});
+      const clean = cleanReply(visible(soFar), {name: persona.name, aliases: persona.aliases, isTag});
       return capPoint(clean, this.limits) >= 0 || (wordLimit > 0 && overWords(clean, wordLimit));
     };
     // The pictures of this turn ("Companions can see", bridge/companion-vision.mjs), handed in with the config by attachTextProvider: never for a reaction.
     const pictures = !reaction && Array.isArray(config?.visionImages) && config.visionImages.length ? config.visionImages : null;
+    // A reply that was only narration or stage directions cleans to nothing (bridge/narration-strip.mjs): it is asked for once more before the turn fails as empty.
+    let narrationAsked = false;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
@@ -1202,7 +1204,7 @@ export class TextProviderHost {
         notes = reactionChosenNotes(only);
         return run(nudge);
       }
-      let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      let cleaned = cleanReply(spoken, {name: persona.name, aliases: persona.aliases, isTag});
       // Rule 4 (no opening with V's words asked back) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
       if (!reaction) cleaned = stripEchoOpener(cleaned, text);
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
@@ -1220,6 +1222,11 @@ export class TextProviderHost {
           const line = this.matureGuard.refusalLine(profileKey);
           return {response, reply: feed.committed ? `${feed.head} ${line}` : line, guarded: true};
         }
+      }
+      if (!reply.trim() && spoken.trim() && !narrationAsked && !signal?.aborted) {
+        narrationAsked = true;
+        this.log('Reply was only narration; asking once more for the words');
+        return run(nudge);
       }
       if (!reply.trim()) throw new MistralError('empty', 'answered with no text', {provider: route.provider});
       return {response, reply};
