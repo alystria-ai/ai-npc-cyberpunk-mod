@@ -33,19 +33,27 @@ async function followRound({source = {kind: 'speakup', follow: 'companion'}, bef
   });
 }
 const orderOf = events => events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
-// What the held follow-on had done by the time it was ready, before the game submitted it (set by a hook of the game's loop).
-const checkHeld = async (scenario, waitMs = 3600) => {
-  await scenario.waitFor(async () => (await scenario.events()).some(row => row.event === 'reply-start' && row.characterId === JOHNNY.characterId), 'the held follow-on to start', 60000);
-  await sleep(waitMs);   // longer than the simulated provider needs (2.6 s of audio) and shorter than Judy's 7 s
+// What the held follow-on had done by the time it was ready, before the game submitted it (set by a hook of the game's loop). The round holds the end of
+// Judy's line (hold: [JUDY]): her line has played in full but is not drained, so it is still playing for as long as this check takes, however slow the machine
+// is, and the check waits for what it judges (Johnny's reply is complete and buffered, Judy is audible, the game's loop has read the bridge's answer many
+// times) instead of a pause. Judy is released afterwards, so that the round goes on.
+const checkHeld = async scenario => {
+  const happened = (name, who) => async () => (await scenario.events()).some(row => row.event === name && row.characterId === who.characterId);
+  await scenario.waitFor(happened('reply-start', JOHNNY), 'the held follow-on to start', 120000);
+  await scenario.waitFor(happened('reply-ready', JOHNNY), 'the held follow-on to be written and voiced', 300000);
+  await scenario.waitFor(happened('play-start', JUDY), 'Judy to be audible', 300000);
+  const ticks = scenario.ticks;
+  await scenario.waitFor(() => scenario.ticks >= ticks + 20, 'the game to look at the bridge\'s answer again', 120000);
   const events = await scenario.events();
   scenario.held = {published: scenario.replyIds.has(scenario.followFor.table.requestId), played: events.some(row => row.event === 'play-start' && row.characterId === JOHNNY.characterId),
     judyStillPlaying: count(events, 'play-start', JUDY.characterId) === 1 && count(events, 'play-end', JUDY.characterId) === 0};
+  await scenario.releaseLine(JUDY);
 };
 
 describe('Johnny\'s follow-on, prepared while the line plays (Convai, the shared key)', {concurrency: 2, timeout: 2400000}, () => {
   it('after a companion\'s speak-up: written and voiced while she speaks, held, heard right after her; the serial game pays a whole request', async () => {
     const [prepared, serial] = await Promise.all([
-      followRound({prepare: true, hooks: {afterPrediction: scenario => checkHeld(scenario)}}),
+      followRound({prepare: true, hold: [JUDY], hooks: {afterPrediction: scenario => checkHeld(scenario)}}),
       followRound({prepare: false})]);
     for (const {events, output} of [prepared, serial]) {
       assert.deepEqual(orderOf(events), ['play-start:1', 'play-end:1', 'play-start:4', 'play-end:4'], 'one voice at a time, in order');
@@ -75,7 +83,7 @@ describe('Johnny\'s follow-on, prepared while the line plays (Convai, the shared
 
   it('after a reply in a conversation V is having ("talk"): the same, and the line it is about is the character\'s answer to V', async () => {
     // V opened the text box, typed and sent a line a moment ago: the game leaves that hint in the file, and it is old news, not V talking now.
-    const prepared = await followRound({source: {kind: 'talk', follow: 'talk'}, prepare: true, hooks: {afterPrediction: scenario => checkHeld(scenario)},
+    const prepared = await followRound({source: {kind: 'talk', follow: 'talk'}, prepare: true, hold: [JUDY], hooks: {afterPrediction: scenario => checkHeld(scenario)},
       before: async scenario => { await scenario.openComposer(JUDY); await sleep(1200); }});
     assert.deepEqual(orderOf(prepared.events), ['play-start:1', 'play-end:1', 'play-start:4', 'play-end:4']);
     const request = prepared.events.find(row => row.event === 'reply-start' && row.characterId === JOHNNY.characterId);
@@ -86,7 +94,7 @@ describe('Johnny\'s follow-on, prepared while the line plays (Convai, the shared
   });
 
   it('Johnny\'s lines are no part of the companion\'s context: her later turns, her prompt and the follow-on\'s own request carry none of each other', async () => {
-    await run({prepare: true, hooks: {afterPrediction: scenario => checkHeld(scenario, 500)}}, async scenario => {
+    await run({prepare: true, hold: [JUDY], hooks: {afterPrediction: scenario => checkHeld(scenario)}}, async scenario => {
       await scenario.source({follow: 'companion'});
       await scenario.waitFor(() => scenario.done, 'the follow-on to finish', 600000);
       // Then V talks to Judy again, a speak-up for her follows: whatever she is sent is built from her own turn.
@@ -254,7 +262,7 @@ describe('a companion\'s after-scene line, prepared while the scene\'s last line
   });
 
   it('Johnny follows an after-scene line the same way: both prepared, the scene line first and his remark right after it', async () => {
-    await run({speakers: 1, prepare: true, hooks: {afterPrediction: scenario => checkHeld(scenario, 3000)}}, async scenario => {
+    await run({speakers: 1, prepare: true, hold: [JUDY], hooks: {afterPrediction: scenario => checkHeld(scenario)}}, async scenario => {
       await scenario.scene({sceneMs: 5000, follow: 'companion'});
       await scenario.waitFor(() => scenario.done, 'both lines to finish', 600000);
       const events = await scenario.events();

@@ -3,9 +3,12 @@
 // configurable delays, and a simulated renderer buffers PCM, starts only when
 // the game's control allows it, and plays in real time. Every start, abort and
 // audible start/end is logged with a timestamp for the scenario runner.
-import {appendFileSync, readFileSync} from 'node:fs';
+import {appendFileSync, existsSync, readFileSync} from 'node:fs';
 
 const log = event => appendFileSync(process.env.FAKE_HOST_LOG, JSON.stringify({t: Date.now(), ...event}) + '\n');
+// A test can hold the END of a character's line: while the file `<timings file>.hold-<characterId>` exists, the simulated renderer plays the whole line
+// but does not report it drained, so the line stays "playing" however long the machine takes to run the test's check. The test removes the file to let it end.
+const held = characterId => existsSync(`${process.env.FAKE_HOST_TIMINGS}.hold-${characterId}`);
 const timings = () => JSON.parse(readFileSync(process.env.FAKE_HOST_TIMINGS, 'utf8'));
 const aborted = () => { const error = Error('Conversation cancelled'); error.name = 'AbortError'; return error; };
 const sleep = (ms, signal, wake) => new Promise((resolve, reject) => {
@@ -63,7 +66,7 @@ export class RealtimeHost {
       try { await sleep(spec.failBeforeMs, own.signal); } catch (error) { log({event: 'reply-abort', characterId: config.characterId}); throw error; }
       log({event: 'reply-fail', characterId: config.characterId}); throw Error('Simulated provider failure');
     }
-    let position = 0, playing = false, allowed = false, last = start, startedAudible = false;
+    let position = 0, playing = false, allowed = false, last = start, startedAudible = false, readyLogged = false;
     try {
       for (;;) {
         const now = Date.now(), elapsed = now - start, dt = (now - last) / 1000; last = now;
@@ -74,7 +77,9 @@ export class RealtimeHost {
         const received = spec.audioSeconds * sourceFrac, sourceComplete = sourceFrac >= 1;
         if (!playing && allowed && (received >= .4 || sourceComplete) && received > 0) playing = true;
         if (playing && allowed) position = Math.min(received, position + dt);
-        const ended = sourceComplete && textComplete && position >= spec.audioSeconds - .001;
+        const ended = sourceComplete && textComplete && position >= spec.audioSeconds - .001 && !held(config.characterId);
+        // Everything of the reply has arrived and is buffered: a reply the game has not allowed to play is now ready to be heard the moment it is.
+        if (sourceComplete && textComplete && !readyLogged) { readyLogged = true; log({event: 'reply-ready', characterId: config.characterId}); }
         if (position > 0 && !startedAudible) { startedAudible = true; log({event: 'play-start', characterId: config.characterId}); }
         const frames = Math.round(received * 24000);
         if (liveSpeech) {

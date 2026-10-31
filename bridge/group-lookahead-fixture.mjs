@@ -65,8 +65,14 @@ export class GroupScenario {
   // conversation connections at once (1: free or unread plan, 6: confirmed paid Gamer plan). The plan is never read from Convai.
   // cast: every character the simulated provider knows (a subclass adds more than the three speakers); settings / stateFiles / env: more of the game's
   // settings.json, files of the state folder and variables of the bridge's environment (the follow-on fixture runs the text providers this way).
-  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}, playerKey = null, cast = SPEAKERS, settings = {}, stateFiles = {}, env = {}} = {}) {
-    Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey, cast, settings, stateFiles, extraEnv: env});
+  // hold: characters whose line is held at its end by the simulated renderer (fixtures/fake-realtime-host.mjs): the whole line plays, but it is not
+  // reported as drained until releaseLine(), so what the bridge prepares behind it is judged while it is still playing, however slow the machine is.
+  // holdForNext: every speaker but the last is held that way until the game sees the NEXT speaker's request 'ready' (all of its audio and text buffered, a
+  // look-ahead turn that really was prepared behind the line) or, with 'started', until that request has gone out to the provider. A bridge that does
+  // not prepare the next speaker during the line never gets there: the round then fails after holdLimitMs instead of passing by luck of timing.
+  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}, playerKey = null, cast = SPEAKERS, settings = {}, stateFiles = {}, env = {},
+    hold = [], holdForNext = false, holdLimitMs = 180000} = {}) {
+    Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey, cast, settings, stateFiles, extraEnv: env, hold, holdForNext, holdLimitMs});
     this.round = 0; this.requests = []; this.sequence = 0; this.controlSequence = 0;
     this.replyIds = new Set(); this.replyErrors = [];
     this.nearbyState = null;   // set by setNearby(): the party heartbeat and the nearby/spawned list the game publishes
@@ -90,6 +96,8 @@ export class GroupScenario {
       writeFile(join(this.folder, 'timings.json'), JSON.stringify(byId)),
     ]);
     this.timingsPath = join(this.folder, 'timings.json');
+    const held = [...this.hold, ...(this.holdForNext ? SPEAKERS.slice(0, this.speakers - 1) : [])];
+    await Promise.all(held.map(person => writeFile(this.holdFile(person), '')));
     const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
       CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_CONVAI_MUTE_BROWSER: '1', FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath,
       FAKE_PAID_CONNECTIONS: String(this.playerKey?.connections ?? 1), ...this.extraEnv};
@@ -110,6 +118,19 @@ export class GroupScenario {
       await sleep(100);
     }
     throw Error('bridge did not reach waiting\n' + this.output);
+  }
+
+  holdFile(person) { return `${this.timingsPath}.hold-${person.characterId}`; }
+  releaseLine(person) { return rm(this.holdFile(person), {force: true}); }
+  // holdForNext: lets the line that is playing end once the next speaker has done what the test waits for.
+  async releaseWhenNextIs(pending) {
+    if (!this.holdForNext || pending.released) return;
+    const index = pending.input.group?.index ?? 1, next = SPEAKERS[index];
+    if (!next) return;
+    const wanted = this.holdForNext === 'started' ? 'reply-start' : 'reply-ready';
+    pending.heldSince ??= Date.now();
+    if ((await this.events()).some(row => row.event === wanted && row.characterId === next.characterId)) { pending.released = true; await this.releaseLine(SPEAKERS[index - 1]); }
+    else if (Date.now() - pending.heldSince > this.holdLimitMs) throw Error(`${next.name} was not prepared (${wanted}) while ${pending.input.name} was still playing\n${this.output}`);
   }
 
   async beat() {
@@ -203,6 +224,7 @@ export class GroupScenario {
     const state = await readJson(join(this.runtime, 'continuous-speech.json'));
     if (state?.requestId !== pending.input.requestId || state.id !== pending.continuous.id) return;
     pending.text = state.text;
+    await this.releaseWhenNextIs(pending);
     const next = (pending.input.group?.index ?? this.speakers) + 1;
     if (state.textComplete && this.mode === 'lookahead' && !pending.predicted && next <= this.speakers && !this.hooks.noPrediction) {
       pending.predicted = true;

@@ -43,29 +43,33 @@ const ROOMY = {...DEFAULT_TIMINGS, 'judy-alvarez': {...DEFAULT_TIMINGS['judy-alv
 
 describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 2400000}, () => {
   it('serial rounds pay a whole provider request per speaker change; look-ahead removes it', async () => {
-    const [serial, ahead] = await Promise.all([measureRound({mode: 'serial', timings: ROOMY}), measureRound({mode: 'lookahead', timings: ROOMY})]);
+    // The look-ahead round holds the end of every line until the next speaker is ready (holdForNext): the game that submits the next speaker is slower or
+    // faster as the machine is busy, but it cannot hand over before the provider request was hidden behind the line, so nothing here is a race.
+    const [serial, ahead] = await Promise.all([measureRound({mode: 'serial', timings: ROOMY}), measureRound({mode: 'lookahead', timings: ROOMY, holdForNext: true})]);
     assert.equal(serial.gaps.length, 2); assert.equal(ahead.gaps.length, 2);
+    // A serial gap holds one whole provider request (the first audio comes 1.5 s after the request, which only a slow machine can stretch), so 1.5 s is its floor.
     for (const gap of serial.gaps) assert.ok(gap.gapMs > 1500, `serial gap ${gap.gapMs}`);
-    // The size of a gap is only judged against its serial twin, which runs beside it under the same load. A fixed figure for the look-ahead gap
-    // (the old 1.2 s) measured the bridge's own handover on a quiet machine: it failed at 1577 ms on a busy one, with the provider's 1.5 s long
-    // gone from the gap. Every serial gap holds one whole provider request plus the handover; a look-ahead gap holds the handover alone. How much
-    // smaller it is depends on the load of two bridges that are not the same bridge (a margin of 30% failed at 1602 against 1986 ms), so the
-    // amount hidden is proved below by the bridge's own record, not by a difference of two noisy gaps.
-    for (const [index, gap] of ahead.gaps.entries()) {
-      assert.ok(gap.gapMs > 0, `look-ahead gap ${gap.gapMs}`);
-      assert.ok(gap.gapMs < serial.gaps[index].gapMs, `look-ahead ${gap.gapMs} vs serial ${serial.gaps[index].gapMs}`);
-    }
+    // The size of a look-ahead gap is the bridge's and the game's handover, which a busy machine can make as long as it likes, so it is not compared with a
+    // serial gap (that failed at 1577 against 1986 ms with the provider's 1.5 s long gone from the gap, and at 1602 against 1986 ms). What look-ahead removes
+    // is proved by the order of what happened below: each next speaker was requested during the previous line, was complete before that line ended, and the
+    // bridge's own record says it was ready before the game claimed it. A serial speaker is requested only when the previous one has ended.
+    for (const gap of ahead.gaps) assert.ok(gap.gapMs > 0, `look-ahead gap ${gap.gapMs}`);
     // Strictly sequential and in order: no speaker starts before the previous one ended.
     for (const {events} of [serial, ahead]) {
       const order = events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
       assert.deepEqual(order, ['play-start:1', 'play-end:1', 'play-start:2', 'play-end:2', 'play-start:3', 'play-end:3']);
     }
     noErrors(serial.output); noErrors(ahead.output);
-    // Each held turn started while the previous speaker was still audible and was ready before the game asked for it (so no provider wait is left in
-    // its gap), and recorded its measurements.
     for (const [speaker, before] of [[PANAM, JUDY], [ALEX, PANAM]]) {
-      const started = first(ahead.events, 'reply-start', speaker.characterId);
-      assert.ok(started < last(ahead.events, 'play-end', before.characterId) - 1000, `${speaker.name} was generated during ${before.name}`);
+      assert.ok(first(serial.events, 'reply-start', speaker.characterId) >= last(serial.events, 'play-end', before.characterId), `serial: ${speaker.name} is requested only after ${before.name} ended`);
+      assert.ok(first(serial.events, 'reply-ready', speaker.characterId) > last(serial.events, 'play-end', before.characterId));
+    }
+    // Each held turn started while the previous speaker was still audible, was complete before that speaker ended (so no provider wait is left in its gap),
+    // and recorded its measurements.
+    for (const [speaker, before] of [[PANAM, JUDY], [ALEX, PANAM]]) {
+      const started = first(ahead.events, 'reply-start', speaker.characterId), end = last(ahead.events, 'play-end', before.characterId);
+      assert.ok(started < end - 1000, `${speaker.name} was generated during ${before.name}`);
+      assert.ok(first(ahead.events, 'reply-ready', speaker.characterId) < end, `${speaker.name} was complete before ${before.name} ended`);
       const turn = ahead.latency.turns.find(row => row.profile === speaker.key);
       assert.equal(turn.preparation.mode, 'lookahead'); assert.equal(turn.lookahead.readyBeforeClaim, true, `${speaker.name} was ready before the game claimed the turn`);
       assert.ok(turn.lookahead.holdMs > 1500);
@@ -73,26 +77,26 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 240000
   });
 
   it('a speaker that is not ready when the previous one ends plays as soon as it is, never earlier or overlapping', async () => {
-    // Judy's audio is short (1.3 s) and each of the first two speakers takes 3 s from request to first audio, so Panam's request goes out during Judy
-    // (about 2.8 s before she ends) and is still not ready when she does. (With the defaults, 1.5 s, the window in which Panam's request has to go out
-    // while Judy is audible was 1.4 s wide: a busy machine delays the request by more than that.)
+    // Judy's audio is short (1.3 s) and each of the first two speakers takes 3 s from request to first audio, so Panam's request goes out during Judy and is
+    // still being generated when she ends. Whether it goes out during her 1.3 s depends on how fast the game's loop publishes the prediction, which a busy
+    // machine decides, so the round holds the end of Judy's line until Panam's request has gone out (holdForNext: 'started'): the bridge has to start Panam
+    // during Judy's line, and the round fails if it does not, however slow the machine is.
     const slow = key => ({...DEFAULT_TIMINGS[key], firstPcmMs: 3000, pcmCompleteMs: 4100});
     const timings = {...DEFAULT_TIMINGS, 'judy-alvarez': {...slow('judy-alvarez'), audioSeconds: 1.3}, 'panam-palmer': slow('panam-palmer')};
-    const {events, gaps, output} = await measureRound({mode: 'lookahead', timings});
-    const judyEnd = last(events, 'play-end', JUDY.characterId), panamStart = first(events, 'play-start', PANAM.characterId);
+    const {events, output} = await measureRound({mode: 'lookahead', timings, holdForNext: 'started'});
+    const judyEnd = last(events, 'play-end', JUDY.characterId), panamStart = first(events, 'play-start', PANAM.characterId), panamAsked = first(events, 'reply-start', PANAM.characterId);
     // The host's log is appended in the order things happened: Judy's end is logged before Panam's start. Two events in the same millisecond are back to
     // back (a speaker that was ready starts the moment the last one ends), not overlapping, so the times are compared with >=.
     const order = events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
     assert.deepEqual(order, ['play-start:1', 'play-end:1', 'play-start:2', 'play-end:2', 'play-start:3', 'play-end:3'], 'one voice at a time, in order');
     assert.ok(panamStart >= judyEnd, `never overlaps the previous speaker (Panam starts ${panamStart - judyEnd} ms after Judy ends)`);
-    // Partial overlap helps, and the only wait left is the rest of a fresh generation: what the first speaker took from request to first audio in this
-    // same round (same bridge, same load; two bridges side by side do not see the same load from one second to the next: 3285 against 1862 ms was seen),
-    // less the part of Panam's generation that ran while Judy was audible, plus the bridge's own handover.
-    const overlap = judyEnd - first(events, 'reply-start', PANAM.characterId);
-    assert.ok(overlap > 0, `Panam was requested ${-overlap} ms after Judy ended`);
+    // Panam was requested while Judy was still audible (she was held until then) and is heard no sooner than the provider can deliver its first audio: the
+    // simulated provider's 3 s from request to first audio is a floor that a busy machine can only raise. How soon after that it is heard is the handover of
+    // the bridge and the game, which is measured by scripts/Measure-GroupGap.mjs on a quiet machine and is no property a loaded one can be held to.
+    assert.ok(panamAsked < judyEnd, `Panam was requested ${panamAsked - judyEnd} ms after Judy ended`);
     const fresh = first(events, 'play-start', JUDY.characterId) - first(events, 'reply-start', JUDY.characterId);
     assert.ok(fresh >= 3000, `a fresh generation takes the provider's 3 s: ${fresh}`);
-    assert.ok(gaps[0].gapMs < Math.max(0, fresh - overlap) + 1200, `the wait left (${gaps[0].gapMs}) is the rest of a fresh generation (${fresh}, of which ${overlap} ran during Judy)`);
+    assert.ok(panamStart - panamAsked >= 3000, `Panam is heard no sooner than the provider's 3 s after its request: ${panamStart - panamAsked}`);
     noErrors(output);
   });
 
@@ -129,7 +133,7 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 240000
     }}, async scenario => {
       await scenario.begin();
       await scenario.waitFor(() => scenario.done, 'the first speaker to finish', 600000);
-      await sleep(500);
+      await scenario.waitFor(async () => count(await scenario.events(), 'reply-abort', PANAM.characterId) >= 1, 'the held Panam request to be cancelled', 120000);
       const events = await scenario.events();
       assert.equal(count(events, 'reply-abort', PANAM.characterId), 1);
       assert.equal(count(events, 'play-start', PANAM.characterId), 0);
@@ -204,14 +208,18 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 240000
 // The provider delays are the live ones (LIVE_TIMINGS: a speaker that is not prepared takes about 7 s from request to first audio).
 describe('group look-ahead on the own Convai key of a player', {concurrency: 2, timeout: 2400000}, () => {
   it('a confirmed paid plan runs the next speakers ahead and opens their pages early; a free plan stays serial', async () => {
+    // The paid round holds the end of each line until the next speaker is ready (holdForNext): a machine that is busy delays the game's handover as it likes,
+    // but a bridge that does not prepare the next speaker during the line never gets past the hold. The free round cannot be held (nothing runs ahead).
     const [paid, free] = await Promise.all([
-      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 6}}),
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 6}, holdForNext: true}),
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 1}})]);
     assert.equal(paid.gaps.length, 2); assert.equal(free.gaps.length, 2);
-    // Paid: the 7 s a speaker used to take is hidden behind the previous speaker's audio. A gap is judged against its twin from the free round beside it
-    // (same load), not against a fixed figure from a quiet machine: under 30% of the free gap, which is at least 5.5 s.
-    for (const [index, gap] of paid.gaps.entries()) assert.ok(gap.gapMs > 0 && gap.gapMs < free.gaps[index].gapMs * .3, `paid gap ${gap.gapMs} vs free ${free.gaps[index].gapMs}`);
-    // Free: one connection, nothing runs ahead, nothing is opened early: the whole request after the previous speaker's last sample.
+    // Paid: the 7 s a speaker used to take is hidden behind the previous speaker's audio. The size of a paid gap is the game's handover, which a busy machine
+    // stretches as it likes (it was judged as under 30% of the free gap, and failed at that), so it is not compared with a free gap. What is hidden is proved
+    // by the order of events below and by the bridge's own record of each turn.
+    for (const gap of paid.gaps) assert.ok(gap.gapMs > 0, `paid gap ${gap.gapMs}`);
+    // Free: one connection, nothing runs ahead, nothing is opened early: the whole request (a fresh connection of 3.5 s and 3.5 s to the first audio of the
+    // simulated provider) after the previous speaker's last sample. A busy machine can only add to that, so 5.5 s is a floor.
     for (const gap of free.gaps) assert.ok(gap.gapMs > 5500, `free gap ${gap.gapMs}`);
     for (const {events} of [paid, free]) {
       const order = events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
@@ -227,10 +235,19 @@ describe('group look-ahead on the own Convai key of a player', {concurrency: 2, 
       assert.equal(paid.events.find(row => row.event === 'connected' && row.characterId === speaker.characterId).warm, true, `${speaker.name}'s turn found its page open`);
     }
     assert.equal(paid.events.filter(row => row.event === 'warm' && row.characterId === JUDY.characterId).length, 0, 'the first speaker is not warmed twice');
+    // Paid: each next speaker was requested during the previous line and was complete before that line ended, and the bridge's record says it was ready before
+    // the game claimed it, so no provider wait is left in its gap.
+    for (const [speaker, before] of [[PANAM, JUDY], [ALEX, PANAM]]) {
+      const end = last(paid.events, 'play-end', before.characterId);
+      assert.ok(first(paid.events, 'reply-start', speaker.characterId) < end - 1000, `ahead: ${speaker.name} is requested during ${before.name}`);
+      assert.ok(first(paid.events, 'reply-ready', speaker.characterId) < end, `${speaker.name} was complete before ${before.name} ended`);
+      assert.equal(paid.latency.turns.find(row => row.profile === speaker.key).lookahead.readyBeforeClaim, true, `${speaker.name} was ready before the game claimed the turn`);
+    }
     // Free: no page opened ahead, no speaker started during the previous one.
     assert.equal(free.events.filter(row => row.event === 'warm').length, 0);
-    assert.ok(first(free.events, 'reply-start', PANAM.characterId) > last(free.events, 'play-end', JUDY.characterId) - 1, 'serial: Panam is requested after Judy ended');
-    assert.ok(first(paid.events, 'reply-start', PANAM.characterId) < last(paid.events, 'play-end', JUDY.characterId) - 1000, 'ahead: Panam is requested during Judy');
+    for (const [speaker, before] of [[PANAM, JUDY], [ALEX, PANAM]]) {
+      assert.ok(first(free.events, 'reply-start', speaker.characterId) > last(free.events, 'play-end', before.characterId) - 1, `serial: ${speaker.name} is requested after ${before.name} ended`);
+    }
     noErrors(paid.output); noErrors(free.output);
   });
 
@@ -239,24 +256,32 @@ describe('group look-ahead on the own Convai key of a player', {concurrency: 2, 
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 1, playerKey: {connections: 6}}),
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 1, playerKey: {connections: 1}})]);
     const toAudio = events => first(events, 'play-start', JUDY.characterId) - first(events, 'reply-start', JUDY.characterId);
-    assert.ok(toAudio(paid.events) >= LIVE_TIMINGS['judy-alvarez'].connectMs + LIVE_TIMINGS['judy-alvarez'].firstPcmMs - 50, 'the simulated provider time is paid');
-    // The two rounds must differ by less than the connection that would have been opened ahead (3.5 s): half of it, so that load noise between the two
-    // bridges cannot look like a connection and a real extra connection cannot look like noise.
-    const connectMs = LIVE_TIMINGS['judy-alvarez'].connectMs;
-    assert.ok(Math.abs(toAudio(paid.events) - toAudio(free.events)) < connectMs / 2, `paid ${toAudio(paid.events)} vs free ${toAudio(free.events)}`);
-    for (const {events} of [paid, free]) assert.equal(events.filter(row => row.event === 'warm').length, 0);
+    for (const {events} of [paid, free]) assert.ok(toAudio(events) >= LIVE_TIMINGS['judy-alvarez'].connectMs + LIVE_TIMINGS['judy-alvarez'].firstPcmMs - 50, 'the simulated provider time is paid');
+    // The two rounds used to be required to differ by less than half the connection that would have been opened ahead (3.5 s), by their time to the first
+    // audio. That time includes the game's handover, which a busy machine stretches differently for two bridges side by side, so it measured the load. An
+    // extra connection is proved absent by what the bridge itself did: no page was opened ahead, the one connection the speaker needed was opened by its own
+    // request (not found open), and no turn was prepared.
+    for (const {events} of [paid, free]) {
+      assert.equal(events.filter(row => row.event === 'warm').length, 0);
+      assert.equal(events.find(row => row.event === 'connected' && row.characterId === JUDY.characterId).warm, false, 'the speaker paid for its own connection');
+    }
     assert.equal(paid.latency.turns.length, 1); assert.equal(paid.latency.turns[0].preparation.mode, 'none');
+    assert.equal(free.latency.turns.length, 1); assert.equal(free.latency.turns[0].preparation.mode, 'none');
     noErrors(paid.output); noErrors(free.output);
   });
 
   it('a round of two on a paid plan: the second speaker follows the first without the provider wait', async () => {
     const [paid, serial] = await Promise.all([
-      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 6}}),
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 6}, holdForNext: true}),
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 1}})]);
     assert.equal(paid.gaps.length, 1);
     assert.ok(paid.gaps[0].gapMs > 0, `paid gap ${paid.gaps[0].gapMs}`);
     assert.ok(serial.gaps[0].gapMs > 5500, `serial gap ${serial.gaps[0].gapMs}`);
-    assert.ok(paid.gaps[0].gapMs < serial.gaps[0].gapMs * .3, `${paid.gaps[0].gapMs} vs ${serial.gaps[0].gapMs}`);
+    // Not a ratio of two gaps (see above): the second speaker was complete before the first one ended, and the bridge's record says it was ready before the
+    // game claimed it. The serial round asked for it only after the first speaker ended.
+    assert.ok(first(paid.events, 'reply-ready', PANAM.characterId) < last(paid.events, 'play-end', JUDY.characterId), 'paid: Panam was complete before Judy ended');
+    assert.equal(paid.latency.turns.find(row => row.profile === PANAM.key).lookahead.readyBeforeClaim, true);
+    assert.ok(first(serial.events, 'reply-start', PANAM.characterId) >= last(serial.events, 'play-end', JUDY.characterId), 'serial: Panam is requested after Judy ended');
     noErrors(paid.output); noErrors(serial.output);
   });
 });
