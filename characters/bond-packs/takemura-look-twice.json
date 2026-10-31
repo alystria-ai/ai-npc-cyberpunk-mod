@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "Look Twice",
   "summary": "Takemura teaches V to look twice in a Japantown square: a staged scene changes while V sits with their back turned, then comes a quiz.",
+  "description": "Takemura has decided that V looks once where a trained guard looks twice. He asks V to meet him at a bench in a Japantown square at dusk for a lesson in watching.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/act_01/q112_04_hideout"],
@@ -65,6 +66,7 @@
       "id": "lesson",
       "type": "play",
       "label": "Takemura explains the look-twice exercise on a bench",
+      "objective": "Meet Takemura on the bench by the Japantown square",
       "know": "You are meeting Takemura at a bench in a Japantown square at dusk. He will explain the exercise in four sentences and then test you on it.",
       "wants": "V to come to the square and sit down to learn.",
       "do": [
@@ -86,6 +88,7 @@
       "id": "watch",
       "type": "play",
       "label": "V watches a staged scene in the square for six minutes",
+      "objective": "Watch the people in the Japantown square with Takemura",
       "know": "You stand with Takemura at the edge of the square. Five people cross it: a woman in a red coat who sits on a step, a man with a case who crosses three times, two boys kicking a can, a van that parks and leaves, and an old man at a food stall. One of them is a lookout.",
       "wants": "V to watch closely and walk the square if they like.",
       "do": [
@@ -103,6 +106,7 @@
       "id": "turn",
       "type": "play",
       "label": "V sits on a bench with the square behind them",
+      "objective": "Sit on the bench with Takemura, your back to the square",
       "know": "You are on a bench about twenty metres from the square with your back to it. While you sit, the scene changes in three small ways: the woman has moved, the van is a different one, and the man no longer carries his case.",
       "wants": "V to sit with their back to the square and wait.",
       "do": [
@@ -123,6 +127,7 @@
     {
       "id": "quiz",
       "label": "Takemura asks V who was watching them",
+      "objective": "Answer Takemura's questions about the square",
       "know": "The scene is over and you are on the bench with Takemura. He will ask four questions and this is the first: who was watching you? You know which extra was the lookout.",
       "wants": "V to commit to an answer.",
       "script": [
@@ -141,6 +146,7 @@
       "id": "watcher",
       "type": "play",
       "label": "Takemura points out the lookout and lets V go and speak to him",
+      "objective": "Go and speak to the lookout Takemura pointed out in the square",
       "know": "You picked the lookout, the man who did not wave. Takemura points at him without speaking and lets you go and speak to him. He will cover you.",
       "wants": "V to go and speak to the lookout.",
       "do": [

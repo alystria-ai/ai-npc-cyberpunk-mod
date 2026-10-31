@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "Cold Coffee",
   "summary": "River needs an unmarked car and a second person to watch a Northside tower lobby for a courier collecting money from a ring.",
+  "description": "River has traced money from a ring that phones families of missing children to a courier who collects it in a Northside tower lobby. He needs an unmarked car and a second pair of eyes.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/minor_quest/mq057_motorbreath"],
@@ -62,6 +63,7 @@
       "id": "ask",
       "type": "play",
       "label": "River is waiting at the Northside coffee cart",
+      "objective": "Meet River at the Northside coffee cart",
       "know": "You texted V a Thursday, an address in Northside and an hour. You are at the coffee cart with two cups, and the coffee is already going cold.",
       "wants": "V to come to the Northside cart with a car and patience.",
       "do": [
@@ -80,6 +82,7 @@
       "id": "park",
       "type": "play",
       "label": "River sets the rules for the stakeout",
+      "objective": "Set up the stakeout with River in the car near the tower",
       "know": "You are in V's car in Northside, parked where you can see the tower lobby. You have set the rules: engine off, lights off, nobody says anything that matters.",
       "wants": "V to park and keep quiet.",
       "do": [
@@ -98,6 +101,7 @@
       "id": "watch",
       "type": "play",
       "label": "River and V watch the tower lobby",
+      "objective": "Watch the Northside tower lobby with River",
       "know": "You are sitting in the car with V, watching the Northside tower lobby. The courier is due around the hour mark, and the cover holds only while nobody gets out, honks or starts the engine.",
       "wants": "V to sit still with you until the courier leaves the lobby.",
       "do": [
@@ -129,6 +133,7 @@
       "id": "follow",
       "type": "play",
       "label": "River follows the courier on foot",
+      "objective": "Follow the courier to the alley beside the tower with River",
       "know": "The courier has left the lobby and is heading for an alley. You are following her on foot, and V is in the car. Your plan is to read the plate of the van she hands the satchel to.",
       "wants": "V to stay in the car and let you read the plate.",
       "do": [

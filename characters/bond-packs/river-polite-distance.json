@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "Polite Distance",
   "summary": "River needs a nice, boring driver to lose an unmarked sedan that has followed him for two days, then wait for the driver to show.",
+  "description": "An unmarked sedan has followed River for two days. He needs a boring driver to lose it with him, with no shooting, and he called V because V is easy to ask.",
   "requires": {
     "bond": 6,
     "after": ["river-open-window"],
@@ -91,6 +92,7 @@
       "id": "ask",
       "type": "play",
       "label": "River calls for a boring driver",
+      "objective": "Meet River at the Watson meeting place",
       "know": "You are in the Watson meeting place, or heading there, with an unmarked sedan on your tail for two days. You called V because V is easy to ask.",
       "wants": "V to come to the Watson meeting place and drive.",
       "do": [
@@ -108,6 +110,7 @@
       "id": "tail",
       "type": "play",
       "label": "V drives River through Watson with a tail",
+      "objective": "Drive River through Watson with the sedan on your tail",
       "know": "A dark sedan is following V's car at a distance of about 60 metres. The route runs through Japantown, Charter Hill, a tunnel and the Heywood underpass, and police heat ruins the plan.",
       "wants": "V to lose the sedan by distance and keep the heat down.",
       "do": [
@@ -139,6 +142,7 @@
       "id": "wait",
       "type": "play",
       "label": "River waits for the driver in the car park",
+      "objective": "Wait with River in the Heywood car park",
       "know": "V is parked in the Heywood car park. River is waiting by the stairwell door, and the sedan's driver is coming to the car park.",
       "wants": "V to stay in the car within 20 metres and let River talk to the driver.",
       "do": [
@@ -165,6 +169,7 @@
       "id": "name",
       "type": "play",
       "label": "River hears who sent the driver",
+      "objective": "Hear River's reaction to who sent the driver at the Heywood car park",
       "know": "The driver has talked. He gave a name you know, and River does not like it.",
       "wants": "V to hear the name and decide what to do with it.",
       "do": [{"p": "place", "at": "carpark"}, {"p": "timer", "id": "talk-done", "seconds": 60}],

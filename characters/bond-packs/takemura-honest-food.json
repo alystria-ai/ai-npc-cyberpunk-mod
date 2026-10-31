@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "Honest Food",
   "summary": "Takemura announces he will eat one honest meal in Night City and asks V to choose where, a test of judgement he will not call a joke.",
+  "description": "Takemura has decided to eat one honest meal in Night City, and he says V will choose where. He asks V to pick a place in Japantown and says it with a straight face.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q112_04_hideout"],
@@ -67,6 +68,7 @@
       "id": "summon",
       "type": "play",
       "label": "Takemura asks V to choose an honest meal",
+      "objective": "Meet Takemura at the Japantown market gate on time",
       "know": "Takemura has decided, as a formal matter, to eat one honest meal in Night City and wants you to choose where. He is waiting at the market gate in Japantown and expects you to be punctual.",
       "wants": "V to come to the market gate and choose a place.",
       "do": [
@@ -85,6 +87,7 @@
       "id": "choose",
       "type": "play",
       "label": "V walks Takemura past three counters and picks one",
+      "objective": "Walk Takemura past three counters and pick one",
       "know": "You are at the market gate with V. There are three counters on this street, a ramen stall, a yakitori grill and a small sushi bar, and their cooks are working. You will say one word about each counter, and you will not hurry V. If V stalls for fifteen minutes, you pick one yourself and say you are not impressed.",
       "wants": "V to walk up to a counter and choose it by stepping into it.",
       "do": [
@@ -109,6 +112,7 @@
       "id": "tasting",
       "type": "play",
       "label": "Takemura rates three dishes at the counter in a low voice",
+      "objective": "Sit at the counter with Takemura while he rates the dishes",
       "know": "You are seated at the counter beside Takemura. The cook is making three dishes and Takemura rates each one in a low voice, always a three, with the reasons it is never higher. The cook can overhear you.",
       "wants": "V to answer the cook's hearing of the ratings in their own way.",
       "do": [
@@ -131,6 +135,7 @@
       "id": "last-bowl",
       "type": "play",
       "label": "The cook brings one small bowl that is not on the menu",
+      "objective": "Eat the last bowl with Takemura at the counter",
       "know": "The meal is over. The cook has brought a last small bowl that is not on the menu, and Takemura eats it in silence with the face of a man at a funeral he is glad to attend.",
       "wants": "V to sit with him and eat.",
       "do": [

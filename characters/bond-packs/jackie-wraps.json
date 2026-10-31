@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "Wraps",
   "summary": "Jackie lifts to settle his nerves, has his hands wrapped at Viktor's clinic, and fights a friendly bout in a Northside pit with you in his corner.",
+  "description": "Jackie needs to lift before he does something stupid. He asks V to spot him at the gym, watch Viktor wrap his hands, and corner him for a friendly bout in a Northside pit.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -80,6 +81,7 @@
       "id": "lift",
       "type": "play",
       "label": "Jackie lifts at the gym with V spotting",
+      "objective": "Spot Jackie while he lifts at the Kabuki gym",
       "know": "You are at the gym in Kabuki with Jackie. He is lifting to meditate, and he wants company, not therapy.",
       "wants": "V to spot him and keep him company.",
       "do": [
@@ -107,6 +109,7 @@
       "id": "clinic",
       "type": "play",
       "label": "Viktor wraps Jackie's hands at the clinic",
+      "objective": "Watch Viktor wrap Jackie's hands at the clinic",
       "know": "You are at Viktor's clinic behind the Esoterica in Little China. Viktor is wrapping Jackie's hands and saying what he thinks, and Misty is leaning out of her shop to tease him.",
       "wants": "V to answer Jackie's question, or to talk him out of the pit.",
       "do": [
@@ -131,6 +134,7 @@
       "id": "pit",
       "type": "play",
       "label": "Jackie fights a friendly bout at the Northside pit",
+      "objective": "Corner Jackie for the friendly bout at the Northside pit",
       "know": "You are at the old warehouse pit in Northside. The pit boss is calling the rules, and Jackie's rival is in the ring. Three rounds of 90 seconds, hands only.",
       "wants": "V to watch the bout and call the towel if it goes too far.",
       "do": [
@@ -156,6 +160,7 @@
       "id": "win-bark",
       "type": "talk",
       "label": "Jackie wins on his feet",
+      "objective": "Talk with Jackie after his win at the pit",
       "know": "Jackie won the bout on his feet. He is sore, he has ice, and he wants to talk.",
       "wants": "V to answer his question honestly.",
       "script": [
@@ -176,6 +181,7 @@
       "id": "lose-bark",
       "type": "talk",
       "label": "Jackie loses the bout",
+      "objective": "Talk with Jackie after his loss at the pit",
       "know": "Jackie lost the bout. He is sore, he has ice, and he is trying to make the loss sound like a story.",
       "wants": "V to answer his question honestly.",
       "script": [
@@ -196,6 +202,7 @@
       "id": "towel-bark",
       "type": "talk",
       "label": "V throws in the towel",
+      "objective": "Talk with Jackie after you threw in the towel",
       "know": "V threw in the towel. Jackie hates it and is grateful at the same time.",
       "wants": "V to answer his question honestly.",
       "script": [

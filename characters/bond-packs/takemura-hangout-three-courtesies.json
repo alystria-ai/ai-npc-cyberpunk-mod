@@ -5,6 +5,7 @@
   "character": "takemura",
   "title": "Three Courtesies",
   "summary": "Takemura takes you to a rooftop tea garden in Japantown, where an old tea host tests you on three courtesies and asks for a haiku.",
+  "description": "Takemura takes V to a tea garden on a rooftop above a shop in Japantown. An old tea host will test whether V can be taught three courtesies.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
@@ -45,6 +46,7 @@
       "id": "meet",
       "type": "play",
       "label": "V and Takemura take tea with the host on the roof",
+      "objective": "Take tea with Takemura and the host on the Japantown roof",
       "know": "You are at the rooftop tea garden with Takemura and an old tea host. She tests three moments: arriving, receiving the cup and leaving.",
       "wants": "V to pass the three courtesies.",
       "meet": {"where": "waypoint", "inGameHours": 3},

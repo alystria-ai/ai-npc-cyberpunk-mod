@@ -4,6 +4,7 @@
   "character": "viktor-vektor",
   "title": "Off the Books",
   "summary": "Viktor needs V to go into a Kabuki back room as a patient and get the batch number off a street chopper's own lips.",
+  "description": "A street chopper in Kabuki is putting cheap clones into people who cannot afford better. Viktor cannot walk in because everyone there knows his face, so he needs V to go in as a patient.",
   "requires": {
     "bond": 6,
     "after": ["viktor-third-card"],
@@ -94,6 +95,7 @@
       "id": "call",
       "type": "play",
       "label": "Viktor calls V and asks for a patient's face",
+      "objective": "Answer Viktor's call from the car in Kabuki",
       "know": "Viktor calls you from a parked car in Kabuki. He asks you to go into a street chopper's back room as a patient, and he explains why he cannot walk in himself.",
       "wants": "V to say yes, or at least to hear the job out.",
       "do": [
@@ -110,6 +112,7 @@
       "id": "brief",
       "type": "play",
       "label": "Viktor briefs V beside the car",
+      "objective": "Hear Viktor's plan through the car window in Kabuki",
       "know": "The call is done and you are parked on a Kabuki street with Viktor. He explains the plan through the window, and he asks one honest question before you go in.",
       "wants": "V to go into the back room with a patient's story and nothing else.",
       "do": [
@@ -132,6 +135,7 @@
       "id": "chair",
       "type": "play",
       "label": "V sits in the chopper's chair and talks",
+      "objective": "Sit in the chopper's chair and ask about the chrome for Viktor",
       "know": "You are in the chopper's back room, sitting in the chair, with Viktor speaking in your ear. You say the arm lags when you reach. You are asking where the chrome comes from, and you are looking for the box and the batch label.",
       "wants": "V to get the batch label off the chopper's own mouth, and to keep the cover.",
       "do": [
@@ -164,6 +168,7 @@
       "id": "turn",
       "type": "play",
       "label": "The chopper calls his guards",
+      "objective": "Get out of the chopper's back room with Viktor's box number",
       "know": "The chopper has called two guards from the next room and says he will check your papers. You can talk your way out, walk out the front door with the box number, or the guards turn and it becomes a short brawl in the alley. Viktor can only say one calm line in your ear.",
       "wants": "V to get out of the alley with the box number and no fight.",
       "do": [
@@ -187,6 +192,7 @@
       "id": "close",
       "type": "play",
       "label": "V says what was learned at the door",
+      "objective": "Say what you learned at the chopper's door in Kabuki, with Viktor",
       "know": "V is at the door of the clinic and says what you learned. The chopper decides how to take it: he shuts the clinic, threatens you, or offers a bribe. Viktor steps out of the car at the end only to say one sentence to him.",
       "wants": "The chopper to shut the clinic and leave the patients alone.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "panam-palmer",
   "title": "Stargazing at the Turbines",
   "summary": "Panam and V lie in the grass under the wind turbines and watch the sky. She names the constellations wrong on purpose.",
+  "description": "There is a clear sky tonight, and Panam knows where the turbines hum. She asks V to bring a jacket and lie in the grass beside her to watch the stars.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -45,6 +46,7 @@
       "id": "lie",
       "type": "play",
       "label": "V and Panam lie under the turbines and watch the sky",
+      "objective": "Lie in the grass under the turbines with Panam",
       "know": "The turbines hum over the flat ground. Panam lies on her back in the grass and names constellations wrong on purpose.",
       "wants": "V to correct her, and to lie there and talk about the sky.",
       "meet": {"where": "waypoint", "inGameHours": 4},

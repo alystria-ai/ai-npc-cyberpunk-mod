@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "Hiring Day",
   "summary": "Rogue has three candidates for a courier escort and wants V to read them in the Afterlife booth.",
+  "description": "Rogue has a courier job for three days that she cannot staff herself. She has three candidates and wants V to read them in the Afterlife booth, because she trusts how V reads people.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up"],
@@ -50,6 +51,7 @@
       "id": "seat",
       "type": "play",
       "label": "Rogue briefs the courier job in the booth",
+      "objective": "Hear Rogue brief the courier job in the booth",
       "know": "V is in the Afterlife's private booth upstairs. You have briefed the job in two sentences: a courier escort, three days, no questions. You want V to read the candidates, and you will not hire on charm.",
       "wants": "V in the booth, reading the candidates.",
       "do": [
@@ -70,6 +72,7 @@
       "id": "interview-1",
       "type": "play",
       "label": "First candidate: the loud solo",
+      "objective": "Ask the loud solo two questions for Rogue in the Afterlife booth",
       "know": "The first candidate is a loud solo with a wall of references. He is a glory hound who will walk if the job gets hard. V asks two questions and you watch V read him.",
       "wants": "V to read the loud solo honestly.",
       "do": [
@@ -85,6 +88,7 @@
       "id": "interview-2",
       "type": "play",
       "label": "Second candidate: the polite ex-corporate",
+      "objective": "Ask the ex-corporate man two questions for Rogue in the Afterlife booth",
       "know": "The second candidate is a polite ex-corporate security man. He is an informant for a rival of the client, and you know it without saying so. V asks two questions.",
       "wants": "V to read the polite ex-corporate honestly.",
       "do": [
@@ -100,6 +104,7 @@
       "id": "interview-3",
       "type": "play",
       "label": "Third candidate: the quiet netrunner",
+      "objective": "Ask the quiet netrunner two questions for Rogue in the Afterlife booth",
       "know": "The third candidate is a quiet netrunner with covered hands. This is the one who would deliver, though you do not say so. V asks two questions.",
       "wants": "V to read the quiet netrunner honestly.",
       "do": [
@@ -115,6 +120,7 @@
       "id": "choice",
       "type": "talk",
       "label": "Rogue asks V who gets the job",
+      "objective": "Tell Rogue who gets the courier job",
       "know": "V has seen all three candidates. You want one pick, or none, and you do not want a hedge. The loud solo and the polite ex-corporate are the wrong people for this job. The quiet netrunner is the one who delivers.",
       "wants": "V to pick one candidate, or none.",
       "script": [{"when": "stage:enter", "say": "R2.stage.choice.01"}],

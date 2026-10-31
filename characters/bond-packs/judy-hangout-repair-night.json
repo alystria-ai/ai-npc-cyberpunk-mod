@@ -5,6 +5,7 @@
   "character": "judy-alvarez",
   "title": "Repair Night",
   "summary": "Judy is in a fixing mood at her workbench in Lizzie's basement and wants V to bring her something broken.",
+  "description": "Judy has a workbench in Lizzie's basement and is in a fixing mood tonight. She wants V to bring her something broken.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
@@ -37,6 +38,7 @@
       "id": "repair",
       "type": "play",
       "label": "Judy repairs V's junk item at her workbench",
+      "objective": "Hand Judy a broken junk item to repair at her workbench",
       "know": "You are in Lizzie's basement at Judy's workbench. She is fixing a junk item from your inventory and wants to see what she can make of it.",
       "wants": "V to watch her work and hand over the item.",
       "do": [

@@ -4,6 +4,7 @@
   "character": "river-ward",
   "title": "Until the Sun Comes Up",
   "summary": "River needs you to hold a Badlands farmhouse until dawn for a nineteen-year-old witness the ring wants dead.",
+  "description": "The ring's youngest phone man wants out and will testify. River promised him a safe place until dawn at a Badlands farmhouse, and River needs a second gun.",
   "requires": {
     "bond": 8,
     "after": ["river-polite-distance"],
@@ -110,6 +111,7 @@
       "id": "call",
       "type": "play",
       "label": "River asks for one night",
+      "objective": "Answer River's call from the Heywood meeting place",
       "know": "You are calling V from the Heywood meeting place. You promised a witness a safe place until dawn, and you are bad at promises.",
       "wants": "V to come to the Heywood meeting place and stay up all night.",
       "do": [
@@ -127,6 +129,7 @@
       "id": "drive",
       "type": "play",
       "label": "V drives River to the farm",
+      "objective": "Drive River out to the Badlands farm",
       "know": "V is driving out of the city toward the Badlands farm, twenty-five game minutes away. River is in the passenger seat with the witness on his mind.",
       "wants": "V to get to the farm before the light goes.",
       "do": [
@@ -146,6 +149,7 @@
       "id": "prep",
       "type": "play",
       "label": "V picks a position at the farmhouse",
+      "objective": "Pick a position at the farmhouse with River",
       "know": "You are at the farmhouse. The witness is in the cellar, and you will take the kitchen window. V picks one of three positions, and you tell V the sightlines.",
       "wants": "V to pick a position and tell you which one.",
       "do": [
@@ -171,6 +175,7 @@
       "id": "hold",
       "type": "play",
       "label": "River holds the farm until dawn",
+      "objective": "Hold the farmhouse yard and kitchen with River until dawn",
       "know": "The ring is sending three attacks before dawn: a car of three on the road, four on foot through the field, then two heavies behind a stolen truck. The witness must still be alive at six.",
       "wants": "V to hold the farm and keep the witness alive until the sun comes up.",
       "do": [
@@ -204,6 +209,7 @@
       "id": "sunrise",
       "type": "play",
       "label": "River and V on the porch at dawn",
+      "objective": "Sit on the farmhouse porch with River at dawn",
       "know": "The sun is up and the witness is alive. Han's car is on its way for him. You are sitting on the porch with V.",
       "wants": "V to sit with you on the porch for a while.",
       "do": [

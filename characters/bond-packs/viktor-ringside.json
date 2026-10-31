@@ -4,6 +4,7 @@
   "character": "viktor-vektor",
   "title": "Ringside",
   "summary": "Viktor asks V to the Friday amateur card at the old Devils gym, to the seat he has kept empty for years.",
+  "description": "Viktor asks V to join him at the Friday amateur card at the old Devils gym in Watson, where he always takes the same folding chair alone. It is the first time he has asked anyone to sit with him.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor"],
@@ -64,6 +65,7 @@
       "id": "invite",
       "type": "play",
       "label": "Viktor is waiting at the old Devils gym",
+      "objective": "Meet Viktor at the old Devils gym in Watson",
       "know": "You asked V to the Friday card at the old Devils gym in Watson. You will sit in the same folding chair you always take, and you are sure V will hate the coffee. You have never asked anybody to sit next to you before.",
       "wants": "V to come to the gym and take the seat beside you.",
       "do": [
@@ -82,6 +84,7 @@
       "id": "card",
       "type": "play",
       "label": "Viktor calls the bouts from ringside",
+      "objective": "Sit ringside with Viktor at the old Devils gym and watch the bouts",
       "know": "V is in the folding chair beside you at the old Devils gym. Three amateur bouts are on, and you call the punches under your breath, saying what each fighter does wrong and what you would have done at their age. You are not betting and you say so. You watch for the moment a man stops pretending the glove is a wall.",
       "wants": "V to pick a corner for each bout and to watch the feet, not the faces.",
       "do": [
@@ -120,6 +123,7 @@
       "id": "bag",
       "type": "play",
       "label": "Viktor corrects V's stance at the heavy bag",
+      "objective": "Take the heavy bag corner with Viktor and fix your stance",
       "know": "The last bout is over and you walk V to the heavy bag corner. You will correct the stance and the breathing in words and show it yourself on the bag. You grade only what V says and where V stands, and you ask one question about fear.",
       "wants": "V to stand at the bag and answer honestly.",
       "do": [

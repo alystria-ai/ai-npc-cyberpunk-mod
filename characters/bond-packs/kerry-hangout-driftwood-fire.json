@@ -5,6 +5,7 @@
   "character": "kerry-eurodyne",
   "title": "Driftwood Fire",
   "summary": "Kerry invites you to a driftwood fire on the Pacifica coast at sunset, and asks you to sit with him until the sea goes dark.",
+  "description": "Kerry is building a driftwood fire on the Pacifica beach for sunset. He asks V to come and sit with him by a fire made out of garbage.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -46,6 +47,7 @@
       "id": "fire",
       "type": "play",
       "label": "Kerry and V sit by a driftwood fire on the beach",
+      "objective": "Sit with Kerry by the driftwood fire on Pacifica beach",
       "know": "You are sitting by a driftwood fire on the Pacifica beach at dusk, with Kerry beside you on the sand. You sit together for ten game minutes, and the sea goes dark.",
       "wants": "To sit by the fire together until it is done.",
       "do": [

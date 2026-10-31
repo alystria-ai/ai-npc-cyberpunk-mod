@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Caliente Mornings",
   "summary": "Kerry wants a coffee where nobody knows his name, so he takes you to the diner he remembers from the SAMURAI days.",
+  "description": "Kerry is up early in a villa that echoes, and he wants a coffee where nobody knows his name. He is looking for an old diner from the SAMURAI days that may not exist any more.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -58,6 +59,7 @@
       "id": "ask",
       "type": "play",
       "label": "Kerry is waiting at his villa gate for coffee",
+      "objective": "Go to Kerry at his villa gate in North Oak",
       "know": "You texted V from your villa in North Oak. You will drive them to an old diner from the SAMURAI days that may not exist. You want a cup of coffee where nobody knows your name.",
       "wants": "V to meet you at the villa gate at 8 am.",
       "do": [
@@ -78,6 +80,7 @@
       "id": "ride",
       "type": "play",
       "label": "Kerry walks you to the corner where the diner was",
+      "objective": "Walk with Kerry to the corner where the diner stood",
       "know": "You and V are on the corner where the SAMURAI diner used to stand. It is a laundromat now. You want V to stand there with you for a minute.",
       "wants": "V to stand with you and say nothing clever.",
       "do": [
@@ -100,6 +103,7 @@
       "id": "sit",
       "type": "play",
       "label": "Kerry orders coffee and asks what you want",
+      "objective": "Order coffee at the counter with Kerry",
       "know": "The laundromat is behind you and you are at the counter where a diner could have been. You have ordered your double espresso with no sugar and you are waiting on V's order.",
       "wants": "V's order.",
       "do": [

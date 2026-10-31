@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "Word of Honour",
   "summary": "A frightened security clerk needs to leave Night City, Takemura gave his word, and V is asked to be his second on the walk to the pier.",
+  "description": "Takemura gave his word to a clerk who wants to leave Night City. He asks V to be his second and walk the clerk across three districts to a ferry at the Arasaka Waterfront.",
   "requires": {
     "bond": 6,
     "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
@@ -107,6 +108,7 @@
       "id": "call",
       "type": "play",
       "label": "Takemura calls V and asks them to be his second",
+      "objective": "Answer Takemura's holocall and agree to be his second",
       "know": "Takemura calls on a formal holocall with a plain wall and a cup of tea behind him. A clerk who knows him only by reputation asked him for help to leave the city, and he gave his word. He wants you as his second and will hang up after he has asked.",
       "wants": "V to decide whether to be his second.",
       "do": [{"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}],
@@ -122,6 +124,7 @@
       "id": "teashop",
       "type": "play",
       "label": "V meets the clerk at the tea shop",
+      "objective": "Meet the clerk at the Japantown tea shop with Takemura",
       "know": "You are at the tea shop in Japantown with Takemura at a back table. The clerk sits beside him with a suitcase on his knees, and Takemura introduces you as his second.",
       "wants": "V to walk the clerk out of Japantown.",
       "do": [
@@ -142,6 +145,7 @@
       "id": "walk",
       "type": "play",
       "label": "Takemura walks V and the clerk across three districts",
+      "objective": "Walk the clerk across three districts to the pier with Takemura",
       "know": "You are walking the clerk from Japantown to Charter Hill and on to Kabuki, with two relaxed corporate patrols on the way. Takemura moves slowly and checks twice before each street.",
       "wants": "V to get the clerk to the pier without being seen.",
       "do": [
@@ -179,6 +183,7 @@
       "id": "pier",
       "type": "play",
       "label": "V pays the captain so the clerk can board",
+      "objective": "Pay the ferry captain at the pier so the clerk can board with Takemura",
       "know": "The captain of a small ferry at the Arasaka Waterfront wants 1,500 eddies up front. Takemura has offered his word, and the captain has refused it.",
       "wants": "V to pay, persuade, or pull rank so the clerk boards.",
       "do": [
@@ -202,6 +207,7 @@
       "id": "pier-fight",
       "type": "play",
       "label": "The clerk boards after a fight on the pier",
+      "objective": "Get the clerk onto the ferry at the pier with Takemura after the fight",
       "know": "The captain has been dealt with, and the clerk is boarding the boat with a patrol somewhere behind you.",
       "wants": "V to get the clerk onto the boat.",
       "do": [{"p": "place", "at": "pier"}],
@@ -212,6 +218,7 @@
       "id": "after",
       "type": "play",
       "label": "Takemura explains a word on the pier as the boat leaves",
+      "objective": "Stand with Takemura at the Arasaka pier as the boat leaves",
       "know": "The boat has left with the clerk on it, and Takemura stands at the end of the pier with his back to you. He is about to tell you what a word is.",
       "wants": "V to hear what a word is.",
       "do": [{"p": "place", "at": "pier"}],

@@ -5,6 +5,7 @@
   "character": "rogue-amendiares",
   "title": "Shake the Tail",
   "summary": "Someone is following Rogue and V through City Center Downtown, and V has ten game minutes to lose him.",
+  "description": "A young man with a camera drone is following Rogue and V through City Center Downtown. V has ten minutes to lose him through the streets, the alleys or the crowds.",
   "requires": {
     "bond": 6,
     "questsFinished": [
@@ -94,6 +95,7 @@
       "id": "shake",
       "type": "play",
       "label": "V walks Rogue through the streets to lose the follower",
+      "objective": "Lose the drone follower in City Center with Rogue",
       "know": "You and V walk the streets of City Center Downtown with a young man following you with a camera drone. You want V to lose him in ten game minutes through the alley, the crowd or the building. You give tips on the way.",
       "wants": "V to lose the follower, and to keep Rogue out of his camera.",
       "do": [

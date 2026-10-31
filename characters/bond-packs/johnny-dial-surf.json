@@ -4,6 +4,7 @@
   "character": "johnny-silverhand",
   "title": "Dial Surf",
   "summary": "Johnny cannot sleep, so V takes the pocket radio onto the balcony and judges the city's stations with him.",
+  "description": "Johnny cannot sleep, so he asks V to take the pocket radio out to the balcony of the Megabuilding H10 flat in Kabuki. He wants V to judge every station and tell him what V would defend.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
@@ -60,6 +61,7 @@
       "id": "night",
       "type": "talk",
       "label": "Johnny asks V to go out on the balcony",
+      "objective": "Take the pocket radio out to the balcony for Johnny",
       "know": "It is late and you cannot sleep. You want V to take the little radio out on the balcony and turn it on, grumpy and a little embarrassed to ask.",
       "wants": "V to agree to go out on the balcony with the radio.",
       "script": [
@@ -76,6 +78,7 @@
       "id": "dial",
       "type": "play",
       "label": "Judge the radio from the balcony",
+      "objective": "Judge the radio stations from the balcony with Johnny",
       "know": "V is on the balcony of the Megabuilding H10 flat with the pocket radio on. You judge every station and song V passes, and you want to hear what V would stand behind.",
       "wants": "V to keep the radio on the balcony and say what V hears.",
       "do": [
@@ -99,6 +102,7 @@
       "id": "ask",
       "type": "talk",
       "label": "Johnny asks what V would defend",
+      "objective": "Tell Johnny which station you would defend",
       "know": "You have heard V judge the radio from the balcony. You ask V to leave it on the one thing V would defend, and you want to know why.",
       "wants": "V to name the one thing V would defend, or to say it is only noise.",
       "choices": [
@@ -111,6 +115,7 @@
       "id": "listen",
       "type": "play",
       "label": "Switch the radio off and listen to the city",
+      "objective": "Switch the radio off and listen to the city from the balcony with Johnny",
       "know": "The radio is off and you want V to listen to the city for ten minutes. You talk about the dead quiet of the night before a show and, for the first time, you mention Alt, in two sentences.",
       "wants": "V to sit still on the balcony and listen.",
       "do": [

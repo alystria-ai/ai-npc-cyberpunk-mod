@@ -5,6 +5,7 @@
   "character": "takemura",
   "title": "The Right Coat",
   "summary": "Takemura takes you to a tailor in Heywood's Wellsprings, where you pick him a coat from three while the tailor prices it absurdly.",
+  "description": "Takemura says a man with one coat is a man in trouble. He asks V to go with him to a tailor in Heywood's Wellsprings and pick him a coat from three.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
@@ -45,6 +46,7 @@
       "id": "meet",
       "type": "play",
       "label": "V and Takemura choose a coat at the tailor",
+      "objective": "Pick a coat for Takemura at the Wellsprings tailor",
       "know": "You are at a tailor boutique in Heywood's Wellsprings with Takemura. The tailor is ready to haggle, and Takemura is watching in silence.",
       "wants": "V to pick a coat for him, and to haggle.",
       "meet": {"where": "waypoint", "inGameHours": 2},

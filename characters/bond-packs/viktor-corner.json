@@ -4,6 +4,7 @@
   "character": "viktor-vektor",
   "title": "Corner",
   "summary": "Viktor gets in the ring himself for three rounds, and he asks V to be the corner man with the stool, the towel and the water.",
+  "description": "Viktor is stepping into the ring himself for three rounds at the old Watson Grand Prix hall, to show a young fighter why his guard drops. He wants V as his corner man on Thursday night.",
   "requires": {
     "bond": 10,
     "after": ["viktor-patient-confidentiality"],
@@ -107,6 +108,7 @@
       "id": "ask",
       "type": "play",
       "label": "Viktor calls V to be his corner man",
+      "objective": "Answer Viktor's call and agree to corner him at the Watson hall",
       "know": "Viktor calls you on Thursday to ask you to be his corner man at the old Grand Prix hall. He wants a yes that is not a favour, and he will know if you did not think about it.",
       "wants": "V to say yes and meet him at the hall.",
       "do": [
@@ -128,6 +130,7 @@
       "id": "wraps",
       "type": "play",
       "label": "V wraps Viktor's hands on the dressing room bench",
+      "objective": "Wrap Viktor's hands in the dressing room",
       "know": "You are in the dressing room. Viktor sits on the bench and holds out his hands, and you wrap them while he talks about the second-place night.",
       "wants": "V to wrap his hands tight across the knuckles and to hear what he has not said.",
       "do": [
@@ -155,6 +158,7 @@
       "id": "rounds",
       "type": "play",
       "label": "V works the corner for three rounds",
+      "objective": "Work Viktor's corner for three rounds at the Watson hall",
       "know": "Viktor is in the ring with a younger fighter who has a handicap, and you are at the stool in the corner with the towel and the water. You can throw in the towel at any time.",
       "wants": "V to keep Viktor on his feet, or to stop it when it is time.",
       "do": [
@@ -184,6 +188,7 @@
       "id": "after",
       "type": "play",
       "label": "V holds the lamp while Viktor patches himself",
+      "objective": "Hold the lamp while Viktor patches himself up in the dressing room",
       "know": "The fight is over and Viktor is on the dressing room bench. He takes the second-place medal from the bag and tells you what he thinks of it.",
       "wants": "V to hold the lamp steady while he patches himself.",
       "do": [
@@ -208,6 +213,7 @@
       "id": "after-towel",
       "type": "play",
       "label": "V threw in the towel and Viktor is angry",
+      "objective": "Help Viktor in the dressing room after the towel",
       "know": "You threw in the towel between rounds, and Viktor is on the stool with a cut over one eye, furious and then grateful.",
       "wants": "V to stay with him until the anger passes.",
       "do": [

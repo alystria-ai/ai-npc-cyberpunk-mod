@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "What I Never Said",
   "summary": "Rogue asks V to meet her at three in the morning in a Little China laundromat and says what she never said to Johnny while the machines turn.",
+  "description": "Rogue asks V to meet her at three in the morning at an all-night laundromat in Little China. She has something to say that she never said to Johnny, and she brings the soap.",
   "requires": {
     "bond": 10,
     "after": ["rogue-whos-listening"],
@@ -89,6 +90,7 @@
       "id": "ask",
       "type": "play",
       "label": "Rogue asks V to meet her at the laundromat at three",
+      "objective": "Meet Rogue at the Little China laundromat at three",
       "know": "You have asked V to come to the all-night laundromat in Little China at three in the morning. You bring the soap and something you need to say.",
       "wants": "V to come to the laundromat.",
       "do": [
@@ -109,6 +111,7 @@
       "id": "spin",
       "type": "play",
       "label": "V sits with Rogue while she folds and talks",
+      "objective": "Sit with Rogue at the laundromat while she folds and talks",
       "know": "You fold laundry in the laundromat and talk while the machines turn. You have not forgiven Johnny and have not stopped either. You will ask V what Johnny said.",
       "wants": "V to sit with you and be honest about what Johnny said.",
       "do": [
@@ -141,6 +144,7 @@
       "id": "spin-2-relay",
       "type": "play",
       "label": "Rogue talks on after V relays what Johnny said",
+      "objective": "Tell Rogue what Johnny said at the Little China laundromat",
       "know": "V has relayed what Johnny said. You fold a shirt and say what you have to say, while the laundromat hums.",
       "wants": "V's own word, not Johnny's.",
       "do": [
@@ -163,6 +167,7 @@
       "id": "spin-2-keep",
       "type": "play",
       "label": "Rogue talks on after V keeps what Johnny said",
+      "objective": "Hear Rogue out while the laundromat machines run",
       "know": "V has kept what Johnny said to himself. You fold a shirt and say what you have to say, while the laundromat hums.",
       "wants": "V's own word, not Johnny's.",
       "do": [
@@ -185,6 +190,7 @@
       "id": "spin-2-lie",
       "type": "play",
       "label": "Rogue talks on after V lets what Johnny said lie",
+      "objective": "Hear Rogue out while the laundromat machines run",
       "know": "V has let what Johnny said lie. You fold a shirt and say what you have to say, while the laundromat hums.",
       "wants": "V's own word, not Johnny's.",
       "do": [
@@ -207,6 +213,7 @@
       "id": "walk-out-tell",
       "type": "play",
       "label": "Rogue walks V to the corner after V relayed Johnny's answer",
+      "objective": "Walk to the corner with Rogue and her bag from the laundromat",
       "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
       "wants": "V to walk with you to the corner.",
       "do": [{"p": "place", "at": "laundromat"}],
@@ -226,6 +233,7 @@
       "id": "walk-out-keep",
       "type": "play",
       "label": "Rogue walks V to the corner after V kept Johnny's answer",
+      "objective": "Walk to the corner with Rogue and her bag from the laundromat",
       "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
       "wants": "V to walk with you to the corner.",
       "do": [{"p": "place", "at": "laundromat"}],
@@ -245,6 +253,7 @@
       "id": "walk-out-lie",
       "type": "play",
       "label": "Rogue walks V to the corner after V let Johnny's answer lie",
+      "objective": "Walk to the corner with Rogue and her bag from the laundromat",
       "know": "You walk V to the corner with your bag and do not drive V. You say one thing about the night.",
       "wants": "V to walk with you to the corner.",
       "do": [{"p": "place", "at": "laundromat"}],

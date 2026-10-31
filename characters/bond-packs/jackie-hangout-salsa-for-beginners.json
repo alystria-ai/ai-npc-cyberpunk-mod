@@ -5,6 +5,7 @@
   "character": "jackie-welles",
   "title": "Salsa for Beginners",
   "summary": "Jackie teaches you three dance moves at a Kabuki corner club, while a crowd claps if you keep up.",
+  "description": "Jackie offers V a dance lesson at a corner club in Kabuki, with three moves to learn and a crowd to clap if V keeps up. He says V is terrible, and he is free.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -37,6 +38,7 @@
       "id": "dance",
       "type": "play",
       "label": "Jackie teaches V three moves in a Kabuki club",
+      "objective": "Learn three dance moves from Jackie at the corner club in Kabuki",
       "know": "You are in a corner club in Kabuki. Jackie is dancing and naming three moves, and a crowd is clapping when you keep up.",
       "wants": "V to keep up with the lesson.",
       "do": [

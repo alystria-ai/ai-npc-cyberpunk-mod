@@ -5,6 +5,7 @@
   "character": "songbird",
   "title": "Card Count",
   "summary": "Songbird counts the cards from V's descriptions at a Heavy Hearts card table in Dogtown.",
+  "description": "Songbird cannot hack a card table, but she can count one. She wants V to sit at the Heavy Hearts table in Dogtown and describe the hands.",
   "requires": {
     "bond": 3,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -50,6 +51,7 @@
       "id": "hangout",
       "type": "play",
       "label": "Songbird counts the hands from V's descriptions",
+      "objective": "Describe the card hands to Songbird at Heavy Hearts",
       "know": "V is at the card table in Heavy Hearts with a dealer and two other players. You count the hands from what V tells you.",
       "wants": "V's eyes on the other player's hands, and V's honest read of the table.",
       "meet": {"where": "waypoint", "inGameHours": 3},

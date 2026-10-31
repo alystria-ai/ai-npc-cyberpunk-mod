@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "First String",
   "summary": "Kerry's first guitar, with his initials cut into the headstock, vanished in the bad years, and he asks you to look for it with him.",
+  "description": "Kerry lost his first guitar in the bad years, a cheap one with his initials cut into the headstock. He asks V to help him look for it, because he does not want to look alone.",
   "requires": {
     "bond": 10,
     "after": ["kerry-tomorrow-tokyo"],
@@ -85,6 +86,7 @@
     {
       "id": "ask",
       "label": "Kerry asks V to look for his first guitar",
+      "objective": "Agree to help Kerry look for his first guitar",
       "know": "Kerry has asked you to find his first guitar, lost in the bad years. He cannot stand to learn it is gone, and he does not want to look alone.",
       "wants": "V to say yes and look for the guitar.",
       "script": [
@@ -102,6 +104,7 @@
     {
       "id": "leads",
       "label": "Kerry sends V after the guitar's leads",
+      "objective": "Check the pawn shop, repair shop and stall for Kerry's guitar",
       "know": "You have three leads: a pawn shop in Little China, a repair shop in Westbrook, and a street instrument stall in Kabuki. The shopkeepers do not know Kerry. Their answers point to a busker in a Watson underpass.",
       "wants": "V to follow the leads to the street name.",
       "script": [
@@ -118,6 +121,7 @@
       "id": "underpass",
       "type": "play",
       "label": "V finds the busker in the Watson underpass",
+      "objective": "Find the busker with Kerry's guitar in the Watson underpass",
       "know": "A young busker sits on a milk crate in the Watson underpass with a battered acoustic. You can see the headstock, with a carved K.E. and a duct-tape repair. Kerry waits at the entrance in Guinevere.",
       "wants": "V to decide what to do with the guitar.",
       "do": [
@@ -144,6 +148,7 @@
       "id": "purchase",
       "type": "play",
       "label": "V offers the busker money for the guitar",
+      "objective": "Offer the busker money for Kerry's guitar in the Watson underpass",
       "know": "You are in the Watson underpass and can offer the busker between 500 and 1,500 eddies for the guitar. He has said it is not for sale, and he may refuse.",
       "wants": "To buy the guitar back for Kerry.",
       "do": [
@@ -166,6 +171,7 @@
     {
       "id": "walk-quiet",
       "label": "V leaves the guitar with the busker and walks with Kerry",
+      "objective": "Walk with Kerry after leaving the guitar with the busker",
       "know": "The guitar is still in the kid's hands in the Watson underpass. You have chosen to leave it there. Kerry wants to walk.",
       "wants": "To walk with Kerry.",
       "script": [
@@ -184,6 +190,7 @@
     {
       "id": "walk-told",
       "label": "V tells Kerry where the guitar is and walks with him",
+      "objective": "Tell Kerry where the guitar is and walk with him",
       "know": "You have told Kerry that the guitar is in the Watson underpass, in a kid's hands. He wants to walk.",
       "wants": "To walk with Kerry.",
       "script": [
@@ -195,6 +202,7 @@
     {
       "id": "walk-bought",
       "label": "V has bought the guitar, and Kerry hands it back to the kid",
+      "objective": "Pay the busker for the guitar and watch Kerry hand it back",
       "know": "You have paid the busker for the guitar. Kerry takes it, and then awkwardly puts it back in the kid's hands.",
       "wants": "To walk with Kerry.",
       "script": [

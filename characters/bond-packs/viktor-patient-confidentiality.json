@@ -4,6 +4,7 @@
   "character": "viktor-vektor",
   "title": "Patient Confidentiality",
   "summary": "Maelstrom takes Viktor off a Little China street to keep a wounded packmate alive, and V must get him out without shots in the ward.",
+  "description": "A text from an unknown number says Viktor is with a Maelstrom crew, and that they want V to come alone to a Watson waterfront warehouse. A patient is laid out on a door in the back room.",
   "requires": {
     "bond": 8,
     "after": ["viktor-off-the-books"],
@@ -85,6 +86,7 @@
       "id": "text",
       "type": "play",
       "label": "A message from an unknown number",
+      "objective": "Go alone to the Watson waterfront warehouse to find Viktor",
       "know": "A text arrives from an unknown number: Viktor is with a Maelstrom crew, and they want you to come alone to a warehouse on the Watson waterfront.",
       "wants": "V to reach the warehouse before the clock runs out.",
       "do": [
@@ -106,6 +108,7 @@
       "id": "approach",
       "type": "play",
       "label": "Three ways in through the warehouse",
+      "objective": "Get past the Maelstrom crew to Viktor at the warehouse",
       "know": "You are at the warehouse door. A Maelstrom boss stands in front of six crew, and Viktor is at a makeshift table at the back, his hands wrapped in gauze, a young patient on a door laid over two crates.",
       "wants": "V to get to Viktor, by talk, by stealth or by force.",
       "do": [
@@ -137,6 +140,7 @@
       "id": "ward",
       "type": "play",
       "label": "V holds the ward while Viktor works",
+      "objective": "Hold the ward for five minutes while Viktor works",
       "know": "V is within reach of Viktor, who will not leave the patient on the table. The rule is no shooting in the ward for five minutes while he works, and the crew is outside the door.",
       "wants": "V to keep the ward quiet and let Viktor finish.",
       "do": [
@@ -168,6 +172,7 @@
       "id": "out",
       "type": "play",
       "label": "V walks Viktor out and drives him to the clinic",
+      "objective": "Walk Viktor out and drive him to the Little China clinic",
       "know": "The patient is stable on the door-table and the crew is letting you go. Viktor walks beside you slowly, and you drive him to the clinic in Little China.",
       "wants": "V to get Viktor to the clinic in one piece.",
       "do": [
@@ -193,6 +198,7 @@
       "id": "close",
       "type": "play",
       "label": "Viktor sits in the car after the clinic",
+      "objective": "Sit in the car with Viktor after the clinic",
       "know": "The clinic door is shut behind Viktor, and he is quiet in the car. He asks whether you are hurt, then waits.",
       "wants": "V to say what the night cost, or to say nothing.",
       "do": [

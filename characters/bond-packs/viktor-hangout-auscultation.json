@@ -5,6 +5,7 @@
   "character": "viktor-vektor",
   "title": "Auscultation Walk",
   "summary": "Viktor lends V a stethoscope and asks for honest guesses about three humming machines in the noodle alley.",
+  "description": "Viktor lends V a stethoscope for a listening walk through the noodle alley in Little China. He has a theory about three humming machines and wants V's honest guesses.",
   "requires": {"bond": 2, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
   "start": {
     "channels": ["phone", "own"],
@@ -42,6 +43,7 @@
       "id": "listen",
       "type": "play",
       "label": "Viktor lends V a stethoscope for three listening stops",
+      "objective": "Listen to three humming machines in the noodle alley with Viktor",
       "know": "Viktor is in the noodle alley with a stethoscope. You listen to three humming machines, say what is wrong with each, and tell him the truth. A passer-by with a limp walks past, and Viktor asks you to stop him.",
       "wants": "V to hear the three machines and name what is wrong with each.",
       "do": [

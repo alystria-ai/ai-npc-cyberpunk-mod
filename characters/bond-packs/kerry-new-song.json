@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Something New",
   "summary": "Kerry wrote his first song in years that is not a Samurai song, and he wants V to hear it first and tell him the truth.",
+  "description": "Kerry has written his first song in years that is not a Samurai song. He wants V to hear it first and tell him the truth about it.",
   "requires": {
     "bond": 6,
     "questsFinished": [
@@ -23,6 +24,7 @@
     {
       "id": "text",
       "label": "He wrote a new song",
+      "objective": "Answer Kerry's message about his new song",
       "know": "Three nights ago you wrote a song at four in the morning: slow, ugly-beautiful, about outliving everyone. Nobody has heard it. Your manager would want it polished into a single, you want to know if it is any good before anyone gets near it.",
       "wants": "V to come over and listen to it, at your villa or wherever V is.",
       "say": {"en": "Wrote something. New, not Samurai. Don't make it weird. Come over and listen?"},
@@ -38,6 +40,7 @@
     {
       "id": "listen",
       "label": "He wants your honest opinion of it",
+      "objective": "Listen to Kerry play his new song",
       "know": "You played V the song, just you and a guitar. You are watching V's face harder than you have watched a crowd in thirty years.",
       "wants": "V's honest opinion. You will know if V is only being nice.",
       "say": {"en": "So. Say something. And if you're about to be nice, don't."},
@@ -50,6 +53,7 @@
     {
       "id": "rework",
       "label": "He rewrote the song",
+      "objective": "Hear Kerry's rewritten song",
       "know": "V told you the truth about the song. You took it badly for a minute, then you saw V was right. You have been rewriting the bridge since.",
       "wants": "To tell V the song got better because of them, without getting sappy about it.",
       "say": {"en": "Rewrote the bridge. You were right, which is annoying. It's going in the set."},
@@ -59,6 +63,7 @@
     {
       "id": "doubt",
       "label": "He put the song away",
+      "objective": "Hear Kerry out about putting his new song away",
       "know": "V heard your song and was only nice about it. You do not know if it is good, and you have put it away for now.",
       "wants": "Nothing about the song right now. You change the subject if it comes up.",
       "say": {"en": "Yeah, you're just being nice. It's fine. It's going in the drawer."},
@@ -67,6 +72,7 @@
     {
       "id": "later",
       "label": "He sent you the song as a file",
+      "objective": "Listen to the song file Kerry sent you",
       "know": "V did not have time for your song. You sent it as a file instead, and told V to listen whenever.",
       "wants": "To pretend you do not care whether V listened.",
       "say": {"en": "Sent you the file. Whenever. No pressure. Seriously."},

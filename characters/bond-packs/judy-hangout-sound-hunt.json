@@ -5,6 +5,7 @@
   "character": "judy-alvarez",
   "title": "Sound Hunt",
   "summary": "Judy needs ambient tracks for a braindance and wants you to walk Jig-Jig Street at night as her walking microphone.",
+  "description": "Judy needs ambient sound for a braindance, so she wants V to walk Jig-Jig Street at night as her walking microphone.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
@@ -37,6 +38,7 @@
       "id": "hunt",
       "type": "play",
       "label": "Judy records the sounds of Jig-Jig Street at night",
+      "objective": "Walk Jig-Jig Street at night while Judy records the sounds",
       "know": "You are walking Jig-Jig Street at night, and Judy is recording ambient sound for a braindance with a small device in her hand.",
       "wants": "V to walk the street with her while she records.",
       "do": [

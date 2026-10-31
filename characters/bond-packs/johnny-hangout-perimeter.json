@@ -5,6 +5,7 @@
   "character": "johnny-silverhand",
   "title": "Perimeter",
   "summary": "Johnny makes V run a timed scavenger walk through a Santo Domingo cul-de-sac, calling out three vantage points.",
+  "description": "Johnny wants to see how V would hold a cul-de-sac. He calls out three vantage points in a Rancho Coronado cul-de-sac in Santo Domingo, and V has eight minutes to reach them.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
@@ -38,6 +39,7 @@
       "id": "walk",
       "type": "play",
       "label": "Reach the three points in eight game minutes",
+      "objective": "Reach the hedge, garage roof and mailbox with Johnny in eight minutes",
       "know": "Johnny calls out three vantage points in order: a hedge, a garage roof and a corner mailbox. You have eight game minutes, and a neighbour at a barbecue may stop V at the garage roof.",
       "wants": "V to reach the three points in order before the time runs out.",
       "do": [

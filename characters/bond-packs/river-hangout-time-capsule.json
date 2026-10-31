@@ -5,6 +5,7 @@
   "character": "river-ward",
   "title": "Time Capsule",
   "summary": "River takes you to a pullout with one tree on the Badlands west road to bury a tin with something you will miss.",
+  "description": "River wants to bury a rusted ammo tin at a pullout on the Badlands west road, under the one tree there. He asks V to bring something they will miss.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -51,6 +52,7 @@
       "id": "bury",
       "type": "play",
       "label": "River and V bury the tin under the tree",
+      "objective": "Bury the tin with River under the tree",
       "know": "You are at the pullout on the Badlands west road with one tree. River has a rusted ammo tin and a spade, and V has brought the item and the note.",
       "wants": "V to bury the tin and say who it is for.",
       "do": [

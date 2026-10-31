@@ -5,6 +5,7 @@
   "character": "judy-alvarez",
   "title": "Spot the Cut",
   "summary": "Judy rents a cheap braindance booth in Kabuki to suffer through a commercial BD, and asks V to spot the bad cut.",
+  "description": "Judy has rented a cheap braindance booth in Kabuki to suffer through a commercial BD. She wants V there to watch it with her and spot the bad cut.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
@@ -37,6 +38,7 @@
       "id": "watch",
       "type": "play",
       "label": "Judy and V watch a commercial BD in a Kabuki booth",
+      "objective": "Watch the commercial BD with Judy in the Kabuki booth",
       "know": "You rented two booths in a cheap braindance parlour in Kabuki and are watching a commercial BD. One of its cuts is one an editor would never make.",
       "wants": "V to name the bad cut.",
       "tags": [{"id": "right", "kind": "yes"}, {"id": "wrong", "kind": "no"}],

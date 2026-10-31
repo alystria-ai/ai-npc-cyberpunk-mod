@@ -5,6 +5,7 @@
   "character": "river-ward",
   "title": "Scrapyard Appraisal",
   "summary": "River takes you to a wreck field south of the city for a quiz on five cars, and the loser buys the coffee.",
+  "description": "River takes V to a scrapyard south of the city for a quiz about five wrecks. He says the loser buys the coffee.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
@@ -54,6 +55,7 @@
       "id": "quiz",
       "type": "play",
       "label": "River quizzes V on five wrecks",
+      "objective": "Answer River's quiz on the five wrecks in the scrapyard",
       "know": "You are in the scrapyard south of the city with River. He is quizzing you on the make, year and history of five wrecks.",
       "wants": "V to answer the quiz for each wreck and find out who buys the coffee.",
       "do": [

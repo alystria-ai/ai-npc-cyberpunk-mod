@@ -5,6 +5,7 @@
   "character": "kerry-eurodyne",
   "title": "Pick the Pick",
   "summary": "Kerry wants a witness for a blind guitar match in a North Oak instrument shop, where you pick the guitar that sounds warm and sad.",
+  "description": "Kerry needs a witness for a blind guitar match at a North Oak instrument shop. V has to pick the guitar that sounds warm and sad, from descriptions alone.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -50,6 +51,7 @@
       "id": "pick",
       "type": "play",
       "label": "Kerry asks V to pick the guitar that sounds warm and sad",
+      "objective": "Pick the guitar that sounds warm and sad for Kerry at the North Oak shop",
       "know": "You are in a vintage instrument shop in North Oak with Kerry. Three guitars hang on the wall, and you can only compare their descriptions, because no sound is played. The shopkeeper recognizes Kerry and pretends not to.",
       "wants": "V to pick a guitar and say why.",
       "do": [

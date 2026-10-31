@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "Who's Listening",
   "summary": "Rogue hides a client in a Kabuki capsule hotel for one night and needs V to find the leak among three staff before the other side arrives.",
+  "description": "Rogue is hiding a client in a Kabuki capsule hotel for one night. One of three staff has told the other side where they are, and she needs V to find the leak before they arrive.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
@@ -94,6 +95,7 @@
       "id": "call",
       "type": "play",
       "label": "Rogue calls V about the capsule hotel",
+      "objective": "Answer Rogue's call about the capsule hotel",
       "know": "You call V from the Afterlife. You have a client hiding at a Kabuki capsule hotel for one night, and one of three staff has told the other side where. You can only ask V.",
       "wants": "V to say yes.",
       "do": [
@@ -113,6 +115,7 @@
       "id": "lobby",
       "type": "play",
       "label": "V checks into the capsule hotel and watches the staff",
+      "objective": "Check into the capsule hotel and watch the staff for Rogue",
       "know": "V is at the Kabuki capsule hotel. The clerk, the cleaner and the bellhop go about their routine. One of them will step out and make a call within 25 game minutes, and you are in the corridor with the client behind your door.",
       "wants": "V to find the leaker before the call goes out.",
       "do": [
@@ -145,6 +148,7 @@
       "id": "catch",
       "type": "play",
       "label": "The call went out and the squad is on its way",
+      "objective": "Hold the corridor with Rogue as the squad arrives",
       "know": "The leaker made the call. A squad of four is coming by car to the capsule hotel, and you and Rogue hold the corridor from her post. The fight is short, in the lobby and the corridor.",
       "wants": "V to hold the corridor until the squad is down.",
       "do": [
@@ -167,6 +171,7 @@
       "id": "dawn-caught",
       "type": "talk",
       "label": "Dawn: the client leaves and Rogue asks V a real question",
+      "objective": "Talk with Rogue at dawn after the client leaves",
       "know": "The client leaves at dawn in a car, and you have caught the leak before the other side arrived. You ask V a real question about what V would have done for someone close to you.",
       "wants": "V's honest answer.",
       "script": [
@@ -186,6 +191,7 @@
       "id": "dawn-fought",
       "type": "talk",
       "label": "Dawn after the fight: the client leaves and Rogue asks V a real question",
+      "objective": "Talk with Rogue at dawn after the client leaves",
       "know": "The client leaves at dawn in a car, after a short fight in the corridor. You ask V a real question about what V would have done for someone close to you.",
       "wants": "V's honest answer.",
       "script": [

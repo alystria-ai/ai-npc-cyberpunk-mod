@@ -4,6 +4,7 @@
   "character": "takemura",
   "title": "Pincers",
   "summary": "Takemura walks V through the back lanes of Japantown naming every exit, then a thin teenager takes his notebook and runs, and V must catch him.",
+  "description": "Takemura will learn the back lanes of Japantown the way he once learned the Arasaka estate, and he names every door in a black notebook. He asks V to meet him at the start of the lanes at dusk.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
@@ -67,6 +68,7 @@
       "id": "walk",
       "type": "play",
       "label": "Takemura walks V through the back lanes, naming every exit",
+      "objective": "Walk the back lanes of Japantown with Takemura",
       "know": "You are at the start of the back lanes in Japantown with Takemura. He will walk you through two lanes and name each exit, and he will have you repeat them quietly.",
       "wants": "V to walk with him and repeat each exit.",
       "do": [
@@ -94,6 +96,7 @@
       "id": "snatch",
       "type": "play",
       "label": "A teenager takes Takemura's notebook and runs",
+      "objective": "Chase the teenager who took Takemura's notebook down the back lane",
       "know": "A thin seventeen-year-old in an oversized jacket has taken Takemura's notebook and is running through the lanes. Takemura is already giving chase, and you can cut across before the boy reaches the crowd at the market.",
       "wants": "V to catch the boy before he reaches the market.",
       "do": [
@@ -115,6 +118,7 @@
       "id": "steps",
       "type": "play",
       "label": "Takemura sits the boy down on the stairs and asks where he is from",
+      "objective": "Talk to the boy on the stairs at the end of the lane with Takemura",
       "know": "The boy is caught and sitting on the stairs. Takemura does not punish him. He asks where he is from, and you can buy him a steamed bun and a drink or let them talk.",
       "wants": "V to pick a tone with the boy.",
       "do": [
@@ -140,6 +144,7 @@
       "id": "redraw",
       "type": "play",
       "label": "Takemura sits on the wall and redraws the lanes from memory",
+      "objective": "Sit on the wall with Takemura while he redraws the lanes",
       "know": "The boy got away into the crowd at the market. Takemura sits on the wall and tries to redraw the lanes from memory, and he is laughing quietly at himself.",
       "wants": "V to correct him where he is wrong.",
       "do": [

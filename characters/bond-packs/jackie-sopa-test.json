@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "Not Quite Mama's",
   "summary": "Jackie has not been home in a week and wants a noodle bowl that tastes like his mother's sopa de fideos, with you as the judge.",
+  "description": "Jackie has not been home in a week and misses his mother's sopa de fideos. He wants to find the noodle bowl in Little China that comes closest to hers, with V as the judge.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -49,6 +50,7 @@
       "id": "ask",
       "type": "play",
       "label": "Jackie texts V to meet on the noodle lane",
+      "objective": "Wait for Jackie on the noodle lane in Little China",
       "know": "You texted V to meet on the noodle lane in Little China in two hours to taste noodles and judge them. You are waiting there, homesick, and you joke about it so nobody notices.",
       "wants": "V to say yes and come to the lane.",
       "do": [
@@ -72,6 +74,7 @@
       "id": "crawl",
       "type": "play",
       "label": "Jackie and V try the noodle stall",
+      "objective": "Try the noodles at the best stall on the lane with Jackie",
       "know": "V is at the noodle stall with you. You order a bowl and compare it to your mother's with comic exactness, and you go quiet when it is close.",
       "wants": "V to taste the bowl and give an honest rating.",
       "do": [
@@ -94,6 +97,7 @@
       "id": "call",
       "type": "play",
       "label": "Jackie calls his mother from outside the stall",
+      "objective": "Wait outside the stall while Jackie calls his mother",
       "know": "Outside the best stall you call your mother. You hear only his side. She asks whether he has eaten, whether V has eaten and whether he has seen Misty. You can wait or step away.",
       "wants": "V to wait for the call, or to give him room to make it alone.",
       "do": [
@@ -112,6 +116,7 @@
       "id": "pick",
       "type": "play",
       "label": "Jackie picks the bowl that is closest to home",
+      "objective": "Pick the bowl closest to home with Jackie at the best stall",
       "know": "The call is done and you are back at the stall. You picked the winner, and you will bring your mother here when things calm down.",
       "wants": "V to sit with him at the winning stall while he eats.",
       "do": [

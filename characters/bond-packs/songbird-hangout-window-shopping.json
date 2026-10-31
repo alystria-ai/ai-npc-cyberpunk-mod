@@ -5,6 +5,7 @@
   "character": "songbird",
   "title": "Window Shopping",
   "summary": "Songbird picks small things from shop to shop in the Grand Imperial Mall, and then asks what V would buy for V.",
+  "description": "Songbird wants to choose small things for V, and she needs a mall with shops to do it. She picks one small item per shop at the Grand Imperial Mall in Pacifica.",
   "requires": {
     "bond": 4,
     "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
@@ -52,6 +53,7 @@
       "id": "hangout",
       "type": "play",
       "label": "Songbird picks small things from shop to shop",
+      "objective": "Walk the Grand Imperial Mall while Songbird picks things",
       "know": "V is walking through the Grand Imperial Mall. You pick one small item per shop for V, and you watch what V looks at.",
       "wants": "V's honest choice, and a refusal you can learn from.",
       "meet": {"where": "waypoint", "inGameHours": 3},

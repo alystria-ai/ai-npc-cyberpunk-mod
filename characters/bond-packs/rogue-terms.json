@@ -4,6 +4,7 @@
   "character": "rogue-amendiares",
   "title": "Terms",
   "summary": "Rogue hires V to carry a sealed note to an old merc in Kabuki, and V has to name the fee first.",
+  "description": "Rogue has a sealed note that has to reach an old merc in Kabuki. She is hiring V for the errand, and V has to name the price first.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up"],
@@ -59,6 +60,7 @@
       "id": "terms",
       "type": "play",
       "label": "Rogue hires V in the Afterlife booth",
+      "objective": "Talk terms with Rogue in the Afterlife booth",
       "know": "V is in the Afterlife's private booth upstairs. You are about to hire V for an errand with a price, and you will make V haggle it. You have not said what the note is.",
       "wants": "V to name a fee and take the job.",
       "do": [
@@ -85,6 +87,7 @@
       "id": "errand",
       "type": "play",
       "label": "V carries the note to the noodle stall in Kabuki",
+      "objective": "Carry Rogue's sealed note to the Kabuki noodle stall",
       "know": "You sent V to a noodle stall in Kabuki with a sealed note for an old merc you have not spoken to in years. You have not told V that the note is a bar tab.",
       "wants": "V to hand over the note and carry back an honest word.",
       "do": [

@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "Dressed for Dinner",
   "summary": "Judy has a dress she never wore and a dinner party with her Mox friends, she wants V's honest eye, and maybe V at the table.",
+  "description": "Judy has a dinner party with her Mox friends coming up, and a dress she bought years ago and never wore. She is nervous about it, which annoys her, and she wants a friend's honest eye.",
   "requires": {
     "bond": 6,
     "questsFinished": [
@@ -23,6 +24,7 @@
     {
       "id": "invite",
       "label": "A dress she never wore and a dinner party",
+      "objective": "Go to Judy about the dress and the Mox dinner",
       "know": "The Mox are throwing a small dinner party in the back room at Lizzie's. You bought a dress years ago for something that never happened and never wore it. You want to wear it now and you cannot tell if it works or if you look like you are trying too hard.",
       "wants": "V to come by and tell you honestly what they think of the dress. Not flattery: you can always tell.",
       "say": {"en": "Got a dinner thing with the girls and a dress I've never worn. Come by and tell me if I look ridiculous? Honestly, I mean."},
@@ -39,6 +41,7 @@
     {
       "id": "dress",
       "label": "She wants your honest eye on the dress",
+      "objective": "Give Judy your honest opinion of the dress",
       "know": "V came to see the dress. You are wearing it, or about to put it on. You feel exposed and a little silly, and you cover it with dry jokes.",
       "wants": "V's honest answer about the dress. Honest and kind is best, teasing is fine, pure flattery you only half believe.",
       "say": {"en": "Okay. Don't laugh. Well? And I want the truth, not the nice version."},
@@ -52,6 +55,7 @@
     {
       "id": "dinner",
       "label": "She asks you to come to the dinner",
+      "objective": "Answer Judy's request to come to the dinner at Lizzie's",
       "know": "The dress is decided. The dinner at Lizzie's is in about an hour. Going alone means a table of Mox asking questions, going with V would make it easier, though you would never say it like that.",
       "wants": "V to come to the dinner with you, as your plus-one or as moral support.",
       "say": {"en": "Dinner's in an hour. You could... come. As moral support. Or whatever."},
@@ -66,6 +70,7 @@
     {
       "id": "rain-check",
       "label": "You missed the dinner",
+      "objective": "Catch up with Judy after the Mox dinner",
       "know": "V could not make it to see the dress. You went to the dinner anyway, wore it, and it was a hell of a night. You are not hurt, much.",
       "wants": "To tell V about the night in a few words, and to make V a little sorry they missed it.",
       "say": {"en": "You missed a hell of a night. The dress was a hit, by the way."},

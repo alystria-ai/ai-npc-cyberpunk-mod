@@ -4,6 +4,7 @@
   "character": "kerry-eurodyne",
   "title": "Guinevere Wants to Run",
   "summary": "Kerry wants to run his Rayfield Aerondight Guinevere against your car from North Oak to the stadium lot in Heywood, and the winner picks the radio.",
+  "description": "Kerry wants to run his Rayfield Aerondight Guinevere against V's car from North Oak to the Atlantis Stadium lot in Heywood. The winner picks what plays on the radio for the drive home.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq017_kerry", "quests/side_quest/sq017_01_riot_club"],
@@ -49,6 +50,7 @@
     {
       "id": "dare",
       "label": "Kerry lays out the race rules",
+      "objective": "Hear out Kerry's race rules for the stadium run",
       "know": "You have challenged V to a race from your North Oak gate to the Atlantis Stadium lot, with the winner picking the radio. Heat must stay at zero or the race is void.",
       "wants": "V to accept the race.",
       "script": [
@@ -67,6 +69,7 @@
       "id": "start",
       "type": "play",
       "label": "Kerry is at the gate with Guinevere",
+      "objective": "Get to Kerry's North Oak gate with Guinevere",
       "know": "You are at your North Oak gate with Guinevere idling. You want the race to start clean, with no heat on the road.",
       "wants": "V at the gate, ready to race.",
       "do": [
@@ -84,6 +87,7 @@
       "id": "race",
       "type": "play",
       "label": "Kerry races Guinevere to the stadium lot",
+      "objective": "Race Kerry to the Atlantis Stadium lot in Heywood",
       "know": "The race is on from the North Oak gate to the Atlantis Stadium lot in Heywood. Guinevere is in front of you or behind you, and a wanted level would void the race.",
       "wants": "To beat V to the lot, or to lose to them and be proud of it.",
       "do": [

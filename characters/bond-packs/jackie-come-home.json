@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "Come Home, Kid",
   "summary": "A kid from Jackie's old block is about to sign with the Maelstrom in Northside, and Jackie calls you in to get him out.",
+  "description": "Jackie calls V in a hurry about a kid from his old block who is about to sign with the Maelstrom in Northside. Jackie wants the kid out before morning and asks V to meet him on the Afterlife steps within the hour.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q003_maelstrom"],
@@ -61,6 +62,7 @@
       "id": "call",
       "type": "play",
       "label": "Jackie calls V in about the kid",
+      "objective": "Answer Jackie's call and head to the Afterlife steps",
       "know": "Jackie is walking and calling you on a loud holocall. A kid from his old block is about to sign with the Maelstrom in Northside, and he wants you on the Afterlife steps within the hour.",
       "wants": "V to say yes and come to the Afterlife steps.",
       "do": [
@@ -78,6 +80,7 @@
       "id": "meet",
       "type": "play",
       "label": "V meets Jackie on the Afterlife steps",
+      "objective": "Meet Jackie on the Afterlife steps",
       "know": "You are on the Afterlife steps in Little China and Jackie is waiting for you. He wants to get to Northside before the kid is handed anything.",
       "wants": "V to get in the car and go.",
       "do": [
@@ -94,6 +97,7 @@
       "id": "drive",
       "type": "play",
       "label": "V drives Jackie to the Maelstrom yard in Northside",
+      "objective": "Drive Jackie to the Maelstrom yard in Northside",
       "know": "V is driving with Jackie in the passenger seat. Jackie talks about the Valentinos and the Maelstrom, and he is clearer about both than he has ever been.",
       "wants": "V to drive to the Maelstrom yard in Northside.",
       "do": [
@@ -112,6 +116,7 @@
       "id": "yard",
       "type": "play",
       "label": "V gets the kid out of the Maelstrom yard",
+      "objective": "Help Jackie get the kid out of the Maelstrom yard",
       "know": "The Maelstrom squad is relaxed in the yard. The kid is among them, scared and wanting to be someone. The recruiter is the squad boss. About six minutes from now the kid is handed a job and a gun.",
       "wants": "V to get the kid out before the handover.",
       "do": [
@@ -142,6 +147,7 @@
       "id": "platform",
       "type": "play",
       "label": "Jackie puts the kid on the train home",
+      "objective": "Help Jackie put the kid on the train at Kabuki Metro",
       "know": "The kid is with you on the platform at the Kabuki Metro station. Jackie is about to tell him what to do next.",
       "wants": "V's advice, which Jackie will quote back.",
       "do": [
@@ -163,6 +169,7 @@
       "id": "fight",
       "type": "play",
       "label": "V and Jackie fight their way into the yard",
+      "objective": "Fight your way into the Maelstrom yard with Jackie",
       "know": "The Maelstrom has turned on you in the yard in Northside. The kid is somewhere behind the squad, and the fight is loud.",
       "wants": "V to get the kid out alive.",
       "do": [

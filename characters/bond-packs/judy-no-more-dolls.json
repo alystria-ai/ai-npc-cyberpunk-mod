@@ -4,6 +4,7 @@
   "character": "judy-alvarez",
   "title": "No More Dolls",
   "summary": "A scav crew has taken Rina, the girl Judy got out of the Clouds, and Judy is going into their den with V.",
+  "description": "Scavs are making XBDs in Northside again, and they have taken Rina, the girl Judy got out of the Clouds. Judy is going into their den and needs V with her.",
   "requires": {
     "bond": 8,
     "questsFinished": ["quests/side_quest/sq026_04_hiromi"],
@@ -80,6 +81,7 @@
       "id": "found",
       "type": "talk",
       "label": "Judy has found the scav den and wants in",
+      "objective": "Go with Judy to the scav den in Northside",
       "know": "The scavs took Rina. You know where their den is, a dead parking garage in Northside, and Judy is pacing with her arms tight around herself.",
       "wants": "V to decide whether Judy comes along.",
       "tags": [{"id": "together", "kind": "yes"}, {"id": "alone", "kind": "no"}],
@@ -99,6 +101,7 @@
       "id": "together-go",
       "type": "talk",
       "label": "Judy agrees to come in with V",
+      "objective": "Go into the scav den with Judy",
       "know": "Judy is coming into the den with you.",
       "wants": "V to go in now.",
       "script": [{"when": "stage:enter", "say": "J5.found.05"}],
@@ -109,6 +112,7 @@
       "id": "den",
       "type": "play",
       "label": "V goes into the scav den",
+      "objective": "Fight through the scav den with Judy to reach Rina",
       "know": "The scav den is a dead parking garage in Northside with two floors. Six scavs are relaxed inside, and one of them is a netrunner. Rina is in the chair at the top.",
       "wants": "V to reach Rina, quietly if possible.",
       "do": [
@@ -138,6 +142,7 @@
       "id": "chair-quiet",
       "type": "play",
       "label": "V reaches Rina without a shot fired",
+      "objective": "Reach Rina at the garage top with Judy, without raising the alarm",
       "know": "The scavs have not noticed you yet. Rina is in the chair, and you are close enough to take her out.",
       "wants": "V to bring Rina out alive.",
       "do": [
@@ -153,6 +158,7 @@
       "id": "chair",
       "type": "play",
       "label": "V reaches Rina in the chair",
+      "objective": "Reach Rina in the chair at the top of the garage with Judy",
       "know": "The fight is on and Rina is in the chair at the top of the garage. Judy is at the rig, and she is not looking at the screens.",
       "wants": "V to get Rina out of the chair.",
       "do": [
@@ -177,6 +183,7 @@
       "id": "out",
       "type": "play",
       "label": "V walks Rina down to Judy's van",
+      "objective": "Walk Rina down to Judy's van",
       "know": "Rina is following you out. The scavs who are left are chasing you down the stairs.",
       "wants": "V to get Rina to the van.",
       "do": [
@@ -199,6 +206,7 @@
       "id": "ride",
       "type": "play",
       "label": "V drives Rina to Lizzie's",
+      "objective": "Drive Rina to Lizzie's basement with Judy",
       "know": "Rina is in the van with you. Lizzie's basement is across the city.",
       "wants": "V to drive Rina to Lizzie's.",
       "do": [
@@ -214,6 +222,7 @@
       "id": "after",
       "type": "play",
       "label": "V sits with Judy in Lizzie's basement",
+      "objective": "Sit with Judy in Lizzie's basement",
       "know": "Rina is asleep upstairs. You and Judy are in the basement, and she has never been this open with you before.",
       "wants": "V to stay and listen.",
       "do": [

@@ -5,6 +5,7 @@
   "character": "viktor-vektor",
   "title": "Fake Patients",
   "summary": "Three people in a taco truck queue each claim a symptom, and V has to pick the one who is lying.",
+  "description": "Three people in a taco truck queue in the Glen each claim one symptom, and only one of them is lying. Viktor has invited V to the lot to work out who.",
   "requires": {"bond": 3, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true, "eddies": true},
   "start": {
     "channels": ["phone", "own"],
@@ -48,6 +49,7 @@
       "id": "queue",
       "type": "play",
       "label": "V questions three people in the taco truck queue",
+      "objective": "Question the three people in the taco truck queue for Viktor",
       "know": "Viktor waits on the side of the lot while you talk to three people in the queue. Each claims a symptom. One of them is a faker, and the sickest of the three may be the one hiding it.",
       "wants": "V to pick the faker and to see who needs help.",
       "do": [

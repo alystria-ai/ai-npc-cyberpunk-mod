@@ -5,6 +5,7 @@
   "character": "rogue-amendiares",
   "title": "Table for Two",
   "summary": "Rogue sends V to a busy downtown restaurant with no free table and no eddies, to get one with words alone.",
+  "description": "Rogue sends V to a busy downtown restaurant with no free table. V is to get one with words alone, no money or threats, and Rogue will not help.",
   "requires": {
     "bond": 4,
     "questsFinished": [
@@ -68,6 +69,7 @@
       "id": "table",
       "type": "play",
       "label": "Rogue sends V to get a table without money",
+      "objective": "Get Rogue a table at the busy restaurant with words alone",
       "know": "V is at a busy downtown restaurant at seven. There is no free table. You want V to get one using words only, and you will not help. You watch and say nothing.",
       "wants": "V to get a table with words alone.",
       "do": [

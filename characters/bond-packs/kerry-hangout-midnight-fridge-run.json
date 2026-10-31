@@ -5,6 +5,7 @@
   "character": "kerry-eurodyne",
   "title": "Midnight Fridge Run",
   "summary": "Kerry is starving at two in the morning, the staff are asleep, and he wants you to sneak through his North Oak villa to the fridge with him.",
+  "description": "Kerry is starving in the middle of the night, and the staff are asleep. He asks V to sneak through his North Oak villa to the fridge with him.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq011_kerry"],
@@ -48,6 +49,7 @@
       "id": "raid",
       "type": "play",
       "label": "Kerry and V sneak to the fridge in his villa",
+      "objective": "Sneak through the villa to the fridge with Kerry",
       "know": "You are sneaking through Kerry's North Oak villa at night, past a security drone on its patrol and a housekeeper asleep in the kitchen. The fridge is your destination.",
       "wants": "V to get Kerry to the fridge without waking anyone.",
       "do": [

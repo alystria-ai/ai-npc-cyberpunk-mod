@@ -5,6 +5,7 @@
   "character": "panam-palmer",
   "title": "Billboard Beers",
   "summary": "Panam is already on top of an old billboard with two beers. V has to find the way up before the warm one goes flat.",
+  "description": "Panam is already on top of an old billboard north of Biotechnica Flats with two beers, and one of them is getting warm. V has to find the way up to her.",
   "requires": {
     "bond": 4,
     "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
@@ -35,6 +36,7 @@
       "id": "climb",
       "type": "play",
       "label": "V climbs the billboard to Panam",
+      "objective": "Climb the old billboard to Panam and the beers",
       "know": "Panam is already on top of the old billboard with two beers, out of V's sight. The climb is the puzzle, and she heckles V's route from above.",
       "wants": "V to get up to the top before the three minutes run out.",
       "meet": {"where": "waypoint", "inGameHours": 4},

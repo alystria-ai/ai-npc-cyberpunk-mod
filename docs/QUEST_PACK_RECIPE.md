@@ -19,6 +19,7 @@ mod's translation, but pack text is data and stays English.
 |---|---|
 | `id`, `character`, `title` | the heading and the character section (`character` is the profile key, for example `panam-palmer`) |
 | `summary` | one sentence of the premise, at most 200 characters |
+| `description` | the quest's journal text (docs/REAL_QUESTS.md): 1 to 3 sentences, third person, present tense, at most 300 characters, the situation only, never the ending |
 | `requires.bond` | "Gate: bond N" |
 | `requires.questsFinished` | the game quests named in the Gate, as journal paths (a name like `q104_02_av_chase` is in `bridge/bond-arcs.mjs` or `docs/QUEST_BRIEFINGS.md` with its full path) |
 | `requires.notActive` | "no `q104`, `sq004` or `sq027` quest active" as path prefixes |
@@ -45,7 +46,9 @@ mod's translation, but pack text is data and stays English.
 
 ## 3. Stages
 
-One stage per numbered item of "Stages". Give each an `id` (lowercase, hyphens), a `label` (what the Relationships page shows, at most 80 characters), `know` (what she
+One stage per numbered item of "Stages". Give each an `id` (lowercase, hyphens), a `label` (what the Relationships page shows, at most 80 characters), an `objective` (the line of the HUD quest
+tracker and the journal while the stage is current, an instruction to the player of at most 80 characters with no full stop, like "Meet Panam at the Sunset
+Motel", docs/REAL_QUESTS.md), `know` (what she
 knows and feels at this point, second person, at most 600 characters) and `wants` (at most 300). Take them from the stage text and the Talk list. A stage id may not be the
 same as an ending id.
 
@@ -122,7 +125,8 @@ same as an ending id.
 
 One entry per outcome, with the id the quest gives. `memory`: the outcome sentence in the second person (at most 300 characters). `bond`: the number in brackets. `history`:
 the quest's `history` note if it has one, one sentence the character keeps for good. `script`: the ending's rows, each `{"when":"ending:<id>", ...}` with a `say` or `text`
-(and `image`). "Rewards" that move eddies or items are `effects` or a later stage and are not part of the first conversion: list them in your report.
+(and `image`). `outcome` (optional, `succeeded` or `failed`): how the journal files it. Without it, an ending with a negative `bond` or the id `stood-up` is a
+failure and any other a success. "Rewards" that move eddies or items are `effects` or a later stage and are not part of the first conversion: list them in your report.
 
 ## 6. Check it
 

@@ -4,6 +4,7 @@
   "character": "panam-palmer",
   "title": "Coffee at the Sunset",
   "summary": "Panam asks V out to the Sunset Motel in Rocky Ridge for terrible coffee and a sunrise.",
+  "description": "Panam has a rare free morning at the Sunset Motel in Rocky Ridge. She asked V to come out for terrible motel coffee and a sunrise, for once with nothing to fix and no job to run.",
   "requires": {
     "bond": 3,
     "questsFinished": ["quests/main_quest/act_01/q104_02_av_chase"],
@@ -51,6 +52,7 @@
       "id": "invite",
       "type": "play",
       "label": "Panam is waiting at the Sunset Motel with coffee",
+      "objective": "Meet Panam at the Sunset Motel",
       "know": "You asked V to come out to the Sunset Motel in Rocky Ridge for coffee. You are waiting on the forecourt with two cups of terrible motel coffee. You want nothing from V but company, and you would never say that out loud.",
       "wants": "V to come out to the Sunset Motel.",
       "do": [
@@ -69,6 +71,7 @@
       "id": "walk",
       "type": "play",
       "label": "Panam is walking V around Rocky Ridge",
+      "objective": "Walk around Rocky Ridge with Panam",
       "know": "V came out to the Sunset. You are walking V around Rocky Ridge: the motel, the gas station and the lookout behind the motel where you watch the road. You review the motel coffee with mock formality and you cannot resist the extras of the motel room. You read weather from the dust and you keep a room under a roof, which says something about you that you do not explain.",
       "wants": "V to stay with you for the walk.",
       "do": [
@@ -90,6 +93,7 @@
       "id": "sit",
       "type": "play",
       "label": "Panam wants V to sit and watch the sun come up",
+      "objective": "Watch the sunrise with Panam",
       "know": "The tour is done and the sun is about to come up over the Badlands. You want V to sit down with you at the motel and watch it. You have a sharp, curious question for V and you will ask it once you are sitting.",
       "wants": "V to sit down beside you and watch the sunrise.",
       "do": [
@@ -113,6 +117,7 @@
       "id": "last-sip",
       "type": "play",
       "label": "Panam finishes her coffee",
+      "objective": "Finish the coffee with Panam",
       "know": "The sun is up and the coffee is finished. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
       "do": [{"p": "place", "at": "sunset"}],
       "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise"}],
@@ -122,6 +127,7 @@
       "id": "last-sip-warm",
       "type": "play",
       "label": "Panam finishes her coffee",
+      "objective": "Finish the coffee with Panam",
       "know": "The sun is up and the coffee is finished. V told you something real about V's own life and you answered with something small about growing up on the road. You enjoyed this more than you will admit. When V leaves you will send a photo of the view, the two chipped mugs on the hood of the Mackinaw with the sun low over the Badlands.",
       "do": [{"p": "place", "at": "sunset"}],
       "choices": [{"id": "goodbye", "on": "event:place:sunset:left", "next": "sunrise-shared"}],

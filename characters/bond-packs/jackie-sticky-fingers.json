@@ -4,6 +4,7 @@
   "character": "jackie-welles",
   "title": "Sticky Fingers",
   "summary": "A kid lifts the gold cross Jackie never takes off at Kabuki Market, and Jackie goes after him over the stalls with you.",
+  "description": "A kid lifts the gold cross Jackie never takes off at Kabuki Market, and Jackie goes after him over the stalls with V at his side.",
   "requires": {
     "bond": 2,
     "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
@@ -64,6 +65,7 @@
       "id": "show-off",
       "type": "play",
       "label": "Jackie shows V the grips at Kabuki Market",
+      "objective": "Admire Jackie's new bike grips at the Kabuki Market east entrance",
       "know": "You are at the Kabuki Market east entrance with Jackie and his bike. He is loud about the grips he wrapped himself, and he wants you to look at them properly.",
       "wants": "V to admire the bike and the grips.",
       "do": [
@@ -87,6 +89,7 @@
       "id": "lift",
       "type": "play",
       "label": "V and Jackie chase the kid over the stalls",
+      "objective": "Chase the kid over the Kabuki Market stalls with Jackie",
       "know": "The kid lifted your cross and runs over the stalls, up to the rooftop walkway, down into a back yard and toward a fence in Little China. You are running with Jackie, and he is shouting.",
       "wants": "V to catch the kid before he reaches the fence.",
       "do": [
@@ -113,6 +116,7 @@
       "id": "catch",
       "type": "talk",
       "label": "V decides what to do with the kid",
+      "objective": "Decide what happens to the kid, with Jackie waiting",
       "know": "The kid is in front of you with your cross in his hand, hungry and scared. Jackie is waiting for your call on what happens to him.",
       "wants": "V's decision on the kid.",
       "script": [
@@ -130,6 +134,7 @@
       "id": "listen",
       "type": "play",
       "label": "Jackie puts the cross back on and lets V sit on the bike",
+      "objective": "Sit on Jackie's bike and listen to the engine",
       "know": "Jackie has the cross back on his neck. He lets you sit on the bike for a few minutes and tells you to listen to the engine.",
       "wants": "V to sit on the bike and listen to the engine.",
       "do": [
@@ -151,6 +156,7 @@
       "id": "fenced",
       "type": "play",
       "label": "V finds the cross at a fence's stall",
+      "objective": "Track the cross down with Jackie at the fence's stall in Little China",
       "know": "The kid got away and the cross ended up with a fence in Little China. The fence has it on a velvet cloth and wants a price for it. Jackie stands behind you and says nothing.",
       "wants": "V to buy the cross back.",
       "do": [
