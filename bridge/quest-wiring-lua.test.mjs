@@ -175,7 +175,9 @@ local modules = {
   ['quest-lines.lua'] = fakeModule('lines', {busy = function() return game.linesBusy == true end, stopped = function(id, reason) game.stopped = id .. ':' .. reason end}),
   ['quest-play.lua'] = fakeModule('play', {restore = function() game.restores = game.restores + 1 end, update = function(player, delta) if game.throwUpdate then error('update broke') end game.updates[#game.updates + 1] = delta end,
     abandon = function() game.abandons = game.abandons + 1 end, onPlayRevision = function() game.revisions = (game.revisions or 0) + 1 end, emitPack = function() end, rearm = function() end,
-    emitReach = function(id) game.reachEvents[#game.reachEvents + 1] = id; return true end, refresh = function() game.refreshes = (game.refreshes or 0) + 1 end}),
+    emitReach = function(id) game.reachEvents[#game.reachEvents + 1] = id; return true end, refresh = function() game.refreshes = (game.refreshes or 0) + 1 end,
+    settingOff = function() game.settingOffs = (game.settingOffs or 0) + 1 end}),
+  ['quest-journal.lua'] = {new = function(options) game.built.journal = options; return {apply = function() end} end, gameWorld = function(getPlayer) return {getPlayer = getPlayer} end},
   ['quest-reach.lua'] = fakeModule('reach', {setBlock = function(block) game.reachBlocks[#game.reachBlocks + 1] = block or false end, update = function() game.reachUpdates = game.reachUpdates + 1 end,
     reset = function(why) game.reachResets[#game.reachResets + 1] = why end, districtChanged = function() end, sample = function() end}),
 }
@@ -199,12 +201,18 @@ convaiQuestPlayRevision(); assert(#game.loads == 0, 'a play revision with the se
 
 test('glue: with the setting on the five modules are built once, the stage is read once (after a sweep), and each tick passes its delta to update', () => withGlue(`
 convaiQuestTick('V', 0.1)
-assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua,quest-prims-calls.lua,quest-audio.lua,quest-reach.lua', table.concat(game.loads, ','))
+assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua,quest-prims-calls.lua,quest-audio.lua,quest-journal.lua,quest-reach.lua', table.concat(game.loads, ','))
 assert(game.sweeps == 1 and game.restores == 1 and convaiQuestPlay ~= nil and convaiQuestLines ~= nil and convaiQuestWorld ~= nil)
 convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.2)
-assert(#game.loads == 13 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
+assert(#game.loads == 14 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
 local options = game.built.play
 assert(options.enabled() == true and options.places and options.lines and options.prims)
+-- The real quests (mod/quest-journal.lua): built with the quest module and handed to the executor, the game world reaching the player through convaiPlayer.
+assert(options.journal ~= nil and convaiQuestJournal == options.journal and game.built.journal.world.getPlayer ~= nil)
+-- Settings > Companions turning Story packs off clears them at once; back on, the stage is read again.
+game.on = false; convaiQuestSettingChanged(); assert(game.settingOffs == 1)
+convaiQuestPlayRevision(); assert(game.settingOffs == 2, 'a play revision with the setting off clears too')
+game.on = true; convaiQuestSettingChanged(); assert(game.restores == 2)
 game.on = false; assert(options.enabled() == false, 'the setting is read each time')
 -- The bridge's play revision reads the file now.
 game.on = true; convaiQuestPlayRevision(); assert(game.revisions == 1)

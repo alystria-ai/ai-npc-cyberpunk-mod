@@ -60,7 +60,9 @@ test('the pilot quest\'s play file keeps its shape and gains factsWanted and the
     bonds: {on: true, copy: 'party', packs: true, invitations: true}};
   runner.forTurn(input, {level: 3}); runner.afterTurn(input, 'ok');
   const file = runner.playState();
-  assert.deepEqual(Object.keys(file).sort(), ['closing', 'commands', 'factsWanted', 'quests', 'reach', 'revision', 'version']);
+  assert.deepEqual(Object.keys(file).sort(), ['closing', 'commands', 'factsWanted', 'journal', 'quests', 'reach', 'revision', 'version']);
+  // The real quest of the pack (docs/REAL_QUESTS.md): one active row with the stage's objective.
+  assert.deepEqual(file.journal.map(row => [row.pack, row.state, row.objective]), [['panam-sunset-coffee', 'active', 'Meet Panam at the Sunset Motel']]);
   assert.deepEqual(file.factsWanted, []);
   assert.deepEqual(file.reach, {enabled: false, items: [], perHour: 1, perDay: 3});
   assert.equal(file.quests[0].stage, 'invite');

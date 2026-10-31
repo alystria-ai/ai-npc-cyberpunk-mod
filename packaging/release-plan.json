@@ -246,6 +246,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-reach.lua"
         },
         {
+          "source": "mod/quest-journal.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-journal.lua"
+        },
+        {
           "source": "mod/quest-lines.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-lines.lua"
         },
@@ -854,6 +858,10 @@
           "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/QuestLog.reds",
+          "target": "r6/scripts/CyberpunkConvai/QuestLog.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds",
           "target": "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds"
         }
@@ -1071,6 +1079,7 @@
             "bridge/quest-context.mjs",
             "bridge/quest-facts.mjs",
             "bridge/quest-format.mjs",
+            "bridge/quest-journal.mjs",
             "bridge/quest-lines.mjs",
             "bridge/quest-link.mjs",
             "bridge/quest-overview.mjs",
