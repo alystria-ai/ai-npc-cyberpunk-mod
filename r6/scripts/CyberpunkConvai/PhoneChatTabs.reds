@@ -370,8 +370,16 @@ public func DisableContactsInput() -> Void {
     if IsDefined(this.m_player) { this.m_player.UnregisterInputListener(this, n"call"); };
     wrappedMethod();
 }
+// The phone's contact list closes (a call started from it, Esc, another screen): every hint the Chat list rebound is the game's own again, not when the
+// next contact is shown. (DisableContactsInput also runs while a conversation has the focus, when the list comes back with its hints as they were.)
+@wrapMethod(NewHudPhoneGameController)
+protected cb func OnContactListClosed() -> Bool {
+    if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiHintsRestore(); };
+    return wrappedMethod();
+}
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnUninitialize() -> Bool {
+    if IsDefined(this.m_contactListLogicController) { this.m_contactListLogicController.ConvaiHintsRestore(); };
     this.ConvaiChatListKeysStop();
     this.ConvaiSearchUninitialize();
     return wrappedMethod();
@@ -458,6 +466,9 @@ private cb func OnConvaiChatListKey(evt: ref<KeyInputEvent>) -> Void {
         return;
     };
     if !IsDefined(this.m_player) || !IsDefined(this.m_contactListLogicController) || evt.IsShiftDown() || evt.IsControlDown() || evt.IsAltDown() { return; };
+    // Only while the phone's Chat list is on the screen, as the J and L keys of PhoneContacts.reds are: the phone is open, on the Contacts screen, no thread
+    // list or message page over it. T, H and F are the game's own keys everywhere else (a callback that outlived a closing list never acts).
+    if !this.m_player.ConvaiPhoneIsOpen() || NotEquals(this.m_screenType, PhoneScreenType.Contacts) || this.m_threadsVisible || this.m_messagesPanelVisible { return; };
     // Only the Chat list: a conversation (or its opening) owns the keyboard, and the other tabs are the game's.
     if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
     // The search (PhoneChatSearch.reds): O or / opens it, and while the player types in its box every key is the box's (T, H and F are letters then).
@@ -720,15 +731,21 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
             let top = this.GetRootWidget();
             let found = ConvaiHintBinding.CloseToEsc(top, 8);
             if found == 0 {
+                // Up through the phone window one level at a time and stop at the first level that holds a cancel hint: the bar that is the phone's
+                // own, never the whole screen's hints (a hint of another page would be left reading Esc).
                 let up = 0;
-                while up < 6 && IsDefined(top) && IsDefined(top.GetParentWidget()) {
+                while found == 0 && up < 6 && IsDefined(top) && IsDefined(top.GetParentWidget()) {
                     top = top.GetParentWidget();
                     up += 1;
+                    found = ConvaiHintBinding.CloseToEsc(top, 9);
                 };
-                found = ConvaiHintBinding.CloseToEsc(top, 9);
             };
-            this.m_convaiCloseEsc = IsDefined(top) && found > 0;
-            if this.m_convaiCloseEsc { this.m_convaiCloseRoot = top; };
+            // What is rebound is put back from where it was found. A hint that is already rebound (the list was shown again before the last put-back) is
+            // found again as zero: the earlier record stays, it is never forgotten.
+            if IsDefined(top) && found > 0 {
+                this.m_convaiCloseEsc = true;
+                this.m_convaiCloseRoot = top;
+            };
             if !this.m_convaiHintsTraced {
                 this.m_convaiHintsTraced = true;
                 player.ConvaiPhoneChatTrace("Chat list close hint: rebound " + IntToString(found) + " cancel hint(s) to Esc");
@@ -776,16 +793,24 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
         };
     } else {
         // Anything else on this list: the hint is the game's again, bound to what it was bound to (the close hint too: C).
-        if this.m_convaiCloseEsc {
-            ConvaiHintBinding.EscToClose(this.m_convaiCloseRoot, 9);
-            this.m_convaiCloseEsc = false;
-        };
-        if this.m_convaiCallHintBound {
-            ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), this.m_convaiCallHintAction);
-            this.m_convaiCallHintBound = false;
-        };
-        this.ConvaiKeyGlyphsRestore();
+        this.ConvaiHintsRestore();
     };
+}
+
+// Every hint the Chat list rebound (the close hint to Esc, the second hint to the call key, the key glyphs) is the game's own again. Done whenever the
+// list stops being the Chat list or the phone closes (OnContactListClosed, OnUninitialize of the phone), so no rebind outlives the page that made it.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiHintsRestore() -> Void {
+    if this.m_convaiCloseEsc {
+        if IsDefined(this.m_convaiCloseRoot) { ConvaiHintBinding.EscToClose(this.m_convaiCloseRoot, 9); };
+        this.m_convaiCloseEsc = false;
+        this.m_convaiCloseRoot = null;
+    };
+    if this.m_convaiCallHintBound {
+        ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), this.m_convaiCallHintAction);
+        this.m_convaiCallHintBound = false;
+    };
+    this.ConvaiKeyGlyphsRestore();
 }
 
 // The three bottom hints as the game draws them (key boxes, the Show all label, no star).

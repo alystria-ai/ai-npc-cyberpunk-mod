@@ -71,20 +71,40 @@ local function menuPointerEvent(event)
     return false
 end
 
-function M.blocksMenuAction(action)
-    local typing, open = phoneState()
-    if typing then return not passesRelease(action) end
-    if not open then return false end
-    -- The standard journal binding is J. GetKey also covers menu actions the
-    -- player has rebound to either of our phone keys.
-    if ListenerAction.IsAction(action, 'OpenJournalMenu') then return true end
+-- The keys the mod's phone listens to: H (call), J and L (join and leave the party, PhoneContacts.reds). EInputKey values.
+M.PHONE_KEYS = {[72] = true, [74] = true, [76] = true}
+-- H starts a holocall and the phone closes with that press, so the key comes up after the phone is gone: a menu action the game has on the same key
+-- (its own binding, or one the player made) that fires on the release would open its menu over the call (1 Nov 2026: "H opens the menu screen"). Menu
+-- releases on those keys are therefore still held for this many seconds after the phone was last seen open. Presses and every other key pass.
+M.RELEASE_GRACE = 1.5
+local openSeenAt
+
+local function onPhoneKey(action)
     local ok, keys = pcall(ListenerAction.GetKey, action)
     if ok and type(keys) == 'table' then
         for _, key in ipairs(keys) do
-            if tonumber(key) == 74 or tonumber(key) == 76 then return true end
+            if M.PHONE_KEYS[tonumber(key)] then return true end
         end
     end
     return false
+end
+
+function M.blocksMenuAction(action)
+    local typing, open = phoneState()
+    if open then openSeenAt = os.clock() end
+    if typing then return not passesRelease(action) end
+    if not open then
+        -- Just closed: only the key-up of a menu action that sits on one of the phone's keys is still ours.
+        if openSeenAt and os.clock() - openSeenAt <= M.RELEASE_GRACE then
+            local released, justReleased = pcall(ListenerAction.IsButtonJustReleased, action)
+            return released and justReleased == true and isMenuAction(action) and onPhoneKey(action)
+        end
+        return false
+    end
+    -- The standard journal binding is J. GetKey also covers menu actions the
+    -- player has rebound to any of our phone keys (H, J, L).
+    if ListenerAction.IsAction(action, 'OpenJournalMenu') then return true end
+    return onPhoneKey(action)
 end
 
 function M.install()
@@ -110,7 +130,7 @@ function M.install()
         return wrapped(event)
     end)
     M.installed = true
-    M.version = 3
+    M.version = 4
 end
 
 convaiPhoneInput = M

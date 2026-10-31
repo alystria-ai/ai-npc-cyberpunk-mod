@@ -39,6 +39,7 @@ m.install()
 local onAction = overrides['gameuiInGameMenuGameController.OnAction']
 local onPointer = overrides['gameuiInGameMenuGameController.OnHandleMenuInput']
 local function state(isTyping, isOpen) typing, open = isTyping, isOpen; clock = clock + 1 end
+local function advance(seconds) clock = clock + seconds end
 -- Returns: consumed by us, reached the game's own handler
 local function action(name, kind, keys)
   local consumer, reached = {}, false
@@ -93,6 +94,49 @@ for _, kind in ipairs({'press', 'release'}) do
   consumed, reached = action('Right', kind, {74}); assert(consumed and not reached)
   consumed, reached = action('Right', kind, {76}); assert(consumed and not reached)
 end
+`));
+
+// 1 Nov 2026 (owner, game 2.5): H on a Chat row starts a holocall and the phone closes with that press, then the key comes up. A menu action the game has on H fires
+// on the release (the way the quickload fires on a button release), so the menu opened over the call. The phone's keys are H, J and L.
+test('while the phone is open a menu action on H is held back as on J and L, a press and a release', () => runLua(setup + `
+state(false, true)
+for _, kind in ipairs({'press', 'release'}) do
+  local consumed, reached = action('OpenHubMenu', kind, {72}); assert(consumed and not reached, 'H ' .. kind)
+  consumed, reached = action('OpenPauseMenu', kind, {27}); assert(not consumed and reached, 'Esc ' .. kind .. ' still the game\\'s')
+  consumed, reached = action('Right', kind, {72}); assert(consumed and not reached, 'any action on H')
+  consumed, reached = action('OpenHubMenu', kind, {73}); assert(not consumed and reached, 'a neighbouring key (I) passes')
+end
+assert(m.PHONE_KEYS[72] and m.PHONE_KEYS[74] and m.PHONE_KEYS[76])
+`));
+
+test('the phone has just closed (the call started): the key-up of a menu action on H, J or L is still held for a moment, nothing else is', () => runLua(setup + `
+state(false, true)
+local consumed, reached = action('OpenHubMenu', 'press', {72}); assert(consumed)
+-- The call started, the phone closed: the key comes up half a second later.
+advance(0.5); state(false, false)
+for _, key in ipairs({72, 74, 76}) do
+  consumed, reached = action('OpenHubMenu', 'release', {key}); assert(consumed and not reached, 'release of key ' .. key .. ' held')
+end
+-- Only a menu action, only a release, only the phone's keys.
+consumed, reached = action('OpenHubMenu', 'press', {72}); assert(not consumed and reached, 'a new press is the game\\'s')
+consumed, reached = action('Right', 'release', {72}); assert(not consumed and reached, 'a movement key-up passes')
+consumed, reached = action('OpenHubMenu', 'release', {73}); assert(not consumed and reached, 'another key passes')
+consumed, reached = action('OpenPauseMenu', 'release', {27}); assert(not consumed and reached, 'Esc passes')
+consumed, reached = action('OpenHubMenu', 'release'); assert(not consumed and reached, 'an action with no key passes')
+-- Past the grace, H is the game's again, as it is anywhere else.
+advance(m.RELEASE_GRACE + 0.1); state(false, false)
+consumed, reached = action('OpenHubMenu', 'release', {72}); assert(not consumed and reached, 'after the grace H works as the game made it')
+consumed, reached = action('OpenHubMenu', 'press', {72}); assert(not consumed and reached)
+`));
+
+test('a phone that was never open holds nothing, and a failing key query never blocks input', () => runLua(setup + `
+state(false, false)
+local consumed, reached = action('OpenHubMenu', 'release', {72}); assert(not consumed and reached, 'never opened')
+state(false, true)
+ListenerAction.GetKey = function() error('no keys') end
+consumed, reached = action('OpenHubMenu', 'press', {72}); assert(not consumed and reached, 'a failing GetKey passes')
+advance(0.2); state(false, false)
+consumed, reached = action('OpenHubMenu', 'release', {72}); assert(not consumed and reached)
 `));
 
 test('pointer key-ups: typing swallows only what the menu controller reacts to', () => runLua(setup + `
