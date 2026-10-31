@@ -3548,6 +3548,7 @@ function convaiComposerWatch.closed(player, context)
     local opened = convaiComposerWatch.generation == context.generation and convaiComposerWatch.openedAt or nil
     log('Composer closed without a message: generation=' .. tostring(context.generation) .. ' result=' .. result
         .. (opened and (' open=' .. math.floor(os.time() - opened) .. 's') or '') .. convaiComposerWatch.moveEvidence(player))
+    if convaiMoveTrace then convaiMoveTrace.finish(player, 'the box closed (' .. result .. ')') end
     if result == 'empty' or result == 'nodata' then convaiComposerWatch.notify(player) end
     if result:sub(1, 7) == 'closed:' then convaiComposerWatch.keep(player, context) else convaiComposerWatch.draft = nil end
 end
@@ -3603,16 +3604,60 @@ end
 
 -- Talk box start gate. The game's popup takes the keyboard, so a movement key
 -- released while it is open is never seen by gameplay and V keeps walking after it
--- closes (a Codeware popup cannot hand the key-up back). Composer.reds tracks the
--- MoveX/MoveY axes from the game's own change events, so the talk key only has to ask
--- one native bool. When a direction is held the box opens as soon as it is released,
--- or after TALK_WAIT_MAX seconds at the latest: a talk request is never dropped.
-local TALK_WAIT_MAX = 1.5
+-- closes (a Codeware popup cannot hand the key-up back, and the retail scripts have no
+-- input reset). So the box is never opened while a movement key is held or V is still
+-- moving from one: the press is remembered and the box opens the moment the keys are
+-- up and V has settled. Composer.reds tracks the MoveX/MoveY axes from the game's own
+-- change events. A wait that ends with V still moving drops the press (TALK_WAIT_MAX,
+-- one probe.log line, no notice). An axis that reads held while V stands still is a
+-- stale reading or a key held against a wall: it gets TALK_STALE_WAIT, is forgotten and
+-- the box opens.
+local TALK_WAIT_MAX = 4.0
+local TALK_STALE_WAIT = 1.5
+local TALK_MOVING_SPEED = 0.35   -- m/s on foot above which V counts as moving
+local TALK_INPUT_WINDOW = 5      -- seconds after a movement event in which speed counts as "from input"
 -- 'held', 'free', or 'n/a' when the redscript tracker is not installed.
 local function moveStateText(player)
     local ok, held = pcall(function() return player:ConvaiMoveHeld() end)
     if not ok or type(held) ~= 'boolean' then return 'n/a' end
     return held and 'held' or 'free'
+end
+-- V's horizontal speed as a number, nil when the game will not say.
+local function playerSpeedNumber(player)
+    local ok, velocity = pcall(function() return player:GetVelocity() end)
+    if not ok or velocity == nil then return nil end
+    local okRead, speed = pcall(function() return math.sqrt(velocity.x ^ 2 + velocity.y ^ 2) end)
+    if not okRead or type(speed) ~= 'number' or speed ~= speed then return nil end
+    return speed
+end
+-- Whether V is moving from a key: on foot, faster than TALK_MOVING_SPEED, and a movement event came within TALK_INPUT_WINDOW seconds (V
+-- carried by a lift or a platform has no recent movement event, so the talk key is never blocked by that). nil when it cannot be told.
+local function movingFromInput(player)
+    local speed = playerSpeedNumber(player)
+    if speed == nil or speed <= TALK_MOVING_SPEED then return false, speed end
+    local okCar, car = pcall(function() return player:GetMountedVehicle() end)
+    if okCar and car ~= nil then return false, speed end
+    local okSince, since = pcall(function() return player:ConvaiMoveSince() end)
+    if not okSince or type(since) ~= 'number' then return false, speed end
+    return since <= TALK_INPUT_WINDOW, speed
+end
+-- Developer mode only: the movement events (key down and up as the game reports them) from a talk press until the box closes or the wait ends,
+-- written to probe.log in one line (Composer.reds ConvaiMoveLogStart/Take). Event driven, nothing runs per frame for it.
+convaiMoveTrace = {}
+function convaiMoveTrace.start(player)
+    convaiMoveTrace.on = false
+    local okDev, dev = pcall(function() return manager.developerMode() end)
+    if not okDev or not dev then return end
+    if pcall(function() player:ConvaiMoveLogStart() end) then convaiMoveTrace.on = true end
+end
+function convaiMoveTrace.note(text)
+    if convaiMoveTrace.on then log('Talk timeline: ' .. text) end
+end
+function convaiMoveTrace.finish(player, why)
+    if not convaiMoveTrace.on then return end
+    convaiMoveTrace.on = false
+    local ok, text = pcall(function() return player:ConvaiMoveLogTake() end)
+    log('Talk timeline: movement events until ' .. why .. ':' .. ((ok and type(text) == 'string' and text ~= '') and text or ' none'))
 end
 local function beginTextNow(groupMode, waited, talkJohnny)
     local ok, err = pcall(function()
@@ -3679,38 +3724,74 @@ local function beginTextNow(groupMode, waited, talkJohnny)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end
 
+-- Whether a talk press has to wait: 'axis' (a movement axis reads held), 'moving' (V on foot is still moving from a key, e.g. slowing down after
+-- the release) or nil. `speed` is V's speed when known.
+local function talkBusy(player)
+    if moveStateText(player) == 'held' then
+        return 'axis', playerSpeedNumber(player)
+    end
+    if moveStateText(player) == 'n/a' then return nil end
+    local moving, speed = movingFromInput(player)
+    if moving then return 'moving', speed end
+    return nil, speed
+end
 local function beginText(groupMode, talkJohnny)
     local player = convaiPlayer()
     local gate = convaiTalkGate
-    if player and gate and moveStateText(player) == 'held' then
-        -- A second press while waiting only updates which chat was asked for.
-        local waiting = gate.waiting
-        gate.waiting = {group = groupMode, johnny = talkJohnny, waited = waiting and waiting.waited or 0}
-        if not waiting then log('Talk box waits for the movement keys to be released') end
-        return
+    if player and not convaiMoveTrace.on then convaiMoveTrace.start(player) end
+    if player and gate then
+        local busy, speed = talkBusy(player)
+        if busy then
+            -- A second press while waiting only updates which chat was asked for.
+            local waiting = gate.waiting
+            gate.waiting = {group = groupMode, johnny = talkJohnny, waited = waiting and waiting.waited or 0}
+            if not waiting then
+                log('Talk box waits for the movement keys to be released')
+                convaiMoveTrace.note('talk press waits: ' .. busy .. ', speed=' .. (speed and string.format('%.2f', speed) or 'n/a'))
+            end
+            return
+        end
+        convaiMoveTrace.note('talk press: movement free, speed=' .. (speed and string.format('%.2f', speed) or 'n/a'))
     end
     if gate then gate.waiting = nil end
     beginTextNow(groupMode, nil, talkJohnny)
+    if player and not active then convaiMoveTrace.finish(player, 'the box did not open') end
 end
 
--- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the
--- box once the axes are released, when the wait runs out, or drops the request when
--- the world is not playable any more.
+-- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the box as soon as the movement keys are up and V has settled.
+-- Still moving at TALK_WAIT_MAX: the press is dropped (one probe.log line). An axis that reads held while V stands still gets TALK_STALE_WAIT,
+-- then the reading is forgotten and the box opens. Dropped as well when the world is not playable any more.
 convaiTalkGate = {}
 function convaiTalkGate.update(delta, worldReady)
     local waiting = convaiTalkGate.waiting
     if not waiting then return end
-    if not worldReady then convaiTalkGate.waiting = nil; return end
     local player = convaiPlayer()
-    if not player then convaiTalkGate.waiting = nil; return end
+    if not worldReady or not player then
+        convaiTalkGate.waiting = nil
+        if player then convaiMoveTrace.finish(player, 'the wait ended (the world stopped)') end
+        return
+    end
     waiting.waited = waiting.waited + (tonumber(delta) or 0)
-    local stillHeld = moveStateText(player) == 'held'
-    if stillHeld and waiting.waited < TALK_WAIT_MAX then return end
+    local busy, speed = talkBusy(player)
+    if busy == 'moving' or (busy == 'axis' and speed and speed > TALK_MOVING_SPEED) then
+        if waiting.waited < TALK_WAIT_MAX then return end
+        convaiTalkGate.waiting = nil
+        log(string.format('Talk box not opened: V was still moving after %.1f s (movement key held or speed %.2f)', waiting.waited, speed or -1))
+        convaiMoveTrace.finish(player, 'the press was dropped')
+        return
+    end
+    local stale = busy == 'axis'
+    if stale and waiting.waited < TALK_STALE_WAIT then return end
     convaiTalkGate.waiting = nil
-    -- A reading that never cleared is probably an unseen key-up: forget it so the
-    -- next talk request is not delayed by it, then open the box anyway.
-    if stillHeld then pcall(function() player:ConvaiMoveForget() end) end
+    -- A reading that never cleared while V stands still is a missed key-up or a key held against a wall: forget it so the next talk request
+    -- is not delayed by it, then open the box.
+    if stale then
+        pcall(function() player:ConvaiMoveForget() end)
+        log(string.format('Talk box: movement reading held for %.1f s with V standing, taken as stale and forgotten', waiting.waited))
+    end
+    convaiMoveTrace.note(string.format('wait over after %.2f s%s, speed=%s', waiting.waited, stale and ' (stale reading forgotten)' or '', speed and string.format('%.2f', speed) or 'n/a'))
     beginTextNow(waiting.group, waiting.waited, waiting.johnny)
+    if not active then convaiMoveTrace.finish(player, 'the box did not open') end
 end
 
 -- Hold to talk: the voice key records from the moment it goes down until it comes up, and V's turn ends there (docs/VOICE_INPUT.md).
@@ -8609,6 +8690,7 @@ registerForEvent('onUpdate', function(delta)
                 end
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message .. convaiComposerWatch.moveEvidence(player))
+            if convaiMoveTrace then convaiMoveTrace.finish(player, 'the message was sent') end
             -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's
             -- voice speaks it, and replaced by the reply's caption. Once per sent line; nothing per frame. A refused or off subtitle is silent.
             if sent ~= false then pcall(subtitles.showTyped, message) end

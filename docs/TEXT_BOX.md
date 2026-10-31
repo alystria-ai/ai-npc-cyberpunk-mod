@@ -44,10 +44,44 @@ and every `Composer closed without a message` and `Native input captured` line i
 arrived while the box was up. `moveAxis=held` after a close with V standing means a release was lost. That line, with the key the player pressed last, is what a recurrence needs. The talk key's gate
 (`convaiTalkGate`, wait up to 1.5 s for a held axis, then open anyway and forget the reading) is unchanged.
 
+**Reproduced and fixed: the box never opens while a key is held or V is moving from one (`fix/textbox-stuck-walk`).** Live test of the revert, `probe.log`:
+
+```
+09:16:23 Talk box waits for the movement keys to be released
+09:16:24 Composer opened: ... speed=3.85 moveAxis=free waited=1.51 draft=kept words
+09:16:28 Composer closed without a message: ... result=closed:0 open=4s moveAxis=free moveEvents=2
+         (V then walked forward on his own)
+```
+
+The owner pressed the talk key while walking with W. What the log shows, read against the code:
+
+- The wait for released keys was capped at 1.5 s. A player who is still walking is still holding W, so the cap fired and the box opened **with W down**. The key-up that then happened inside the box was seen by the tracker (`moveEvents=2` arrived while the box was up) but did not reach the game's movement, so the game kept W held. This is the mechanism, and it is the same one the 11 Oct fix was meant to avoid.
+- `moveAxis=free` on the open line was **not a wrong held detection**. The gate called `ConvaiMoveForget` at the cap, before the open line read the axis. The press at 09:16:23 did see W held (that is why it waited). The forget is now logged on its own line and happens only in the stale case below.
+
+The gate (`convaiTalkGate`, `mod/init.lua`):
+
+| State at the talk press or while it waits | Result |
+|---|---|
+| Axis reads held and V is moving (speed above 0.35 m/s) | waits, the press is remembered (the last press decides private, group, Johnny), opens the moment the keys are up and V has settled |
+| Axis free but V on foot is still moving and a movement event came within 5 s (the slide after a release) | waits the same way |
+| Either of the above still true after 4 s (`TALK_WAIT_MAX`) | the press is **dropped**: one probe.log line `Talk box not opened: V was still moving ...`, no notice, the reading is kept (never forgotten while V moves) |
+| Axis reads held but V stands still (a stale reading, or a key held against a wall) | waits 1.5 s (`TALK_STALE_WAIT`), then the reading is forgotten (logged) and the box opens |
+| V in a vehicle, or carried by a lift or platform (speed but no recent movement event) | the speed rule does not apply, the box opens as before |
+| Tracker missing or a query fails | opens at once, as before |
+
+`ConvaiMoveSince` (seconds since the last movement event, from the game clock `GetSimTime`, one float store per event) is what keeps a lift from blocking the key.
+The wait is serviced from `onUpdate` only while a press waits, as before. Honest limit: a key held against a wall with V standing still is indistinguishable from a stale reading and opens after 1.5 s.
+
+**Developer mode: the timeline.** With Developer mode on, a talk press starts a trace (`convaiMoveTrace`, `Composer.reds` `ConvaiMoveLogStart`): every movement event the game reports (`MoveX`/`MoveY` with its value and the action type, so key down and up) is
+kept as `+seconds name=value typeN` (at most 60), and probe.log gets one line when the box closes, the message is sent, the wait is dropped or the box did not open:
+`Talk timeline: movement events until the box closed (closed:0): +0.10 MoveY=1.00 type1 +1.90 MoveY=0.00 type2`. Timeline notes in between (`talk press waits: axis, speed=3.85`, `wait over after 0.62 s`) go to probe.log as `Talk timeline: ...`
+next to the always-on `Talk box waits`, `Composer opened`, `Composer closed` and `Native input captured` lines, so the whole story of a press reads from probe.log without being told. With Developer mode off nothing is recorded
+(the recorder is off, an event costs two stores). Event driven: nothing runs per frame for it.
+
 **Cost.** Nothing per frame. One integer add per movement event, one native read per box open and close.
 
 **Tests.** `bridge/composer-draft.test.mjs` (the park code is gone from the `.reds`, `.lua` and notices, the draft rules, the field write, the evidence line, the `.reds` close paths) and
-`bridge/phone-input.test.mjs` (the tracker). Compiled with `scripts/Compile-Redscript.ps1` for game 2.5 and, with `-GameDirectory` pointing at the 2.31 copy, for game 2.31.
+`bridge/phone-input.test.mjs` (the tracker, the gate, the developer trace). Compiled with `scripts/Compile-Redscript.ps1` for game 2.5 and, with `-GameDirectory` pointing at the 2.31 copy, for game 2.31.
 
 ## 2. "I'm using MCM so the mod settings do not show up"
 
