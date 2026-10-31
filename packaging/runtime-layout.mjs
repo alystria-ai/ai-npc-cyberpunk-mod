@@ -188,6 +188,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/parsed-snapshot.mjs',
   'bridge/party-connections.mjs',
   'bridge/pcm-edges.mjs',
+  'bridge/pet-names.mjs',
   'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',
   'bridge/phone-failure.mjs',
