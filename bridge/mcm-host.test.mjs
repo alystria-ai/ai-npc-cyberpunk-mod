@@ -258,6 +258,38 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   assert(off.subtitles == false and off.subtitleStyle == 'overhead' and mcm.row('Subtitles').value == 1, tostring(off.subtitleStyle))
 `));
 
+test('Mod Configuration Menu shows Other language beside Voice language and Subtitle language beside Subtitles, and Apply saves them through the same rules', () => withScreen(`
+  settingsPage('Voice AI and microphone')
+  local voiceLabels = labels()
+  assert(voiceLabels:find('Voice language | Other language | Companion voice volume', 1, true), voiceLabels)
+  local before = manager.snapshot(player).settings
+  assert(before.replyLanguageOther == 'fi' and before.subtitleLanguage == 'same')
+  local other = mcm.row('Other language')
+  assert(other.value == 1, 'Finnish by default')
+  assert(mcm.row('Voice language').value == 1 and mcm.set('Voice language', 17) == true, 'Other language is the seventeenth choice')
+  assert(mcm.set('Other language', 3))
+  frames(4)
+  assert(manager.snapshot(player).settings.replyLanguage == 'en', 'nothing is saved before Apply')
+  assert(mcm.apply())
+  local saved = manager.snapshot(player).settings
+  assert(saved.replyLanguage == 'other' and saved.replyLanguageOther == 'no', tostring(saved.replyLanguage) .. tostring(saved.replyLanguageOther))
+  assert(mcm.row('Other language').value == 3 and mcm.row('Voice language').value == 17, 'the page shows what is saved')
+  press('Back to settings'); press('Interface')
+  local interfaceLabels = labels()
+  assert(interfaceLabels:find('Interface language | Subtitles | Subtitle language', 1, true), interfaceLabels)
+  assert(mcm.row('Subtitle language').value == 1, 'Same as speech by default')
+  assert(mcm.set('Subtitle language', 9))
+  frames(4)
+  assert(manager.snapshot(player).settings.subtitleLanguage == 'same', 'nothing is saved before Apply')
+  assert(mcm.apply())
+  assert(manager.snapshot(player).settings.subtitleLanguage == 'ru', manager.snapshot(player).settings.subtitleLanguage)
+  assert(mcm.row('Subtitle language').value == 9)
+  -- Subtitles Off keeps the language, and the language keeps the style.
+  assert(mcm.set('Subtitles', 1) and mcm.apply())
+  local off = manager.snapshot(player).settings
+  assert(off.subtitles == false and off.subtitleLanguage == 'ru')
+`));
+
 test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
   ${footer}
   settingsPage('Voice AI and microphone')

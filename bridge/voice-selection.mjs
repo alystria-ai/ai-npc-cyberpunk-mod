@@ -14,6 +14,7 @@ import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';
+import {isExtraLanguage, pocketRefusal} from './other-languages.mjs';
 import {accessViolationFailed, endedFromOutsideFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
@@ -1223,6 +1224,8 @@ export class VoiceSelection {
     utterance?.decide('pocket');
     // A reply in another language: the Pocket model of the language is made the resident one and the voice is the pack's clip of this character.
     if (options.language && options.language !== 'en') {
+      // A language the game does not have (Other language, bridge/other-languages.mjs) has no Pocket model and no pack: refused by name, never read by the English student.
+      if (isExtraLanguage(options.language) && !this.pocketLanguages?.speaks(options.language)) throw Object.assign(Error(pocketRefusal(options.language)), {reason: 'other-language-pocket'});
       const pocketLanguage = await this.pocketLanguageFor(profile, options.language);
       if (pocketLanguage) {
         try { return await client.synthesizeStream(profile, spoken, {...plain, pocketLanguage}); }

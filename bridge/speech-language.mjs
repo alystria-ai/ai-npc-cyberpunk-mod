@@ -102,6 +102,7 @@ export class SpeechLanguage {
   constructor({readUiFile = null, now = Date.now, remembered = null, remember = null} = {}) {
     Object.assign(this, {readUiFile, now, remember});
     this.setting = 'auto';        // settings.json "uiLanguage": 'auto' or a code
+    this.chosen = null;           // the Voice language the player fixed to an Other language (bridge/other-languages.mjs), as a code
     this.evidence = null;         // {language, source: 'text' | 'voice' | 'saved', at}
     this.fileText = null; this.fileAt = 0;
     const saved = baseLanguage(remembered);
@@ -111,6 +112,16 @@ export class SpeechLanguage {
   update(settings) {
     const value = settings?.uiLanguage;
     this.setting = typeof value === 'string' && value ? value : 'auto';
+  }
+  /**
+   * The language the player fixed with Voice language > Other language (a code such as 'fi'), or null. The player speaks it, so it is the recording's language
+   * until the recogniser itself reports another one (a recording that says 'en' is English): the typed text of a language the word lists cannot tell ('hei') says nothing.
+   */
+  setChosen(code) {
+    const next = typeof code === 'string' && /^[a-z]{2,3}$/.test(code) ? code : null;
+    if (next === this.chosen) return false;
+    this.chosen = next;
+    return true;
   }
   /** Text the player typed. Only a clear language counts (a short or mixed line says nothing). Returns true when the language changed. */
   observeText(text) {
@@ -148,6 +159,7 @@ export class SpeechLanguage {
   async refreshUi() { await this.#ui(); return this.uiPrior(); }
   /** {language, source} for the recording that opens now: 'text' | 'voice' | 'ui' | 'default'. */
   async current() {
+    if (this.chosen && this.evidence?.source !== 'voice') return {language: this.chosen, source: 'setting'};
     if (this.evidence) return {language: this.evidence.language, source: this.evidence.source};
     const ui = await this.#ui();
     return ui ? {language: MOD_LANGUAGES.includes(ui) ? ui : 'en', source: 'ui'} : {language: 'en', source: 'default'};

@@ -15,6 +15,7 @@ import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener
 import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
 import {explicitRequest} from './text-action-words.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
+import {translationMessages, REQUEST_TOTAL_MS, LOCAL_REQUEST_TOTAL_MS} from './subtitle-translation.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -991,6 +992,33 @@ export class TextProviderHost {
   }
 
   /**
+   * The subtitle translation of one finished reply (bridge/subtitle-translation.mjs): one short request with no persona, no history and no memory, to the route the
+   * player talks with and to no other (`#candidates` rule: with Local AI it runs on Local AI, with Mistral on Mistral, and a failing route never hands it on). It is
+   * never awaited by the reply. On Local AI it is background work: it gives way to any turn, as a summary does, and a turn that needs the model stops it.
+   * `text`: the reply; `to`: the language code; `from`: the language it is in, when known. Resolves to the model's answer (not yet cleaned) or null. Never throws, and
+   * logs a kind only, never the text.
+   */
+  async translate({text, to, from = null, signal} = {}) {
+    const route = this.routes[this.provider.route];
+    if (!route || this.closed || !this.provider.active || typeof text !== 'string' || !text.trim() || signal?.aborted) return null;
+    const local = route.name === 'local';
+    const stopper = local ? new AbortController() : null;
+    if (stopper) this.stoppable.add(stopper);
+    const own = stopper ? (signal ? AbortSignal.any([signal, stopper.signal]) : stopper.signal) : signal;
+    try {
+      const budget = Math.min(900, Math.max(80, Math.ceil(text.length * 1.2)));
+      const response = await this.#request(route, translationMessages({text, to, from}), own,
+        {maxTokens: budget, temperature: 0.2, retries: 0, totalMs: local ? LOCAL_REQUEST_TOTAL_MS : REQUEST_TOTAL_MS, firstByteMs: local ? 20000 : 8000, thinkingRoom: false,
+          background: local, ...(local ? {priority: 'background'} : {})});
+      return typeof response?.text === 'string' ? response.text : null;
+    } catch (error) {
+      if (stopper?.signal.aborted) this.log('subtitle translation put off: a turn needed the local model');
+      else if (!signal?.aborted) this.log('subtitle translation failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    } finally { if (stopper) this.stoppable.delete(stopper); }
+  }
+
+  /**
    * Which of the offered actions V's words plainly ask for: one small request, no persona, a one-word answer. Never throws; a failure,
    * a late answer or an unclear one is "none" (the reply is then written as plain talk with what is not possible said in its notes).
    */
@@ -1418,8 +1446,10 @@ export class TextProviderHost {
  * `prewarmVoice` (default true; a boolean or a function asked at each warm-up): a warm-up also opens the host's local voice renderer (the phone host has none to open; with voice playback Off the bridge says no).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
  * `onPlayerText(text)` is told the text of each typed turn (not a reaction), for the microphone's language.
+ * `onReplyText(config, result)` is told each finished reply of this text route the moment it is complete (the subtitle translation starts here, bridge/subtitle-translation.mjs).
+ * It is called without waiting, and nothing it does or throws changes the reply.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText, onReplyText} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -1437,12 +1467,17 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!pictureForTurn({text: config.text})) return send(config);
     return host.turnImages(config, 'reply').then(images => send(images ? {...config, visionImages: images} : config), () => send(config));
   };
+  // The finished reply is announced the moment it exists (the subtitle translation starts from it) and handed on unchanged and at once.
+  const announce = (config, replying) => !onReplyText ? replying : Promise.resolve(replying).then(result => {
+    try { onReplyText(config, result); } catch { /* an observer never breaks a turn */ }
+    return result;
+  });
   host.reply = function reply(config, options) {
     // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
     // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
     // (An appointment event's text is the mod's trigger too: config.phoneEvent.)
     if (provider.active && onPlayerText && !config?.reaction && !config?.phoneEvent && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
-    return provider.active ? withPictures(config, picked => textHost.reply(picked, options)) : original.reply.call(this, withoutLocal(config), options);
+    return provider.active ? withPictures(config, picked => announce(config, textHost.reply(picked, options))) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {
     if (provider.active) return Promise.reject(Error(`A speculative turn is not available with ${label()}`));
@@ -1474,7 +1509,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     // through the text route; without it the voice key says voice needs Convai.
     // A reply may start on a stable live-words decode before the final decode is back (bridge/local-stt-capture.mjs, `confirmed`): Mistral only
     // (a cancelled request costs a little quota there; the local AI shares the game's GPU and a cancelled request there is not free).
-    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => withPictures(config, picked => textHost.reply(picked, options)),
+    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => withPictures(config, picked => announce(config, textHost.reply(picked, options))),
       speculate: () => provider.route === 'mistral' && process.env.CYBERPUNK_CONVAI_STT_SPECULATE !== '0'});
     const refuse = () => Promise.reject(Error(`Voice needs Convai for now: speech recognition is not available with ${label()} [mistral:voice]`));
     return {beginVoice: refuse, finishVoice: refuse, heard: async () => '', close: async () => {}};

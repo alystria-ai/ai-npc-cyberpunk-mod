@@ -20,6 +20,7 @@
 // Pure functions plus one small state holder: no I/O.
 import {assessLanguage, detectLanguage, spokenLanguage} from './reply-language.mjs';
 import {MOD_LANGUAGES} from './speech-language.mjs';
+import {OTHER_LANGUAGES, isExtraLanguage, otherLanguageFrom, textProviderWritesOther} from './other-languages.mjs';
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -62,17 +63,27 @@ export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
  * The choices, in the order of the row: English (the default), Automatic ('auto', the detection below), then the mod's other languages (the
  * interface languages: the ones the multilingual packs, the Pocket language models and the cloud voices speak). mod/manager.lua holds the same list.
  */
-export const REPLY_LANGUAGES = Object.freeze(['en', 'auto', ...MOD_LANGUAGES.filter(code => code !== 'en')]);
+export const REPLY_LANGUAGES = Object.freeze(['en', 'auto', ...MOD_LANGUAGES.filter(code => code !== 'en'), 'other']);
 export const DEFAULT_REPLY_LANGUAGE = 'en';
 /**
  * What the saved settings make of it: {setting, fixed}. `setting` is the saved choice (an unknown value reads as English). `fixed` is the
  * language every turn is in, or null when the detection decides. It is a VOICE setting: while Voice playback is off it does nothing and the
  * routing is Automatic, exactly as before the setting existed.
+ *
+ * 'other' (2026-10-31, bridge/other-languages.mjs) is the choice of a language the game does not have: the code is the saved `replyLanguageOther`
+ * (Finnish when it is missing or unknown). It needs a text provider that can write it (`textProvider`: the route of the active text provider, or null
+ * with Convai answering): without one `fixed` is null, the routing is Automatic and `note` says why, so the bridge can say it once.
  */
-export function replyLanguageFrom(settings) {
+export function replyLanguageFrom(settings, {textProvider = 'mistral'} = {}) {
   const raw = settings?.replyLanguage;
   const setting = REPLY_LANGUAGES.includes(raw) ? raw : DEFAULT_REPLY_LANGUAGE;
   const voice = settings?.voice !== false;
+  if (setting === 'other') {
+    const code = otherLanguageFrom(settings?.replyLanguageOther);
+    if (!voice) return {setting, fixed: null};
+    if (!textProviderWritesOther(textProvider)) return {setting, fixed: null, note: 'other-needs-text-provider'};
+    return {setting, fixed: code};
+  }
   return {setting, fixed: voice && setting !== 'auto' ? setting : null};
 }
 
@@ -89,7 +100,12 @@ export function replyLanguageFrom(settings) {
  * A fixed reply language (`setFixed`, the Reply language setting while Voice playback is on) skips all of it: every turn is in that language.
  */
 export class MultilingualConversations {
-  constructor() { this.lastLanguage = null; this.pending = null; this.prior = null; this.fixed = null; }
+  constructor() { this.lastLanguage = null; this.pending = null; this.prior = null; this.fixed = null; this.pinEnglish = false; }
+  /**
+   * A subtitle language is set (Settings > Interface > Subtitle language) while the voice language is English: the reply says in English that it is to be written in English.
+   * Without it a message typed in the subtitle language (or a phone history shown in it) could be answered in that language and read by an English voice. Returns true when it changed.
+   */
+  setPinEnglish(value) { const next = value === true; if (next === this.pinEnglish) return false; this.pinEnglish = next; return true; }
   /** The Reply language setting: a language code, or null for Automatic. Returns true when it changed. */
   setFixed(code) {
     const next = typeof code === 'string' && code && code !== 'auto' ? code : null;
@@ -146,7 +162,7 @@ export class MultilingualConversations {
    * when the conversation has no language yet.
    */
   contextFor(text, hint = null) {
-    if (this.fixed) return textProviderLanguageContext({fixed: this.fixed});
+    if (this.fixed) return textProviderLanguageContext({fixed: this.fixed, pinEnglish: this.pinEnglish});
     const {language, own} = this.judge(text, hint);
     return textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint, decided: own ? language : null});
   }
@@ -251,6 +267,8 @@ function pocketSpeaks(local, language) {
 /** Why a voice that cannot speak `language` is kept out of the turn. */
 function unsupportedReason(local, language) {
   if (local?.cloud === 'voxtral' || local?.cloud === 'inworld') return 'voice-language-unsupported';
+  // Pocket and a language the game does not have (Finnish ...): no model and no pack exists for it, so it is refused by name (bridge/other-languages.mjs pocketRefusal).
+  if (local?.uses === true && local.provider === 'pocket' && isExtraLanguage(language)) return 'other-language-pocket';
   if (local?.uses === true && local.provider === 'pocket' && typeof local.pocket?.packMissing === 'function' && local.pocket.packMissing(language) === true) return 'pocket-language-pack-missing';
   return 'english-only-voice';
 }
@@ -294,7 +312,9 @@ export function replyVoice({plan, text, local = {}} = {}) {
 export const LANGUAGE_NAMES = Object.freeze({en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German',
   it: 'Italian', nl: 'Dutch', pl: 'Polish', cs: 'Czech', hu: 'Hungarian', tr: 'Turkish', sv: 'Swedish', ro: 'Romanian', ca: 'Catalan',
   no: 'Norwegian', vi: 'Vietnamese', ja: 'Japanese',
-  zh: 'Chinese', ko: 'Korean', ru: 'Russian', uk: 'Ukrainian', el: 'Greek', ar: 'Arabic', he: 'Hebrew', hi: 'Hindi', th: 'Thai'});
+  zh: 'Chinese', ko: 'Korean', ru: 'Russian', uk: 'Ukrainian', el: 'Greek', ar: 'Arabic', he: 'Hebrew', hi: 'Hindi', th: 'Thai',
+  // The Other languages (bridge/other-languages.mjs) the lists above did not name: the prompt says "Finnish", not "that language".
+  ...Object.fromEntries(OTHER_LANGUAGES.map(item => [item.code, item.name]))});
 const REFERENCE_NOTE = 'Everything else in this context is written in English only as reference notes; it never sets your reply language.';
 
 /**
@@ -322,10 +342,10 @@ export function languageContext({text, lastLanguage = null, language = detectLan
  *   it has no clear language (a recording, a reaction, one word) and the conversation is in another language: that language is kept;
  *   otherwise nothing.
  */
-export function textProviderLanguageContext({text, lastLanguage = null, fixed = null, decided} = {}) {
+export function textProviderLanguageContext({text, lastLanguage = null, fixed = null, decided, pinEnglish = false} = {}) {
   // A fixed reply language (Settings > Voices > Reply language): named on every turn, English excepted (an English conversation sends the
   // context it always did).
-  if (fixed) return fixed === 'en' ? '' : fixedLanguageContext(fixed);
+  if (fixed) return fixed === 'en' && !pinEnglish ? '' : fixedLanguageContext(fixed);
   // `decided`: the language the conversation's rules settled on for this turn (MultilingualConversations.judge; null: none), which a short line does not move.
   const language = decided !== undefined ? decided : detectLanguage(text).language;
   if (language) {

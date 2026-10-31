@@ -66,6 +66,10 @@ export class ConvaiContinuousSpeech {
     // published shortly before V's end so the game's round trip overlaps it, bridge/v-voice.mjs V_HANDOFF_LEAD_MS). The game's lease
     // is read and kept meanwhile; the renderer gets the quiet control. No side effects.
     holdSound = () => false,
+    // subtitle(text, textComplete): the text the game DRAWS for this reply (the Subtitle language setting, bridge/subtitle-translation.mjs): the translation once it is here,
+    // the reply's own text until then. It is asked on every poll and must answer at once: nothing about the voice, the face or the expression waits for it. The sound,
+    // the mouth and the emotion plan always use the reply's own text.
+    subtitle = null,
     // leaseWake(): a promise that resolves when the game's lease file is replaced (bridge/file-wake.mjs), so the host's clock poll that
     // is waiting for the first lease runs at once instead of after its 40 ms sleep (docs/LATENCY_2026-10-13.md, 4.2).
     leaseWake,
@@ -79,7 +83,7 @@ export class ConvaiContinuousSpeech {
     this.onLease = onLease; this.onPaused = onPaused; this.pausedSeen = false;
     this.pace = pace; this.onEnded = onEnded;
     this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
-    this.holdSound = holdSound;
+    this.holdSound = holdSound; this.subtitle = subtitle;
     this.onTranscript = onTranscript; this.awaitTranscript = awaitTranscript; this.transcriptSeen = false; this.transcriptWaitSince = undefined;
     // A latch, not a one-shot promise: a hold can now be woken twice (V near its end publishes, V's end starts the sound).
     this.wakes = createWakeSignal();
@@ -302,13 +306,14 @@ export class ConvaiContinuousSpeech {
       if (!first) await this.commitFace();
       faceField = this.faceWritten ? {faceRevision: this.faceWritten} : {};
     }
+    const drawn = this.drawn(snapshot.text, snapshot.textComplete);
     const document = {version: 1, id: this.token, requestId: this.input.requestId,
       generation: this.input.generation, entity: this.input.entity, updated: this.now(),
       state: snapshot.state, position: this.position, bufferedDuration: duration,
-      text: snapshot.text, textComplete: snapshot.textComplete, complete: snapshot.sourceComplete,
+      text: drawn, textComplete: snapshot.textComplete, complete: snapshot.sourceComplete,
       ended: snapshot.ended, underruns: snapshot.underruns, ...faceField};
-    // Subtitle timing: cue spans aligned to this same audio (bridge/caption-cues.mjs).
-    const captions = this.captionsFor(snapshot, duration);
+    // Subtitle timing: cue spans aligned to this same audio (bridge/caption-cues.mjs), cut from the text that is drawn.
+    const captions = this.captionsFor(snapshot, duration, drawn);
     if (captions) document.captions = captions;
     const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
     if (expression) document.expression = expression;
@@ -321,7 +326,7 @@ export class ConvaiContinuousSpeech {
     if (stateCommitted === null) return this.published ? this.granted() : quiet();
     if (first) {
       const reply = {requestId: this.input.requestId, generation: this.input.generation,
-        entity: this.input.entity, profile: this.profile.key, text: snapshot.text,
+        entity: this.input.entity, profile: this.profile.key, text: drawn,
         ...(snapshot.userText ? {userText: snapshot.userText} : {}),
         continuous: {version: 1, id: this.token}, updated: this.now()};
       const replyCommitted = await this.commit(this.writeReply, reply, false);
@@ -381,13 +386,13 @@ export class ConvaiContinuousSpeech {
   // Audio-aligned subtitle cues for the published text. Recomputed when the
   // text, audio or mouth timeline changes; the revision grows only when the
   // cues themselves change, so the game re-paginates only then.
-  captionsFor(snapshot, duration) {
-    const key = `${this.faceRevision}:${duration}:${snapshot.sourceComplete}:${snapshot.textComplete}:${snapshot.text}`;
+  captionsFor(snapshot, duration, text = snapshot.text) {
+    const key = `${this.faceRevision}:${duration}:${snapshot.sourceComplete}:${snapshot.textComplete}:${text}`;
     if (key === this.captionKey) return this.captions;
     this.captionKey = key;
     let next;
     try {
-      next = captionCues(snapshot.text, {face: this.face, duration, complete: snapshot.sourceComplete && snapshot.textComplete});
+      next = captionCues(text, {face: this.face, duration, complete: snapshot.sourceComplete && snapshot.textComplete});
     } catch { next = undefined; }
     const signature = cueSignature(next);
     if (signature !== this.captionSignature) { this.captionSignature = signature; this.captionRevision = (this.captionRevision || 0) + 1; }
@@ -422,10 +427,19 @@ export class ConvaiContinuousSpeech {
   // (mod/speech.lua, playback-failed) shows the whole text and says once that the voice stopped. Returns true when that state was written;
   // false when the stream was never published, the game stopped it itself (retired) or the turn is no longer the current one: then the caller
   // ends the turn as before. Local voices only: the written reply is never voiced by another engine.
+  // The text drawn for the reply: the subtitle hook's answer (a translation) or the reply's own text. A hook that fails or answers nothing usable changes nothing.
+  drawn(text, complete) {
+    if (typeof this.subtitle !== 'function') return text;
+    try {
+      const shown = this.subtitle(text, complete);
+      return typeof shown === 'string' && shown.trim() && shown.length <= 12000 ? shown : text;
+    } catch { return text; }
+  }
+
   async failToText(text) {
     this.dropModel();
     if (!this.published || this.retired || !this.last || !await this.valid()) return false;
-    const full = typeof text === 'string' ? displayText(text, true) : '';
+    const full = typeof text === 'string' ? this.drawn(displayText(text, true), true) : '';
     const shown = this.last.textComplete ? this.last.text : (full.trim() && full.length <= 12000 ? full : this.last.text);
     await this.writeState({...this.last, version: 1, id: this.token,
       requestId: this.input.requestId, generation: this.input.generation, entity: this.input.entity,
