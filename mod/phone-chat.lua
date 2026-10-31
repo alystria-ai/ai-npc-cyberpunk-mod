@@ -67,6 +67,9 @@ end
 local function integer(value, minimum)
     return type(value) == 'number' and value == math.floor(value) and value >= (minimum or 0) and value <= 2147483647
 end
+-- The most characters one reset journal may name: the bound the bridge writes it under (bridge/chat-memory-resets.mjs, 4096). The shipped ids are
+-- about 1800 with the side characters and their twins, so a lower limit here made every healthy journal unreadable and Phone Chat unable to send.
+local RESET_MAX_PROFILES = 4096
 local function resetInteger(value)
     return type(value) == 'number' and value == math.floor(value) and value >= 0 and value <= 9007199254740991
 end
@@ -220,7 +223,7 @@ end
 local function resetState(value)
     if type(value) ~= 'table' or value.version ~= 1 or not integer(value.revision)
         or type(value.blockAll) ~= 'boolean' or type(value.blockedProfiles) ~= 'table'
-        or #value.blockedProfiles > 1024 then return nil end
+        or #value.blockedProfiles > RESET_MAX_PROFILES then return nil end
     local baseline, tracked, receipts, pending = actionList(value.baseline), actionList(value.tracked),
         actionList(value.receipts), actionList(value.pending)
     if not baseline or not tracked or not receipts or not pending then return nil end
@@ -243,7 +246,7 @@ local function resetState(value)
     local familyCount = 0
     for key, family in pairs(families) do
         familyCount = familyCount + 1
-        if familyCount > 1024 or type(key) ~= 'string' or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$')
+        if familyCount > RESET_MAX_PROFILES or type(key) ~= 'string' or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$')
             or type(family) ~= 'string' or #family > 80 or not family:match('^[a-z0-9][a-z0-9%-]*$') then return nil end
     end
     for _, family in pairs(families) do if families[family] ~= nil and families[family] ~= family then return nil end end
@@ -362,8 +365,27 @@ local function memoryResets()
     if cleared or blockedChanged then M.dirty = true end
     return true
 end
+-- A journal that stays unreadable is retried at the reset cadence. After resetGraceSeconds of that (default 15 s) the player may send with the
+-- history the game has (nothing cleared since is known), and one log line says so. The next readable journal ends it with another line.
+local RESET_GRACE_SECONDS = 15
 local function refreshMemoryResets()
     local healthy = memoryResets()
+    local now = os.time()
+    if healthy then
+        if M.resetDegraded and type(M.trace) == 'function' then pcall(M.trace, 'Saved Chat cleanup is verified again, sending is checked normally') end
+        M.resetFailSince, M.resetDegraded = nil, nil
+    elseif M.resetStoreFault then
+        M.resetFailSince = nil -- the saved chats themselves are unsafe: waiting never opens this
+    else
+        if not M.resetFailSince or now < M.resetFailSince then M.resetFailSince = now end
+        if now - M.resetFailSince >= (M.resetGraceSeconds or RESET_GRACE_SECONDS) then
+            if not M.resetDegraded and type(M.trace) == 'function' then
+                pcall(M.trace, 'Saved Chat cleanup could not be verified for ' .. tostring(now - M.resetFailSince)
+                    .. ' s (reset journal unreadable or inconsistent), sending is allowed with the history the game has, still retrying')
+            end
+            M.resetDegraded, healthy = true, true
+        end
+    end
     if M.resetHealthy ~= healthy then M.dirty = true end
     M.resetHealthy = healthy
     return healthy
