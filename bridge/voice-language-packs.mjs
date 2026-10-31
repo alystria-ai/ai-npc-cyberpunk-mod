@@ -21,6 +21,11 @@ import {open, readdir, readFile, stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 
 export const LANGUAGE_PACK_FOLDER = 'multilingual';
+/**
+ * A file the clip service (bridge/language-clips.mjs) writes into <references>/multilingual/<lang>/ beside the clips it makes there. A folder that has it and no manifest.json
+ * is not an incomplete pack: it is not looked at (no notice). A folder with a manifest.json is a pack whether the marker is there or not.
+ */
+export const GENERATED_MARKER = 'generated.json';
 /** The game's voiced languages (Steam "Full Audio"): pack folder name -> the code the reply-language detector reports (bridge/reply-language.mjs). */
 export const LANGUAGE_PACKS = Object.freeze({fr: 'fr', it: 'it', de: 'de', 'es-es': 'es', ja: 'ja', ko: 'ko', pl: 'pl', 'pt-br': 'pt', ru: 'ru', 'zh-cn': 'zh'});
 /** Every clip of a pack: 24 kHz mono 16-bit WAV, at most OmniVoice's 20 s reference limit. */
@@ -157,8 +162,9 @@ export class VoiceLanguagePacks {
    *   roots     the voice reference folders (<references>), in order; a pack is looked for in <root>/multilingual/<lang>, the first root that has the language wins
    *   files     file access (tests); log: one line per notice; onChange: the set of packs changed (a live re-scan found something new)
    */
-  constructor({roots = [], files = defaultFiles, log = () => {}, onChange = () => {}, now = Date.now, rescanMs = RESCAN_MS} = {}) {
-    Object.assign(this, {roots: roots.filter(Boolean).map(root => resolve(root)), files, log, onChange, now, rescanMs});
+  constructor({roots = [], files = defaultFiles, log = () => {}, onChange = () => {}, now = Date.now, rescanMs = RESCAN_MS, demand = null} = {}) {
+    // `demand` (bridge/language-clips.mjs LanguageVoiceClips): the clips made on this PC, or downloaded one by one, for a language that has no installed pack (or for a voice the pack lacks).
+    Object.assign(this, {roots: roots.filter(Boolean).map(root => resolve(root)), files, log, onChange, now, rescanMs, demand});
     this.packs = new Map();        // reply language code -> pack
     this.problems = new Map();     // pack folder name -> reason
     this.noticed = new Set();      // `${language}|${reason}`: a notice is written once
@@ -167,14 +173,19 @@ export class VoiceLanguagePacks {
   }
   /** Is any pack installed? */
   get installed() { return this.packs.size > 0; }
+  /** Can any reply language have a dubbed reference: a pack is installed, or clips are made on demand (the 0.4.1 way)? */
+  get active() { return this.packs.size > 0 || this.demand?.active === true; }
   has(tag) { return this.packs.has(tag); }
   /** The reply language codes with a pack ('zh', 'ja', ...). */
   languages() { return [...this.packs.keys()]; }
   pack(tag) { return this.packs.get(tag) ?? null; }
-  /** The pack's entry for a voice in a reply language, or null. An in-memory lookup. */
+  /**
+   * The entry for a voice in a reply language, or null (the English reference speaks). An installed pack comes first, as before. Without one (or without this voice in it) the
+   * clip made on this PC or downloaded for this one voice, once it is ready; until then null, and the clip is asked for in the background. An in-memory lookup.
+   */
   entry(tag, voiceKey) {
     if (!tag || tag === 'en') return null;
-    return this.packs.get(tag)?.entries.get(voiceKey) ?? null;
+    return this.packs.get(tag)?.entries.get(voiceKey) ?? this.demand?.entry(tag, voiceKey) ?? null;
   }
   /** The SHA-256 of an entry's clip: the manifest's, else computed once (the clip is read once per process, and again only when the file changes). */
   async sha256(entry) {
@@ -203,6 +214,12 @@ export class VoiceLanguagePacks {
       for (const name of names.filter(item => Object.hasOwn(LANGUAGE_PACKS, item)).sort()) {
         let stamp = 'none';
         try { const info = await this.files.stat(resolve(root, LANGUAGE_PACK_FOLDER, name, 'manifest.json')); stamp = `${info.size}:${Math.round(info.mtimeMs)}`; } catch {}
+        // Clips made on this PC (bridge/language-clips.mjs) with no pack installed: nothing to check.
+        if (stamp === 'none') {
+          let generated = false;
+          try { generated = (await this.files.stat(resolve(root, LANGUAGE_PACK_FOLDER, name, GENERATED_MARKER))).isFile?.() !== false; } catch {}
+          if (generated) continue;
+        }
         seen.push({root, language: name, stamp});
       }
     }
@@ -264,6 +281,7 @@ export class VoiceLanguagePacks {
   report() {
     return {scannedAt: this.scannedAt ? new Date(this.scannedAt).toISOString() : null,
       packs: [...this.packs.values()].map(pack => ({language: pack.language, tag: pack.tag, voices: pack.entries.size, version: pack.version})),
-      problems: [...this.problems].map(([language, reason]) => ({language, reason}))};
+      problems: [...this.problems].map(([language, reason]) => ({language, reason})),
+      ...(this.demand ? {onDemand: this.demand.report()} : {})};
   }
 }

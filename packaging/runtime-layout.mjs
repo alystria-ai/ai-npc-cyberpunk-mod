@@ -122,6 +122,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/journal-quest-types.mjs',
   'bridge/knowledge-decisions.mjs',
   'bridge/knowledge-parts.mjs',
+  'bridge/language-clips.mjs',
   'bridge/language-english-vocab.mjs',
   'bridge/language-lexicon.mjs',
   'bridge/language-ui-vocab.mjs',

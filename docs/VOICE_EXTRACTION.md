@@ -135,6 +135,10 @@ The first 27 side characters were found by a name that starts the file stem. `sc
 | Hugging Face | `packaging/voice-clips-upload-list.json` is 1056 files, 662.1 MB. The 39 new rows (13 characters, three kinds) carry `"toUpload": true`. Nothing was uploaded. |
 | Proof | `scripts/voice-extract/prove.py` on all 13 new keys (there are only 13, not 20): game 2.5 two runs each, 78 of 78 clips byte for byte the staged clip, and game 2.31 one run each, 39 of 39. About 2 s and 116 MB per character. Built with the vendor Python and vgmstream of the developer machine (the same builder code as the Runtime's). |
 
+## The dubbed clips of the language packs (`feat/language-clips-on-demand`, 31 Oct 2026)
+
+The same idea for the ten multilingual packs. Each pack clip (3015 in all) is made again on the player's PC from the dub archive `lang_<xx>_voice.archive` (base game and Phantom Liberty), else fetched one file at a time from Hugging Face (`voice-clips/<lang>/<kind>/<key>.wav`), and only for the character that is speaking. The recipe differs from the English one (the lines stay float after the resampler, there is no 16-bit file between, the gain is a plain linear factor), so it has its own manifest per language (`characters/voice-language-clips/<lang>.json`), its own entry point in the same builder (`voice_clip_build.py build-language`) and its own service (`bridge/language-clips.mjs`). It shares the one-build-at-a-time queue with the English clips (`SerialQueue` in `bridge/voice-clips.mjs`). All 3015 clips rebuild sample for sample with the Runtime's Python (3.12.10, scipy 1.18.1). The recovery, the proof, the bridge behaviour and the upload list are in `docs/VOICE_LANGUAGE_PACKS.md`, "Clips on demand".
+
 ## Risks
 
 - **Scipy and torch in the Runtime.** The `poly` and `torch` recipes need scipy or torch in the Runtime's Python. Both are in every Runtime since the first release builder, and the file check now asks for `scipy`, `scipy/signal` and `torch/nn`, so a broken Runtime is reported (the character then keeps a stand-in voice or downloads). Without torch the numpy port is used and a few samples differ by one step.
