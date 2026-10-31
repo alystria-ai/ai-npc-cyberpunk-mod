@@ -361,4 +361,92 @@ function M.attitudeRecheck(npc, player, label)
     return ok
 end
 
+-- ---- Which record gives a body V can see (docs/SIDE_CHARACTERS.md, "A record with no visible body") ----------------------------------------------
+-- A profile can list several records (Aiko Harada: Character.q307_fia_reception, then Character.q307_nurse). The copy is made from the first one
+-- that is not known to give no body. A record from a quest (Phantom Liberty's q307 people) may not resolve its look outside the quest, so the
+-- copy stands there with no mesh shown. companions.lua looks once after the copy is attached (bodyTick): it names what it finds in the
+-- probe.log in Developer mode, tries the record's own look once, and if there is still no mesh it marks the record here and invites the
+-- character again, which then takes the next record. The marks last for the session (nothing is written), and only a record that was seen
+-- with no body is marked, so a record that works is never given up. Data can mark one too: `badRecords` of a roster row moves it to the end.
+local badRecords, goodLooks = {}, {}
+-- Replaceable: companions.lua sets it to the Developer mode switch. Nothing is logged without it.
+M.developer = nil
+function M.devLog(line)
+    if M.developer and M.developer() == true then note(line) end
+end
+function M.markBad(id, why)
+    if type(id) == 'string' and id ~= '' then badRecords[id] = why or true end
+end
+function M.isBad(id) return badRecords[id] ~= nil end
+-- A look that made a record's body show (the record's own appearanceName, applied after a copy came out bodyless): the next copy asks for it.
+function M.rememberLook(id, name)
+    if type(id) == 'string' and id ~= '' and type(name) == 'string' and name ~= '' then goodLooks[id] = name end
+end
+function M.knownLook(id) return goodLooks[id] end
+function M.forgetHealth() badRecords, goodLooks = {}, {} end
+
+-- The first record of a definition's list that is not marked and that the game has. nil when every record is marked or missing.
+local function usable(id)
+    if M.isBad(id) then return false end
+    local ok, record = pcall(function() return TweakDB:GetRecord(id) end)
+    return not ok or record ~= nil
+end
+function M.nextRecord(definition)
+    local list = type(definition) == 'table' and definition.records or nil
+    if type(list) ~= 'table' then return nil end
+    for _, id in ipairs(list) do
+        if type(id) == 'string' and usable(id) then return id end
+    end
+    return nil
+end
+-- The record to spawn from: the next good one, else the definition's own first (a character always has one to try). Second and third value:
+-- its place in the list and the length of the list.
+function M.pick(definition)
+    local list = type(definition) == 'table' and definition.records or nil
+    if type(list) ~= 'table' or #list < 2 or definition.recordID ~= nil then return definition and definition.id, 1, 1 end
+    local id = M.nextRecord(definition)
+    if not id then return definition.id or list[1], 1, #list end
+    for index, value in ipairs(list) do if value == id then return id, index, #list end end
+    return id, 1, #list
+end
+
+-- The look the record names for itself (its appearanceName flat), or nil when it names none or the game will not say.
+function M.recordLook(id)
+    if type(id) ~= 'string' then return nil end
+    local ok, value = pcall(function() return TweakDB:GetFlat(id .. '.appearanceName') end)
+    if not ok or value == nil then return nil end
+    local name = plainName(value)
+    if type(name) ~= 'string' or name == '' or name == 'None' then return nil end
+    return name
+end
+
+-- The mesh components of a copy and how many are shown, and the look it wears: {total, meshes, shown, appearance}. nil when the game will not say.
+function M.bodyState(npc)
+    local ok, list = pcall(function() return npc:GetComponents() end)
+    if not ok or type(list) ~= 'table' then return nil end
+    local total, meshes, shown = 0, 0, 0
+    for _, component in ipairs(list) do
+        total = total + 1
+        local isMesh = false
+        pcall(function() isMesh = component:IsA('entMeshComponent') or component:IsA('entSkinnedMeshComponent') end)
+        if isMesh then
+            meshes = meshes + 1
+            local read, enabled = pcall(function() return component:IsEnabled() end)
+            if not read or enabled ~= false then shown = shown + 1 end
+        end
+    end
+    local appearance
+    pcall(function() appearance = plainName(npc:GetCurrentAppearanceName()) end)
+    return {total = total, meshes = meshes, shown = shown, appearance = appearance}
+end
+-- true: a mesh is shown. false: components are there and none is a shown mesh. nil: nothing to judge by (no answer, or no components at all).
+function M.bodyShown(state)
+    if type(state) ~= 'table' or state.total == 0 then return nil end
+    return state.meshes > 0 and state.shown > 0
+end
+function M.bodyText(state)
+    if type(state) ~= 'table' then return 'components unreadable' end
+    return string.format('appearance %s, %d components, %d meshes, %d shown', tostring(state.appearance or 'unknown'), state.total, state.meshes, state.shown)
+end
+
 return M

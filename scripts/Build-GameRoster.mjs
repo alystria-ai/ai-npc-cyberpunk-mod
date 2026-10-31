@@ -16,9 +16,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const SOURCE = resolve(root, 'characters/roster.json');
 export const TARGET = resolve(root, 'characters/game-roster.json');
 // What the game-side Lua reads of a profile (mod/character-catalog.lua build and resolve, mod/manager.lua, mod/manager-ui.lua, the name lookups):
-// key, name, aliases, records, kind, invite and minor. The summary (shown in the profile details, which fall back to the name) and the
+// key, name, aliases, records, kind, invite, minor and badRecords (records seen to give no body, tried last: docs/SIDE_CHARACTERS.md). The summary (shown in the profile details, which fall back to the name) and the
 // voice fields stay on the bridge side. An alias list that only repeats the name is dropped: the catalog maps the name already.
-export const LEAN_FIELDS = Object.freeze(['key', 'name', 'aliases', 'records', 'kind', 'invite', 'minor']);
+export const LEAN_FIELDS = Object.freeze(['key', 'name', 'aliases', 'records', 'kind', 'invite', 'minor', 'badRecords']);
 
 export const lean = row => {
   if (row.minor !== true) return row;
