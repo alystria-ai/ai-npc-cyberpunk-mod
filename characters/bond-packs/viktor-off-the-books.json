@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "A street chopper in Kabuki is installing cheap clones in people who cannot afford better, and three of them came to Viktor with infections and a lost hand. He is angry in his quiet way, and he cannot walk in because everyone there knows his face. Bring it up, briefly and in your own way, that he is calling you for a favour that needs a patient's face."
   },

@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.5,
     "bringUp": "An unmarked sedan has followed River for two days. He wants a boring driver to lose it with him, and he does not want a shooting. Bring it up as a favour."
   },

@@ -230,6 +230,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/quest-poller.mjs',
   'bridge/quest-primitives.mjs',
   'bridge/quest-rendezvous.mjs',
+  'bridge/quest-start.mjs',
   'bridge/rdar.mjs',
   'bridge/reach-outs.mjs',
   'bridge/realtime-host.mjs',

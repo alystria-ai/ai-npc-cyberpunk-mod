@@ -147,6 +147,15 @@ function M.new(options)
                     held[row.id] = {signature = sig, state = row.state, placeId = row.placeId, marked = row.x ~= nil}
                     sent = sent + 1
                     if not before or before.state ~= row.state then log(string.format('%s %s', row.id, row.state)) end
+                    -- A quest that just started cannot be missed: besides the journal entry, the tracker line (when the tracker is free) and the map pin, a notice says it
+                    -- is there (live 31 Oct 2026: a started pack showed nothing the owner noticed, because a main job held the tracker and nobody opened the journal).
+                    if row.state == 'active' and (not before or before.state ~= 'active') and not opts.startup then
+                        log(string.format('%s started: journal entry made, tracker %s, map pin %s, notice shown', row.id, track == 2 and 'taken when free' or 'not taken', row.x ~= nil and 'placed' or 'none (no position yet)'))
+                        if type(options.notice) == 'function' then
+                            local okNotice, err = pcall(options.notice, row)
+                            if not okNotice then logOnce('notice', 'the start notice failed: ' .. tostring(err)) end
+                        end
+                    end
                 end
             end
         end

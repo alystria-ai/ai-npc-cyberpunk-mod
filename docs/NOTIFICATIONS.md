@@ -40,6 +40,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn (a housemate's body that is tried again says it once per character and reason) | once |
 | `party-failed` | Player | {count} more companions also failed. | More than two failures in one burst | once |
 | `party-dismiss-failed` | Player | {name}: {error} | The game refused a dismissal | once |
+| `quest-started` | Player | New story quest: {title}. {first objective} (Journal, Quests) | A story pack just started and its journal entry was made (`mod/quest-journal.lua`). The text is the pack's own (English only). Not shown at a session start or after a load | 5 |
 | `phone-invite-reply` | Player | The queue's refusal reason (for example Load a save before inviting a companion.) | The phone's invite was refused | 20 |
 | `phone-dismiss-ack` | Developer | {name} will leave when you return to the game. | The phone's dismissal was accepted | none |
 | `phone-dismiss-reply` | Player | The refusal reason (for example That copy is no longer in your party.) | The phone's dismissal was refused | 20 |

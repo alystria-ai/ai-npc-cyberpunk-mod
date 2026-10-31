@@ -25,6 +25,7 @@ M.catalog = {
     ['party-joined'] = {class = PLAYER},               -- a joined outcome, merged into the board
     ['party-failed'] = {class = PLAYER},               -- could not prepare / could not join
     ['party-dismiss-failed'] = {class = PLAYER},
+    ['quest-started'] = {class = PLAYER, repeatS = 5},        -- a story pack just started: its title and first objective, so the start cannot be missed (mod/quest-journal.lua)
     ['phone-invite-reply'] = {class = PLAYER, repeatS = 20},
     ['phone-dismiss-reply'] = {class = PLAYER, repeatS = 20},
     ['phone-not-in-group'] = {class = PLAYER, repeatS = 20},

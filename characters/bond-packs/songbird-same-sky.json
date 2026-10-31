@@ -14,7 +14,7 @@
     "relationship": "any"
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.35,
     "bringUp": "Songbird has not called in eleven days. When she does it is late, and she sounds like she has practised. She asks you to go somewhere high and look up. She wants to say the thing she has been rehearsing, and she can only say it under a sky."
   },

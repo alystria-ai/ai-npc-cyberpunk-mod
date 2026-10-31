@@ -13,7 +13,7 @@
     "invitations": true
   },
   "start": {
-    "channels": ["own", "phone", "holocall"],
+    "channels": ["phone", "holocall"],
     "chance": 0.5,
     "bringUp": "The ring's youngest phone man wants out and will testify, and River promised him a safe place until dawn. He is bad at promises and needs a second gun. Bring it up as a favour, and do not joke about it."
   },
