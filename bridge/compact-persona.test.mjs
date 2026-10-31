@@ -234,7 +234,7 @@ test('a slow machine: once it is measured slow, the next character starts compac
     assert(!system(sent).includes('PUBLIC INTRINSIC TOPIC MATERIAL'));
     for (const start of [...RULE_STARTS, 'MATURE CONTENT IS ON', 'HOW YOU TALK', 'ESTABLISHED RELATIONSHIPS']) assert(system(sent).includes(start), start);
     // The right-now block, the format notes and V's words are the whole ones.
-    assert(system(sent).includes('FORMAT NOTES FOR EVERY REPLY') && system(sent).includes('You are with V in person.'));
+    assert(system(sent).includes('FORMAT NOTES FOR EVERY REPLY') && sent.at(-1).content.includes('You are with V in person.'));
     assert(sent.at(-1).content.includes(`V says: line ${at}`));
   }
   // The head is the very same text in the three turns, so the server's prefix cache holds it.

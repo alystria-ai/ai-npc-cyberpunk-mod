@@ -43,16 +43,21 @@ function messagesOf(bonds, input, {history = [], romance = null} = {}) {
   return buildMessages({persona: book.persona(input.profileKey), history, contextParts: parts, text: input.text, reaction: Boolean(input.reaction)});
 }
 
-test('two consecutive talks with a character share the whole system message and most of the prompt, with the bond block on', () => {
+test('two consecutive talks with a character share the whole system message, and a third with the same turns shares everything but the last message, with the bond block on', () => {
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   const first = messagesOf(bonds, talk('Hey, how are you holding up?'));
   const second = messagesOf(bonds, talk('What do you think of the Afterlife?'), {history: [{v: 'Hey, how are you holding up?', r: 'Fine, V.'}]});
-  assert.match(first[0].content, /How close you are to V/, 'the bond line is in the system message');
+  assert.match(first.at(-1).content, /How close you are to V/, 'the bond line is at the start of the last message, after the turns');
+  assert.doesNotMatch(first[0].content, /How close you are to V/, 'and not in the system message');
   assert.equal(second[0].content, first[0].content, 'the system message is byte for byte the same');
   const a = flat(first), b = flat(second);
   assert(common(a, b) >= first[0].content.length, 'the shared start is at least the system message');
-  assert(common(a, b) / b.length > 0.8, `most of the second prompt is shared (${(100 * common(a, b) / b.length).toFixed(0)}%)`);
+  // Same turns, another question: the whole prompt up to the last message is shared, the bond line and the world included.
+  const third = messagesOf(bonds, talk('And the Maelstrom?'), {history: [{v: 'Hey, how are you holding up?', r: 'Fine, V.'}]});
+  const untilLast = flat(second.slice(0, -1)).length;
+  assert(common(flat(second), flat(third)) >= untilLast, 'shared up to the last message');
+  assert.deepEqual(third.slice(0, -1), second.slice(0, -1));
 });
 
 test('a reaction after a talk, and a talk after a reaction, keep the same system message (the bond line is repeated, the gear goes only when V asks)', () => {
@@ -60,9 +65,9 @@ test('a reaction after a talk, and a talk after a reaction, keep the same system
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   const first = messagesOf(bonds, talk('Hey, how are you holding up?'));
   const reaction = messagesOf(bonds, speakUp());
-  assert.match(reaction[0].content, /How close you are to V/, 'the reaction has the character\'s bond line');
+  assert.match(reaction.at(-1).content, /How close you are to V/, 'the reaction has the character\'s bond line');
   // V's gear goes only with V's words about it (fix/natural-talk, 2026-10-30), so neither the talk nor the reaction carries it here.
-  assert.doesNotMatch(reaction[0].content, /Leather Jacket/, 'no gear: V did not ask');
+  assert.doesNotMatch(reaction.at(-1).content, /Leather Jacket/, 'no gear: V did not ask');
   assert.equal(reaction[0].content, first[0].content);
   const third = messagesOf(bonds, talk('Where are we going?'), {history: [{v: 'Hey, how are you holding up?', r: 'Fine, V.'}]});
   assert.equal(third[0].content, first[0].content);
@@ -73,11 +78,11 @@ test('before any talk a reaction has no bond line and no gear, a reaction never 
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
   const cold = messagesOf(bonds, speakUp());
-  assert.doesNotMatch(cold[0].content, /How close you are to V|Leather Jacket/);
+  assert.doesNotMatch(cold.at(-1).content, /How close you are to V|Leather Jacket/);
   messagesOf(bonds, talk('Hi.'));
-  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /Leather Jacket/, 'a reaction never repeats the gear');
+  assert.doesNotMatch(messagesOf(bonds, speakUp()).at(-1).content, /Leather Jacket/, 'a reaction never repeats the gear');
   bonds.forget({all: true});
-  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /How close you are to V/, 'Forget forgets the line');
+  assert.doesNotMatch(messagesOf(bonds, speakUp()).at(-1).content, /How close you are to V/, 'Forget forgets the line');
 });
 
 test('the gear goes with a talk only when V asks about it, a reaction never repeats it, and Johnny in V\'s head gets no bond line', () => {
@@ -87,15 +92,15 @@ test('the gear goes with a talk only when V asks about it, a reaction never repe
   const changed = {...GEAR, clothing: [{slot: 'outerTorso', name: 'Samurai Jacket'}]};
   assert.match(flat(messagesOf(bonds, talk('Like my new jacket?', {gear: changed}))), /Samurai Jacket/, 'V asks: the gear is told');
   assert.doesNotMatch(flat(messagesOf(bonds, talk('Hi again.', {gear: changed}))), /Samurai Jacket/, 'small talk: no gear');
-  assert.doesNotMatch(messagesOf(bonds, speakUp())[0].content, /Samurai Jacket|Leather Jacket/, 'a reaction: no gear');
+  assert.doesNotMatch(messagesOf(bonds, speakUp()).at(-1).content, /Samurai Jacket|Leather Jacket/, 'a reaction: no gear');
   const head = {...speakUp(), profileKey: 'johnny-silverhand', head: {version: 1, stage: 'wary', milestones: []}};
-  assert.doesNotMatch(messagesOf(bonds, head)[0].content, /Samurai Jacket|How close you are to V/);
+  assert.doesNotMatch(messagesOf(bonds, head).at(-1).content, /Samurai Jacket|How close you are to V/);
 });
 
 test('a bond level that does not change leaves the line, and so the prompt, alone from turn to turn; a romance changes nothing in it', () => {
   gearMemory.clear();
   const bonds = new Bonds({store: new BondStore(), now: () => 0});
-  const lines = [0, 1, 2, 3].map(i => messagesOf(bonds, talk(`Turn ${i}`), {romance: 'partner'})[0].content);
+  const lines = [0, 1, 2, 3].map(i => messagesOf(bonds, talk(`Turn ${i}`), {romance: 'partner'}).at(-1).content.replace(/V says: [^\n]*/, ''));
   for (const line of lines) assert.equal(line, lines[0]);
   assert.doesNotMatch(lines[0], /You and V are a couple/, 'the tone is the relationship text (bridge/romance-context.mjs), not the bond line');
 });

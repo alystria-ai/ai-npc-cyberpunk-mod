@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, VISION_MODELS, failureKind, failureDetail, newTrace, newAdaptation, tagGemini} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, withRetrievedParts, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
 import {explicitRequest} from './text-action-words.mjs';
@@ -705,6 +705,21 @@ export class TextProviderHost {
     else if (!signal?.aborted) commit();
   }
 
+  // The retrieval of one turn, never throwing: null when it could not run (the full blocks then stay). Its time goes on the turn's clock (stage `retrieved`) and into one log line.
+  async #retrieve(config, {text, reaction, signal}) {
+    try {
+      const result = await config.retrieval.run({text, reaction, signal});
+      markStage('retrieved');
+      if (result && !reaction) this.log(`Talk retrieval: profile=${config.local?.profileKey ?? '-'} ${result.reason ? `none (${result.reason})` : `${result.detail ?? ''} via=${result.via}`} chars=${result.text.length} ms=${result.ms}`);
+      currentClock()?.annotate({retrievalMs: result?.ms});
+      return result ?? null;
+    } catch (error) {
+      if (signal?.aborted) return null;
+      this.log(`Talk retrieval failed (${String(error?.message ?? error).slice(0, 80)}); the full context is used`);
+      return null;
+    }
+  }
+
   async #reply(config, {signal, stream, confirmed, deferRecord} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
@@ -767,9 +782,18 @@ export class TextProviderHost {
     // What the memory store remembers that bears on V's words (private and phone talk of a named character; empty otherwise and
     // whenever it cannot answer in a few hundred milliseconds).
     let remembered = [];
+    // What bears on V's words besides memories (bridge/talk-retrieval.mjs): the character's topic views and the quest, journal and world facts. It starts beside the memory search and
+    // they share one embedding of V's words; a turn of small talk gets nothing from either. A reaction gets none either, but its world blocks are left out the same way, so the
+    // system message reads the same on a reaction and on a talk (a prompt cache keeps it). Without `config.retrieval`, or when it fails, the turn goes on with the full blocks.
+    const asking = config.contextParts && typeof config.retrieval?.run === 'function' ? this.#retrieve(config, {text, reaction: reaction || Boolean(config.phoneEvent), signal}) : null;
     if (!reaction && config.contextParts && typeof this.memory?.retrieve === 'function') {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
+    }
+    if (asking) {
+      const result = await asking;
+      if (signal?.aborted) throw cancelled();
+      if (result) config = {...config, contextParts: withRetrievedParts(config.contextParts, result)};
     }
     const decision = byWords ? (byWords.code ? byWords : null) : deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();

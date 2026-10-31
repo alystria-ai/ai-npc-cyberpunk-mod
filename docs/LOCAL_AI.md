@@ -490,6 +490,7 @@ against 81.7), plus `llama-fit-params.exe` and its library since the same change
 | `bridge/local-embed.mjs` | The embedding model (granite-embedding-107m-multilingual, 384 dimensions) as a CPU-only `llama-server` (`--device none -ngl 0`, one thread), started on demand and exiting after 300 idle seconds (a talk opening starts it ahead for a character with stored memories). About 14 ms a query. |
 | `bridge/text-provider-host.mjs` | The host shared by Mistral and Local (see `docs/MISTRAL.md`). `localRoute` calls `server.ensure()` for a connection, no pacing, JSON-schema fact extraction, persona-prefix prewarm on an invitation. Background work never starts the server. |
 | `bridge/memory-store.mjs` | The memory shared by the text providers. |
+| `bridge/talk-retrieval.mjs` | The background chosen for V's words: a character's topic views and the quest, journal and world facts, by rarity of words and by meaning (the memory embedder), with a cooldown. Nothing for small talk. See `docs/NATURAL_TALK_RESEARCH_2026-10-30.md` section 15. |
 
 ### Ordering with OmniVoice
 

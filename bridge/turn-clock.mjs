@@ -27,6 +27,7 @@ const nowMs = () => {
  *   admitted          memory admission and the receipt were recorded
  *   stock             an add-on remark took a line the model wrote ahead of time (bridge/addon-stock.mjs); no model call follows
  *   transport         the reply was requested from the conversation route
+ *   retrieved         the turn's background was chosen for V's words (topic views, quest and world facts: bridge/talk-retrieval.mjs); its time is the step before the mark
  *   recalled          the text route recalled the character's memory (history, retrieved facts)
  *   promptBuilt       the model's messages were built
  *   llmSent           the request was sent to the model (Convai: the text was sent over the connection)
@@ -49,7 +50,7 @@ const nowMs = () => {
  *                     the renderer, the device and the Lip sync delay
  *   playbackObserved  the renderer's clock showed sound playing
  */
-export const STAGES = Object.freeze(['inputWritten', 'received', 'knowledge', 'admitted', 'stock', 'transport', 'recalled', 'promptBuilt',
+export const STAGES = Object.freeze(['inputWritten', 'received', 'knowledge', 'admitted', 'stock', 'transport', 'retrieved', 'recalled', 'promptBuilt',
   'llmSent', 'llmHeaders', 'firstToken', 'firstSentence', 'fullText', 'replyReturned', 'voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm',
   'firstPcmAccepted', 'firstFrame', 'published', 'leaseRead', 'playbackObserved']);
 
