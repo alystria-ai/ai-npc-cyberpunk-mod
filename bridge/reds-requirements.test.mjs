@@ -154,24 +154,25 @@ test('scripts that did not compile come first even when every other requirement 
 // Without RED4ext nothing it loads answers (this mod's native plugin, Codeware), and Codeware's scripts never reach the compile, so
 // every mod that imports it fails the whole compile and the redscript log lists those mods. The cause to name is RED4ext, not a mod the
 // log lists.
-test('RED4ext not loaded and scripts that did not compile: RED4ext is named first, and the log advice is still on the console', () => run(String.raw`
+test('scripts that did not compile while the conversation service runs (its launcher is a RED4ext plugin): RED4ext is loaded, the scripts are the one problem', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
+  -- The native plugin did not bind and nothing in the scripts answers, but the service of this session was started by this mod's RED4ext launcher.
+  -- Reports bbbc0ad4 and 4fdccb3f (0.4.0): "RED4ext is missing" was shown on an install whose compile broke in another mod.
   env.scripts, env.requirements = false, nil
   env.codeware, env.native = nil, false
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
-  assert(lineOf('red4ext').state == 'problem' and lineOf('redscript').state == 'problem')
+  assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'ok' and lineOf('redscript').state == 'problem')
   assert(lineOf('codeware').state == 'unknown')
   local shown = notice()
-  assert(shown == 'RED4ext is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
-  assert(#console == 2, table.concat(console, ' | '))
-  assert(console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: RED4ext is missing. Install it from Nexus Mods, then restart the game.', console[1])
-  assert(console[2]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log.", 1, true), console[2])
-  assert(files['runtime/probe.log']:find('Setup check: problems: red4ext, redscript', 1, true))
+  assert(shown == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.', tostring(shown))
+  assert(not table.concat(console, ' | '):find('RED4ext is missing', 1, true), table.concat(console, ' | '))
+  assert(files['runtime/probe.log']:find('Setup check: problems: redscript', 1, true))
   -- once per game session
+  local seen = #console
   for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
-  assert(#console == 2)
+  assert(#console == seen)
 `));
 
 test('ConvaiRequirements that raises or answers a non-string is read as scripts of an older version: they loaded, the frameworks are implied', () => run(String.raw`
