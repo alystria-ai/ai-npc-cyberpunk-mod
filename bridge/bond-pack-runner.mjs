@@ -5,8 +5,8 @@
 //           volatile note carries the pack's `bringUp` and the first stage's `know` and `wants`. Nothing starts from a timer, so no turn is spent that V did not start.
 //   NOTES   every later turn on a channel the pack allows carries the current stage (`know`, `wants`, the meeting it hopes for, the money it needs).
 //   CHOICES a stage ends by V's own words (bridge/bond-intent.mjs, read after the reply is published: no model call, no tag in a reply), by an Eddies transfer
-//           with the pack as its story (the ledger row of the next turn says it was done), by the outcome of a meeting (appointment events), or by its timer.
-//   TIMERS  checked when a turn's context is built, never by a tick.
+//           with the pack as its story (the ledger row of the next turn says it was done), by the outcome of a meeting (appointment events) or by an event the game saw.
+//   NO TIME LIMIT (owner decision 1 Nov 2026) a stage has no timer and no clock: a quest stays open until V does it, says no, or abandons it (words, or the game's quest:abandon).
 //   ENDING  a bond reward (or penalty) and a note the character keeps for 3 game days.
 // The state follows the SAVE: every step carries the game clock, and a turn whose clock is earlier than a step rewinds the pack to where that clock had it.
 // What the game is asked to do (runtime/bond-effects.json) is computed from the state: a car that is not offered, one-shot items, an outfit for a stage.
@@ -19,7 +19,7 @@ import {atomicFile} from './guarded-file.mjs';
 import {packGate, explainGate, validatePack, shippedPacks, blockingQuest, trackedPathOf, KNOWN_STAGE_TYPES, CHANNELS, HANGOUT_DEFAULTS} from './bond-packs.mjs';
 import {intentKind, screenAbandon} from './bond-intent.mjs';
 import {debts} from './eddies.mjs';
-import {channelOf} from './bonds.mjs';
+import {channelOf, bondable} from './bonds.mjs';
 import {QUEST_NEAR_NOTE} from './turn-context.mjs';
 import {questStates, questState, finished, inventoryComplete} from './bonds.mjs';
 import {placesOf, referencesOf} from './quest-format.mjs';
@@ -97,7 +97,8 @@ export class BondPacks {
    * packs     the packs (validated here; an invalid one is left out and logged)    characters   the roster keys (a Set) for the validator
    * path      <state>/bond-packs.json                                              effectsPath  runtime/bond-effects.json
    * bonds     the Bonds object (award points, publish the status)                  random, now, read, write, timers   injectable for tests
-   * explain   () -> true while Developer mode is on: a pack that does not start says why in the log, once per pack per game day
+   * explain   () -> true while Developer mode is on: every private turn logs one line that says whether a pack started and why not (gate, channel, party, cooldown, chance), and a pack
+   *            that waits also says why once per pack per game day
    */
   constructor({packs = shippedOrNone(), characters = null, path = null, effectsPath = null, bonds = null, random = Math.random,
     now = Date.now, read = file => readFile(file, 'utf8'), write = (file, text) => atomicFile(file, text), log = () => {}, debounceMs = 5000,
@@ -108,6 +109,8 @@ export class BondPacks {
     this.fast = fast === true;
     if (this.fast) log('dev fast mode (story-packs-dev-fast.flag): a pack whose gate is open starts on the next eligible turn, with no quiet days, no daily rolls and a start chance of 1');
     this.explained = new Map();    // pack id (or profile key) -> the game day its reason was last logged
+    this.turnNotes = null;         // while a turn is decided in Developer mode: the reasons its packs gave, for the turn's one line
+    this.noted = new Set();            // turn ids whose "no pack decision" line was said
     this.packs = new Map();
     for (const pack of packs) {
       const result = validatePack(pack, {characters});
@@ -465,10 +468,16 @@ export class BondPacks {
     if (facts.romance !== undefined && meta.romance !== romance) { meta.romance = romance; this.#schedule(); }
   }
 
-  /** Developer mode only: why a pack did not start for a character on this turn, once per pack per game day ("panam-sunset-coffee waits: q307_before_tomorrow still active"). Never throws. */
+  /** Whether Developer mode is on (the turn lines and the reasons are logged only then). */
+  #devOn() {
+    try { return typeof this.explain === 'function' && this.explain() === true; } catch { return false; }
+  }
+
+  /** Developer mode only: why a pack did not start for a character on this turn. The turn's own line (turnLine) always has it, the line of its own is said once per pack per game day ("panam-sunset-coffee waits: q307_before_tomorrow still active"). Never throws. */
   #waits(key, gameSeconds, text) {
     try {
-      if (typeof this.explain !== 'function' || this.explain() !== true) return;
+      if (!this.#devOn()) return;
+      if (this.turnNotes) this.turnNotes.push(`${key} waits: ${text}`);
       const day = whole(gameSeconds) ? Math.floor(gameSeconds / DAY) : -1;
       if (this.explained.get(key) === day) return;
       this.explained.set(key, day);
@@ -476,10 +485,75 @@ export class BondPacks {
     } catch {}
   }
 
+  /** Developer mode only: one more reason in the turn's own line. */
+  #note(text) { if (this.turnNotes) this.turnNotes.push(text); }
+
+  /** The words for how V and the character talk this turn, for the Developer log. */
+  #howText(input) {
+    const channel = channelOf(input);
+    return {phone: 'a Phone Chat text', holocall: 'a holocall', own: 'talk in person with one of V\'s copies', story: 'talk with a character the game placed'}[channel] ?? channel;
+  }
+
+  /** Why a turn never reached the pack logic, in words (null when it did or the reason is not known here). */
+  #noPackReason(input) {
+    if (!input?.bonds) return 'the game sent no bonds block, so Character bonds is off in Settings or the block could not be made';
+    if (!input.bonds.on) return 'the bonds block is off';
+    if (!input.bonds.packs) return 'the bonds block has no Story packs flag, so Story packs is off in Settings or the development switch is missing';
+    if (input.reaction) return 'a reaction is no turn of V\'s';
+    if (input.head) return 'Johnny in V\'s head is no turn of V\'s';
+    if (input.event) return 'a message the character started is no turn of V\'s';
+    return null;
+  }
+
+  /**
+   * Developer mode only: the one line every private turn leaves about the packs, so a text that started nothing can be read without a guess. It names how V and the character talk
+   * (the channel), whether she is beside V and in V's party, the bond level, the game clock, whether the game called the turn busy and why, and then either the pack that started,
+   * the pack that is running, or the reason each pack gave for waiting (the gate, the channel, the party, the quiet days, the dice and their chance). Never throws.
+   */
+  #turnLine(input, facts, decision, notes) {
+    try {
+      const clock = value => `day ${Math.floor(value / DAY)} ${String(Math.floor(value % DAY / HOUR)).padStart(2, '0')}:${String(Math.floor(value % HOUR / 60)).padStart(2, '0')}`;
+      const bonds = input?.bonds ?? {};
+      const time = Number.isSafeInteger(input?.turnContext?.gameTime) && input.turnContext.gameTime >= 0 ? clock(input.turnContext.gameTime) : 'no game clock yet';
+      const who = [facts?.near === true ? 'she is beside V' : 'she is apart from V', bonds.copy === 'party' ? 'in V\'s party' : 'not in V\'s party', `bond level ${facts?.level ?? 0}`, time,
+        bonds.busy === true ? `the game is busy (${bonds.busyWhy ?? 'no reason given'})` : 'the game is not busy'].join(', ');
+      let result;
+      if (decision?.start) result = `started ${decision.start.pack.id}`;
+      else if (decision?.pack) result = `${decision.pack.id} is running (stage ${decision.entry?.trail?.at(-1)?.stage ?? '?'}), so no new pack starts`;
+      else if (notes?.length) result = notes.join(' | ');
+      else result = this.#noPackReason(input) ?? (this.#packsOf(input?.profileKey).length ? 'no pack had anything to say about this turn' : 'this character has no story pack');
+      this.log(`[dev] turn ${input?.profileKey} on ${this.#howText(input)}: ${who}. ${result}`);
+    } catch {}
+  }
+
+  /** Developer mode only: a private turn of V's that never reached the pack logic (no bonds block, Story packs off in the block), said once per turn. Never throws. */
+  noDecision(input) {
+    try {
+      if (!this.#devOn() || !this.packs.size || !input || input.reaction || input.head || input.group || !bondable(input.profileKey)) return;
+      const id = turnId(input);
+      if (id && this.noted.has(id)) return;
+      if (id) { this.noted.add(id); while (this.noted.size > 64) this.noted.delete(this.noted.values().next().value); }
+      this.log(`[dev] turn ${input.profileKey} on ${this.#howText(input)}: no pack decision, ${this.#noPackReason(input) ?? 'the turn is not one the packs read'}`);
+    } catch {}
+  }
+
   /** "panam-palmer" -> "Panam Palmer" (a lasting line from another character says who it is from). */
   #nameOf(key) { return String(key).split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '); }
 
+  /** The turn's decision, with the turn's one Developer log line (turnLine) whatever came of it. */
   #decide(input, facts) {
+    this.turnNotes = this.#devOn() ? [] : null;
+    let decision = null;
+    try { decision = this.#decideTurn(input, facts); }
+    finally {
+      const notes = this.turnNotes;
+      this.turnNotes = null;
+      if (notes) this.#turnLine(input, facts, decision, notes);
+    }
+    return decision;
+  }
+
+  #decideTurn(input, facts) {
     const bonds = input?.bonds;
     if (!bonds?.on || !bonds.packs || input.reaction || input.head || input.event) return null;
     const reachBefore = this.settings.reach;
@@ -520,6 +594,7 @@ export class BondPacks {
       return decision.note ? decision : null;
     }
     const activeRow = mine.map(pack => [pack, this.entries.get(pack.id)]).find(([, entry]) => entry?.status === 'active');
+    if (!allowed) this.#note(`${channel} never starts or moves a pack (a pack runs on one of V's own copies, a phone chat or a holocall)`);
     if (activeRow && allowed) {
       const [pack, entry] = activeRow;
       // The story reached the quest this pack waits for to end (Jackie: The Heist): the pack ends unfinished, whatever else is going on.
@@ -527,6 +602,7 @@ export class BondPacks {
       if (stop && inventoryComplete(input.journalHistory) && finished(questState(input.journalHistory, stop.finished))) this.#go(pack, entry, stop.ending, gameSeconds, 'unfinished');
       // Paused (no new stage, no timer) while the character has a quest of their own going, the story is at its end, or the game is busy.
       const paused = entry.status === 'active' && (bonds.busy === true || !this.#quietJournal(pack, input.journalHistory));
+      if (paused) this.#note(`${pack.id} is running but paused: ${bonds.busy === true ? `the game is busy (${bonds.busyWhy ?? 'a scene, a choice, a fight or a call'})` : 'a quest of the game or the main story holds the moment'}`);
       if (!paused) {
         decision.evaluate = entry.presented === true;
         this.#resolve(pack, entry, {gameSeconds, eddiesRow: decision.eddiesRow});
@@ -597,13 +673,13 @@ export class BondPacks {
       } else if (entry || (quiet && !offered)) { this.#waits(pack.id, gameSeconds, entry ? `already ${entry.status === 'done' ? 'played' : 'running'}` : `quiet days after the last quest (${COOLDOWN_DAYS} game days)`); continue; }
       const gate = packGate(pack, {level, journalHistory: input.journalHistory, romance, channel, finishedPacks, busy: bonds.busy === true,
         settings: {eddies: bonds.eddies === true, invitations: bonds.invitations === true}, facts: pack.requires?.facts ? this.#facts() : null});
-      if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance})); continue; }
+      if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance, busyWhy: bonds.busyWhy})); continue; }
       // Fair starts (bridge/quest-start.mjs): a pack that opens with a call does not start in person, nor with her beside V or in V's party. And a pack that lapsed unseen or
       // unaccepted is left alone for a game day. Neither takes a roll of the dice.
       const allowed = startAllowed(pack, {channel, near, party});
       if (!allowed.ok) { this.#waits(pack.id, gameSeconds, allowed.why); continue; }
       const lapsed = meta.withdrawn[pack.id];
-      if (whole(lapsed) && gameSeconds >= lapsed && gameSeconds - lapsed < WITHDRAWN_DAYS * DAY) { this.#waits(pack.id, gameSeconds, 'it lapsed less than a game day ago'); continue; }
+      if (whole(lapsed) && gameSeconds >= lapsed && gameSeconds - lapsed < WITHDRAWN_DAYS * DAY) { this.#waits(pack.id, gameSeconds, 'V abandoned it less than a game day ago'); continue; }
       // The dice (DAILY_ROLLS above): only when a pack could start, every ROLL_EVERY_TURNS eligible turns, at most DAILY_ROLLS a game day per character.
       if (!offered && !this.fast) {
         if (meta.rolled !== today) { meta.rolled = today; meta.rolls = 0; meta.idle = ROLL_EVERY_TURNS - 1; }   // the first eligible turn of a game day rolls at once

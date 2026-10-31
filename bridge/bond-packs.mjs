@@ -373,10 +373,10 @@ export function packGate(pack, {level = 0, journalHistory = null, romance = null
  * A closed gate in words, for the Developer-mode log ("q307_before_tomorrow still active"). `gate` is packGate's {open: false, why, path?}; `level` and `channel` are the
  * turn's. The wording names a quest by the last part of its path only.
  */
-export function explainGate(gate, pack, {level = 0, channel = 'story', romance = null} = {}) {
+export function explainGate(gate, pack, {level = 0, channel = 'story', romance = null, busyWhy = null} = {}) {
   const name = typeof gate?.path === 'string' ? gate.path.slice(gate.path.lastIndexOf('/') + 1) : 'a quest';
   switch (gate?.why) {
-    case 'busy': return 'the game is busy (a scene, a choice, a fight or a call)';
+    case 'busy': return `the game is busy (${busyWhy ?? 'a scene, a choice, a fight or a call'})`;
     case 'channel': return `${channel} does not start it (it starts on ${(pack?.start?.channels ?? []).join(', ') || 'no channel'})`;
     case 'bond': return `bond level ${level} is under ${pack?.requires?.bond}`;
     case 'eddies-off': return 'Eddies with characters is off';

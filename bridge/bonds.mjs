@@ -73,7 +73,7 @@ export function levelOf(points) {
  * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. `romance`: 'together' | 'ended' when the save holds a romance with V that the bridge started
  * (bridge/romance-bond.mjs; the game keeps it in a saved fact, mod/romance-registry.lua), absent otherwise. Phase 2 adds three flags, each present only when true:
  * `packs` (Settings > Companions > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
- * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Companions > Characters text first is on: the characters' reach-outs, off by default in the game).
+ * call or a chase: no pack starts or moves now) with `busyWhy` (what the game saw, for the Developer log). Round 2 adds `reach` (Settings > Companions > Characters text first is on: the characters' reach-outs, off by default in the game).
  * Returns {on: true, copy, packs?, invitations?, eddies?, busy?, reach?, romance?} or null.
  */
 export function parseBonds(value) {
@@ -81,9 +81,12 @@ export function parseBonds(value) {
   // Story packs and Characters text first are not part of 0.4.0: without the development switch (bridge/story-packs-gate.mjs) the two flags are dropped, whatever the game sent.
   const packsMay = storyPacksAvailable();
   return {on: true, copy: COPIES.has(value.copy) ? value.copy : null, ...(packsMay && value.packs === true ? {packs: true} : {}),
-    ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true} : {}),
+    ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true, ...(typeof value.busyWhy === 'string' && BUSY_WHY.test(value.busyWhy) ? {busyWhy: value.busyWhy} : {})} : {}),
     ...(packsMay && value.reach === true ? {reach: true} : {}), ...(value.romance === 'together' || value.romance === 'ended' ? {romance: value.romance} : {})};
 }
+
+/** What the game saw when it called a turn busy ("combat", "scene tier 3"): a short plain phrase, kept only for the Developer log. */
+const BUSY_WHY = /^[A-Za-z0-9][A-Za-z0-9 ,.'-]{0,59}$/;
 
 /** Who gets a bond: a named character (not an ordinary NPC, an add-on voice or a model-only copy). */
 export const bondable = profileKey => typeof profileKey === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(profileKey)

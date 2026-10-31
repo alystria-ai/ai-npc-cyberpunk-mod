@@ -1927,7 +1927,7 @@ const bondNote = (input, prepared, admitted) => {
 };
 // The turn's story pack decision (a start, or the stage in progress), made once per turn; null while Story packs is off or the turn is not a private one with a named character.
 const packTurn = (input, prepared, admitted) => {
-  if (!input.bonds?.packs) { if (input.bonds) bondPacks.on = false; return null; }
+  if (!input.bonds?.packs) { if (input.bonds) bondPacks.on = false; bondPacks.noDecision(input); return null; }
   const facts = bondFacts(input, prepared, admitted);
   return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
 };
