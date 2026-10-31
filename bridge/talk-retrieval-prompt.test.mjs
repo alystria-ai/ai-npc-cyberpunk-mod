@@ -69,6 +69,16 @@ test('without a result the blocks are the ones they always were; with one each r
   assert.ok(retrievalOf(input));
 });
 
+test('a turn\'s input is frozen and gets copied: the result is kept by the turn\'s identity, so both work', async () => {
+  const input = Object.freeze(turnInput('what happened to Saul?'));
+  const result = await retrieve(input);
+  assert.equal(retrievalOf(input), result);
+  assert.equal(retrievalOf({...input}), result, 'a copy of the input finds it');
+  assert.equal(retrievalOf({...input, requestId: '9-7-10ULL'}), null);
+  assert.equal(retrievalOf({...input, text: 'something else'}), null);
+  assert.ok(conversationContextBlocks(input).some(block => block.tier === 'retrieved'));
+});
+
 test('small talk: the prompt carries no quest, journal, world fact or topic view', async () => {
   for (const line of ['hey', 'how is it going', 'so hows life', 'perhaps', 'thanks']) {
     const input = turnInput(line);

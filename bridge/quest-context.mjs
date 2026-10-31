@@ -179,10 +179,18 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 // instructions", "missing is unknown", "respect each knowledge origin"), exactly as it was and on every turn, in the place the block had: that text is stable, so a prompt cache keeps
 // it. Only the data goes late, as the JSON of the chosen units, in the `retrieved` tier. A turn with no result attached (the feature off, an add-on speaker, a failed retrieval) is
 // built exactly as before.
-const RETRIEVAL = Symbol('talk-retrieval');
-/** Attaches a retrieval result ({text, dropped, frames}) to a turn's input; the symbol survives an object spread, not JSON. */
-export function attachRetrieval(input, result) { if (input && typeof input === 'object') input[RETRIEVAL] = result; return input; }
-export const retrievalOf = input => (input && typeof input === 'object' ? input[RETRIEVAL] ?? null : null);
+// The result is kept by the turn's identity (character, request id and words), not on the input object: a turn's input is frozen and gets copied, and a key made of its data survives both.
+const RETRIEVALS = new Map();
+const retrievalKey = input => `${input?.profileKey}|${input?.requestId}|${input?.text}`;
+/** Keeps a retrieval result ({text, dropped, frames}) for a turn's input; the last 32 turns are kept. */
+export function attachRetrieval(input, result) {
+  if (!input || typeof input !== 'object' || typeof input.requestId !== 'string') return input;
+  const key = retrievalKey(input);
+  RETRIEVALS.delete(key); RETRIEVALS.set(key, result);
+  while (RETRIEVALS.size > 32) RETRIEVALS.delete(RETRIEVALS.keys().next().value);
+  return input;
+}
+export const retrievalOf = input => (input && typeof input === 'object' && typeof input.requestId === 'string' ? RETRIEVALS.get(retrievalKey(input)) ?? null : null);
 
 // Words the tracked quest and the open jobs are also found by ("what now?", "any work?"): not shown, only ranked on. The journal history has its own, for questions about the past.
 const QUEST_ANCHOR = 'quest job gig mission task objective contract work next';
