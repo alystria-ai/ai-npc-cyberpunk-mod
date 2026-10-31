@@ -34,6 +34,7 @@ import {BASE_PROFILE, renderRules, renderExamples, renderIntro, renderClosing, l
 import {worldRulesBlock} from './world-rules.mjs';
 import {headLine, tailLine, staleTest, FRESH_MAX_CHARS} from './fresh-facts.mjs';
 import {splitTopicMaterial} from './topic-material.mjs';
+import {ACTION_STEM, ACTION_FORM, stripNarration} from './narration-strip.mjs';
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
@@ -180,6 +181,8 @@ export class PersonaBook {
     if (Array.isArray(row.rules) && row.rules.length) extra.rules = row.rules.filter(line => typeof line === 'string' && line.trim()).map(line => line.trim());
     // An add-on speaker may set its own reply length for talk turns (persona.talkWords, docs/ADDON_API.md); an ordinary row never does.
     if (Number.isInteger(row.talkWords) && row.talkWords >= 8 && row.talkWords <= 60) extra.talkWords = row.talkWords;
+    // The other names the character goes by (the roster's aliases): only the reply cleaning reads them (bridge/narration-strip.mjs), to know the speaker's own name in "Vik's voice drops".
+    if (!ambient && Array.isArray(row.aliases) && row.aliases.length) extra.aliases = row.aliases.filter(alias => typeof alias === 'string' && alias.trim()).slice(0, 8).map(alias => alias.trim().slice(0, 60));
     return {name, ambient, backstory: this.lean ? leanBackstory(backstory) : backstory, style: this.lean ? leanStyle(style) : style, samples, known: true, ...extra};
   }
 }
@@ -466,11 +469,6 @@ const STRAY_THINK = /<\/think(?:ing)?>/i;
 const CHANNEL = /<\|channel>[\s\S]*?(?:<channel\|>|$)/g;
 const TURN_MARKER = /<(?:turn\|>|\|turn>|end_of_turn>|start_of_turn>|\|im_end\|>|\|im_start\|>|eos>)/;
 
-// The first word of a *stage direction*: what a character does (sighs, laughs, leans in, clears throat), not what it stresses.
-// Words that are also ordinary words ("look", "take", "hold") count only in their -s, -ed and -ing forms ("looks", "holding").
-const ACTION_STEM = /^(?:sigh|laugh|chuckl|giggl|snicker|smil|grin|smirk|wink|nod|shrug|paus|gasp|groan|cough|whisper|beep|bzz+t?|click|clap|cheer|cry|sob|snort|scoff|yawn|stretch|blush|frown|glar|stare|squint|wave|sip|sniff|hiss|mutter|shiver|tremble|flinch|wince|grimac|fidget|growl|mumbl|murmur|nudg|glanc|gestur|slump|stomp|twirl|bounc|crouch|kneel|beam|pout|sulk|tsk|ahem|exhal|inhal|swallow|lick|scratch)e?(?:s|es|ed|d|ing)?$/i;
-const ACTION_FORM = /^(?:look|turn|step|walk|sit|stand|hold|take|put|reach|lift|set|pull|push|cross|fold|lean|point|tap|pat|roll|shak|tilt|rais|lower|rub|clear|drink|bow|touch|hug|spin|jump|duck|storm|breath|bit)(?:s|es|ed|d|ing|ning|ting|ping)$/i;
-
 /**
  * Text between single asterisks. A stage direction ("*sighs*", "*leans back, arms crossed*", a longer action at the start or the end of
  * a reply or sentence) is removed. A word or a short phrase the model stressed ("That was *perfect*.", "I *really* mean it") keeps its
@@ -497,11 +495,11 @@ export function starred(text) {
 }
 
 /**
- * A model reply as plain spoken text: reasoning blocks, speaker labels, stage directions, markdown and emoji removed. Emotion and
+ * A model reply as plain spoken text: reasoning blocks, speaker labels, stage directions, narration in plain prose, markdown and emoji removed. Emotion and
  * voice tags are left for the bridge's own pass (bridge/natural-speech.mjs), which removes them from the display text; braces and
  * bracket groups that are not tags are dropped here.
  */
-export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
+export function cleanReply(raw, {name = '', aliases = [], isTag = () => false} = {}) {
   let text = String(raw ?? '').replace(/\r/g, '').replace(THINK, '').replace(CHANNEL, '');
   const marker = text.search(TURN_MARKER);
   if (marker >= 0) text = text.slice(0, marker);
@@ -524,9 +522,12 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   text = text.replace(/\{[^{}\n]{0,40}\}/g, match => isTag(match) ? match : ' ');
   text = text.replace(/\[[^\[\]\n]{0,40}\]/g, match => isTag(match) || /^\[[a-z]+(?:-[a-z]+)*\]$/i.test(match) ? match : ' ');
   text = text.replace(EMOJI, '');
-  // A reply wrapped whole in quotation marks.
-  const quoted = /^["“](.*)["”]$/s.exec(text.trim());
-  if (quoted && !/["“”]/.test(quoted[1])) text = quoted[1];
+  // A reply wrapped whole in quotation marks. Narration in plain prose ("Jackie's voice over the phone, concerned, hey ...", "Jackie says softly:", "Her voice crackles through the line.")
+  // goes after that, so a lead inside the marks is seen, and the marks are judged again once it is out (bridge/narration-strip.mjs).
+  const unwrap = value => { const quoted = /^["“](.*)["”]$/s.exec(value.trim()); return quoted && !/["“”]/.test(quoted[1]) ? quoted[1] : value; };
+  text = unwrap(text);
+  const spoken = stripNarration(text, {name, aliases});
+  if (spoken !== text) text = unwrap(spoken);
   // A removed group between two dashes leaves "— —"; the dashes become one. A dash inside the reply is spoken as a comma pause (a
   // small model puts one in most replies, and a voice reads a comma more cleanly); a number range ("9–5") and a dash that ends the
   // reply (a cut-off line, see looksCut) stay as they are.

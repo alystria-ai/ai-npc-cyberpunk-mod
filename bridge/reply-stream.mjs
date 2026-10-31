@@ -79,18 +79,19 @@ const deferred = () => {
 export function finishedText(stream, text) {
   // No sentence was given to the voice: nothing to agree with, and the reply is voiced and shown as it came (as before streaming), not cleaned.
   if (!stream.committed) return String(text ?? '');
-  const cleaned = cleanReply(text, {name: stream.name, isTag: stream.isTag});
+  const cleaned = cleanReply(text, {name: stream.name, aliases: stream.aliases, isTag: stream.isTag});
   return stream.reconcile(cleaned || String(text ?? ''));
 }
 
 export class ReplyStream {
   /**
    * name         the speaker's name (a leading "Name:" label is cleaned off)
+   * aliases      other names the speaker goes by (narration that names the speaker is cleaned off, bridge/narration-strip.mjs)
    * isTag        which bracket groups are tags (kept by the cleaning)
    * speak        false: only watch (marks the first sentence on the turn's clock), never commit a head
    */
-  constructor({name = '', isTag = () => false, speak = true, limits = {}} = {}) {
-    Object.assign(this, {name, isTag, speak});
+  constructor({name = '', aliases = [], isTag = () => false, speak = true, limits = {}} = {}) {
+    Object.assign(this, {name, aliases, isTag, speak});
     this.limits = {...REPLY_STREAM_LIMITS, ...limits};
     this.raw = ''; this.clean = ''; this.view = ''; this.headText = null; this.headMarks_ = []; this.headSounds_ = []; this.sentenceSeen = false;
     this.finishedText = null; this.failure = null; this.diverged = false; this.attempts = 1;
@@ -155,7 +156,7 @@ export class ReplyStream {
     }
     this.raw = raw;
     if (this.diverged) return;
-    this.clean = cleanReply(raw, {name: this.name, isTag: this.isTag});
+    this.clean = cleanReply(raw, {name: this.name, aliases: this.aliases, isTag: this.isTag});
     // What a listener will read: the tags out, a tag still being written held back.
     this.view = displayText(this.clean, false);
     if (!this.sentenceSeen && sentenceEnds(this.view).length) { this.sentenceSeen = true; markStage('firstSentence'); }
