@@ -6787,7 +6787,7 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
           assert(category.id ~= 'companion-behavior' and category.id ~= 'gameplay' and category.id ~= 'development', 'an old category on ' .. view .. ': ' .. category.id)
         end
       end
-      assert(idsOf('settings-companions', 'companions') == 'immersive-invitations,housemates,companionOutfits,characterEddies,characterBonds,storyPacks,reachOuts,companionReactions', idsOf('settings-companions', 'companions'))
+      assert(idsOf('settings-companions', 'companions') == 'immersive-invitations,housemates,companionOutfits,romanceAnimations,characterEddies,characterBonds,storyPacks,reachOuts,companionReactions', idsOf('settings-companions', 'companions'))
       assert(idsOf('settings-night-city', 'night-city') == 'reputation,npcThreats,revengeAmbushes', idsOf('settings-night-city', 'night-city'))
       core.setView('settings')
       loaded = registered.loadMod('manager')
@@ -7512,7 +7512,7 @@ test('Companions react is the last row of Companions, on by default, applies on 
       assert(category.id ~= 'reactions' and category.name ~= 'Automatic reactions', tostring(category.id))
       if category.id == 'companions' then companions = category end
     end
-    assert(companions and #companions.settings == 8)
+    assert(companions and #companions.settings == 9)
     local react = companions.settings[#companions.settings]
     assert(react.id == 'companionReactions' and react.label == 'Companions react' and react.type == 'bool' and react.value == true and react.defaultValue == true)
     assert(react.description:find('Cooldowns: ten minutes after a fight', 1, true) and react.description:find('Storage transfers stay silent', 1, true))

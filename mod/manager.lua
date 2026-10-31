@@ -1016,6 +1016,8 @@ local function loadSettings()
     if type(settings.voiceChoices) ~= 'boolean' then settings.voiceChoices, settingsNeedSave = false, true end
     -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
     if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = false, true end
+    -- On by default: Romance animations (docs/ROMANCE_ANIMATIONS.md). Only with a romance partner, only on V's request and one confirmation, never on its own.
+    if type(settings.romanceAnimations) ~= 'boolean' then settings.romanceAnimations, settingsNeedSave = true, true end
     -- Off by default: Remote OmniVoice (Voices > Custom voices, docs/REMOTE_OMNIVOICE.md), the OmniVoice choices are rendered by an OmniVoice server on another PC. Off, nothing
     -- is asked of any server; on, no OmniVoice model loads on this PC and the pack is not needed.
     if type(settings.remoteOmni) ~= 'boolean' then settings.remoteOmni, settingsNeedSave = false, true end
@@ -1282,6 +1284,13 @@ end
 function M.voiceChoices()
     loadSettings()
     return settings.voiceChoices == true
+end
+
+-- Romance animations (Settings > Companions, docs/ROMANCE_ANIMATIONS.md): on by default, and only ever played for a romance partner on V's request.
+-- Read when a request is made, when a private turn arms the request file and on the party tick (one boolean), never per frame.
+function M.romanceAnimations()
+    loadSettings()
+    return settings.romanceAnimations ~= false
 end
 
 -- Companions change outfits (Settings > Gameplay, docs/COMPANION_OUTFITS.md): off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
@@ -2516,6 +2525,7 @@ function M.snapshot(player)
             amdMiopen = settings.amdMiopen ~= false,
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
+            romanceAnimations = settings.romanceAnimations ~= false,
             reputation = settings.reputation == true,
             npcThreats = settings.npcThreats == true,
             revengeAmbushes = settings.revengeAmbushes == true,
@@ -2682,6 +2692,9 @@ function M.applySettings(player, values)
         elseif key == 'companionOutfits' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.companionOutfits = value
+        elseif key == 'romanceAnimations' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.romanceAnimations = value
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value

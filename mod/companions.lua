@@ -1169,6 +1169,28 @@ function M.ownCopy(entity,profileKey)
     return nil
 end
 
+-- The entry of one of V's own copies by character, for the romance animations (docs/ROMANCE_ANIMATIONS.md): a party member, an invited visitor
+-- or a housemate whose body is here. The game's own placed characters have no entry. nil when she is not here.
+function M.ownEntryFor(profileKey)
+    if type(profileKey)~='string' then return nil end
+    for _,entry in ipairs(entries) do
+        if entry.profileKey==profileKey and entry.npc and (entry.state=='ready' or entry.state=='visiting') then
+            local ok,attached=pcall(function() return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() end)
+            if ok and attached then return entry end
+        end
+    end
+    return nil
+end
+
+-- Every one of V's own copies whose body is here (party, visitors, housemates), for the lists that offer something per partner. Asked when a page is built.
+function M.ownEntries()
+    local list={}
+    for _,entry in ipairs(entries) do
+        if entry.profileKey and entry.npc and (entry.state=='ready' or entry.state=='visiting') then list[#list+1]=entry end
+    end
+    return list
+end
+
 function M.identity(npc)
     if not npc then return nil end
     local ok, identity = pcall(function() return tostring(npc:GetEntityID().hash) end)

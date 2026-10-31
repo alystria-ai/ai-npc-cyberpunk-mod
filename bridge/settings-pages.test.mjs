@@ -34,7 +34,7 @@ const pages = {
   'settings-provider': ['conversationProvider'],
   'settings-voice': ['voiceProvider', 'replyLanguage', 'replyLanguageOther', 'voiceVolume', 'vVoice', 'vVoiceEngine', 'vVoiceVolume', 'naturalSpeech', 'micDevice', 'voiceActivation', 'voiceChoices', 'audioDelay'],
   'settings-conversations': ['storyConversations', 'storyMissionTalk', 'johnnyInHead', 'companionSpeakUp', 'companionVision', 'dynamic-info', 'memory'],
-  'settings-companions': ['immersive-invitations', 'housemates', 'companionOutfits', 'characterEddies', 'characterBonds', 'storyPacks', 'reachOuts', 'companionReactions'],
+  'settings-companions': ['immersive-invitations', 'housemates', 'companionOutfits', 'romanceAnimations', 'characterEddies', 'characterBonds', 'storyPacks', 'reachOuts', 'companionReactions'],
   'settings-night-city': ['reputation', 'npcThreats', 'revengeAmbushes'],
   'settings-interface': ['uiLanguage', 'subtitleStyle', 'subtitleLanguage'],
   'settings-privacy': ['errorReports', 'developerMode'],
