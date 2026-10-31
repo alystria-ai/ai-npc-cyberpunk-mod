@@ -58,6 +58,9 @@ import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
+import {pocketRefusal, otherLanguageName} from './other-languages.mjs';
+import {SubtitleTranslations, subtitleLanguageFrom, WRITTEN_WAIT_MS, LOCAL_WRITTEN_WAIT_MS} from './subtitle-translation.mjs';
+import {spokenLanguage} from './reply-language.mjs';
 import {PocketLanguageModels, PocketLanguageNotice} from './pocket-language-models.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {DevTranscript, TRANSCRIPT_FILE} from './dev-transcript.mjs';
@@ -1155,6 +1158,13 @@ const phoneFailures = new PhoneFailureLog({
   provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
+  // The Subtitle language: a chat line has no sound to keep in step, so it waits for its translation for a moment at most (bridge/subtitle-translation.mjs).
+  localize: async (text, {signal}) => {
+    if (!subtitleTranslations.active || !mistral.active) return text;
+    const id = `phone:${randomUUID()}`;
+    subtitleTranslations.begin(id, text, {speech: speechLanguageOf(text), signal});
+    try { return await subtitleTranslations.wait(id, text, writtenSubtitleWait()); } finally { subtitleTranslations.release(id); }
+  },
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom|gemini)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
   contacts: phoneContacts, ids, custom: key => customCharacters.has(key),
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
@@ -1556,7 +1566,20 @@ voiceChoice = createVoiceChoice({speech: mistralSpeech, tap: micTap, readHub: re
 const warmTurnConnections = options => options?.provider === 'custom' || options?.provider === 'gemini'
   ? (() => { const endpoint = options.provider === 'gemini' ? geminiEndpoint : customEndpoint; return endpoint.warmOrigin ? warmConnection({...options, provider: 'custom', origin: endpoint.warmOrigin, connections: 2}) : Promise.resolve(false); })()
   : warmConnection({...options, connections: 2});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
+// Subtitle language (Settings > Interface, bridge/subtitle-translation.mjs): one extra short request to the player's own text provider, started the moment a reply text is
+// complete and never awaited by the voice. The table holds a turn's translation until that turn ends. With Convai answering there is no text provider and nothing is asked.
+const subtitleTranslations = new SubtitleTranslations({translate: options => mistralHost.translate(options), log: line => console.error('[SubtitleLanguage] ' + line)});
+// The language a finished reply is spoken in, when it is known (a fixed Voice language, else what the text itself says): a reply already in the subtitle language is not translated.
+const speechLanguageOf = text => multilingual.fixed ?? spokenLanguage(text) ?? (multilingual.lastLanguage || null);
+function beginSubtitleTranslation(config, result) {
+  const id = config?.subtitleTurn;
+  if (!subtitleTranslations.active || !mistral.active || typeof id !== 'string' || typeof result?.text !== 'string') return;
+  subtitleTranslations.begin(id, result.text, {speech: speechLanguageOf(result.text)});
+}
+// How long a reply with no sound waits for its translation: Local AI answers slower than a cloud model.
+const writtenSubtitleWait = () => mistral.route === 'local' ? LOCAL_WRITTEN_WAIT_MS : WRITTEN_WAIT_MS;
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections,
+  onReplyText: beginSubtitleTranslation});
 // Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
 // local AI, whatever the player's conversation provider is: one text host per route (the local AI never falls back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
@@ -2066,6 +2089,8 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   // A line prepared beside another (startAhead): the text route sends it as the lowest-priority work and never starts it ahead of a turn of V's.
   ...(preparedRequests.has(input.requestId) ? {prepared: true} : {}),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
+  // The turn the subtitle translation belongs to (bridge/subtitle-translation.mjs): only named while a subtitle language is set.
+  ...(subtitleTranslations.active && typeof input.requestId === 'string' ? {subtitleTurn: input.requestId} : {}),
   ttsEnabled: convaiSpeaks(input),
   // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice is
   // the only case where it speaks), and a fault in the format of any audio it does send leaves the written reply instead of failing the turn
@@ -2425,6 +2450,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: unavailable ? 'The selected voice is unavailable right now; showing the written reply.'
         : voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
+        : voice.reason === 'other-language-pocket' ? pocketRefusal(voice.language)
         : voice.reason === 'pocket-language-pack-missing' ? 'The multilingual pack for this language is missing; showing the written reply.'
         : 'The selected voice speaks English only; showing the written reply.'};
   }
@@ -2625,12 +2651,15 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // V's typed line, when it is audible, holds the reply the same way: it is published to the game shortly before V's line ends (the
     // game's round trip overlaps V's last moments, V_HANDOFF_LEAD_MS) and its sound starts when V has ended (bridge/v-voice.mjs).
     hold: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublish() === true,
+    // The subtitle language: the translation takes the original's place the moment it is here (it is a lookup, never a wait).
+    subtitle: (text, complete) => subtitleTranslations.show(input.requestId, text, complete),
     holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
     holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     pace,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
     onEnded: info => {
+      subtitleTranslations.release(input.requestId);
       void measure(input, {playback: info}).catch(() => {});
       if (info.underruns > 0) console.error(`[Speech] profile=${input.profileKey} the voice broke ${info.underruns} time(s): ${info.seconds.toFixed(1)} s of audio`
         + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '')
@@ -2863,8 +2892,11 @@ async function publishResult(input, profile, result, current = async () => true,
   if (result.timing?.convaiVoiceTimedOut === true) console.error(`[Convai] voice did not arrive in ${Math.round((result.timing.textWithoutAudioMs ?? 5000) / 1000)} s; the reply is shown as text (profile=${input.profileKey})`);
   // The next group speaker may be prepared from this reply's text from now on.
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
+  // A written reply has no sound to keep in step: it waits for the subtitle translation for a short moment at most, then shows the original (bridge/subtitle-translation.mjs).
+  const writtenText = await subtitleTranslations.wait(input.requestId, result.text, writtenSubtitleWait());
+  subtitleTranslations.release(input.requestId);
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-    entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
+    entity: input.entity, profile: profile.key, text: writtenText, userText: result.userText, audioError,
     // A scripted line whose prepared audio was missing or could not be played: the game shows the subtitle and adds a Phone Chat line (bridge/quest-lines.mjs scriptedResult).
     ...(result.missingAudio === true ? {missingAudio: true} : {}),
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -4375,6 +4407,7 @@ async function adoptProviderSetting(settings) {
   return true;
 }
 let speechCheckedAt = 0;
+let otherNoted = false, subtitleNoted = false;
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
@@ -4394,8 +4427,18 @@ async function pollSettings(checkShutdown = true) {
     // Reply language (Settings > Voices): a fixed language skips the detection while Voice playback is on; Automatic detects (bridge/multilingual.mjs).
     // The game's own text language is the detection's weakest prior (read from runtime/ui-language.txt at most once in a few seconds, off this path).
     if (settings) {
-      const reply = replyLanguageFrom(settings);
-      if (multilingual.setFixed(reply.fixed)) console.error(`[ReplyLanguage] ${reply.fixed ? 'fixed to ' + reply.fixed : 'automatic'}`);
+      // Other language (bridge/other-languages.mjs) needs a text provider that writes it: with Convai answering it is not applied, and the log says so once.
+      const reply = replyLanguageFrom(settings, {textProvider: mistral.active ? mistral.route : null});
+      if (multilingual.setFixed(reply.fixed)) console.error(`[ReplyLanguage] ${reply.fixed ? 'fixed to ' + reply.fixed : 'automatic'}${reply.setting === 'other' && reply.fixed ? ` (${otherLanguageName(reply.fixed)})` : ''}`);
+      if (reply.note === 'other-needs-text-provider' && !otherNoted) { otherNoted = true; console.error('[ReplyLanguage] Other language needs a text provider (Mistral, Gemini, Custom or Local AI): not applied while Convai answers'); }
+      else if (!reply.note) otherNoted = false;
+      speechLanguage.setChosen(reply.setting === 'other' ? reply.fixed : null);
+      // Subtitle language (bridge/subtitle-translation.mjs): the target of the extra translation request. It needs the player's text provider as well.
+      const subtitle = subtitleLanguageFrom(settings);
+      if (subtitleTranslations.setTarget(subtitle.target)) console.error(`[SubtitleLanguage] ${subtitle.target ? 'subtitles in ' + subtitle.target : 'same as speech'}`);
+      if (subtitle.target && !mistral.active && !subtitleNoted) { subtitleNoted = true; console.error('[SubtitleLanguage] needs a text provider (Mistral, Gemini, Custom or Local AI): the subtitles stay in the speech language while Convai answers'); }
+      else if (!subtitle.target || mistral.active) subtitleNoted = false;
+      multilingual.setPinEnglish(multilingual.fixed === 'en' && !!subtitle.target && subtitle.target !== 'en' && mistral.active);
       void speechLanguage.refreshUi().then(code => multilingual.setPrior(code)).catch(() => {});
     }
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;

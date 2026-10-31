@@ -56,6 +56,10 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
   voice").
 - The key goes only in the Authorization header; messages pass through `redact`; it is never logged or written to a state file.
 
+## Languages beyond the game's own (2026-10-31)
+
+Voice language > Other language (Finnish, Swedish, Norwegian, Danish, Dutch, Greek, Romanian, Bulgarian, Croatian, Slovak, Slovenian, Latvian, Hindi, Indonesian, Vietnamese) is spoken by this voice: the request carries the text in that language and the English reference clip (no pack exists for these), and the reply's code only picks the reference. Serbian, Estonian, Lithuanian and Hebrew are not on Voxtral TTS 3's list, so those replies are shown as text. Details in `docs/SUBTITLE_LANGUAGE.md`.
+
 ## Hiccups are not a bad key (2026-10-17)
 
 Live: in a group round Voxtral gave one `HTTP 403` ("did not accept the API key") on one reply; the key was then treated as refused for

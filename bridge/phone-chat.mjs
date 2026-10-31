@@ -196,10 +196,11 @@ export function rosterContacts(contacts, roster) {
 }
 
 export class PhoneChat {
-  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure, custom}) {
+  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure, custom, localize = null}) {
     if (resetFor!==undefined && typeof resetFor!=='function') throw Error('Invalid phone reset ownership hook');
     this.contacts = new Map(contacts.filter(c => c.key && ids[c.key]).map(c => [c.contact, {profile: c.key, id: ids[c.key]}]));
-    Object.assign(this, {reply, publish, now, saveSessions, contextFor, contextCurrent, contextCurrentSync, resetFor});
+    // localize(text, {profileKey, signal}) -> the text the chat shows (the Subtitle language setting, bridge/subtitle-translation.mjs): a short wait at most, and the original when it fails.
+    Object.assign(this, {reply, publish, now, saveSessions, contextFor, contextCurrent, contextCurrentSync, resetFor, localize});
     // custom(key): true for a character the player made (bridge/custom-characters.mjs). It has no Convai character and no knowledge route, and its Chat contact id is
     // its key (mod/phone-chat.lua setContacts, the group the game registers them in), so it needs no entry in `contacts`; the reply goes through the text provider.
     this.custom = typeof custom === 'function' ? custom : () => false;
@@ -359,7 +360,9 @@ export class PhoneChat {
         const action = met.action ?? homeDone;
         if (homeDone) this.homePicks.done(contact.profile);
         if (!shown.trim()) throw Error('Invalid reply');
-        const reply = {...identity, state: 'reply', text: shown, ...(action ? {action} : {})};
+        let drawn = shown;
+        if (typeof this.localize === 'function') { try { const own = await this.localize(shown, {profileKey: contact.profile, signal: active.controller.signal}); if (typeof own === 'string' && own.trim()) drawn = own; } catch { /* the original text stays */ } }
+        const reply = {...identity, state: 'reply', text: drawn, ...(action ? {action} : {})};
         if (sessionless) {
           stage = 'publish';
           if (await active.isCurrent()) await this.emit(active, reply);

@@ -71,7 +71,14 @@ local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local audioDelays = {'auto', 0, 50, 100, 150, 200, 250}
 -- Reply language (Settings > Voices, bridge/multilingual.mjs REPLY_LANGUAGES): the language the characters speak in. English (the default), Automatic
 -- (the bridge detects it from what you write), then the mod's other languages. A voice setting: with Voice playback off it does nothing.
-local replyLanguages = {'en', 'auto', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh'}
+local replyLanguages = {'en', 'auto', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh', 'other'}
+-- Other language (Settings > Voices, bridge/other-languages.mjs OTHER_LANGUAGE_CODES): the languages the game does not have, for the Voice language 'other'
+-- (`replyLanguageOther`, Finnish by default) and for the Subtitle language. Used only with a text provider and a voice that can speak it (never Pocket).
+local otherLanguages = {'fi', 'sv', 'no', 'da', 'nl', 'el', 'ro', 'bg', 'hr', 'sr', 'sk', 'sl', 'et', 'lv', 'lt', 'hi', 'id', 'vi', 'he'}
+-- Subtitle language (Settings > Interface, bridge/subtitle-translation.mjs SUBTITLE_LANGUAGES): 'same' (the default, the subtitles are the speech), English, the game's
+-- other languages, then the Other languages. When it differs from the Voice language the bridge translates the subtitle with the player's own text provider.
+local subtitleLanguages = {'same', 'en', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh'}
+for _, code in ipairs(otherLanguages) do subtitleLanguages[#subtitleLanguages + 1] = code end
 local headFollowStrengths = {0, 0.5, 1, 1.5}
 -- Voice volume and V's voice volume, in percent (Settings > Voices): two sliders, 50 to 300. 100 is the unchanged level; the bridge turns each into gain behind a
 -- peak limiter (bridge/dialogue-level.mjs): Voice volume for every voice but V's, V's voice volume for V's spoken lines alone. Stored as a whole number of percent,
@@ -835,6 +842,13 @@ local function loadSettings()
     -- A file without the key (every player before this setting, and a new install) reads as English; the bridge reads a missing key the same way.
     if not isChoice(settings.replyLanguage, replyLanguages) then
         settings.replyLanguage, settingsNeedSave = 'en', settingsNeedSave or settings.replyLanguage ~= nil
+    end
+    -- The same for the two newer language rows: a file without them reads as Finnish (only used while Voice language is Other) and Same as speech.
+    if not isChoice(settings.replyLanguageOther, otherLanguages) then
+        settings.replyLanguageOther, settingsNeedSave = 'fi', settingsNeedSave or settings.replyLanguageOther ~= nil
+    end
+    if not isChoice(settings.subtitleLanguage, subtitleLanguages) then
+        settings.subtitleLanguage, settingsNeedSave = 'same', settingsNeedSave or settings.subtitleLanguage ~= nil
     end
     do
         local volume = cleanVoiceVolume(settings.voiceVolume)
@@ -1813,6 +1827,8 @@ end
 
 function M.audioDelayChoices() return audioDelays end
 function M.replyLanguageChoices() return replyLanguages end
+function M.otherLanguageChoices() return otherLanguages end
+function M.subtitleLanguageChoices() return subtitleLanguages end
 function M.voiceVolumeRange() return voiceVolume end
 
 -- The Local AI model row's choices: every installed model the bridge reported (by its manifest name), smallest file first. No Auto entry. Each is
@@ -2459,6 +2475,8 @@ function M.snapshot(player)
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
             replyLanguage = settings.replyLanguage,
+            replyLanguageOther = settings.replyLanguageOther,
+            subtitleLanguage = settings.subtitleLanguage,
             micDevice = validMicLabel(settings.micDevice) and settings.micDevice or nil,
             voiceVolume = settings.voiceVolume,
             vVoiceVolume = settings.vVoiceVolume,
@@ -2687,6 +2705,12 @@ function M.applySettings(player, values)
         elseif key == 'replyLanguage' then
             if not isChoice(value, replyLanguages) then return false, 'Choose one of the listed reply languages.' end
             nextSettings.replyLanguage = value
+        elseif key == 'replyLanguageOther' then
+            if not isChoice(value, otherLanguages) then return false, 'Choose one of the listed other languages.' end
+            nextSettings.replyLanguageOther = value
+        elseif key == 'subtitleLanguage' then
+            if not isChoice(value, subtitleLanguages) then return false, 'Choose one of the listed subtitle languages.' end
+            nextSettings.subtitleLanguage = value
         elseif key == 'micDevice' then
             -- '' is the Windows default (stored as no key at all); anything else is the label of an input.
             if value ~= '' and not validMicLabel(value) then return false, 'Choose one of the listed microphones.' end

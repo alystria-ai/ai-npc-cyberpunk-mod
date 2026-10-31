@@ -138,7 +138,7 @@ test('a reply cannot be the second detection of the player\'s own line, but a re
 
 test('the choices: English first (the default), Automatic, then the mod\'s other languages, including every voice pack and Pocket model language', () => {
   assert.deepEqual(REPLY_LANGUAGES.slice(0, 2), ['en', 'auto']);
-  assert.deepEqual(REPLY_LANGUAGES.slice(2), MOD_LANGUAGES.filter(code => code !== 'en'));
+  assert.deepEqual(REPLY_LANGUAGES.slice(2), [...MOD_LANGUAGES.filter(code => code !== 'en'), 'other']);
   for (const code of Object.values(LANGUAGE_PACKS)) assert.ok(REPLY_LANGUAGES.includes(code), `multilingual pack ${code}`);
   for (const {tag} of Object.values(POCKET_LANGUAGES)) assert.ok(REPLY_LANGUAGES.includes(tag), `Pocket model ${tag}`);
   assert.equal(new Set(REPLY_LANGUAGES).size, REPLY_LANGUAGES.length);
@@ -215,7 +215,7 @@ test('V\'s own typed line is voiced when it is English, whatever the reply or th
 
 test('the bridge wires it: the setting is read while Voice playback is on, V\'s line has its own language, the menu language is the prior', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /replyLanguageFrom\(settings\)/);
+  assert.match(bridge, /replyLanguageFrom\(settings, \{textProvider:/);
   assert.match(bridge, /multilingual\.setFixed\(reply\.fixed\)/);
   assert.match(bridge, /speechLanguage\.refreshUi\(\)\.then\(code => multilingual\.setPrior\(code\)\)/);
   assert.match(bridge, /planTurnVoice\(\{textProvider: true, fixed: multilingual\.fixed !== null,/);

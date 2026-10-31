@@ -14,13 +14,14 @@
 // Pure functions and one small state holder: no I/O except the optional file read the caller passes in.
 import {spokenLanguage} from './reply-language.mjs';
 import {VOXTRAL_STT3_LANGUAGES} from './voxtral-languages.mjs';
+import {MOD_LANGUAGES} from './mod-languages.mjs';
 
 // The languages Mistral's transcription model lists (Voxtral Mini Transcribe 3, docs.mistral.ai, 2026-10-21; bridge/voxtral-languages.mjs): 44 of the
 // 50 it supports are named. A language that is not named (Mistral prints no full list) is still asked, without a language hint, and may be understood.
 export const VOXTRAL_LANGUAGES = VOXTRAL_STT3_LANGUAGES;
 
 // The mod's interface languages (mod/locales) as the base language the recognisers use.
-export const MOD_LANGUAGES = Object.freeze(['en', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh']);
+export {MOD_LANGUAGES};
 
 // Local multilingual recogniser packs (optional downloads, run in the same sherpa-onnx worker as Moonshine). `kind` picks the loader in
 // bridge/local-stt-worker.py; `files` must all exist in `models/stt/<id>` (packaged) or `runtime/stt-model/<id>` (development).
@@ -102,6 +103,7 @@ export class SpeechLanguage {
   constructor({readUiFile = null, now = Date.now, remembered = null, remember = null} = {}) {
     Object.assign(this, {readUiFile, now, remember});
     this.setting = 'auto';        // settings.json "uiLanguage": 'auto' or a code
+    this.chosen = null;           // the Voice language the player fixed to an Other language (bridge/other-languages.mjs), as a code
     this.evidence = null;         // {language, source: 'text' | 'voice' | 'saved', at}
     this.fileText = null; this.fileAt = 0;
     const saved = baseLanguage(remembered);
@@ -111,6 +113,16 @@ export class SpeechLanguage {
   update(settings) {
     const value = settings?.uiLanguage;
     this.setting = typeof value === 'string' && value ? value : 'auto';
+  }
+  /**
+   * The language the player fixed with Voice language > Other language (a code such as 'fi'), or null. The player speaks it, so it is the recording's language
+   * until the recogniser itself reports another one (a recording that says 'en' is English): the typed text of a language the word lists cannot tell ('hei') says nothing.
+   */
+  setChosen(code) {
+    const next = typeof code === 'string' && /^[a-z]{2,3}$/.test(code) ? code : null;
+    if (next === this.chosen) return false;
+    this.chosen = next;
+    return true;
   }
   /** Text the player typed. Only a clear language counts (a short or mixed line says nothing). Returns true when the language changed. */
   observeText(text) {
@@ -148,6 +160,7 @@ export class SpeechLanguage {
   async refreshUi() { await this.#ui(); return this.uiPrior(); }
   /** {language, source} for the recording that opens now: 'text' | 'voice' | 'ui' | 'default'. */
   async current() {
+    if (this.chosen && this.evidence?.source !== 'voice') return {language: this.chosen, source: 'setting'};
     if (this.evidence) return {language: this.evidence.language, source: this.evidence.source};
     const ui = await this.#ui();
     return ui ? {language: MOD_LANGUAGES.includes(ui) ? ui : 'en', source: 'ui'} : {language: 'en', source: 'default'};

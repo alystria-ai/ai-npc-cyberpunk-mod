@@ -216,7 +216,12 @@ M.cutToUnits = cutToUnits
 local BUTTON_LABEL_UNITS = 29
 -- The English names of the Voice language choices (each goes through ui.t, so every locale shows its own word for the language).
 local REPLY_LANGUAGE_NAMES = {en = 'English', auto = 'Automatic', de = 'German', fr = 'French', es = 'Spanish', it = 'Italian', pt = 'Portuguese',
-    pl = 'Polish', ru = 'Russian', uk = 'Ukrainian', tr = 'Turkish', cs = 'Czech', hu = 'Hungarian', ja = 'Japanese', ko = 'Korean', zh = 'Chinese'}
+    pl = 'Polish', ru = 'Russian', uk = 'Ukrainian', tr = 'Turkish', cs = 'Czech', hu = 'Hungarian', ja = 'Japanese', ko = 'Korean', zh = 'Chinese',
+    -- The last Voice language choice, and the Subtitle language's first one.
+    other = 'Other language', same = 'Same as speech',
+    -- The Other languages (bridge/other-languages.mjs), the choices of the Other language row and the end of the Subtitle language row.
+    fi = 'Finnish', sv = 'Swedish', no = 'Norwegian', da = 'Danish', nl = 'Dutch', el = 'Greek', ro = 'Romanian', bg = 'Bulgarian', hr = 'Croatian', sr = 'Serbian',
+    sk = 'Slovak', sl = 'Slovenian', et = 'Estonian', lv = 'Latvian', lt = 'Lithuanian', hi = 'Hindi', id = 'Indonesian', vi = 'Vietnamese', he = 'Hebrew'}
 M.BUTTON_LABEL_UNITS = BUTTON_LABEL_UNITS
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
@@ -2194,6 +2199,12 @@ settingsPages['settings-voice'] = function(snapshot)
         replyLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
         if snapshot.settings.replyLanguage == code then replyIndex = index end
     end
+    -- Other language (the languages the game does not have): the list in the bridge's order (manager.otherLanguageChoices).
+    local otherCodes, otherLabels, otherIndex = manager.otherLanguageChoices(), {}, 1
+    for index, code in ipairs(otherCodes) do
+        otherLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
+        if snapshot.settings.replyLanguageOther == code then otherIndex = index end
+    end
     local pack = manager.omniPack()
     -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
     local voiceName = ui.t('Companion voices')
@@ -2228,6 +2239,10 @@ settingsPages['settings-voice'] = function(snapshot)
         setting('replyLanguage', 'Voice language', 'select', replyIndex, 1,
             'The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.',
             replyLabels, {elements = true}),
+        -- The language of Voice language > Other language: shown with every Voice language, greyed by its own words (it counts only for Other).
+        setting('replyLanguageOther', 'Other language', 'select', otherIndex, 1,
+            'The language the characters speak when Voice language is Other language, for languages the game does not have.\n\nNeeds Mistral, Gemini, Custom or Local AI to write it, and a voice that speaks it: OmniVoice speaks all, Voxtral most. Pocket speaks English only and shows text. Not available with Convai.',
+            otherLabels, {elements = true}),
         -- Two sliders, 50 to 300 in steps of 5, the page shows the number so the unit is in the name. The bridge applies the companions' volume to every voice but
         -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter, it takes effect on the next reply.
         setting('voiceVolume', 'Companion voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
@@ -2408,6 +2423,12 @@ settingsPages['settings-interface'] = function(snapshot)
         languageElements[index] = choice.label
         if choice.value == snapshot.settings.uiLanguage then languageIndex = index end
     end
+    -- Subtitle language: Same as speech, English, the game's other languages, then the Other languages, in the bridge's order (manager.subtitleLanguageChoices).
+    local subtitleCodes, subtitleLabels, subtitleIndex = manager.subtitleLanguageChoices(), {}, 1
+    for index, code in ipairs(subtitleCodes) do
+        subtitleLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
+        if snapshot.settings.subtitleLanguage == code then subtitleIndex = index end
+    end
     return {category('interface', 'Interface', {
         setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
             'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.',
@@ -2417,6 +2438,10 @@ settingsPages['settings-interface'] = function(snapshot)
         setting('subtitleStyle', 'Subtitles', 'select', snapshot.settings.subtitles == false and 1 or snapshot.settings.subtitleStyle == 'overhead' and 3 or 2, 2,
             'Off: no subtitles.\n\nCinematic subtitles: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nWith Companion voices Off as well, automatic reactions stay silent.',
             {'Off', 'Cinematic subtitles', 'Above the speaker'}),
+        -- Same as speech (the default) shows what is spoken; any other language is translated by the player's own text provider (bridge/subtitle-translation.mjs).
+        setting('subtitleLanguage', 'Subtitle language', 'select', subtitleIndex, 1,
+            'The language of subtitles and Phone Chat. Same as speech shows what is said.\n\nAnother language is translated by one short extra request to the AI provider you chat with, alongside the voice, so the voice never waits. The original shows first.\n\nNeeds Mistral, Gemini, Custom or Local AI, not Convai.',
+            subtitleLabels, {elements = true}),
     })}
 end
 
@@ -3386,6 +3411,12 @@ function M.apply(changes)
                 return refused('Choose one of the listed reply languages.')
             end
             values.replyLanguage = choices[change.value]
+        elseif key == 'replyLanguageOther' or key == 'subtitleLanguage' then
+            local choices = key == 'subtitleLanguage' and manager.subtitleLanguageChoices() or manager.otherLanguageChoices()
+            if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not choices[change.value] then
+                return refused(key == 'subtitleLanguage' and 'Choose one of the listed subtitle languages.' or 'Choose one of the listed other languages.')
+            end
+            values[key] = choices[change.value]
         elseif key == 'subtitleStyle' then
             if change.value ~= 1 and change.value ~= 2 then return refused('Choose one of the listed subtitle displays.') end
             -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

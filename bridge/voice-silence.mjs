@@ -17,7 +17,7 @@ export const VOICE_SILENCE = Object.freeze({silentTurns: 3, graceMs: 30_000});
 // The stages a spoken reply goes through, in order (bridge/turn-clock.mjs); the furthest one a silent turn reached says where the sound stopped.
 const VOICE_STAGES = Object.freeze(['voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm', 'firstPcmAccepted', 'firstFrame', 'published', 'leaseRead']);
 // Reasons the voice planner (bridge/multilingual.mjs planTurnVoice) keeps a reply written although playback is on: the chosen voice does not speak the language. Not a failure.
-const WRITTEN_BY_DESIGN = new Set(['english-only-voice', 'pocket-language-pack-missing', 'voice-language-unsupported']);
+const WRITTEN_BY_DESIGN = new Set(['english-only-voice', 'pocket-language-pack-missing', 'voice-language-unsupported', 'other-language-pocket']);
 const WORD = /^[A-Za-z0-9._:-]{1,80}$/;
 
 export class VoiceSilenceWatch {
