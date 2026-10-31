@@ -71,7 +71,7 @@ test('the bridge hands the request over after a reply and only through the guard
   assert.match(bridge, /import \{RomanceAnimRequests\} from '\.\/romance-anim-requests\.mjs'/);
   assert.match(bridge, /function publishRomanceAnim\(input, result\) \{\s*if \(!input \|\| input\.reaction \|\| input\.head \|\| input\.group \|\| input\.channel === 'phone'/);
   assert.match(bridge, /romanceOf\(selection, RELATIONSHIP_PROFILES\) === 'partner'/);
-  assert.match(bridge, /function publishBonds\(input, result, proposal = null\) \{\s*publishRomanceAnim\(input, result\);/);
+  assert.match(bridge, /function publishBonds\(input, result, proposal = null\) \{\s*(?:noteOwnReply\(input, result\);\s*)?publishRomanceAnim\(input, result\);/);
 });
 
 test('the request file is classified as a runtime exchange file and the pair table ships', () => {
