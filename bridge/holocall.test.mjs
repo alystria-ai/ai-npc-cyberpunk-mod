@@ -601,10 +601,11 @@ test('with nothing above V (a high apartment) the copy is placed on the ground b
   assert(logged('holo spawn contact=judy record=Character.Judy floor=%-10.0m'))
   tick(2)
   assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true)
-  -- A ring column in plain view of V is never used: without the wall every spot is seen.
+  -- A ring column in plain view of V is never used by the strict pass: without the wall every spot is seen. Since 2026-11-01 the forgiving second
+  -- pass then takes one (see the tests of the relaxed search below), so the picture is not lost on open ground.
   holocall.finish(player, 'hangup'); wall = nil; created = {}
   game.requests = {'judy'}; holocall.drain(player); tick(5.4)
-  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=41, no%-floor=9%)') and holocall.call.mode == 'audio')
+  assert(logged('holo relaxed search contact=judy') and #created == 5 and logged('holo relaxed spot contact=judy'), 'the strict pass found nothing, the second one did')
   holocall.finish(player, 'hangup')
   -- A floor 5 m below V behind the wall: the near ring finds it 7.1 m from V, close enough for her face to move, and it
   -- is taken before any farther column is tried.
@@ -642,14 +643,147 @@ test('on a terrace (V\'s own floor all round, in view) the storey under V\'s flo
   assert(holocall.connected() and holocall.call.mode == 'holo' and holocall.faceRow() ~= nil, 'near enough for the face row')
   holocall.finish(player, 'hangup')
   -- Without the storey under V, each near column finds V's own floor (in view) and nothing under it (two candidates
-  -- each), and the search goes on outward; a column's reason is the floor that was judged, not the empty rest.
+  -- each), and the strict pass goes on outward; a column's reason is the floor that was judged, not the empty rest. The forgiving pass then takes a
+  -- spot on V's own floor at least RELAX_MIN_AWAY metres from V (never the column straight under V, which is V's own place).
   lower = nil; created = {}
   game.requests = {'judy'}; holocall.drain(player); tick(6.6)
   assert(#created == 0 and holocall.call.state == 'dialing', 'sixty-seven candidates, three per tick')
   tick(0.6)
-  assert(#created == 0 and logged('no%-studio%-spot %(in%-view=41, no%-floor=9%)'), logs[#logs])
+  assert(logged('holo relaxed search contact=judy floors=') and logged('strict=%(in%-view=41, no%-floor=9%)'), logs[#logs])
+  tick(3)
+  assert(#created == 5, 'the forgiving pass placed the copy')
+  local o = {x = 10, y = 20, z = 30}
+  assert(((created[1].position.x - o.x)^2 + (created[1].position.y - o.y)^2 + (created[1].position.z - o.z)^2) >= holocall.RELAX_MIN_AWAY^2, 'never on top of V')
   holocall.finish(player, 'hangup')
 `));
+
+
+// A world whose floor is a function of (x, y): `height` is replaced by each test. Only vertical-ish segments cross a floor; one pass of 64 samples is enough for a test.
+const heightWorld = `
+  height = function() return 25 end
+  function spatial:SyncRaycastByCollisionGroup(a, b, group)
+    self.rays = self.rays + 1
+    if group ~= 'Static' then return false, {} end
+    local previous
+    for step = 0, 64 do
+      local t = step / 64
+      local x, y, z = a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t
+      local above = z - height(x, y)
+      if previous and (previous > 0) ~= (above > 0) then return true, {position = {x = x, y = y, z = height(x, y)}} end
+      previous = above
+    end
+    return false, {}
+  end
+`;
+
+test('the forgiving pass on open ground: the strict pass turns every floor down as in view, the second pass takes the spot behind V first, and nothing is searched per frame', () => run(world + `
+  holocall.FAR_PICTURE = false
+  game.window = 'holocall'
+  roof = false; ground = 25
+  -- V faces +x: the spot most behind V is the ring column at 180 degrees, 8 m behind, floor 5 m down.
+  function player:GetWorldForward() return {x = 1, y = 0, z = 0} end
+  game.requests = {'judy'}; holocall.drain(player); tick(0.1)
+  -- Nothing at all is searched before the ring ticks: beginning the call costs no raycast.
+  assert(#created == 0 and spatial.rays == 0, 'no raycast when the call begins')
+  tick(6)
+  assert(logged('holo relaxed search contact=judy floors=%d+ strict=%(in%-view=17%)'), table.concat(logs, ' // '))
+  assert(#created == 5, 'a copy, a camera and three lamps')
+  local copy = created[1]
+  assert(near(copy.position.x, 2) and near(copy.position.y, 20) and near(copy.position.z, 25), copy.position.x .. ' ' .. copy.position.y .. ' ' .. copy.position.z)
+  assert(logged('holo relaxed spot contact=judy away=9%.4m') or logged('holo relaxed spot contact=judy away=8%.0m'), 'the spot is logged with its distance')
+  tick(2)
+  assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true, 'the call has its picture')
+  assert(not logged('reason=no%-studio%-spot'), 'no failure line')
+  -- Done searching: ticks of the connected call cast no more rays for a spot.
+  local before = spatial.rays
+  tick(1)
+  assert(spatial.rays == before, 'a connected call searches nothing')
+  holocall.finish(player, 'hangup')
+`));
+
+test('the forgiving pass without V\'s facing goes nearest first, and a floor under V\'s own feet is never taken', () => run(world + `
+  holocall.FAR_PICTURE = false
+  game.window = 'holocall'
+  roof = false; ground = 30
+  -- V's own floor, level with V, open all round: every column is in view. No GetWorldForward on this player.
+  game.requests = {'judy'}; holocall.drain(player); tick(6)
+  assert(#created == 5, 'the copy is placed')
+  local copy = created[1]
+  local away = math.sqrt((copy.position.x - 10)^2 + (copy.position.y - 20)^2 + (copy.position.z - 30)^2)
+  assert(away >= holocall.RELAX_MIN_AWAY and away <= holocall.FACE_RANGE, 'at least 3 m and within the face range: ' .. away)
+  assert(near(away, 5), 'nearest ring first when the facing is unknown: ' .. away)
+  holocall.finish(player, 'hangup')
+`));
+
+test('when even the forgiving pass finds nothing the call still ends in the portrait, and the failure line is the strict one', () => run(world + heightWorld + `
+  holocall.FAR_PICTURE = false
+  game.window = 'holocall'
+  -- Ground that steps by a metre every half metre: not level for the strict check and not for the forgiving one (0.5 m) either.
+  height = function(x, y) return 25 + (math.floor(x * 2) % 2) * 1.0 end
+  game.requests = {'judy'}; holocall.drain(player); tick(12)
+  assert(#created == 0, 'nothing spawned ' .. table.concat(logs, ' // '))
+  assert(logged('holo relaxed search contact=judy floors=%d+ strict=%(not%-level=17%)'), table.concat(logs, ' // '))
+  assert(logged('holo failed contact=judy reason=no%-studio%-spot %(not%-level=17%) fallback=audio'), table.concat(logs, ' // '))
+  assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
+`));
+
+test('studioAt forgives uneven ground and a copy in plain view only when asked to: the strict answer is unchanged', () => run(world + heightWorld + `
+  -- A floor at z = 25 with a 0.4 m step under one of the four probes (x + 0.35): not level for the strict check (0.2 m), level for the forgiving one (0.5 m).
+  height = function(x, y) return x > 10.3 and 25.4 or 25 end
+  local origin = {x = 10, y = 20, z = 30}
+  local range = {top = 10, bottom = -10}
+  local spot, reason = holocall.studioAt(origin, 10, 20, range, nil)
+  assert(spot == nil and reason == 'not-level', tostring(reason))
+  spot, reason = holocall.studioAt(origin, 10, 20, range, nil, true)
+  assert(spot and near(spot.z, 25), tostring(reason))
+  -- In plain view: strict says so, forgiving does not look.
+  height = function() return 25 end
+  spot, reason = holocall.studioAt(origin, 14, 20, range, nil)
+  assert(spot == nil and reason == 'in-view', tostring(reason))
+  spot = holocall.studioAt(origin, 14, 20, range, nil, true)
+  assert(spot and near(spot.x, 14), 'a copy in the open is allowed by the forgiving check')
+  -- No floor at all stays no floor, whatever is forgiven.
+  height = function() return -1000 end
+  spot, reason = holocall.studioAt(origin, 14, 20, range, nil, true)
+  assert(spot == nil and reason == 'no-floor', tostring(reason))
+`));
+
+test('a call that loses its live picture still shows the contact: the window is asked for the voice call with her picture, once, and the line says what was asked', () => run(world + `
+  game.window = 'audiocall'
+  local asked = 0
+  function player:ConvaiHolocallPortrait() asked = asked + 1 end
+  -- Open sky: no floor anywhere, so the live picture fails and the call is a voice call.
+  roof = false
+  game.requests = {'judy'}; holocall.drain(player); tick(9)
+  assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
+  assert(logged('holo failed contact=judy reason=no%-studio%-spot'), table.concat(logs, ' // '))
+  assert(asked == 1, 'asked once: ' .. asked)
+  assert(logged('portrait contact=judy picture=contact asked=yes'), table.concat(logs, ' // '))
+  holocall.finish(player, 'hangup')
+  -- A plain voice call (no live picture was wanted) is not asked again: the window already shows the portrait.
+  asked = 0
+  game.requests = {'silver'}; holocall.drain(player); tick(0.1)
+  game.requests = {'bad'}; holocall.drain(player)
+  assert(asked == 0)
+  -- An older script without the method: no failure, the line says so.
+  function player:ConvaiHolocallPortrait() error('no such method') end
+  holocall.finish(player, 'hangup')
+  game.requests = {'judy'}; holocall.drain(player); tick(9)
+  assert(holocall.connected() and logged('portrait contact=judy picture=contact asked=no'), table.concat(logs, ' // '))
+`));
+
+test('Holocall.reds: the voice call after a lost picture is asked for the contact\'s picture again, from the journal when the call began without her', () => {
+  const code = reds.split('\r').join('');
+  assert.match(code, /public final func ConvaiHolocallPortrait\(\) -> Void \{\s*let hud = this\.m_convaiHolocallHud;\s*if IsDefined\(hud\) \{ hud\.ConvaiCallPortrait\(\); \};\s*\}/);
+  const body = code.slice(code.indexOf('public final func ConvaiCallPortrait() -> Void'));
+  const method = body.slice(0, body.indexOf('\n}\n'));
+  assert.match(method, /if !IsDefined\(this\.m_convaiCallContact\) && StrLen\(this\.m_convaiCallId\) > 0 \{\s*let contact = this\.ConvaiCallFindContact\(this\.m_convaiCallId\);/);
+  assert.match(method, /this\.m_convaiCallAvatar = contact\.GetAvatarID\(this\.m_journalMgr\);/);
+  assert.match(method, /this\.m_holoAudioCallLogicController\.ConvaiHolocallBacking\(false\);\s*this\.m_holoAudioCallLogicController\.StartAudiocall\(this\.m_convaiCallAvatar, this\.m_convaiCallName, true\);/);
+  assert.match(method, /this\.m_CurrentFunction = EHudPhoneFunction\.Audiocall;/);
+  assert.match(code, /this\.m_convaiCallId = id;\s*this\.m_convaiCallActive = true;/);
+  assert.doesNotMatch(method, /Quest|Blackboard/);
+});
 
 test('by default a studio past FACE_RANGE is not used: the call goes on with the portrait; a near floor still gets the picture', () => run(world + `
   holocall.FAR_PICTURE = false

@@ -81,6 +81,15 @@ M.FAR_PICTURE = false
 M.NEAR_LAYERS = 4
 -- Floor candidates (one floor of one column) searched per tick.
 M.SEARCH_PER_TICK = 3
+-- The forgiving second pass (2026-11-01: on open ground every near column was in V's view or on uneven ground, "no-studio-spot (in-view=15,
+-- not-level=2)", and the call lost its picture). The strict pass runs first, unchanged. Only when it finds nothing, the floors it turned down for a
+-- reason that can be forgiven (RELAXABLE) are tried once more, at most RETRY_MAX of them, the ones behind V first (a copy behind V is not in front
+-- of V's eyes even when nothing solid is between them), with the ground allowed to be RELAX_LEVEL metres off level, headroom of RELAX_HEADROOM
+-- metres and no cover from V's eyes required. It runs only while a call starts, a few floors per tick like the strict pass, never per frame.
+M.RELAXABLE = {['in-view'] = true, ['not-level'] = true, ['no-headroom'] = true, ['no-lens-room'] = true}
+M.RETRY_MAX, M.RELAX_LEVEL, M.RELAX_HEADROOM = 24, 0.5, 2.0
+-- A forgiven spot is never on top of V: at least this many metres from V, so the copy does not stand in V's own place.
+M.RELAX_MIN_AWAY = 3
 -- The copy may drift this far from its place before the picture is given up.
 M.HOLO_DRIFT = 1.5
 -- The camera is switched off at once and deleted this many seconds later: the render thread may still hold its
@@ -298,7 +307,7 @@ local function clear(a, b) return trace(a, b) == false end
 -- STUDIO_TOP above V when absent) with headroom, out of V's sight, with room for the camera on one side? `below` (an
 -- absolute z, optional) looks only under it: the next floor down, under one that would not do. The spot {x, y, z, yaw},
 -- or nil, why not and the z of the floor that was judged (nil when there was none).
-function M.studioAt(origin, x, y, range, below)
+function M.studioAt(origin, x, y, range, below, relax)
     local top = below or origin.z + (range and range.top or M.STUDIO_TOP)
     local bottom = origin.z + (range and range.bottom or M.STUDIO_MIN)
     if top <= bottom then return nil, 'no-floor' end
@@ -308,21 +317,24 @@ function M.studioAt(origin, x, y, range, below)
     local z = floor.z
     -- A hit where the ray starts is the inside of something, not a floor.
     if z > top - 0.5 then return nil, 'inside', z end
-    if not clear({x = x, y = y, z = z + 0.2}, {x = x, y = y, z = z + 2.5}) then return nil, 'no-headroom', z end
+    if not clear({x = x, y = y, z = z + 0.2}, {x = x, y = y, z = z + (relax and M.RELAX_HEADROOM or 2.5)}) then return nil, 'no-headroom', z end
+    local tolerance = relax and M.RELAX_LEVEL or 0.2
     for _, d in ipairs({{0.35, 0}, {-0.35, 0}, {0, 0.35}, {0, -0.35}}) do
         local under = trace({x = x + d[1], y = y + d[2], z = z + 0.5}, {x = x + d[1], y = y + d[2], z = z - 0.5})
-        if not under or math.abs(under.z - z) > 0.2 then return nil, 'not-level', z end
+        if not under or math.abs(under.z - z) > tolerance then return nil, 'not-level', z end
     end
-    -- V must not see the copy: something solid between V's eyes and its chest.
-    local eyes = {x = origin.x, y = origin.y, z = origin.z + 1.6}
-    local cover = trace(eyes, {x = x, y = y, z = z + 1.2})
-    if cover == nil then return nil, 'no-answer' end
-    if cover == false then return nil, 'in-view', z end
+    -- V must not see the copy: something solid between V's eyes and its chest. The forgiving pass lets a copy in the open stand there (behind V first).
+    if not relax then
+        local eyes = {x = origin.x, y = origin.y, z = origin.z + 1.6}
+        local cover = trace(eyes, {x = x, y = y, z = z + 1.2})
+        if cover == nil then return nil, 'no-answer' end
+        if cover == false then return nil, 'in-view', z end
+    end
     -- The first facing whose camera spot (a little beyond it, too) is open from the copy's face.
     for _, yaw in ipairs({0, 90, 180, 270}) do
         local lens = M.rig({x = x, y = y, z = z}, yaw)
         local face = {x = x, y = y, z = z + M.SHOT.aimZ}
-        local scale = (lens.dist + 0.3) / lens.dist
+        local scale = (lens.dist + (relax and 0.1 or 0.3)) / lens.dist
         local beyond = {x = x + (lens.x - x) * scale, y = y + (lens.y - y) * scale, z = lens.z}
         if clear(face, beyond) then return {x = x, y = y, z = z, yaw = yaw} end
     end
@@ -411,7 +423,14 @@ local function holoBegin(call, player)
         return {x = p.x, y = p.y, z = p.z}
     end)
     if not ok or not origin then holoFail(call, 'no-position'); return end
-    holo.origin, holo.columns = origin, columns(origin)
+    -- Which way V faces, for the forgiving second pass (behind V first). Unknown is fine: the pass then goes nearest first.
+    pcall(function()
+        local f = player:GetWorldForward()
+        local fx, fy = tonumber(f.x), tonumber(f.y)
+        local length = fx and fy and math.sqrt(fx * fx + fy * fy) or 0
+        if length > 0.01 then origin.fx, origin.fy = fx / length, fy / length end
+    end)
+    holo.origin, holo.columns, holo.retry = origin, columns(origin), {}
 end
 
 local function spawned(id)
@@ -576,6 +595,28 @@ local function holoLook(holo)
     return ok
 end
 
+-- The floors the strict pass turned down for a forgivable reason, as the columns of a second pass: behind V first (most behind first), or the nearest
+-- first when V's facing is not known. Each is tried at the floor the strict pass judged and not below it. Returns false when there is nothing to retry.
+local function retryColumns(holo)
+    local list, o = holo.retry or {}, holo.origin
+    if #list == 0 then return false end
+    for _, entry in ipairs(list) do
+        local dx, dy = entry.x - o.x, entry.y - o.y
+        local distance = math.sqrt(dx * dx + dy * dy)
+        entry.distance = distance
+        entry.behind = (o.fx and distance > 0.01) and -((dx * o.fx + dy * o.fy) / distance) or 0
+        entry.final = true
+    end
+    table.sort(list, function(a, b)
+        if o.fx and a.behind ~= b.behind then return a.behind > b.behind end
+        if a.distance ~= b.distance then return a.distance < b.distance end
+        return (a.below or 0) > (b.below or 0)
+    end)
+    holo.columns, holo.column, holo.below, holo.layer, holo.why, holo.retry = list, 1, nil, 1, nil, nil
+    holo.relaxed, holo.relaxedCount = true, #list
+    return true
+end
+
 -- One step of the live picture while the call rings: search one floor candidate, or wait for the copy and camera,
 -- keep the copy animating, hold it in its talk pose, switch the camera on and turn the copy's eyes to it.
 local function holoStep(call, dt)
@@ -585,16 +626,35 @@ local function holoStep(call, dt)
     if holo.stage == 'search' then
         for _ = 1, M.SEARCH_PER_TICK do
             local column = holo.columns[holo.column]
+            if not column and not holo.relaxed and retryColumns(holo) then
+                log('holo relaxed search contact=' .. call.contact .. ' floors=' .. tostring(holo.relaxedCount) .. ' strict=(' .. reasonSummary(holo.reasons) .. ')')
+                column = holo.columns[holo.column]
+            end
             if not column then holoFail(call, 'no-studio-spot (' .. reasonSummary(holo.reasons) .. ')'); return end
-            local spot, reason, floor = M.studioAt(holo.origin, column.x, column.y, column.range, holo.below)
+            if holo.relaxed then holo.below = column.below end
+            local spot, reason, floor = M.studioAt(holo.origin, column.x, column.y, column.range, holo.below, holo.relaxed or nil)
             if spot and column.near then
                 local o = holo.origin
                 if (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 > M.FACE_RANGE^2 then spot, reason = nil, 'far' end
             end
+            if spot and holo.relaxed then
+                local o = holo.origin
+                if (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 < M.RELAX_MIN_AWAY^2 then spot, reason = nil, 'too-close' end
+            end
             if spot then
                 holo.spot = spot
+                if holo.relaxed then log('holo relaxed spot contact=' .. call.contact .. string.format(' away=%.1fm', math.sqrt((spot.x - holo.origin.x)^2 + (spot.y - holo.origin.y)^2))) end
                 holoSpawn(call, holo)
                 return
+            end
+            if holo.relaxed then
+                -- The forgiving pass takes each floor as it stands: next one, nothing counted again.
+                holo.column, holo.below = holo.column + 1, nil
+                goto continue
+            end
+            -- The floor was turned down for a reason that can be forgiven: kept for the second pass (bounded, never searched again below it).
+            if M.RELAXABLE[reason] and floor and #holo.retry < M.RETRY_MAX then
+                holo.retry[#holo.retry + 1] = {x = column.x, y = column.y, range = column.range, near = column.near, below = floor + 0.8, reason = reason}
             end
             -- A near column goes on with the floor under this one (while that is still within its range); any other
             -- column, or the last floor, is done. A column's reason is its last floor's that says more than no-floor.
@@ -607,6 +667,7 @@ local function holoStep(call, dt)
                 holo.reasons[holo.why] = (holo.reasons[holo.why] or 0) + 1
                 holo.column, holo.below, holo.layer, holo.why = holo.column + 1, nil, 1, nil
             end
+            ::continue::
         end
         return
     end
@@ -819,7 +880,7 @@ function M.start(player, contact, sample, waited, opts)
     -- player made with "Use the character I'm facing", Rita Wheeler and the roster): her own body is filmed. No record: the portrait voice call.
     local cast = (M.STAGED[contact] or entry.journal == false) and entry.record and 'video' or 'voice'
     if opts and opts.voice == true then cast = 'voice' end   -- a quest's call that is a voice call, whatever the character
-    local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
+    local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record, journal = entry.journal ~= false,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
         cast = cast, backing = backed and backing == true, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
     if opts and opts.incoming == true then call.incoming = true end
@@ -832,6 +893,15 @@ function M.start(player, contact, sample, waited, opts)
     return true
 end
 
+-- A call that was meant to show a live picture goes on as a voice call: the window is asked to show the contact's own picture (the game's avatar of her
+-- journal contact, the unknown-caller picture for a Chat row with none). Older scripts without the method answer an error, which is fine: the window
+-- shows what the voice call showed before. One probe line says what was asked.
+function M.portrait(player, call)
+    local ok, problem = pcall(function() player:ConvaiHolocallPortrait() end)
+    log('portrait contact=' .. call.contact .. ' picture=' .. (call.journal == false and 'unknown-caller' or 'contact') .. ' asked=' .. (ok and 'yes' or ('no ' .. tostring(problem):sub(1, 60))))
+    return ok
+end
+
 local function connect(call, player)
     local live = call.wantLive and call.holo ~= nil and call.holo.ready == true and not call.holo.failed
     if call.wantLive and not live then
@@ -842,6 +912,7 @@ local function connect(call, player)
     local ok, window = pcall(function() return player:ConvaiHolocallConnect(live) end)
     window = ok and type(window) == 'string' and window or 'ended'
     if window == 'ended' then return M.finish(player, 'hud-lost') end
+    if call.wantLive and not live then M.portrait(player, call) end
     call.state, call.mode, call.window, call.idle = 'connected', live and 'holo' or 'audio', window, 0
     log('state=connected contact=' .. call.contact .. ' mode=' .. call.mode .. ' window=' .. window .. ' ready='
         .. tostring(call.ready or 'n/a') .. string.format(' ring=%.1fs', call.ring))
@@ -889,6 +960,7 @@ local function step(call, player, dt, sample)
         call.mode = 'audio'
         local ok, window = pcall(function() return player:ConvaiHolocallConnect(false) end)
         call.window = ok and window or 'ended'
+        if call.window ~= 'ended' then M.portrait(player, call) end
         log('state=connected contact=' .. call.contact .. ' mode=audio window=' .. tostring(call.window))
         convaiNotices.send(player, 'holocall-live-fallback', ui.t('Live picture unavailable. The call continues with the portrait.'))
         if call.window == 'ended' then return M.finish(player, 'hud-lost') end
