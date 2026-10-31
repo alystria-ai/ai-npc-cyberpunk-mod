@@ -37,7 +37,8 @@ import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor, dynamicOn, dynamicOff} from './quest-context.mjs';
+import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions, gearWantedFor} from './quest-context.mjs';
+import {dynamicOn, dynamicOff} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {eventExchange} from './appointment-events.mjs';
@@ -1900,10 +1901,10 @@ function publishEddies(input, result) {
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
-  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicOn('location', input)})),
+  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicInfo.on('location')})),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
     // Street reputation: at most two lines for an ordinary NPC's private turn, '' for everyone else and whenever the setting is off.
-    block('world', reputation.contextFor(input, {place: dynamicOn('location', input)})),
+    block('world', reputation.contextFor(input, {place: dynamicInfo.on('location')})),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
