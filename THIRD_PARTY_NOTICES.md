@@ -175,8 +175,8 @@ Neither pack is part of the Runtime package.
 
 ## Bundled in the optional PocketTTS model packs
 
-Five optional downloads, one per language: `PocketTTS-Model-100M-French.zip`, `-Italian`, `-German`, `-Spanish` and `-Portuguese`, hosted on Hugging Face only
-(never on Nexus Mods). Each unpacks into `red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/` (a sibling of the voice language
+Five optional downloads, one per language: `PocketTTS-Model-100M-French.zip`, `-Italian`, `-German`, `-Spanish` and `-Portuguese`, and a sixth for Russian
+(`PocketTTS-Model-90M-Russian.zip`, described after the list below), hosted on Hugging Face only (never on Nexus Mods). Each unpacks into `red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/` (a sibling of the voice language
 pack's `multilingual/<lang>/` folder) and carries `model.safetensors`, `tokenizer.json`, `inference.yaml`, a `NOTICE.txt` with the licence, the
 attribution, Kyutai's prohibited-use terms and the changes, and a `pocket-model.json` marker (sizes and SHA-256 of the files). They are built by
 `packaging/build-pocket-models.mjs`. The mod uses them only to speak replies in that language, in a character's voice cloned from the game's own dub of
@@ -200,6 +200,23 @@ that character, with the multilingual pack of the same language. They are not pa
   as genuine recordings of real people or events); and the generation of unlawful, harmful, libelous, abusive, harassing, discriminatory, hateful,
   or privacy-invasive content". Kyutai disclaims all liability for non-compliant use. The full wording is in each pack's `NOTICE.txt`.
 - The pack is an optional download from Hugging Face; it does not replace the English Pocket voice model (see "Pocket voice model (Kyutai)" above).
+
+### The Russian PocketTTS model pack
+
+`PocketTTS-Model-90M-Russian.zip` (folder `ru`) is a sixth download of the same kind. It differs from the five above in its source and in three files:
+
+| Component | Version | Licence | Where the licence text is |
+|---|---|---|---|
+| xVibePocketTTS by GenVoice, a Russian-only full fine-tune of Kyutai's Pocket TTS (the weights, as `model.safetensors`, and the SentencePiece `tokenizer.model`, unmodified) | tag `v0.1.0`, revision `ac4f9f11eb4a110964c75a1e6f4104005455ac18` of https://huggingface.co/genvoice/xVibePocketTTS | The fine-tune's code is MIT. The weights are derived from Kyutai's Pocket TTS (CC-BY-4.0, copyright Kyutai), so Kyutai's attribution and prohibited-use terms apply | https://creativecommons.org/licenses/by/4.0/ and the pack's `NOTICE.txt` |
+| Configuration (`inference.yaml`, the model's `config.yaml` with the weight and tokenizer paths changed to the local files) | the same revision | as the model | the pack's `NOTICE.txt` |
+| Russian stress table (`stress-ru.bin`, built by `packaging/build-russian-stress.py`) | openrussian.org dictionary data, https://github.com/Badestrand/russian-dictionary at commit `50e210c4803237779cb562bc1abcea529066031c` | CC-BY-SA-4.0 | https://creativecommons.org/licenses/by-sa/4.0/ and the pack's `NOTICE.txt` |
+
+- **Attribution** (CC-BY-4.0): Pocket TTS by Kyutai (https://kyutai.org/pocket-tts) and the Russian fine-tune xVibePocketTTS by GenVoice. The pack's `NOTICE.txt`
+  names both, links the licences and repeats Kyutai's prohibited-use terms word for word.
+- **The stress table is an adaptation of CC-BY-SA-4.0 data** (the openrussian.org data comes from various sources including Wiktionary and the corrections of its
+  team and users). The word forms were converted into a compact table of plain word to stressed letter, and words with the letter yo, words with one vowel and words with
+  two different stresses in the data were left out. `stress-ru.bin` is therefore shared under the same licence, CC-BY-SA-4.0, with the source and the build script
+  (`packaging/build-russian-stress.py`, record in `packaging/russian-stress/source.json`) in this repository. The licence covers that file and its data, not the mod's code.
 
 ## Installed separately by players
 

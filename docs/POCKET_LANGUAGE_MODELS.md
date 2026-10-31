@@ -1,6 +1,6 @@
 # PocketTTS models
 
-Optional downloads that let the Pocket voice (CPU, `bridge/pocket-voice-worker.py`) speak **French, Italian, German, Spanish (Spain) and Portuguese (Brazil)**, cloned from the game's own dub of the character in that language. Evaluation and numbers: `docs/POCKET_V4_MULTILINGUAL_EVAL_2026-10-22.md`. Implemented on `feat/pocket-languages` (2026-10-22).
+Optional downloads that let the Pocket voice (CPU, `bridge/pocket-voice-worker.py`) speak **French, Italian, German, Spanish (Spain), Portuguese (Brazil) and Russian**, cloned from the game's own dub of the character in that language. Russian (added 2026-10-31) comes from a different model with a few differences, described in `docs/POCKET_TTS_RUNTIME.md`, "Russian": a SentencePiece `tokenizer.model` instead of `tokenizer.json`, a table of word stresses, and the pack name `PocketTTS-Model-90M-Russian.zip`. Evaluation and numbers: `docs/POCKET_V4_MULTILINGUAL_EVAL_2026-10-22.md`. Implemented on `feat/pocket-languages` (2026-10-22).
 
 For the player: get the multilingual pack for your language (`docs/VOICE_LANGUAGE_PACKS.md`); if you use the Pocket voice, also get the PocketTTS model for that language. Both are on Hugging Face only (`multilingual/` folder of `alystria-ai/ai-npc-cyberpunk-mod-packs`), never on Nexus Mods. The model needs the pack of the same language: it clones from the pack's clips.
 
@@ -56,7 +56,7 @@ The English registry and its prepared voices stay in memory while a language is 
 
 ## Files
 
-`bridge/pocket-language-models.mjs` (discovery, notice, respelling), `bridge/pocket-voice.mjs` (the client: `ensureLanguage`, `prepareLanguage`, `pocketLanguage` on `synthesizeStream`), `bridge/pocket-voice-worker.py` + `bridge/pocket_voice_runtime.py` (the worker), `bridge/voice-selection.mjs` (`pocketLanguageFor`, `warmPocketLanguage`), `bridge/multilingual.mjs`, `bridge/convai-bridge.mjs`, `bridge/voice-routing-log.mjs`, `bridge/support-report.mjs`, `mod/init.lua` + `mod/notices.lua` + `mod/locales/*.lua`, `packaging/build-pocket-models.mjs`. Tests: `bridge/pocket-language-models.test.mjs`, `bridge/pocket-language.test.mjs`, `bridge/pocket-language-selection.test.mjs`, `packaging/pocket-models-build.test.mjs`, `scripts/test_pocket_voice_runtime.py` (`LanguageModels`).
+`bridge/pocket-language-models.mjs` (discovery, notice, respelling), `bridge/pocket-voice.mjs` (the client: `ensureLanguage`, `prepareLanguage`, `pocketLanguage` on `synthesizeStream`), `bridge/pocket-voice-worker.py` + `bridge/pocket_voice_runtime.py` (the worker), `bridge/voice-selection.mjs` (`pocketLanguageFor`, `warmPocketLanguage`), `bridge/multilingual.mjs`, `bridge/convai-bridge.mjs`, `bridge/voice-routing-log.mjs`, `bridge/support-report.mjs`, `mod/init.lua` + `mod/notices.lua` + `mod/locales/*.lua`, `packaging/build-pocket-models.mjs`. Tests: `bridge/pocket-language-models.test.mjs`, `bridge/pocket-language.test.mjs`, `bridge/pocket-language-selection.test.mjs`, `packaging/pocket-models-build.test.mjs`, `scripts/test_pocket_voice_runtime.py` (`LanguageModels`). Russian: `bridge/russian_stress.py` (stress marks), `packaging/build-russian-stress.py` and `packaging/russian-stress/` (the stress table and its source record), `scripts/test_russian_stress.py`.
 
 ## Checked on an install (2026-10-22, game closed)
 

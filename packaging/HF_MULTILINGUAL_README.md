@@ -38,5 +38,8 @@ The Pocket voice runs on your processor and speaks English. With the PocketTTS m
 | German | [PocketTTS-Model-100M-German.zip](PocketTTS-Model-100M-German.zip) | 219 MB |
 | Spanish (Spain) | [PocketTTS-Model-100M-Spanish.zip](PocketTTS-Model-100M-Spanish.zip) | 219 MB |
 | Portuguese (Brazil) | [PocketTTS-Model-100M-Portuguese.zip](PocketTTS-Model-100M-Portuguese.zip) | 219 MB |
+| Russian | [PocketTTS-Model-90M-Russian.zip](PocketTTS-Model-90M-Russian.zip) | 440 MB |
 
 Extract the PocketTTS model after the voice pack. It is Kyutai's Pocket TTS language model (kyutai/pocket-tts), licensed CC-BY-4.0 with Kyutai's prohibited-use terms; the zip carries the notice (NOTICE.txt). Needs the mod and Runtime from the release that announces the models, or newer. The Pocket voice keeps one language model loaded at a time: it changes only when a reply comes in a different language.
+
+The Russian model is GenVoice's xVibePocketTTS, a Russian fine-tune of Kyutai's Pocket TTS (its code is MIT-licensed, its weights are derived from Kyutai's and carry the same CC-BY-4.0 and prohibited-use terms). The zip also holds a table of Russian word stresses (`stress-ru.bin`, built from the openrussian.org data, CC-BY-SA-4.0) that the mod uses to mark the stressed vowel of each word before it is spoken. Everything is credited in the zip's NOTICE.txt.

@@ -212,6 +212,88 @@ Two causes are addressed, neither can be proven without the model:
 
 The done frame of a short line carries `shortLine: {words, estimateFrames, cutFrames}` (the bridge ignores it) for tuning the constants from a log.
 
+## Russian (31 Oct 2026)
+
+The Pocket voice speaks Russian with an optional pack, `PocketTTS-Model-90M-Russian.zip` (folder `ru`, tag `ru`, about 440 MB). It is the sixth PocketTTS model
+(`docs/POCKET_LANGUAGE_MODELS.md`) and follows the same rules: it is used only with the multilingual pack of the same language, and with the model but not the pack the
+reply is written and the game says so once (notice `pocket-pack-ru`, "Russian replies show as text: the Russian multilingual pack is missing.").
+
+**The model.** `genvoice/xVibePocketTTS` on Hugging Face (tag `v0.1.0`, commit `ac4f9f11eb4a110964c75a1e6f4104005455ac18`), GenVoice's Russian-only full fine-tune of
+`kyutai/pocket-tts`, about 90M parameters. The repository has the weights (442 MB), a SentencePiece `tokenizer.model`, `config.yaml` (`tokenizer: sentencepiece`),
+`RUNTIME.json` (`text_accent_format`: U+0301), three voice states (not used: the mod clones the voices from the dub) and `SHA256SUMS`. A check on the owner's PC loaded it with the
+pinned `pocket_tts` (revision `41cbc84`) and the Runtime's Python through the same `TTSModel.load_model` call the worker uses, with no source change, cloned voices from the
+Russian dub references (`multilingual/ru/picked/<character>.wav` and `multilingual/ru/v-voice/v-male.wav`) and ran at a real-time factor of about 0.5 on the CPU. The owner
+listened and approved. The weights could not be fetched where this change was written, so every test below uses fake files.
+
+**What differs from Kyutai's languages.**
+
+| | French and the others | Russian |
+|---|---|---|
+| Tokenizer | `tokenizer.json` (Hugging Face tokenizers) | `tokenizer.model` (SentencePiece), the configuration says `tokenizer: sentencepiece` |
+| Files in the pack | `model.safetensors`, `tokenizer.json`, `inference.yaml`, `NOTICE.txt`, `pocket-model.json` | the same with `tokenizer.model`, plus `stress-ru.bin` |
+| Pack name | `PocketTTS-Model-100M-<Language>.zip` | `PocketTTS-Model-90M-Russian.zip` (`languagePrefixes` of `pocketModels` in `packaging/release.config.json`) |
+| Credits in `NOTICE.txt` | Kyutai | Kyutai (base weights, CC-BY-4.0, with Kyutai's prohibited-use terms), GenVoice (the fine-tune, code MIT), and the stress data (below) |
+
+**The tokenizer asset.** The worker's language assets were `model.safetensors`, `inference.yaml` and `tokenizer.json`. A model now names its tokenizer: the bridge sends
+`expected.tokenizerName` (`tokenizer.model` for Russian, absent for the others, which means `tokenizer.json`) and the hash in `expected.tokenizerSha256`, and a language with
+more files has their hashes in their own fields (`expected.stressSha256`). `inspect_language_export` checks every file against its hash before anything is dropped, as for every
+language (`language_asset_fields`). `checked_config` takes exactly one of the two tokenizer files, refuses a `tokenizer.model` under a configuration that does not say `sentencepiece`
+(the upstream loader reads a file ending in `.json` as JSON and anything else as SentencePiece, by the `tokenizer` field), and points `tokenizer_path` at the file in the pack.
+The bridge lists the pack's files per language (`pocketModelFiles`, `POCKET_LANGUAGES.ru` in `bridge/pocket-language-models.mjs`), so a Russian manifest that lists `tokenizer.json`
+or has no `stress-ru.bin` is not used. The builder (`packaging/build-pocket-models.mjs`) makes `inference.yaml` from the model's `config.yaml` with the weight and tokenizer paths
+pointed at the pack files, and a missing `weights_path_without_voice_cloning` line is accepted for this model only (the worker sets it to `null` itself).
+
+**Stress marks.** The model reads a stressed vowel as the vowel followed by U+0301. Written Russian has no marks, so before a Russian line is synthesized the worker does two
+cheap passes over the line (`language_text` in `bridge/pocket_voice_runtime.py`, the work is in `bridge/russian_stress.py`):
+
+1. a written `+` before a vowel becomes that vowel and U+0301 (`сл+ово`), `+ё` loses its plus and `ё` stays unmarked (it is always stressed), a `+` anywhere else (`2+2`) stays;
+2. every word that has no mark, no `ё` and more than one vowel is looked up in a table of plain word to stressed letter and gets its mark. A word that is not in the table, a name,
+   a word the data stresses two ways (`города`, `дела`, `замок`), a word with Latin letters or digits stuck to it and a word that already has a mark go through as written.
+
+The table is `stress-ru.bin` in the pack. It is read when the Russian model becomes resident (after the model loaded, never at start, never for a player who does not speak Russian) and
+dropped with the model when another language or English replaces it (`lang["stress"]` in the worker). A table that cannot be read leaves the voice running with the `+` marks only. A
+lookup is a binary search in one `bytes` object, not a Python dictionary: measured here, loading takes about 40 ms and about 6 MB, and a line of fifteen words costs about 0.4 ms, far
+under the first audio of a reply (80 to 200 ms), so the pass is not on the path of the frames the game draws. The pass runs before the short-line plan, in the worker, so the text the
+model is given is the marked one.
+
+**Where the table comes from.** The openrussian.org dictionary data, published on GitHub as `Badestrand/russian-dictionary` (commit `50e210c4803237779cb562bc1abcea529066031c`), licence
+**CC-BY-SA-4.0** (the repository says so in its README and `LICENSE`), which allows redistribution and adaptation with attribution and the same licence for the adaptation. Four tab separated files hold
+every word form with a `'` after the stressed vowel. `packaging/build-russian-stress.py` downloads them at that commit (each file is checked against a pinned SHA-256), keeps the forms that are
+plain Russian words with two or more vowels and no `ё`, and writes the table: 778,369 usable word forms, 529,820 words kept, 6,405 words left out because the data stresses them two ways
+(`--ambiguous first` keeps the first stress in the data instead). The result is 1.5 MB, committed as `packaging/russian-stress/stress-ru.bin` with its record `source.json` (source, commit,
+licence, file hashes, counts, digest). Because the file is an adaptation of CC-BY-SA data, the licence travels with it: the pack's `NOTICE.txt` names the source, the licence and the changes, and
+`THIRD_PARTY_NOTICES.md` lists it. Format (version 1, `bridge/russian_stress.py`): a header with a SHA-256 of the payload, then zlib of fixed-width records grouped by word length (the word in
+Windows-1251, one byte per letter, and the index of the stressed letter), sorted for binary search.
+
+To rebuild the table (the committed one is already built and `--check` tells whether a rebuild would differ):
+
+```powershell
+python packaging\build-russian-stress.py --download <cache folder> --out packaging\russian-stress\stress-ru.bin --source-info packaging\russian-stress\source.json
+python packaging\build-russian-stress.py --download <cache folder> --check packaging\russian-stress\stress-ru.bin
+```
+
+**Building the pack.** The weights come from the model's repository, not from Kyutai's gated one:
+
+```powershell
+node packaging\build-pocket-models.mjs --languages ru --russian-source <folder for genvoice/xVibePocketTTS v0.1.0> --out <output folder> --download
+```
+
+`--russian-source` is a folder with the repository's files (`config.yaml`, the weights and `tokenizer.model` that it names, and its checksum list). `--download` fetches the missing ones from
+the pinned revision. The builder checks each file against the repository's own checksum list, runs the configuration through the same checks as the other languages (six layers, float32,
+24 kHz mono, plus `tokenizer: sentencepiece` for the `.model` file), checks the stress table, and writes `PocketTTS-Model-90M-Russian.zip` and its file list under `<output folder>\ru\`.
+The weights' size and SHA-256 are not pinned in the source yet (they could not be read where this was written): the first build prints the lines to paste into `RUSSIAN_UPSTREAM.pins`
+in `packaging/build-pocket-models.mjs`, after which a different file stops the build.
+
+**Tests.** `scripts/test_russian_stress.py` (the `+` marks, the table stress on unmarked words, words that are left alone, the format and a damaged file, the build script on small fixtures, the committed
+table), `scripts/test_pocket_voice_runtime.py` (`LanguageModels`: `ru` in the list, a `tokenizer.model` asset checked against its hash and relocated, refused under a configuration that does not say
+`sentencepiece`, a table read for Russian only and released with the model, the marked text given to the model, the stress module not imported until Russian needs it),
+`bridge/pocket-language-models.test.mjs` (`ru` in the list, the Russian manifest and its `expected` hashes, a manifest with the wrong tokenizer or no table refused),
+`packaging/pocket-models-build.test.mjs` (the Russian configuration, notice, manifest, zip layout and a build from stand-in files) and `packaging/release.test.mjs` (the pack name).
+
+**Not checked without the real files.** That `config.yaml` has the lines the builder edits (it says so and stops if not), the weights file name (taken from the configuration's `weights_path`),
+and how the model sounds with the table's marks on real lines: the owner's check used the model with its own text handling, the dictionary marks are new. Listen to a few lines
+(the Russian dub clones, one with a `+` mark, one with a name the table does not know) before the pack is published.
+
 ## Cancellation and ownership
 
 The worker's reader can signal cancellation while generation is in progress.
